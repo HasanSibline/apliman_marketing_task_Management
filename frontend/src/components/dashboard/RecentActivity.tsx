@@ -82,7 +82,7 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
                   {' '}{activity.message}
                   {activity.taskTitle && (
                     <span className="font-medium text-primary-600">
-                      {' "}{activity.taskTitle}"
+                      {' "'}{activity.taskTitle}{'"'}
                     </span>
                   )}
                 </p>
