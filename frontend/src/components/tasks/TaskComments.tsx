@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { tasksApi } from '@/services/api'
-import toast from 'react-hot-toast'
 
 interface TaskCommentsProps {
   taskId: string
@@ -12,7 +11,6 @@ interface TaskCommentsProps {
 }
 
 const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onCommentsUpdated }) => {
-  const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -26,11 +24,10 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
     try {
       await tasksApi.addComment(taskId, newComment.trim())
       setNewComment('')
-      toast.success('Comment added successfully!')
+      console.log('Comment added successfully!')
       onCommentsUpdated()
     } catch (error) {
       console.error('Error adding comment:', error)
-      toast.error('Failed to add comment')
     } finally {
       setSubmitting(false)
     }

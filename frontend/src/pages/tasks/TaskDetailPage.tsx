@@ -16,7 +16,6 @@ const TaskDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
   const dispatch = useAppDispatch()
   const { currentTask, isLoading } = useAppSelector((state) => state.tasks)
-  const { user } = useAppSelector((state) => state.auth)
 
   useEffect(() => {
     if (id) {

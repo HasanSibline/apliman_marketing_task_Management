@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch } from '@/hooks/redux'
 import { exportTasks } from '@/store/slices/analyticsSlice'
-import toast from 'react-hot-toast'
 
 interface ExportButtonProps {
   filters?: {
@@ -22,10 +21,9 @@ const ExportButton: React.FC<ExportButtonProps> = ({ filters = {}, className = '
     setExporting(true)
     try {
       await dispatch(exportTasks(filters)).unwrap()
-      toast.success('Tasks exported successfully!')
+      console.log('Tasks exported successfully!')
     } catch (error) {
       console.error('Export error:', error)
-      toast.error('Failed to export tasks')
     } finally {
       setExporting(false)
     }

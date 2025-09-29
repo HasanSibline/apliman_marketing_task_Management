@@ -2,7 +2,6 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { updateTask } from '@/store/slices/tasksSlice'
-import { TaskPhase } from '@/types/task'
 
 interface TaskBoardProps {
   tasks: any[]
@@ -48,7 +47,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     }
   }
 
-  const canMoveTask = (task: any, newPhase: string) => {
+  const canMoveTask = (_task: any, _newPhase: string) => {
     // Only admins can move tasks between phases
     return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
   }

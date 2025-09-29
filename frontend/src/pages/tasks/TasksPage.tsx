@@ -151,25 +151,30 @@ const TasksPage: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Tasks List */}
-      <div className="space-y-4">
-        {isLoading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-          </div>
-        ) : tasks.length === 0 ? (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No tasks found</p>
-          </div>
-        ) : (
-          tasks.map((task: any, index: number) => (
+      {/* Tasks Content */}
+      {isLoading ? (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+      ) : tasks.length === 0 ? (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No tasks found</p>
+        </div>
+      ) : viewMode === 'board' ? (
+        <TaskBoard 
+          tasks={tasks} 
+          onTaskClick={(task) => navigate(`/tasks/${task.id}`)}
+        />
+      ) : (
+        <div className="space-y-4">
+          {tasks.map((task: any, index: number) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
               className="card hover:shadow-md transition-shadow duration-200 cursor-pointer"
-              onClick={() => window.location.href = `/tasks/${task.id}`}
+              onClick={() => navigate(`/tasks/${task.id}`)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -192,8 +197,8 @@ const TasksPage: React.FC = () => {
                       <span>Assigned to: {task.assignedTo.name}</span>
                     )}
                     <span>Created by: {task.createdBy.name}</span>
-                    <span>{task._count.files} files</span>
-                    <span>{task._count.comments} comments</span>
+                    <span>{task._count?.files || 0} files</span>
+                    <span>{task._count?.comments || 0} comments</span>
                   </div>
                 </div>
                 <div className="text-right">
@@ -208,9 +213,9 @@ const TasksPage: React.FC = () => {
                 </div>
               </div>
             </motion.div>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (

@@ -4,12 +4,10 @@ import {
   CloudArrowUpIcon, 
   DocumentIcon, 
   PhotoIcon,
-  XMarkIcon,
   TrashIcon 
 } from '@heroicons/react/24/outline'
-import { useAppDispatch } from '@/hooks/redux'
 import { filesApi } from '@/services/api'
-import toast from 'react-hot-toast'
+import { useAppDispatch } from '@/hooks/redux'
 
 interface FileUploadProps {
   taskId: string
@@ -29,7 +27,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
     const validFiles = Array.from(selectedFiles).filter(file => {
       // Check file size (5MB limit)
       if (file.size > 5 * 1024 * 1024) {
-        toast.error(`File ${file.name} is too large. Maximum size is 5MB.`)
+        console.error(`File ${file.name} is too large. Maximum size is 5MB.`)
         return false
       }
 
@@ -42,7 +40,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
       ]
       
       if (!allowedTypes.includes(file.type)) {
-        toast.error(`File ${file.name} type is not supported.`)
+        console.error(`File ${file.name} type is not supported.`)
         return false
       }
 
@@ -58,18 +56,23 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
     setUploading(true)
     
     try {
-      for (const file of filesToUpload) {
-        const formData = new FormData()
-        formData.append('files', file)
-        
-        await filesApi.upload(taskId, formData)
-      }
+      // Convert File[] to FileList-like object
+      const fileList = {
+        length: filesToUpload.length,
+        item: (index: number) => filesToUpload[index],
+        [Symbol.iterator]: function* () {
+          for (let i = 0; i < this.length; i++) {
+            yield this.item(i)
+          }
+        }
+      } as FileList
       
-      toast.success(`${filesToUpload.length} file(s) uploaded successfully!`)
+      await filesApi.upload(taskId, fileList)
+      
+      console.log(`${filesToUpload.length} file(s) uploaded successfully!`)
       onFilesUpdated()
     } catch (error) {
       console.error('Upload error:', error)
-      toast.error('Failed to upload files')
     } finally {
       setUploading(false)
     }
@@ -78,10 +81,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
   const handleDeleteFile = async (fileId: string, fileName: string) => {
     try {
       await filesApi.delete(fileId)
-      toast.success(`${fileName} deleted successfully`)
+      console.log(`${fileName} deleted successfully`)
       onFilesUpdated()
     } catch (error) {
-      toast.error('Failed to delete file')
+      console.error('Failed to delete file', error)
     }
   }
 

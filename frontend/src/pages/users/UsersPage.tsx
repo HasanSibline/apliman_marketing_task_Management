@@ -1,13 +1,15 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { PlusIcon, UserIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchUsers } from '@/store/slices/usersSlice'
+import CreateUserModal from '@/components/users/CreateUserModal'
 
 const UsersPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { users, isLoading } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
     dispatch(fetchUsers({}))
@@ -36,8 +38,11 @@ const UsersPage: React.FC = () => {
             Manage team members and their roles
           </p>
         </div>
-        {user?.role === 'SUPER_ADMIN' && (
-          <button className="btn-primary">
+        {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary"
+          >
             <PlusIcon className="h-4 w-4 mr-2" />
             Add User
           </button>
@@ -102,6 +107,12 @@ const UsersPage: React.FC = () => {
           ))
         )}
       </div>
+
+      {/* Create User Modal */}
+      <CreateUserModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
     </div>
   )
 }
