@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { PlusIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, FunnelIcon, Squares2X2Icon, ListBulletIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTasks, setFilters } from '@/store/slices/tasksSlice'
+import CreateTaskModal from '@/components/tasks/CreateTaskModal'
+import ExportButton from '@/components/tasks/ExportButton'
+import TaskBoard from '@/components/tasks/TaskBoard'
+import { useNavigate } from 'react-router-dom'
 
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { tasks, isLoading, filters, pagination } = useAppSelector((state) => state.tasks)
   const { user } = useAppSelector((state) => state.auth)
   const [showFilters, setShowFilters] = useState(false)
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [viewMode, setViewMode] = useState<'list' | 'board'>('board')
 
   useEffect(() => {
     dispatch(fetchTasks(filters))
@@ -44,6 +51,32 @@ const TasksPage: React.FC = () => {
           </p>
         </div>
         <div className="flex items-center space-x-3">
+          {/* View Toggle */}
+          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode('board')}
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'board' 
+                  ? 'bg-white text-primary-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="Board View"
+            >
+              <Squares2X2Icon className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-md transition-colors ${
+                viewMode === 'list' 
+                  ? 'bg-white text-primary-600 shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="List View"
+            >
+              <ListBulletIcon className="h-4 w-4" />
+            </button>
+          </div>
+
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="btn-secondary"
@@ -52,10 +85,16 @@ const TasksPage: React.FC = () => {
             Filters
           </button>
           {isAdmin && (
-            <button className="btn-primary">
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Create Task
-            </button>
+            <>
+              <ExportButton filters={filters} />
+              <button 
+                onClick={() => setShowCreateModal(true)}
+                className="btn-primary"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Create Task
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -195,6 +234,12 @@ const TasksPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Create Task Modal */}
+      <CreateTaskModal 
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+      />
     </div>
   )
 }

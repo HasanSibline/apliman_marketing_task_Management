@@ -9,6 +9,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
+import FileUpload from '@/components/tasks/FileUpload'
+import TaskComments from '@/components/tasks/TaskComments'
 
 const TaskDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -116,34 +118,17 @@ const TaskDetailPage: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="card"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center mb-4">
               <PaperClipIcon className="h-5 w-5 mr-2" />
               Files ({(currentTask as any).files?.length || 0})
             </h2>
-            <button className="btn-secondary text-sm">
-              Upload File
-            </button>
-          </div>
-          
-          <div className="space-y-2">
-            {(currentTask as any).files && (currentTask as any).files.length > 0 ? (
-              (currentTask as any).files.map((file: any) => (
-                <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium text-gray-900">{file.fileName}</p>
-                    <p className="text-sm text-gray-500">
-                      {(file.fileSize / 1024).toFixed(1)} KB • {new Date(file.uploadedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <button className="text-primary-600 hover:text-primary-800 text-sm">
-                    Download
-                  </button>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No files uploaded</p>
-            )}
+            
+            <FileUpload 
+              taskId={currentTask.id}
+              files={(currentTask as any).files || []}
+              onFilesUpdated={() => dispatch(fetchTaskById(currentTask.id))}
+            />
           </div>
         </motion.div>
 
@@ -154,59 +139,17 @@ const TaskDetailPage: React.FC = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="card"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center mb-4">
               <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
               Comments ({(currentTask as any).comments?.length || 0})
             </h2>
-          </div>
-          
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {(currentTask as any).comments && (currentTask as any).comments.length > 0 ? (
-              (currentTask as any).comments.map((comment: any) => (
-                <div key={comment.id} className="flex space-x-3">
-                  <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
-                    <span className="text-sm font-medium text-white">
-                      {comment.user.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-medium text-gray-900">{comment.user.name}</span>
-                      <span className="text-sm text-gray-500">
-                        {new Date(comment.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-gray-700">{comment.comment}</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center py-4">No comments yet</p>
-            )}
-          </div>
-
-          {/* Add Comment */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <div className="flex space-x-3">
-              <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-medium text-white">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex-1">
-                <textarea
-                  placeholder="Add a comment..."
-                  className="input-field resize-none"
-                  rows={3}
-                />
-                <div className="mt-2 flex justify-end">
-                  <button className="btn-primary text-sm">
-                    Add Comment
-                  </button>
-                </div>
-              </div>
-            </div>
+            
+            <TaskComments 
+              taskId={currentTask.id}
+              comments={(currentTask as any).comments || []}
+              onCommentsUpdated={() => dispatch(fetchTaskById(currentTask.id))}
+            />
           </div>
         </motion.div>
       </div>

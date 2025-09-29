@@ -80,6 +80,7 @@ export class TasksService {
         { createdById: userId },
       ];
     }
+    // Super Admins and Admins can see all tasks (no additional filtering needed)
 
     // Additional filters
     if (phase) {
