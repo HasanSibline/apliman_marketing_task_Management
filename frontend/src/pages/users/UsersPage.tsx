@@ -10,7 +10,7 @@ const UsersPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
 
   useEffect(() => {
-    dispatch(fetchUsers())
+    dispatch(fetchUsers({}))
   }, [dispatch])
 
   const statusColors = {
@@ -55,7 +55,7 @@ const UsersPage: React.FC = () => {
             <p className="text-gray-500">No users found</p>
           </div>
         ) : (
-          users.map((userItem, index) => (
+          users.map((userItem: any, index: number) => (
             <motion.div
               key={userItem.id}
               initial={{ opacity: 0, y: 20 }}

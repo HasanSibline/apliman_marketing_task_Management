@@ -4,7 +4,6 @@ import {
   ChartBarIcon,
   ClockIcon,
   CheckCircleIcon,
-  ExclamationTriangleIcon,
   UsersIcon,
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -58,7 +57,7 @@ const DashboardPage: React.FC = () => {
     },
   ]
 
-  const onlineMembers = teamMembers.filter(member => member.isOnline)
+  const onlineMembers = teamMembers.filter((member: any) => member.isOnline)
 
   if (isLoading) {
     return (
@@ -126,7 +125,7 @@ const DashboardPage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {Object.entries(phaseCount).map(([phase, count]) => (
             <div key={phase} className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{count}</div>
+              <div className="text-2xl font-bold text-gray-900">{count as number}</div>
               <div className="text-sm text-gray-600 capitalize">
                 {phase.replace('_', ' ').toLowerCase()}
               </div>
@@ -151,7 +150,7 @@ const DashboardPage: React.FC = () => {
             </span>
           </div>
           <div className="flex -space-x-2">
-            {onlineMembers.slice(0, 8).map((member) => (
+            {onlineMembers.slice(0, 8).map((member: any) => (
               <div
                 key={member.id}
                 className="relative h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-medium border-2 border-white"
@@ -180,7 +179,7 @@ const DashboardPage: React.FC = () => {
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
           <div className="space-y-3">
-            {dashboard.recentActivity.slice(0, 5).map((activity) => (
+            {dashboard.recentActivity.slice(0, 5).map((activity: any) => (
               <div key={activity.id} className="flex items-start space-x-3">
                 <div className="flex-shrink-0">
                   <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">

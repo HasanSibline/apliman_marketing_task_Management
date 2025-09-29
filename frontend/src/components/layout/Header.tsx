@@ -23,10 +23,10 @@ const Header: React.FC = () => {
     dispatch(logout())
   }
 
-  const unreadNotifications = notifications.filter(n => !n.read).length
+  const unreadNotifications = notifications.filter((n: any) => !n.read).length
 
   // Get online team members count
-  const onlineMembers = teamMembers.filter(member => member.isOnline).length
+  const onlineMembers = teamMembers.filter((member: any) => member.isOnline).length
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">

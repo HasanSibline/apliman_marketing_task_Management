@@ -30,14 +30,14 @@ const initialState: PresenceState = {
 // Async thunks
 export const initializeSocket = createAsyncThunk(
   'presence/initializeSocket',
-  async (_, { getState, dispatch, rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
       const token = localStorage.getItem('token')
       if (!token) {
         return rejectWithValue('No authentication token')
       }
 
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001'
+      const socketUrl = (import.meta as any).env.VITE_SOCKET_URL || 'http://localhost:3001'
       const socket = io(socketUrl, {
         auth: {
           token,
@@ -162,7 +162,7 @@ const presenceSlice = createSlice({
     builder
       // Initialize Socket
       .addCase(initializeSocket.fulfilled, (state, action) => {
-        state.socket = action.payload
+        state.socket = action.payload as any
         state.error = null
       })
       .addCase(initializeSocket.rejected, (state, action) => {

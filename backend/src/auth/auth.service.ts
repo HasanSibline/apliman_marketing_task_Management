@@ -91,8 +91,8 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    const { password: _, ...result } = user;
-    return result;
+    // User service already excludes password from response
+    return user;
   }
 
   async logout(userId: string) {

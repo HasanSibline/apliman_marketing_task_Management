@@ -7,7 +7,6 @@ import {
   UsersIcon,
   ChartBarIcon,
   UserCircleIcon,
-  Cog6ToothIcon,
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 

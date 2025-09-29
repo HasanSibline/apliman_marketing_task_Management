@@ -39,13 +39,13 @@ const initialState: TasksState = {
 // Async thunks
 export const fetchTasks = createAsyncThunk(
   'tasks/fetchTasks',
-  async (params?: {
+  async (params: {
     phase?: string
     assignedToId?: string
     createdById?: string
     page?: number
     limit?: number
-  }, { rejectWithValue }) => {
+  } = {}, { rejectWithValue }) => {
     try {
       const response = await tasksApi.getAll(params)
       return response
@@ -69,7 +69,7 @@ export const fetchTaskById = createAsyncThunk(
 
 export const fetchMyTasks = createAsyncThunk(
   'tasks/fetchMyTasks',
-  async (params?: { phase?: string; page?: number; limit?: number }, { rejectWithValue }) => {
+  async (params: { phase?: string; page?: number; limit?: number } = {}, { rejectWithValue }) => {
     try {
       const response = await tasksApi.getMyTasks(params)
       return response

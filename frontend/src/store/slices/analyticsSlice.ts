@@ -75,7 +75,7 @@ export const fetchDashboardAnalytics = createAsyncThunk(
 
 export const fetchUserAnalytics = createAsyncThunk(
   'analytics/fetchUserAnalytics',
-  async (userId?: string, { rejectWithValue }) => {
+  async (userId: string | undefined = undefined, { rejectWithValue }) => {
     try {
       const response = await analyticsApi.getUserAnalytics(userId)
       return response
@@ -111,12 +111,12 @@ export const fetchTaskAnalytics = createAsyncThunk(
 
 export const exportTasks = createAsyncThunk(
   'analytics/exportTasks',
-  async (params?: {
+  async (params: {
     phase?: string
     assignedToId?: string
     dateFrom?: string
     dateTo?: string
-  }, { rejectWithValue }) => {
+  } = {}, { rejectWithValue }) => {
     try {
       const response = await analyticsApi.exportTasks(params)
       

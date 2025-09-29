@@ -51,7 +51,7 @@ export class TasksService {
 
       return task;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error && typeof error === 'object' && 'code' in error) {
         if (error.code === 'P2003') {
           throw new BadRequestException('Invalid assignedToId provided');
         }
@@ -70,7 +70,7 @@ export class TasksService {
     limit: number = 10,
   ) {
     const skip = (page - 1) * limit;
-    const where: Prisma.TaskWhereInput = {};
+    const where: any = {};
 
     // Role-based filtering
     if (userRole === UserRole.EMPLOYEE) {
@@ -252,12 +252,12 @@ export class TasksService {
 
       // Update analytics based on phase changes
       if (updateTaskDto.phase) {
-        await this.handlePhaseChange(updatedTask, existingTask.phase);
+        await this.handlePhaseChange(updatedTask, existingTask.phase as TaskPhase);
       }
 
       return updatedTask;
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error && typeof error === 'object' && 'code' in error) {
         if (error.code === 'P2025') {
           throw new NotFoundException('Task not found');
         }
@@ -281,7 +281,7 @@ export class TasksService {
 
       return { message: 'Task deleted successfully' };
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error && typeof error === 'object' && 'code' in error) {
         if (error.code === 'P2025') {
           throw new NotFoundException('Task not found');
         }

@@ -16,9 +16,7 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-  LineChart,
-  Line
+  Cell
 } from 'recharts'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { 
@@ -46,7 +44,7 @@ const AnalyticsPage: React.FC = () => {
   }, [dispatch])
 
   const handleExport = () => {
-    dispatch(exportTasks())
+    dispatch(exportTasks({}))
   }
 
   // Prepare chart data
@@ -167,7 +165,7 @@ const AnalyticsPage: React.FC = () => {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {taskPhaseData.map((entry, index) => (
+                {taskPhaseData.map((_entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>

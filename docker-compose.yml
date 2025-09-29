@@ -1,26 +1,6 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
-  postgres:
-    image: postgres:15-alpine
-    container_name: taskmanagement-db
-    environment:
-      POSTGRES_DB: taskmanagement
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - taskmanagement-network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
   # Backend API
   backend:
     build:
@@ -28,22 +8,19 @@ services:
       dockerfile: Dockerfile
     container_name: taskmanagement-backend
     environment:
-      DATABASE_URL: postgresql://postgres:postgres123@postgres:5432/taskmanagement
+      DATABASE_URL: postgresql://marketing_system_user:1vACneXxnqKAZR3eBNwNPrWl4s1ZXyLH@dpg-d3d7f7i4d50c73d560qg-a.oregon-postgres.render.com/marketing_system?sslmode=require
       JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
       JWT_EXPIRES_IN: 7d
       AI_SERVICE_URL: http://ai-service:8001
       UPLOAD_PATH: ./uploads
       MAX_FILE_SIZE: 5242880
       PORT: 3001
-      NODE_ENV: production
-      FRONTEND_URL: http://localhost:5173
+      NODE_ENV: development
+      CORS_ORIGIN: http://localhost:5173
     ports:
       - "3001:3001"
     volumes:
       - backend_uploads:/app/uploads
-    depends_on:
-      postgres:
-        condition: service_healthy
     networks:
       - taskmanagement-network
     healthcheck:
@@ -94,7 +71,6 @@ services:
       - taskmanagement-network
 
 volumes:
-  postgres_data:
   backend_uploads:
   ai_models:
 

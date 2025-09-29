@@ -123,7 +123,7 @@ const TasksPage: React.FC = () => {
             <p className="text-gray-500">No tasks found</p>
           </div>
         ) : (
-          tasks.map((task, index) => (
+          tasks.map((task: any, index: number) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 20 }}

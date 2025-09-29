@@ -119,7 +119,7 @@ const TaskDetailPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <PaperClipIcon className="h-5 w-5 mr-2" />
-              Files ({currentTask.files?.length || 0})
+              Files ({(currentTask as any).files?.length || 0})
             </h2>
             <button className="btn-secondary text-sm">
               Upload File
@@ -127,8 +127,8 @@ const TaskDetailPage: React.FC = () => {
           </div>
           
           <div className="space-y-2">
-            {currentTask.files && currentTask.files.length > 0 ? (
-              currentTask.files.map((file: any) => (
+            {(currentTask as any).files && (currentTask as any).files.length > 0 ? (
+              (currentTask as any).files.map((file: any) => (
                 <div key={file.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <p className="font-medium text-gray-900">{file.fileName}</p>
@@ -157,13 +157,13 @@ const TaskDetailPage: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-gray-900 flex items-center">
               <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
-              Comments ({currentTask.comments?.length || 0})
+              Comments ({(currentTask as any).comments?.length || 0})
             </h2>
           </div>
           
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {currentTask.comments && currentTask.comments.length > 0 ? (
-              currentTask.comments.map((comment: any) => (
+            {(currentTask as any).comments && (currentTask as any).comments.length > 0 ? (
+              (currentTask as any).comments.map((comment: any) => (
                 <div key={comment.id} className="flex space-x-3">
                   <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0">
                     <span className="text-sm font-medium text-white">

@@ -35,7 +35,7 @@ const initialState: UsersState = {
 // Async thunks
 export const fetchUsers = createAsyncThunk(
   'users/fetchUsers',
-  async (params?: { role?: string; status?: string }, { rejectWithValue }) => {
+  async (params: { role?: string; status?: string } = {}, { rejectWithValue }) => {
     try {
       const response = await usersApi.getAll(params)
       return response
