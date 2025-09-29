@@ -1,0 +1,137 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  ADMIN
+  EMPLOYEE
+}
+
+enum UserStatus {
+  ACTIVE
+  AWAY
+  OFFLINE
+  RETIRED
+}
+
+enum TaskPhase {
+  PENDING_APPROVAL
+  APPROVED
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  ARCHIVED
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      UserRole @default(EMPLOYEE)
+  position  String?
+  status    UserStatus @default(OFFLINE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastActiveAt DateTime?
+
+  // Relations
+  createdTasks    Task[] @relation("TaskCreator")
+  assignedTasks   Task[] @relation("TaskAssignee")
+  taskComments    TaskComment[]
+  analytics       Analytics?
+
+  @@map("users")
+}
+
+model Task {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  phase       TaskPhase @default(PENDING_APPROVAL)
+  goals       String?
+  priority    Int       @default(1) // 1-5 scale
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Foreign Keys
+  assignedToId String?
+  createdById  String
+
+  // Relations
+  assignedTo   User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy    User          @relation("TaskCreator", fields: [createdById], references: [id])
+  files        TaskFile[]
+  comments     TaskComment[]
+
+  @@map("tasks")
+}
+
+model TaskFile {
+  id         String   @id @default(uuid())
+  taskId     String
+  fileName   String
+  filePath   String
+  fileType   String
+  fileSize   Int      // Size in bytes after compression
+  mimeType   String
+  uploadedAt DateTime @default(now())
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_files")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  comment   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("task_comments")
+}
+
+model Analytics {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  tasksAssigned    Int      @default(0)
+  tasksCompleted   Int      @default(0)
+  tasksInProgress  Int      @default(0)
+  interactions     Int      @default(0)
+  totalTimeSpent   Int      @default(0) // in minutes
+  lastActive       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("analytics")
+}
+
+model SystemSettings {
+  id                String   @id @default(uuid())
+  maxFileSize       Int      @default(5242880) // 5MB in bytes
+  allowedFileTypes  String[] @default(["image/jpeg", "image/png", "image/webp", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"])
+  sessionTimeout    Int      @default(480) // 8 hours in minutes
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("system_settings")
+}

@@ -1,0 +1,22 @@
+// Prisma enum types
+export enum UserRole {
+  SUPER_ADMIN = 'SUPER_ADMIN',
+  ADMIN = 'ADMIN',
+  EMPLOYEE = 'EMPLOYEE',
+}
+
+export enum UserStatus {
+  ACTIVE = 'ACTIVE',
+  AWAY = 'AWAY',
+  OFFLINE = 'OFFLINE',
+  RETIRED = 'RETIRED',
+}
+
+export enum TaskPhase {
+  PENDING_APPROVAL = 'PENDING_APPROVAL',
+  APPROVED = 'APPROVED',
+  ASSIGNED = 'ASSIGNED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  ARCHIVED = 'ARCHIVED',
+}

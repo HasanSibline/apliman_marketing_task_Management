@@ -1,0 +1,267 @@
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { Prisma } from '@prisma/client';
+import { UserRole, UserStatus } from '../types/prisma';
+
+@Injectable()
+export class UsersService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async create(createUserDto: CreateUserDto) {
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          ...createUserDto,
+          status: UserStatus.ACTIVE,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          position: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      // Create analytics record for the new user
+      await this.prisma.analytics.create({
+        data: {
+          userId: user.id,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new BadRequestException('User with this email already exists');
+        }
+      }
+      throw error;
+    }
+  }
+
+  async findAll(role?: UserRole, status?: UserStatus) {
+    const where: Prisma.UserWhereInput = {};
+    
+    if (role) {
+      where.role = role;
+    }
+    
+    if (status) {
+      where.status = status;
+    }
+
+    return this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        position: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        lastActiveAt: true,
+        _count: {
+          select: {
+            assignedTasks: true,
+            createdTasks: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  async findById(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        position: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        lastActiveAt: true,
+        password: true, // Include password for authentication
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
+  }
+
+  async findByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        position: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        lastActiveAt: true,
+        password: true, // Include password for authentication
+      },
+    });
+  }
+
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: updateUserDto,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          position: true,
+          status: true,
+          createdAt: true,
+          updatedAt: true,
+          lastActiveAt: true,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('User not found');
+        }
+        if (error.code === 'P2002') {
+          throw new BadRequestException('Email already exists');
+        }
+      }
+      throw error;
+    }
+  }
+
+  async updateUserStatus(id: string, status: UserStatus) {
+    const updateData: any = { status };
+    
+    if (status === UserStatus.ACTIVE) {
+      updateData.lastActiveAt = new Date();
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        status: true,
+        lastActiveAt: true,
+      },
+    });
+  }
+
+  async updateLastActive(id: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        lastActiveAt: new Date(),
+      },
+      select: {
+        id: true,
+        lastActiveAt: true,
+      },
+    });
+  }
+
+  async updatePassword(id: string, hashedPassword: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: {
+        password: hashedPassword,
+      },
+      select: {
+        id: true,
+      },
+    });
+  }
+
+  async remove(id: string) {
+    try {
+      // Soft delete by setting status to RETIRED
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          status: UserStatus.RETIRED,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          status: true,
+        },
+      });
+
+      return user;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('User not found');
+        }
+      }
+      throw error;
+    }
+  }
+
+  async getUserStats(id: string) {
+    const user = await this.findById(id);
+    
+    const [assignedTasks, createdTasks, analytics] = await Promise.all([
+      this.prisma.task.count({
+        where: { assignedToId: id },
+      }),
+      this.prisma.task.count({
+        where: { createdById: id },
+      }),
+      this.prisma.analytics.findUnique({
+        where: { userId: id },
+      }),
+    ]);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        position: user.position,
+        status: user.status,
+        lastActiveAt: user.lastActiveAt,
+      },
+      stats: {
+        assignedTasks,
+        createdTasks,
+        analytics: analytics || {
+          tasksAssigned: 0,
+          tasksCompleted: 0,
+          tasksInProgress: 0,
+          interactions: 0,
+          totalTimeSpent: 0,
+        },
+      },
+    };
+  }
+}
