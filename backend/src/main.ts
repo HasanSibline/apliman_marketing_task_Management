@@ -34,18 +34,16 @@ async function bootstrap() {
   // API prefix
   app.setGlobalPrefix('api');
 
-  // Swagger documentation
-  if (process.env.NODE_ENV !== 'production') {
-    const config = new DocumentBuilder()
-      .setTitle('Task Management API')
-      .setDescription('AI-powered Task Management System API')
-      .setVersion('1.0')
-      .addBearerAuth()
-      .build();
-    
-    const document = SwaggerModule.createDocument(app, config);
-    SwaggerModule.setup('api/docs', app, document);
-  }
+  // Swagger documentation (always available)
+  const config = new DocumentBuilder()
+    .setTitle('Task Management API')
+    .setDescription('AI-powered Task Management System API')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   await app.listen(port);
   console.log(`🚀 Application is running on: http://localhost:${port}`);
