@@ -17,16 +17,22 @@ export class AiService {
 
   async summarizeText(text: string, maxLength: number = 150): Promise<string> {
     try {
+      this.logger.log(`Summarizing text: ${text.length} characters`);
+      
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/summarize`, {
           text,
           max_length: maxLength,
+        }, {
+          timeout: 10000, // 10 second timeout
         }),
       );
 
+      this.logger.log(`Summarization successful: ${response.data.summary.length} characters`);
       return response.data.summary;
     } catch (error) {
-      this.logger.error('Error summarizing text:', error);
+      this.logger.error('Error summarizing text:', error.message);
+      this.logger.error('AI Service URL:', this.aiServiceUrl);
       // Fallback: return truncated text
       return text.length > maxLength 
         ? text.substring(0, maxLength - 3) + '...'
@@ -39,19 +45,24 @@ export class AiService {
     reasoning: string;
   }> {
     try {
+      this.logger.log(`Analyzing priority for: ${taskTitle}`);
+      
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/analyze-priority`, {
           title: taskTitle,
           description: taskDescription,
+        }, {
+          timeout: 10000, // 10 second timeout
         }),
       );
 
+      this.logger.log(`Priority analysis successful: ${response.data.priority}`);
       return {
         suggestedPriority: response.data.priority,
         reasoning: response.data.reasoning,
       };
     } catch (error) {
-      this.logger.error('Error analyzing priority:', error);
+      this.logger.error('Error analyzing priority:', error.message);
       // Fallback: return default priority
       return {
         suggestedPriority: 3,
@@ -141,11 +152,14 @@ export class AiService {
   async isAiServiceHealthy(): Promise<boolean> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.aiServiceUrl}/health`),
+        this.httpService.get(`${this.aiServiceUrl}/health`, {
+          timeout: 5000, // 5 second timeout
+        }),
       );
       return response.status === 200;
     } catch (error) {
       this.logger.warn('AI service health check failed:', error.message);
+      this.logger.warn('AI Service URL:', this.aiServiceUrl);
       return false;
     }
   }

@@ -57,17 +57,19 @@ export class TasksController {
     @Query('phase') phase?: TaskPhase,
     @Query('assignedToId') assignedToId?: string,
     @Query('createdById') createdById?: string,
-    @Query('page', new ParseIntPipe({ optional: true })) page?: number,
-    @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
     return this.tasksService.findAll(
       req.user.id,
       req.user.role,
       phase,
       assignedToId,
       createdById,
-      page,
-      limit,
+      pageNum,
+      limitNum,
     );
   }
 
