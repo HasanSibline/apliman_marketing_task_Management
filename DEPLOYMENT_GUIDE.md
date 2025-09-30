@@ -197,7 +197,7 @@ backend/
    Region: Oregon (US West) # Choose closest to your users
    Branch: main
    Root Directory: backend
-   Build Command: npm install && npx prisma generate && npm run build
+   Build Command: npm install && npm run build
    Start Command: npm run start:prod
    ```
 
