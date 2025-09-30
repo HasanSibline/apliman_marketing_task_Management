@@ -52,7 +52,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
   }
 
-  const handleTaskMove = async (task: any, newPhase: string) => {
+  const _handleTaskMove = async (task: any, newPhase: string) => {
     if (!canMoveTask(task, newPhase)) return
 
     try {

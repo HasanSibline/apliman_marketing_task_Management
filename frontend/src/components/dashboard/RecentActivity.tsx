@@ -10,13 +10,17 @@ import {
 
 interface Activity {
   id: string
-  type: 'task_created' | 'task_completed' | 'task_assigned' | 'comment_added' | 'file_uploaded'
-  message: string
-  user: {
+  type?: string
+  message?: string
+  description?: string
+  user?: {
     name: string
     avatar?: string
   }
-  timestamp: string
+  userName?: string
+  userId?: string
+  timestamp?: string
+  createdAt?: string
   taskTitle?: string
 }
 
@@ -25,7 +29,7 @@ interface RecentActivityProps {
 }
 
 const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
-  const getActivityIcon = (type: string) => {
+  const getActivityIcon = (type?: string) => {
     switch (type) {
       case 'task_created':
         return <DocumentIcon className="h-4 w-4 text-blue-500" />
@@ -42,7 +46,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
     }
   }
 
-  const formatTimeAgo = (timestamp: string) => {
+  const formatTimeAgo = (timestamp?: string) => {
+    if (!timestamp) return 'Unknown time'
     const date = new Date(timestamp)
     const now = new Date()
     const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000)
@@ -78,8 +83,8 @@ const RecentActivity: React.FC<RecentActivityProps> = ({ activities }) => {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-900">
-                  <span className="font-medium">{activity.user?.name || 'Unknown User'}</span>
-                  {' '}{activity.message}
+                  <span className="font-medium">{activity.user?.name || activity.userName || 'Unknown User'}</span>
+                  {' '}{activity.message || activity.description}
                   {activity.taskTitle && (
                     <span className="font-medium text-primary-600">
                       {' "'}{activity.taskTitle}{'"'}

@@ -7,7 +7,6 @@ import {
   TrashIcon 
 } from '@heroicons/react/24/outline'
 import { filesApi } from '@/services/api'
-import { useAppDispatch } from '@/hooks/redux'
 
 interface FileUploadProps {
   taskId: string
@@ -16,7 +15,6 @@ interface FileUploadProps {
 }
 
 const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }) => {
-  const dispatch = useAppDispatch()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [dragActive, setDragActive] = useState(false)

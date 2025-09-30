@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { PaperAirplaneIcon } from '@heroicons/react/24/outline'
-import { useAppDispatch, useAppSelector } from '@/hooks/redux'
+import { useAppSelector } from '@/hooks/redux'
 import { tasksApi } from '@/services/api'
 
 interface TaskCommentsProps {
