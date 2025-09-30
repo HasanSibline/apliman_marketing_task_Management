@@ -22,7 +22,7 @@ async function bootstrap() {
         'http://localhost:3000',
         'http://localhost:5173',
         'http://localhost:3001',
-        'https://taskmanagement-frontend.pages.dev', // Your Cloudflare Pages URL
+        'https://apliman-marketing-task-management.pages.dev', // Your Cloudflare Pages URL
       ];
       
       // Check if origin is allowed
