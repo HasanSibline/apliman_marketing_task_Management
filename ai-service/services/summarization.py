@@ -4,26 +4,25 @@ from typing import Optional
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 import accelerate
+from .model_manager import ModelManager
 
 logger = logging.getLogger(__name__)
 
 class SummarizationService:
-    def __init__(self):
-        self.model_name = "google/flan-t5-small"  # Using smaller model for faster inference
+    def __init__(self, model_manager: ModelManager = None):
+        self.model_name = "t5-small"  # Much smaller model for memory efficiency
         self.tokenizer = None
         self.model = None
         self.pipeline = None
-        self.max_input_length = 128  # Further reduced for memory efficiency
+        self.max_input_length = 64  # Very small for memory efficiency
         self.device = "cpu"  # Force CPU to save memory
         self.model_loaded = False
+        self.model_manager = model_manager or ModelManager()
         
     async def load_model(self):
-        """Load the summarization model asynchronously"""
+        """Load the summarization model on-demand"""
         try:
             logger.info(f"Loading summarization model: {self.model_name}")
-            
-            # Load in a separate thread to avoid blocking
-            loop = asyncio.get_event_loop()
             
             def _load_model():
                 tokenizer = AutoTokenizer.from_pretrained(self.model_name)
@@ -39,7 +38,7 @@ class SummarizationService:
                     model=model,
                     tokenizer=tokenizer,
                     device_map="auto",
-                    max_length=512,
+                    max_length=128,  # Smaller max length for memory
                     do_sample=True,
                     temperature=0.7,
                     top_p=0.9
@@ -47,12 +46,18 @@ class SummarizationService:
                 
                 return tokenizer, model, pipe
             
-            self.tokenizer, self.model, self.pipeline = await loop.run_in_executor(
-                None, _load_model
+            # Use model manager for on-demand loading
+            result = await self.model_manager.load_model(
+                self.model_name, 
+                lambda: asyncio.get_event_loop().run_in_executor(None, _load_model)
             )
             
-            logger.info("✅ Summarization model loaded successfully")
-            self.model_loaded = True
+            if result:
+                self.tokenizer, self.model, self.pipeline = result
+                self.model_loaded = True
+                logger.info("✅ Summarization model loaded successfully")
+            else:
+                raise Exception("Failed to load model")
             
         except Exception as e:
             logger.error(f"❌ Failed to load summarization model: {str(e)}")

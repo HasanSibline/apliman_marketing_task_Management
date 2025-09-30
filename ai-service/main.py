@@ -13,6 +13,7 @@ from services.priority_analyzer import PriorityAnalyzer
 from services.completeness_checker import CompletenessChecker
 from services.performance_insights import PerformanceInsightsService
 from services.text_extractor import TextExtractorService
+from services.model_manager import ModelManager
 
 # Load environment variables
 load_dotenv()
@@ -29,38 +30,27 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting AI Service...")
     
-    # Initialize services
-    services['summarization'] = SummarizationService()
+    # Initialize model manager for on-demand loading
+    model_manager = ModelManager()
+    
+    # Initialize services with model manager
+    services['summarization'] = SummarizationService(model_manager)
     services['priority_analyzer'] = PriorityAnalyzer()
     services['completeness_checker'] = CompletenessChecker()
     services['performance_insights'] = PerformanceInsightsService()
     services['text_extractor'] = TextExtractorService()
     
-    # Load models one at a time to save memory
-    logger.info("Loading AI models (this may take a few minutes)...")
-    
-    # Load summarization model first (most important)
-    try:
-        await services['summarization'].load_model()
-        logger.info("✅ Summarization model loaded")
-    except Exception as e:
-        logger.warning(f"❌ Failed to load summarization model: {e}")
-        logger.warning("Summarization will use fallback mode")
-    
-    # Load priority analyzer model (optional)
-    try:
-        await services['priority_analyzer'].load_model()
-        logger.info("✅ Priority analyzer model loaded")
-    except Exception as e:
-        logger.warning(f"❌ Failed to load priority analyzer model: {e}")
-        logger.warning("Priority analysis will use rule-based mode only")
-    
     logger.info("✅ AI Service started successfully!")
+    logger.info("📝 Models will be loaded on-demand to save memory")
     
     yield
     
     # Shutdown
     logger.info("🛑 Shutting down AI Service...")
+    
+    # Clean up models
+    if 'model_manager' in locals():
+        await model_manager.cleanup_all()
 
 # Create FastAPI app
 app = FastAPI(
@@ -155,6 +145,10 @@ async def summarize_text(request: SummarizeRequest):
         summarization_service = services.get('summarization')
         if not summarization_service:
             raise HTTPException(status_code=503, detail="Summarization service not available")
+        
+        # Load model on-demand if not already loaded
+        if not summarization_service.model_loaded:
+            await summarization_service.load_model()
         
         summary = await summarization_service.summarize(request.text, request.max_length)
         

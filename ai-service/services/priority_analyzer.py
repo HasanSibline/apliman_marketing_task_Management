@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class PriorityAnalyzer:
     def __init__(self):
-        self.model_name = "google/flan-t5-small"
+        self.model_name = "t5-small"  # Much smaller model for memory efficiency
         self.tokenizer = None
         self.model = None
         self.pipeline = None
