@@ -12,8 +12,8 @@ class SummarizationService:
         self.tokenizer = None
         self.model = None
         self.pipeline = None
-        self.max_input_length = 512
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.max_input_length = 256  # Reduced for memory efficiency
+        self.device = "cpu"  # Force CPU to save memory
         
     async def load_model(self):
         """Load the summarization model asynchronously"""
@@ -25,9 +25,13 @@ class SummarizationService:
             
             def _load_model():
                 tokenizer = AutoTokenizer.from_pretrained(self.model_name)
-                model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
+                model = AutoModelForSeq2SeqLM.from_pretrained(
+                    self.model_name,
+                    torch_dtype=torch.float16,  # Use half precision to save memory
+                    low_cpu_mem_usage=True
+                )
                 
-                # Move to appropriate device
+                # Force CPU usage
                 if self.device == "cuda":
                     model = model.to(self.device)
                 
@@ -53,12 +57,17 @@ class SummarizationService:
             
         except Exception as e:
             logger.error(f"❌ Failed to load summarization model: {str(e)}")
-            raise
+            logger.warning("Using fallback summarization (simple text truncation)")
+            # Set up fallback mode
+            self.model = None
+            self.tokenizer = None
+            self.pipeline = None
     
     async def summarize(self, text: str, max_length: int = 150) -> str:
         """Summarize the given text"""
         if not self.pipeline:
-            raise RuntimeError("Model not loaded. Call load_model() first.")
+            # Use fallback summarization
+            return self._fallback_summarize(text, max_length)
         
         try:
             # Preprocess text
@@ -141,6 +150,22 @@ class SummarizationService:
                 break
         
         return summary.strip() if summary else text[:max_length - 3] + '...'
+    
+    def _fallback_summarize(self, text: str, max_length: int) -> str:
+        """Simple fallback summarization when model is not available"""
+        # Simple sentence-based summarization
+        sentences = text.split('. ')
+        if len(sentences) <= 2:
+            return text[:max_length] + "..." if len(text) > max_length else text
+        
+        # Take first few sentences
+        summary_sentences = sentences[:2]
+        summary = '. '.join(summary_sentences)
+        
+        if len(summary) > max_length:
+            summary = summary[:max_length-3] + "..."
+        
+        return summary
     
     def get_model_info(self) -> dict:
         """Get information about the loaded model"""
