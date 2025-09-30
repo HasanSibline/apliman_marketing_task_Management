@@ -1,7 +1,5 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { useAppDispatch, useAppSelector } from '@/hooks/redux'
-import { updateTask } from '@/store/slices/tasksSlice'
 
 interface TaskBoardProps {
   tasks: any[]
@@ -9,8 +7,6 @@ interface TaskBoardProps {
 }
 
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
-  const dispatch = useAppDispatch()
-  const { user } = useAppSelector((state) => state.auth)
 
   const phases = [
     { key: 'PENDING_APPROVAL', title: 'Pending Approval', color: 'bg-gray-100 border-gray-300' },
@@ -47,23 +43,23 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     }
   }
 
-  const canMoveTask = (_task: any, _newPhase: string) => {
-    // Only admins can move tasks between phases
-    return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
-  }
+  // const canMoveTask = (_task: any, _newPhase: string) => {
+  //   // Only admins can move tasks between phases
+  //   return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  // }
 
-  const _handleTaskMove = async (task: any, newPhase: string) => {
-    if (!canMoveTask(task, newPhase)) return
+  // const _handleTaskMove = async (task: any, newPhase: string) => {
+  //   if (!canMoveTask(task, newPhase)) return
 
-    try {
-      await dispatch(updateTask({ 
-        id: task.id, 
-        data: { phase: newPhase } 
-      })).unwrap()
-    } catch (error) {
-      console.error('Failed to update task phase:', error)
-    }
-  }
+  //   try {
+  //     await dispatch(updateTask({ 
+  //       id: task.id, 
+  //       data: { phase: newPhase } 
+  //     })).unwrap()
+  //   } catch (error) {
+  //     console.error('Failed to update task phase:', error)
+  //   }
+  // }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">

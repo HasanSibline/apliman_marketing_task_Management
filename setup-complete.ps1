@@ -126,3 +126,4 @@ Write-Host "- For AI service issues, ensure Python dependencies are installed" -
 Write-Host "- Check the logs in each service for detailed error messages" -ForegroundColor White
 
 Write-Host "`n✨ Happy coding! ✨" -ForegroundColor Green
+
