@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from typing import Dict, Any
+from typing import Dict, Any, List
 from PIL import Image
 import pytesseract
 import PyPDF2
