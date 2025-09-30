@@ -11,12 +11,44 @@ async function bootstrap() {
   const port = configService.get('PORT') || 3001;
   const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:5173';
 
-  // Enable CORS
+  // Enable CORS with dynamic origin handling
   app.enableCors({
-    origin: [frontendUrl, 'http://localhost:3000', 'http://localhost:5173'],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+      
+      const allowedOrigins = [
+        frontendUrl,
+        'http://localhost:3000',
+        'http://localhost:5173',
+        'http://localhost:3001',
+        'https://taskmanagement-frontend.pages.dev', // Your Cloudflare Pages URL
+      ];
+      
+      // Check if origin is allowed
+      if (allowedOrigins.includes(origin) || 
+          origin.includes('.pages.dev') || 
+          origin.includes('.onrender.com')) {
+        return callback(null, true);
+      }
+      
+      callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'Accept',
+      'Origin',
+      'X-Requested-With',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Allow-Methods'
+    ],
+    exposedHeaders: ['Authorization'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204
   });
 
   // Global validation pipe
