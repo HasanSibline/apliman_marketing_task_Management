@@ -36,16 +36,22 @@ async def lifespan(app: FastAPI):
     services['performance_insights'] = PerformanceInsightsService()
     services['text_extractor'] = TextExtractorService()
     
-    # Load models with error handling
+    # Load models one at a time to save memory
+    logger.info("Loading AI models (this may take a few minutes)...")
+    
+    # Load summarization model first
     try:
         await services['summarization'].load_model()
+        logger.info("✅ Summarization model loaded")
     except Exception as e:
-        logger.warning(f"Failed to load summarization model: {e}")
+        logger.warning(f"❌ Failed to load summarization model: {e}")
     
+    # Load priority analyzer model
     try:
         await services['priority_analyzer'].load_model()
+        logger.info("✅ Priority analyzer model loaded")
     except Exception as e:
-        logger.warning(f"Failed to load priority analyzer model: {e}")
+        logger.warning(f"❌ Failed to load priority analyzer model: {e}")
     
     logger.info("✅ AI Service started successfully!")
     

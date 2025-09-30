@@ -13,7 +13,8 @@ class PriorityAnalyzer:
         self.tokenizer = None
         self.model = None
         self.pipeline = None
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.device = "cpu"  # Force CPU to save memory
+        self.model_loaded = False
         
         # Priority keywords and their weights
         self.priority_keywords = {
@@ -56,6 +57,7 @@ class PriorityAnalyzer:
             )
             
             logger.info("✅ Priority analysis model loaded successfully")
+            self.model_loaded = True
             
         except Exception as e:
             logger.error(f"❌ Failed to load priority analysis model: {str(e)}")
@@ -75,7 +77,7 @@ class PriorityAnalyzer:
             ai_priority = None
             ai_reasoning = ""
             
-            if self.pipeline:
+            if self.model_loaded:
                 try:
                     ai_result = await self._ai_based_analysis(full_text)
                     ai_priority = ai_result.get('priority', rule_based_priority)

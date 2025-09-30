@@ -12,8 +12,9 @@ class SummarizationService:
         self.tokenizer = None
         self.model = None
         self.pipeline = None
-        self.max_input_length = 256  # Reduced for memory efficiency
+        self.max_input_length = 128  # Further reduced for memory efficiency
         self.device = "cpu"  # Force CPU to save memory
+        self.model_loaded = False
         
     async def load_model(self):
         """Load the summarization model asynchronously"""
@@ -54,6 +55,7 @@ class SummarizationService:
             )
             
             logger.info("✅ Summarization model loaded successfully")
+            self.model_loaded = True
             
         except Exception as e:
             logger.error(f"❌ Failed to load summarization model: {str(e)}")
@@ -65,7 +67,7 @@ class SummarizationService:
     
     async def summarize(self, text: str, max_length: int = 150) -> str:
         """Summarize the given text"""
-        if not self.pipeline:
+        if not self.model_loaded:
             # Use fallback summarization
             return self._fallback_summarize(text, max_length)
         
