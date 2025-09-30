@@ -3,6 +3,7 @@ import logging
 from typing import Optional
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
+import accelerate
 
 logger = logging.getLogger(__name__)
 
@@ -29,19 +30,15 @@ class SummarizationService:
                 model = AutoModelForSeq2SeqLM.from_pretrained(
                     self.model_name,
                     torch_dtype=torch.float16,  # Use half precision to save memory
-                    low_cpu_mem_usage=True
+                    device_map="auto"  # Use accelerate for better memory management
                 )
-                
-                # Force CPU usage
-                if self.device == "cuda":
-                    model = model.to(self.device)
                 
                 # Create pipeline
                 pipe = pipeline(
                     "text2text-generation",
                     model=model,
                     tokenizer=tokenizer,
-                    device=0 if self.device == "cuda" else -1,
+                    device_map="auto",
                     max_length=512,
                     do_sample=True,
                     temperature=0.7,
