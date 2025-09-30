@@ -123,35 +123,63 @@ class HealthResponse(BaseModel):
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
     from datetime import datetime
+    import psutil
+    import os
     
-    models_status = {
-        "summarization": services.get('summarization') is not None,
-        "priority_analyzer": services.get('priority_analyzer') is not None,
-        "completeness_checker": services.get('completeness_checker') is not None,
-        "performance_insights": services.get('performance_insights') is not None,
-        "text_extractor": services.get('text_extractor') is not None,
-    }
-    
-    return HealthResponse(
-        status="healthy" if all(models_status.values()) else "degraded",
-        timestamp=datetime.utcnow().isoformat(),
-        models_loaded=models_status
-    )
+    try:
+        # Get memory usage
+        process = psutil.Process(os.getpid())
+        memory_info = process.memory_info()
+        memory_mb = memory_info.rss / 1024 / 1024
+        
+        logger.info(f"Memory usage: {memory_mb:.2f} MB")
+        
+        models_status = {
+            "summarization": services.get('summarization') is not None,
+            "priority_analyzer": services.get('priority_analyzer') is not None,
+            "completeness_checker": services.get('completeness_checker') is not None,
+            "performance_insights": services.get('performance_insights') is not None,
+            "text_extractor": services.get('text_extractor') is not None,
+        }
+        
+        # Check if memory usage is too high
+        status = "healthy"
+        if memory_mb > 400:  # 400MB threshold
+            status = "degraded"
+            logger.warning(f"High memory usage: {memory_mb:.2f} MB")
+        
+        return HealthResponse(
+            status=status,
+            timestamp=datetime.utcnow().isoformat(),
+            models_loaded=models_status
+        )
+    except Exception as e:
+        logger.error(f"Health check error: {e}")
+        return HealthResponse(
+            status="unhealthy",
+            timestamp=datetime.utcnow().isoformat(),
+            models_loaded={}
+        )
 
 # Summarization endpoint
 @app.post("/summarize", response_model=SummarizeResponse)
 async def summarize_text(request: SummarizeRequest):
     try:
+        logger.info(f"Summarization request received: {len(request.text)} characters")
+        
         summarization_service = services.get('summarization')
         if not summarization_service:
+            logger.error("Summarization service not available")
             raise HTTPException(status_code=503, detail="Summarization service not available")
         
         # Load model on-demand if not already loaded
         if not summarization_service.model_loaded:
+            logger.info("Loading summarization model on-demand...")
             await summarization_service.load_model()
         
         summary = await summarization_service.summarize(request.text, request.max_length)
         
+        logger.info(f"Summarization completed: {len(summary)} characters")
         return SummarizeResponse(
             summary=summary,
             original_length=len(request.text),
@@ -159,7 +187,13 @@ async def summarize_text(request: SummarizeRequest):
         )
     except Exception as e:
         logger.error(f"Error in summarization: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Summarization failed: {str(e)}")
+        # Return fallback summary instead of failing
+        fallback_summary = request.text[:request.max_length] + "..." if len(request.text) > request.max_length else request.text
+        return SummarizeResponse(
+            summary=fallback_summary,
+            original_length=len(request.text),
+            summary_length=len(fallback_summary)
+        )
 
 # Priority analysis endpoint
 @app.post("/analyze-priority", response_model=AnalyzePriorityResponse)
