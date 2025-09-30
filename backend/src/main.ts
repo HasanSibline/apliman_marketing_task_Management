@@ -28,7 +28,8 @@ async function bootstrap() {
       // Check if origin is allowed
       if (allowedOrigins.includes(origin) || 
           origin.includes('.pages.dev') || 
-          origin.includes('.onrender.com')) {
+          origin.includes('.onrender.com') ||
+          origin === 'https://apliman-marketing-task-management.onrender.com') {
         return callback(null, true);
       }
       
