@@ -1,11 +1,13 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import TaskActivityLog from './TaskActivityLog'
-import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from 'react-beautiful-dnd'
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
+import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { updateTask } from '@/store/slices/tasksSlice'
 import toast from 'react-hot-toast'
+
+
 
 interface Task {
   id: string
