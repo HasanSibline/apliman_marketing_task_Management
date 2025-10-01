@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { tasksApi, Task, CreateTaskData } from '@/services/api'
+import { tasksApi, CreateTaskData, ApiTask } from '@/services/api'
+import { Task } from '@/types/task'
 import toast from 'react-hot-toast'
 
 interface TasksState {
@@ -177,7 +178,14 @@ const tasksSlice = createSlice({
       })
       .addCase(fetchTasks.fulfilled, (state, action) => {
         state.isLoading = false
-        state.tasks = action.payload.tasks
+        state.tasks = action.payload.tasks.map((apiTask: ApiTask) => {
+          const { updatedAt, ...rest } = apiTask
+          return {
+            ...rest,
+            phase: apiTask.phase,
+            createdById: apiTask.createdBy?.id || ''
+          } as Task
+        })
         state.pagination = action.payload.pagination
         state.error = null
       })
@@ -203,7 +211,14 @@ const tasksSlice = createSlice({
 
       // Fetch My Tasks
       .addCase(fetchMyTasks.fulfilled, (state, action) => {
-        state.tasks = action.payload.tasks
+        state.tasks = action.payload.tasks.map((apiTask: ApiTask) => {
+          const { updatedAt, ...rest } = apiTask
+          return {
+            ...rest,
+            phase: apiTask.phase,
+            createdById: apiTask.createdBy?.id || ''
+          } as Task
+        })
         state.pagination = action.payload.pagination
       })
 
@@ -219,7 +234,12 @@ const tasksSlice = createSlice({
       })
       .addCase(createTask.fulfilled, (state, action) => {
         state.isLoading = false
-        state.tasks.unshift(action.payload)
+        const { updatedAt, ...apiTask } = action.payload
+        const task = {
+          ...apiTask,
+          createdById: apiTask.createdBy?.id || ''
+        } as Task
+        state.tasks.unshift(task)
         state.error = null
       })
       .addCase(createTask.rejected, (state, action) => {
@@ -229,12 +249,17 @@ const tasksSlice = createSlice({
 
       // Update Task
       .addCase(updateTask.fulfilled, (state, action) => {
-        const index = state.tasks.findIndex(task => task.id === action.payload.id)
+        const { updatedAt, ...apiTask } = action.payload
+        const task = {
+          ...apiTask,
+          createdById: apiTask.createdBy?.id || ''
+        } as Task
+        const index = state.tasks.findIndex(t => t.id === task.id)
         if (index !== -1) {
-          state.tasks[index] = action.payload
+          state.tasks[index] = task
         }
-        if (state.currentTask?.id === action.payload.id) {
-          state.currentTask = action.payload
+        if (state.currentTask?.id === task.id) {
+          state.currentTask = task
         }
       })
 

@@ -3,7 +3,7 @@ export interface Task {
   title: string
   description: string
   priority: number
-  phase: string
+  phase: 'PENDING_APPROVAL' | 'APPROVED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED'
   assignedToId?: string
   assignedTo?: {
     id: string
@@ -20,6 +20,7 @@ export interface Task {
   }
   dueDate?: string
   createdAt: string
+  updatedAt: string
   comments?: any[]
   files?: any[]
   goals?: string

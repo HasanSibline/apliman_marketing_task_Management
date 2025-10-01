@@ -15,12 +15,8 @@ import toast from 'react-hot-toast'
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d']
 
 const AnalyticsDashboard: React.FC = () => {
-  const dispatch = useAppDispatch()
-  const { user } = useAppSelector((state) => state.auth)
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<any>(null)
-  const [userAnalytics, setUserAnalytics] = useState<any>(null)
-  const [teamAnalytics, setTeamAnalytics] = useState<any>(null)
   const [taskAnalytics, setTaskAnalytics] = useState<any>(null)
   const [insights, setInsights] = useState<any>(null)
 

@@ -26,13 +26,9 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
     setIsLoading(true)
     try {
       const [priority, completeness, summary] = await Promise.all([
-        aiApi.analyzePriority(task.title, task.description, task.goals),
-        aiApi.checkCompleteness({
-          taskDescription: task.description,
-          goals: task.goals,
-          currentPhase: task.phase,
-          attachmentsCount: task.files?.length || 0,
-          commentsCount: task.comments?.length || 0,
+        aiApi.analyzePriority(task.title, task.description),
+        aiApi.checkCompleteness(task.description, task.goals || '', task.phase),
+        aiApi.summarizeText(task.description)
           subtasksCompleted: task.subtasks?.filter((s: any) => s.completed).length || 0,
           subtasksTotal: task.subtasks?.length || 0,
         }),
