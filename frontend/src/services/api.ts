@@ -54,7 +54,9 @@ export interface RegisterData {
   position?: string
 }
 
-export interface Task {
+import { Task } from '@/types/task'
+
+export interface ApiTask {
   id: string
   title: string
   description: string
@@ -64,19 +66,22 @@ export interface Task {
   dueDate?: string
   createdAt: string
   updatedAt: string
+  assignedToId?: string
   assignedTo?: {
     id: string
     name: string
     email: string
-    position?: string
+    position: string
     status: string
   }
   createdBy: {
     id: string
     name: string
     email: string
-    position?: string
+    position: string
   }
+  comments?: any[]
+  files?: any[]
   _count: {
     files: number
     comments: number
@@ -294,6 +299,16 @@ export const filesApi = {
 
 // Analytics API
 export const analyticsApi = {
+  generateInsights: async (analyticsData: any): Promise<any> => {
+    const response = await api.post('/ai/performance-insights', analyticsData)
+    return response.data
+  },
+  exportTasksReport: async (): Promise<any> => {
+    const response = await api.get('/analytics/export/tasks', {
+      responseType: 'blob',
+    })
+    return response.data
+  },
   getDashboard: async (): Promise<any> => {
     const response = await api.get('/analytics/dashboard')
     return response.data

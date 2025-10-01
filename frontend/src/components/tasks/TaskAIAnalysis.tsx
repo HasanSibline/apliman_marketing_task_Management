@@ -26,7 +26,7 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
     setIsLoading(true)
     try {
       const [priority, completeness, summary] = await Promise.all([
-        aiApi.analyzePriority(task.title, task.description),
+        aiApi.analyzePriority(task.title, task.description, task.goals),
         aiApi.checkCompleteness({
           taskDescription: task.description,
           goals: task.goals,

@@ -57,10 +57,16 @@ const NotificationManager: React.FC = () => {
     return () => clearInterval(interval)
   }, [user])
 
+  interface Task {
+    id: string
+    title: string
+    dueDate?: string
+  }
+
   const checkDeadlines = async () => {
     try {
       const tasks = await tasksApi.getMyTasks()
-      tasks.forEach(task => {
+      tasks.forEach((task: Task) => {
         if (task.dueDate) {
           const dueDate = new Date(task.dueDate)
           const now = new Date()
@@ -82,7 +88,7 @@ const NotificationManager: React.FC = () => {
               
               // Show toast notification
               toast(
-                (t) => (
+                () => (
                   <div className="flex items-center space-x-3">
                     <ClockIcon className="h-6 w-6 text-yellow-500" />
                     <div>
@@ -114,7 +120,7 @@ const NotificationManager: React.FC = () => {
               
               // Show toast notification
               toast(
-                (t) => (
+                () => (
                   <div className="flex items-center space-x-3">
                     <ExclamationCircleIcon className="h-6 w-6 text-red-500" />
                     <div>

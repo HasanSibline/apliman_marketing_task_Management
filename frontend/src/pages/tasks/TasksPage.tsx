@@ -7,11 +7,16 @@ import CreateTaskModal from '@/components/tasks/CreateTaskModal'
 import ExportButton from '@/components/tasks/ExportButton'
 import TaskBoard from '@/components/tasks/TaskBoard'
 import { useNavigate } from 'react-router-dom'
+import { Task } from '@/types/task'
 
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const navigate = useNavigate()
-  const { tasks, isLoading, filters, pagination } = useAppSelector((state) => state.tasks)
+  const { tasks: apiTasks, isLoading, filters, pagination } = useAppSelector((state) => state.tasks)
+  const tasks = apiTasks.map(task => ({
+    ...task,
+    createdById: task.createdBy?.id || ''
+  })) as Task[]
   const { user } = useAppSelector((state) => state.auth)
   const [showFilters, setShowFilters] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -167,7 +172,7 @@ const TasksPage: React.FC = () => {
         />
       ) : (
         <div className="space-y-4">
-          {tasks.map((task: any, index: number) => (
+          {tasks.map((task: Task, index: number) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 20 }}
@@ -196,7 +201,7 @@ const TasksPage: React.FC = () => {
                     {task.assignedTo && (
                       <span>Assigned to: {task.assignedTo.name}</span>
                     )}
-                    <span>Created by: {task.createdBy.name}</span>
+                    <span>Created by: {task.createdBy?.name || 'Unknown'}</span>
                     <span>{task._count?.files || 0} files</span>
                     <span>{task._count?.comments || 0} comments</span>
                   </div>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React from 'react'
+import { motion } from 'framer-motion'
 import TaskActivityLog from './TaskActivityLog'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from 'react-beautiful-dnd'
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd'
@@ -287,7 +287,15 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
         className="mt-6 bg-white rounded-lg shadow-sm p-4"
       >
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-        <TaskActivityLog />
+        <TaskActivityLog activities={[
+          {
+            id: '1',
+            type: 'PHASE_CHANGE',
+            user: { name: 'System' },
+            description: 'Task board initialized',
+            createdAt: new Date().toISOString()
+          }
+        ]} />
       </motion.div>
     </DragDropContext>
   )
