@@ -9,6 +9,7 @@ import {
   UseGuards,
   Request,
   Query,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -113,5 +114,21 @@ export class UsersController {
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
+  }
+
+  @Post(':id/reset-password')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Reset user password (Admin/Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'Password reset successful' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async resetPassword(@Param('id') id: string, @Request() req) {
+    // Admins cannot reset Super Admin passwords
+    const targetUser = await this.usersService.findById(id);
+    if (req.user.role === UserRole.ADMIN && targetUser.role === UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Admins cannot reset Super Admin passwords');
+    }
+    return this.usersService.resetPassword(id);
   }
 }

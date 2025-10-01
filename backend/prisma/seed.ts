@@ -34,12 +34,21 @@ async function main() {
   const managerPassword = await bcrypt.hash('Manager123!', saltRounds);
   const employeePassword = await bcrypt.hash('Employee123!', saltRounds);
 
+  // Clear all tables first
+  await prisma.taskComment.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.analytics.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.systemSettings.deleteMany();
+
+  console.log('✅ All tables cleared');
+
   // Create Super Admin
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@system.com' },
+    where: { email: 'Admin@apliman.com' },
     update: {},
     create: {
-      email: 'admin@system.com',
+      email: 'Admin@apliman.com',
       name: 'System Administrator',
       password: adminPassword,
       role: UserRole.SUPER_ADMIN,

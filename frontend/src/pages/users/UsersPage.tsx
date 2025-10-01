@@ -1,19 +1,60 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { PlusIcon, UserIcon } from '@heroicons/react/24/outline'
+import { 
+  PlusIcon, 
+  UserIcon, 
+  PencilIcon, 
+  TrashIcon, 
+  KeyIcon,
+  EllipsisVerticalIcon 
+} from '@heroicons/react/24/outline'
+import { Menu } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchUsers } from '@/store/slices/usersSlice'
 import CreateUserModal from '@/components/users/CreateUserModal'
+import EditUserModal from '@/components/users/EditUserModal'
+import DeleteUserModal from '@/components/users/DeleteUserModal'
+import { usersApi } from '@/services/api'
+import toast from 'react-hot-toast'
 
 const UsersPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { users, isLoading } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<any>(null)
 
   useEffect(() => {
     dispatch(fetchUsers({}))
   }, [dispatch])
+
+  const handleEdit = (user: any) => {
+    setSelectedUser(user)
+    setShowEditModal(true)
+  }
+
+  const handleDelete = (user: any) => {
+    setSelectedUser(user)
+    setShowDeleteModal(true)
+  }
+
+  const handleResetPassword = async (user: any) => {
+    try {
+      await usersApi.resetPassword(user.id)
+      toast.success('Password reset email sent successfully!')
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to reset password'
+      toast.error(message)
+    }
+  }
+
+  const canManageUser = (targetUser: any) => {
+    if (user?.role === 'SUPER_ADMIN') return true
+    if (user?.role === 'ADMIN' && targetUser.role === 'EMPLOYEE') return true
+    return false
+  }
 
   const statusColors = {
     ACTIVE: 'bg-green-100 text-green-800',
@@ -81,6 +122,56 @@ const UsersPage: React.FC = () => {
                     <p className="text-sm text-gray-500">{userItem.position}</p>
                   )}
                 </div>
+                {canManageUser(userItem) && (
+                  <Menu as="div" className="relative">
+                    <Menu.Button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                      <EllipsisVerticalIcon className="h-5 w-5 text-gray-500" />
+                    </Menu.Button>
+                    <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 focus:outline-none z-10">
+                      <div className="py-1">
+                        <Menu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={() => handleEdit(userItem)}
+                              className={`${
+                                active ? 'bg-gray-100' : ''
+                              } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                            >
+                              <PencilIcon className="h-4 w-4 mr-3" />
+                              Edit User
+                            </button>
+                          )}
+                        </Menu.Item>
+                        <Menu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={() => handleResetPassword(userItem)}
+                              className={`${
+                                active ? 'bg-gray-100' : ''
+                              } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                            >
+                              <KeyIcon className="h-4 w-4 mr-3" />
+                              Reset Password
+                            </button>
+                          )}
+                        </Menu.Item>
+                        <Menu.Item>
+                          {({ active }) => (
+                            <button
+                              onClick={() => handleDelete(userItem)}
+                              className={`${
+                                active ? 'bg-gray-100' : ''
+                              } flex items-center w-full px-4 py-2 text-sm text-red-600`}
+                            >
+                              <TrashIcon className="h-4 w-4 mr-3" />
+                              Delete User
+                            </button>
+                          )}
+                        </Menu.Item>
+                      </div>
+                    </Menu.Items>
+                  </Menu>
+                )}
               </div>
               
               <div className="mt-4 flex items-center justify-between">
@@ -113,6 +204,30 @@ const UsersPage: React.FC = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
       />
+
+      {/* Edit User Modal */}
+      {selectedUser && (
+        <EditUserModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false)
+            setSelectedUser(null)
+          }}
+          user={selectedUser}
+        />
+      )}
+
+      {/* Delete User Modal */}
+      {selectedUser && (
+        <DeleteUserModal
+          isOpen={showDeleteModal}
+          onClose={() => {
+            setShowDeleteModal(false)
+            setSelectedUser(null)
+          }}
+          user={selectedUser}
+        />
+      )}
     </div>
   )
 }

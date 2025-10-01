@@ -16,6 +16,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { SummarizeTextDto } from './dto/summarize-text.dto';
 import { AnalyzePriorityDto } from './dto/analyze-priority.dto';
 import { CheckCompletenessDto } from './dto/check-completeness.dto';
+import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 
 @ApiTags('AI Services')
 @Controller('ai')
@@ -80,7 +81,7 @@ export class AiController {
   @Post('performance-insights')
   @ApiOperation({ summary: 'Generate performance insights using AI' })
   @ApiResponse({ status: 200, description: 'Insights generated successfully' })
-  async generateInsights(@Body() analyticsData: any) {
+  async generateInsights(@Body() analyticsData: PerformanceInsightsDto) {
     const insights = await this.aiService.generatePerformanceInsights(analyticsData);
     return insights;
   }

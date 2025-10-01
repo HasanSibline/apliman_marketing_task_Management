@@ -165,6 +165,11 @@ export const usersApi = {
   delete: async (id: string): Promise<void> => {
     await api.delete(`/users/${id}`)
   },
+
+  resetPassword: async (id: string): Promise<any> => {
+    const response = await api.post(`/users/${id}/reset-password`)
+    return response.data
+  },
 }
 
 // Tasks API
@@ -211,6 +216,40 @@ export const tasksApi = {
 
   addComment: async (taskId: string, comment: string): Promise<any> => {
     const response = await api.post(`/tasks/${taskId}/comments`, { comment })
+    return response.data
+  },
+
+  addSubtask: async (taskId: string, title: string): Promise<any> => {
+    const response = await api.post(`/tasks/${taskId}/subtasks`, { title })
+    return response.data
+  },
+
+  updateSubtask: async (taskId: string, subtaskId: string, data: { completed: boolean }): Promise<any> => {
+    const response = await api.patch(`/tasks/${taskId}/subtasks/${subtaskId}`, data)
+    return response.data
+  },
+
+  deleteSubtask: async (taskId: string, subtaskId: string): Promise<void> => {
+    await api.delete(`/tasks/${taskId}/subtasks/${subtaskId}`)
+  },
+
+  startTimeTracking: async (taskId: string): Promise<any> => {
+    const response = await api.post(`/tasks/${taskId}/time/start`)
+    return response.data
+  },
+
+  stopTimeTracking: async (taskId: string): Promise<any> => {
+    const response = await api.post(`/tasks/${taskId}/time/stop`)
+    return response.data
+  },
+
+  pauseTimeTracking: async (taskId: string): Promise<any> => {
+    const response = await api.post(`/tasks/${taskId}/time/pause`)
+    return response.data
+  },
+
+  getTimeEntries: async (taskId: string): Promise<any[]> => {
+    const response = await api.get(`/tasks/${taskId}/time`)
     return response.data
   },
 }
@@ -292,6 +331,10 @@ export const analyticsApi = {
 
 // AI API
 export const aiApi = {
+  generateContent: async (title: string, type: string): Promise<any> => {
+    const response = await api.post('/ai/generate-content', { title, type })
+    return response.data
+  },
   checkHealth: async (): Promise<any> => {
     const response = await api.get('/ai/health')
     return response.data

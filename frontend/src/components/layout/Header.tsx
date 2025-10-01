@@ -1,12 +1,12 @@
 import React from 'react'
-import { motion } from 'framer-motion'
 import {
   Bars3Icon,
-  BellIcon,
   MagnifyingGlassIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
+import Logo from './Logo'
+import NotificationManager from '../notifications/NotificationManager'
 import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { toggleSidebar } from '@/store/slices/uiSlice'
@@ -17,13 +17,9 @@ const Header: React.FC = () => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
   const { teamMembers } = useAppSelector((state) => state.presence)
-  const { notifications } = useAppSelector((state) => state.ui)
-
   const handleLogout = () => {
     dispatch(logout())
   }
-
-  const unreadNotifications = notifications.filter((n: any) => !n.read).length
 
   // Get online team members count
   const onlineMembers = teamMembers.filter((member: any) => member.isOnline).length
@@ -40,6 +36,9 @@ const Header: React.FC = () => {
           >
             <Bars3Icon className="h-5 w-5" />
           </button>
+
+          {/* Logo */}
+          <Logo size="md" className="hidden md:flex" />
 
           {/* Search bar */}
           <div className="hidden md:block">
@@ -67,18 +66,7 @@ const Header: React.FC = () => {
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors duration-200">
-            <BellIcon className="h-5 w-5" />
-            {unreadNotifications > 0 && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center"
-              >
-                {unreadNotifications > 9 ? '9+' : unreadNotifications}
-              </motion.span>
-            )}
-          </button>
+          <NotificationManager />
 
           {/* User menu */}
           <Menu as="div" className="relative">

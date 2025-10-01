@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
+import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 
 @Injectable()
 export class AiService {
@@ -105,7 +106,7 @@ export class AiService {
     }
   }
 
-  async generatePerformanceInsights(analyticsData: any): Promise<{
+  async generatePerformanceInsights(analyticsData: PerformanceInsightsDto): Promise<{
     insights: string[];
     recommendations: string[];
     trends: string[];
@@ -114,6 +115,8 @@ export class AiService {
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/performance-insights`, {
           analytics: analyticsData,
+        }, {
+          timeout: 15000, // 15 second timeout for complex analysis
         }),
       );
 

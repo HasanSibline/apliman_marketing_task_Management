@@ -2,8 +2,10 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Prisma } from '@prisma/client';
 import { UserRole, UserStatus } from '../types/prisma';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -263,5 +265,40 @@ export class UsersService {
         },
       },
     };
+  }
+
+  async resetPassword(id: string) {
+    // Generate a random temporary password
+    const tempPassword = Math.random().toString(36).slice(-8);
+    const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          password: hashedPassword,
+          status: UserStatus.ACTIVE, // Reactivate user if they were retired
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+
+      // TODO: Send email with temporary password
+      // For now, we'll just return the temporary password
+      return {
+        message: 'Password reset successful',
+        tempPassword, // In production, this should be sent via email
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('User not found');
+        }
+      }
+      throw error;
+    }
   }
 }
