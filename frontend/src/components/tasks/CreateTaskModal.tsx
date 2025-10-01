@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
 import { fetchUsers } from '@/store/slices/usersSlice'
@@ -24,6 +24,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     priority: 3,
     dueDate: '',
     assignedToId: '',
+    phase: 'PENDING_APPROVAL' as const,
   })
 
   useEffect(() => {
@@ -115,9 +116,28 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       placeholder="Enter task title"
                     />
-                    {formData.title && (
-                      <ContentSuggester title={formData.title} type="task" />
-                    )}
+                            <div className="relative">
+                              {formData.title && (
+                                <div className="absolute right-2 top-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const suggester = document.getElementById('content-suggester');
+                                      if (suggester) {
+                                        suggester.style.display = suggester.style.display === 'none' ? 'block' : 'none';
+                                      }
+                                    }}
+                                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                                    title="Get AI suggestions"
+                                  >
+                                    <SparklesIcon className="h-5 w-5 text-primary-500" />
+                                  </button>
+                                </div>
+                              )}
+                              <div id="content-suggester" className="mt-2" style={{ display: 'none' }}>
+                                <ContentSuggester title={formData.title} type="task" />
+                              </div>
+                            </div>
                   </div>
                 </div>
 

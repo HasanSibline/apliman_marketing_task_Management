@@ -47,6 +47,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
   const phases = [
     { key: 'PENDING_APPROVAL', title: 'Pending Approval', color: 'bg-gray-100 border-gray-300' },
     { key: 'APPROVED', title: 'Approved', color: 'bg-blue-100 border-blue-300' },
+    { key: 'REJECTED', title: 'Rejected', color: 'bg-red-100 border-red-300' },
     { key: 'ASSIGNED', title: 'Assigned', color: 'bg-purple-100 border-purple-300' },
     { key: 'IN_PROGRESS', title: 'In Progress', color: 'bg-yellow-100 border-yellow-300' },
     { key: 'COMPLETED', title: 'Completed', color: 'bg-green-100 border-green-300' },
