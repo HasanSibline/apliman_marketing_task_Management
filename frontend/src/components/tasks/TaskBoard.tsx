@@ -282,23 +282,31 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
         </div>
       </div>
 
-      {/* Activity Log */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mt-6 bg-white rounded-lg shadow-sm p-4"
-      >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
-        <TaskActivityLog activities={[
-          {
-            id: '1',
-            type: 'PHASE_CHANGE',
-            user: { name: 'System' },
-            description: 'Task board initialized',
-            createdAt: new Date().toISOString()
-          }
-        ]} />
-      </motion.div>
+              {/* Activity Log */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 bg-white rounded-lg shadow-lg p-6 border-t-4 border-primary-500"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
+                  <button 
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    onClick={() => window.location.href = '/activity'}
+                  >
+                    View All
+                  </button>
+                </div>
+                <TaskActivityLog activities={[
+                  {
+                    id: '1',
+                    type: 'PHASE_CHANGE',
+                    user: { name: 'System' },
+                    description: 'Task board initialized',
+                    createdAt: new Date().toISOString()
+                  }
+                ]} />
+              </motion.div>
     </DragDropContext>
   )
 }

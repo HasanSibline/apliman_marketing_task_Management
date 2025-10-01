@@ -38,7 +38,7 @@ const Header: React.FC = () => {
           </button>
 
           {/* Logo */}
-          <Logo size="md" className="hidden md:flex" />
+          <Logo size="md" className="flex" />
 
           {/* Search bar */}
           <div className="hidden md:block">
