@@ -26,6 +26,7 @@ enum UserStatus {
 enum TaskPhase {
   PENDING_APPROVAL
   APPROVED
+  REJECTED
   ASSIGNED
   IN_PROGRESS
   COMPLETED

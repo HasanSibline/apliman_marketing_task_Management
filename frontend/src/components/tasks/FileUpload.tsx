@@ -125,7 +125,10 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
     <div className="space-y-4">
       {/* Upload Area */}
       <div
-        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+        role="button"
+        tabIndex={0}
+        aria-label="Upload files by clicking or dragging and dropping"
+        className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
           dragActive 
             ? 'border-primary-500 bg-primary-50' 
             : 'border-gray-300 hover:border-gray-400'
@@ -134,22 +137,21 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        onKeyPress={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            fileInputRef.current?.click()
+          }
+        }}
       >
-        <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" />
+        <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
         <div className="mt-4">
           <p className="text-sm text-gray-600">
-            <button
-              type="button"
-              className="font-medium text-primary-600 hover:text-primary-500"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-            >
-              Click to upload
-            </button>
+            <span className="font-medium text-primary-600">Click to upload</span>
             {' '}or drag and drop
           </p>
-          <p className="text-xs text-gray-500 mt-1">
-            PNG, JPG, WebP, PDF, DOC, DOCX up to 5MB
+          <p className="text-xs text-gray-500 mt-1" id="file-upload-description">
+            Supported formats: PNG, JPG, WebP, PDF, DOC, DOCX (Max size: 5MB)
           </p>
         </div>
         
@@ -169,6 +171,8 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
         accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx"
         onChange={(e) => handleFileSelect(e.target.files)}
         disabled={uploading}
+        aria-label="File upload input"
+        aria-describedby="file-upload-description"
       />
 
       {/* File List */}
@@ -194,16 +198,17 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => filesApi.download(file.id)}
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                  className="text-primary-600 hover:text-primary-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded"
+                  aria-label={`Download ${file.fileName}`}
                 >
                   Download
                 </button>
                 <button
                   onClick={() => handleDeleteFile(file.id, file.fileName)}
-                  className="text-red-600 hover:text-red-700 p-1"
-                  title="Delete file"
+                  className="text-red-600 hover:text-red-700 p-1 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                  aria-label={`Delete ${file.fileName}`}
                 >
-                  <TrashIcon className="h-4 w-4" />
+                  <TrashIcon className="h-4 w-4" aria-hidden="true" />
                 </button>
               </div>
             </motion.div>

@@ -421,40 +421,62 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     {!isEditing && (
                       <div>
                         <h4 className="text-sm font-medium text-gray-700 mb-2">Task Phase</h4>
-                        <Menu as="div" className="relative">
-                          <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
-                            <span className="flex items-center justify-between">
-                              {task.phase.replace('_', ' ')}
-                              <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-                            </span>
-                          </Menu.Button>
-                          <Menu.Items className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 focus:outline-none z-10">
-                            <div className="py-1">
-                              {phases.map((phase) => (
-                                <Menu.Item key={phase.key}>
-                                  {({ active }) => (
-                                    <button
-                                      onClick={() => handlePhaseChange(phase.key)}
-                                      disabled={!canChangePhase(phase.key)}
-                                      className={`${
-                                        active ? 'bg-gray-100' : ''
-                                      } ${
-                                        !canChangePhase(phase.key) ? 'opacity-50 cursor-not-allowed' : ''
-                                      } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
-                                    >
-                                      {task.phase === phase.key && (
-                                        <CheckIcon className="h-4 w-4 mr-3 text-primary-600" />
-                                      )}
-                                      <span className={task.phase !== phase.key ? 'ml-7' : ''}>
-                                        {phase.title}
-                                      </span>
-                                    </button>
-                                  )}
-                                </Menu.Item>
-                              ))}
+                        {task.phase === 'PENDING_APPROVAL' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                              <span className="text-sm font-medium text-yellow-800">Pending Approval</span>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handlePhaseChange('APPROVED')}
+                                  className="px-3 py-1 text-sm font-medium text-white bg-green-500 rounded hover:bg-green-600"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handlePhaseChange('REJECTED')}
+                                  className="px-3 py-1 text-sm font-medium text-white bg-red-500 rounded hover:bg-red-600"
+                                >
+                                  Reject
+                                </button>
+                              </div>
                             </div>
-                          </Menu.Items>
-                        </Menu>
+                          </div>
+                        ) : (
+                          <Menu as="div" className="relative">
+                            <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                              <span className="flex items-center justify-between">
+                                {task.phase.replace('_', ' ')}
+                                <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                              </span>
+                            </Menu.Button>
+                            <Menu.Items className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 focus:outline-none z-10">
+                              <div className="py-1">
+                                {phases.map((phase) => (
+                                  <Menu.Item key={phase.key}>
+                                    {({ active }) => (
+                                      <button
+                                        onClick={() => handlePhaseChange(phase.key)}
+                                        disabled={!canChangePhase(phase.key)}
+                                        className={`${
+                                          active ? 'bg-gray-100' : ''
+                                        } ${
+                                          !canChangePhase(phase.key) ? 'opacity-50 cursor-not-allowed' : ''
+                                        } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                                      >
+                                        {task.phase === phase.key && (
+                                          <CheckIcon className="h-4 w-4 mr-3 text-primary-600" />
+                                        )}
+                                        <span className={task.phase !== phase.key ? 'ml-7' : ''}>
+                                          {phase.title}
+                                        </span>
+                                      </button>
+                                    )}
+                                  </Menu.Item>
+                                ))}
+                              </div>
+                            </Menu.Items>
+                          </Menu>
+                        )}
                       </div>
                     )}
 

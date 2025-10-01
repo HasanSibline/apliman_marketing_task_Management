@@ -178,7 +178,27 @@ export const usersApi = {
 }
 
 // Tasks API
+export interface Notification {
+  id: string
+  userId: string
+  type: string
+  title: string
+  message: string
+  taskId?: string
+  read: boolean
+  createdAt: string
+}
+
 export const tasksApi = {
+  getAdmins: async (): Promise<any[]> => {
+    const response = await api.get('/users', { params: { role: 'ADMIN' } })
+    return response.data
+  },
+
+  createNotification: async (data: Omit<Notification, 'id' | 'read' | 'createdAt'>): Promise<Notification> => {
+    const response = await api.post('/notifications', data)
+    return response.data
+  },
   getAll: async (params?: {
     phase?: string
     assignedToId?: string

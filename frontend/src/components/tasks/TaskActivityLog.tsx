@@ -7,6 +7,13 @@ import {
   PencilIcon,
   UserIcon,
   CheckIcon,
+  ClockIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon,
+  XMarkIcon,
+  PlayIcon,
+  PauseIcon,
+  StopIcon,
 } from '@heroicons/react/24/outline'
 
 interface TaskActivityLogProps {
@@ -28,6 +35,20 @@ const TaskActivityLog: React.FC<TaskActivityLogProps> = ({ activities }) => {
         return <UserIcon className="h-5 w-5" />
       case 'COMPLETED':
         return <CheckIcon className="h-5 w-5" />
+      case 'DUE_DATE_UPDATED':
+        return <ClockIcon className="h-5 w-5" />
+      case 'PRIORITY_UPDATED':
+        return <ExclamationTriangleIcon className="h-5 w-5" />
+      case 'AI_ANALYSIS':
+        return <SparklesIcon className="h-5 w-5" />
+      case 'TASK_REJECTED':
+        return <XMarkIcon className="h-5 w-5" />
+      case 'TIME_TRACKING_STARTED':
+        return <PlayIcon className="h-5 w-5" />
+      case 'TIME_TRACKING_PAUSED':
+        return <PauseIcon className="h-5 w-5" />
+      case 'TIME_TRACKING_STOPPED':
+        return <StopIcon className="h-5 w-5" />
       default:
         return <ArrowPathIcon className="h-5 w-5" />
     }
@@ -47,6 +68,20 @@ const TaskActivityLog: React.FC<TaskActivityLogProps> = ({ activities }) => {
         return 'text-indigo-600 bg-indigo-100'
       case 'COMPLETED':
         return 'text-green-600 bg-green-100'
+      case 'DUE_DATE_UPDATED':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'PRIORITY_UPDATED':
+        return 'text-red-600 bg-red-100'
+      case 'AI_ANALYSIS':
+        return 'text-primary-600 bg-primary-100'
+      case 'TASK_REJECTED':
+        return 'text-red-600 bg-red-100'
+      case 'TIME_TRACKING_STARTED':
+        return 'text-green-600 bg-green-100'
+      case 'TIME_TRACKING_PAUSED':
+        return 'text-yellow-600 bg-yellow-100'
+      case 'TIME_TRACKING_STOPPED':
+        return 'text-gray-600 bg-gray-100'
       default:
         return 'text-gray-600 bg-gray-100'
     }

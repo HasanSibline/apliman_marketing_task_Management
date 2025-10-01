@@ -6,6 +6,8 @@ import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
 import { fetchUsers } from '@/store/slices/usersSlice'
 import { useEffect } from 'react'
 import ContentSuggester from '../ai/ContentSuggester'
+import { tasksApi } from '@/services/api'
+import toast from 'react-hot-toast'
 
 interface CreateTaskModalProps {
   isOpen: boolean
@@ -42,35 +44,38 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       assignedToId: formData.assignedToId || undefined,
     }
 
-    const result = await dispatch(createTask(taskData))
-    if (createTask.fulfilled.match(result)) {
-      // Refresh the tasks list
-      dispatch(fetchTasks(filters))
+    try {
+      const result = await dispatch(createTask(taskData))
+      if (createTask.fulfilled.match(result)) {
+        // Refresh the tasks list
+        dispatch(fetchTasks(filters))
 
-      // Add notification for admins
-      const admins = await tasksApi.getAdmins()
-      admins.forEach(admin => {
-        addNotification({
-          type: 'task_approval',
-          title: 'New Task Requires Approval',
-          message: `A new task "${formData.title}" requires your approval.`,
-          taskId: result.payload.id,
-          userId: admin.id,
+        // Notify admins about the new task
+        const admins = await tasksApi.getAdmins()
+        admins.forEach(admin => {
+          tasksApi.createNotification({
+            userId: admin.id,
+            type: 'task_approval',
+            title: 'New Task Requires Approval',
+            message: `A new task "${formData.title}" requires your approval.`,
+            taskId: result.payload.id
+          })
         })
-      })
 
-      onClose()
-      setFormData({
-        title: '',
-        description: '',
-        goals: '',
-        priority: 3,
-        dueDate: '',
-        assignedToId: '',
-        phase: 'PENDING_APPROVAL' as const,
-      })
-
-      toast.success('Task created successfully! Waiting for admin approval.')
+        toast.success('Task created successfully! Waiting for admin approval.')
+        onClose()
+        setFormData({
+          title: '',
+          description: '',
+          goals: '',
+          priority: 3,
+          dueDate: '',
+          assignedToId: '',
+          phase: 'PENDING_APPROVAL' as const,
+        })
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to create task')
     }
   }
 
@@ -134,25 +139,50 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     />
                             <div className="relative">
                               {formData.title && (
-                                <div className="absolute right-2 top-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      const suggester = document.getElementById('content-suggester');
-                                      if (suggester) {
-                                        suggester.style.display = suggester.style.display === 'none' ? 'block' : 'none';
-                                      }
-                                    }}
-                                    className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                                    title="Get AI suggestions"
+                                <>
+                                  <div className="absolute right-2 top-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const suggester = document.getElementById('content-suggester');
+                                        if (suggester) {
+                                          suggester.style.display = suggester.style.display === 'none' ? 'block' : 'none';
+                                        }
+                                      }}
+                                      className="p-1 rounded-full hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                                      title="Get AI suggestions"
+                                      aria-label="Toggle AI suggestions"
+                                    >
+                                      <SparklesIcon className="h-5 w-5 text-primary-500" aria-hidden="true" />
+                                    </button>
+                                  </div>
+                                  <div 
+                                    id="content-suggester" 
+                                    className="mt-2 absolute z-10 w-full bg-white rounded-lg shadow-lg border border-gray-200" 
+                                    style={{ display: 'none' }}
+                                    role="dialog"
+                                    aria-label="AI content suggestions"
                                   >
-                                    <SparklesIcon className="h-5 w-5 text-primary-500" />
-                                  </button>
-                                </div>
+                                    <ContentSuggester 
+                                      title={formData.title} 
+                                      type="task" 
+                                      onSuggestionSelect={(suggestion) => {
+                                        setFormData(prev => ({
+                                          ...prev,
+                                          description: suggestion.description || prev.description,
+                                          goals: suggestion.goals || prev.goals,
+                                          priority: suggestion.priority || prev.priority,
+                                        }));
+                                        const suggester = document.getElementById('content-suggester');
+                                        if (suggester) {
+                                          suggester.style.display = 'none';
+                                        }
+                                        toast.success('AI suggestions applied!');
+                                      }}
+                                    />
+                                  </div>
+                                </>
                               )}
-                              <div id="content-suggester" className="mt-2" style={{ display: 'none' }}>
-                                <ContentSuggester title={formData.title} type="task" />
-                              </div>
                             </div>
                   </div>
                 </div>

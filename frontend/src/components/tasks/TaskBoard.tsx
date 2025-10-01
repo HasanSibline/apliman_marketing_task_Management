@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import TaskActivityLog from './TaskActivityLog'
+import TaskAIPreview from './TaskAIPreview'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -199,35 +200,38 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
               )}
             </div>
 
-            {/* Task Stats */}
-            <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
-              <div className="flex items-center space-x-3 text-xs text-gray-500">
-                {/* Comments Count */}
-                {task.comments && task.comments.length > 0 && (
-                  <span className="flex items-center space-x-1">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
-                    </svg>
-                    <span>{task.comments.length}</span>
-                  </span>
-                )}
+                      {/* Task Stats */}
+                    <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
+                      <div className="flex items-center space-x-3 text-xs text-gray-500">
+                        {/* Comments Count */}
+                        {task.comments && task.comments.length > 0 && (
+                          <span className="flex items-center space-x-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                            </svg>
+                            <span>{task.comments.length}</span>
+                          </span>
+                        )}
 
-                {/* Files Count */}
-                {task.files && task.files.length > 0 && (
-                  <span className="flex items-center space-x-1">
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
-                    </svg>
-                    <span>{task.files.length}</span>
-                  </span>
-                )}
-              </div>
+                        {/* Files Count */}
+                        {task.files && task.files.length > 0 && (
+                          <span className="flex items-center space-x-1">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
+                            </svg>
+                            <span>{task.files.length}</span>
+                          </span>
+                        )}
+                      </div>
 
-              {/* Created Date */}
-              <span className="text-xs text-gray-400">
-                {new Date(task.createdAt).toLocaleDateString()}
-              </span>
-            </div>
+                      {/* Created Date */}
+                      <span className="text-xs text-gray-400">
+                        {new Date(task.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {/* AI Preview */}
+                    <TaskAIPreview task={task} />
           </div>
         )}
       </Draggable>
