@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
 import { fetchUsers } from '@/store/slices/usersSlice'
