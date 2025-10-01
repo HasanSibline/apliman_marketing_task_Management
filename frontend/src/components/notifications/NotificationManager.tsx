@@ -14,7 +14,7 @@ import toast from 'react-hot-toast'
 
 interface Notification {
   id: string
-  type: 'deadline' | 'welcome' | 'password' | 'system'
+  type: 'deadline' | 'welcome' | 'password' | 'system' | 'task_approval'
   title: string
   message: string
   timestamp: Date
@@ -161,6 +161,16 @@ const NotificationManager: React.FC = () => {
     setUnreadCount(prev => Math.max(0, prev - 1))
   }
 
+  const handleTaskAction = async (taskId: string, action: 'approve' | 'reject') => {
+    try {
+      await tasksApi.update(taskId, { phase: action === 'approve' ? 'APPROVED' : 'REJECTED' })
+      toast.success(`Task ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
+      clearNotification(taskId)
+    } catch (error) {
+      toast.error('Failed to update task status')
+    }
+  }
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'deadline':
@@ -169,6 +179,8 @@ const NotificationManager: React.FC = () => {
         return <CheckCircleIcon className="h-6 w-6 text-green-500" />
       case 'password':
         return <ExclamationCircleIcon className="h-6 w-6 text-blue-500" />
+      case 'task_approval':
+        return <InformationCircleIcon className="h-6 w-6 text-blue-500" />
       default:
         return <InformationCircleIcon className="h-6 w-6 text-gray-500" />
     }
@@ -230,7 +242,22 @@ const NotificationManager: React.FC = () => {
                         <p className="text-xs text-gray-400 mt-1">
                           {new Date(notification.timestamp).toLocaleString()}
                         </p>
-                        {notification.link && (
+                        {notification.type === 'task_approval' && notification.taskId ? (
+                          <div className="flex items-center space-x-2 mt-2">
+                            <button
+                              onClick={() => handleTaskAction(notification.taskId!, 'approve')}
+                              className="px-3 py-1 text-sm font-medium text-white bg-green-500 rounded hover:bg-green-600"
+                            >
+                              Approve
+                            </button>
+                            <button
+                              onClick={() => handleTaskAction(notification.taskId!, 'reject')}
+                              className="px-3 py-1 text-sm font-medium text-white bg-red-500 rounded hover:bg-red-600"
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        ) : notification.link && (
                           <a
                             href={notification.link}
                             className="text-sm text-primary-600 hover:text-primary-700 mt-2 inline-block"

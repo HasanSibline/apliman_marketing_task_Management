@@ -46,6 +46,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     if (createTask.fulfilled.match(result)) {
       // Refresh the tasks list
       dispatch(fetchTasks(filters))
+
+      // Add notification for admins
+      const admins = await tasksApi.getAdmins()
+      admins.forEach(admin => {
+        addNotification({
+          type: 'task_approval',
+          title: 'New Task Requires Approval',
+          message: `A new task "${formData.title}" requires your approval.`,
+          taskId: result.payload.id,
+          userId: admin.id,
+        })
+      })
+
       onClose()
       setFormData({
         title: '',
@@ -54,7 +67,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         priority: 3,
         dueDate: '',
         assignedToId: '',
+        phase: 'PENDING_APPROVAL' as const,
       })
+
+      toast.success('Task created successfully! Waiting for admin approval.')
     }
   }
 
