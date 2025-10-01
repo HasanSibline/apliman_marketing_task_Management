@@ -108,6 +108,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
                 <span>Apply Suggestions</span>
               </button>
             )}
+          </div>
         </motion.div>
       )}
     </div>
