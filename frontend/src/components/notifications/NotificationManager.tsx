@@ -155,14 +155,6 @@ const NotificationManager: React.FC = () => {
     setUnreadCount(prev => prev + 1)
   }
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev =>
-      prev.map(notif =>
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    )
-    setUnreadCount(prev => Math.max(0, prev - 1))
-  }
 
   const clearNotification = (id: string) => {
     setNotifications(prev => prev.filter(notif => notif.id !== id))

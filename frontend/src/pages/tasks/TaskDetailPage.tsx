@@ -70,7 +70,7 @@ const TaskDetailPage: React.FC = () => {
             <div className="flex items-center space-x-4 text-sm text-gray-600">
               <div className="flex items-center space-x-1">
                 <UserIcon className="h-4 w-4" />
-                <span>Created by {currentTask.createdBy.name}</span>
+                <span>Created by {currentTask.createdBy?.name || 'Unknown'}</span>
               </div>
               {currentTask.assignedTo && (
                 <div className="flex items-center space-x-1">

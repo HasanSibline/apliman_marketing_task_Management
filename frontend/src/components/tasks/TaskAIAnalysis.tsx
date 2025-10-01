@@ -29,10 +29,6 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
         aiApi.analyzePriority(task.title, task.description),
         aiApi.checkCompleteness(task.description, task.goals || '', task.phase),
         aiApi.summarizeText(task.description)
-          subtasksCompleted: task.subtasks?.filter((s: any) => s.completed).length || 0,
-          subtasksTotal: task.subtasks?.length || 0,
-        }),
-        aiApi.summarizeText(task.description),
       ])
 
       setAnalysis({

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { PlayIcon, PauseIcon, StopIcon, ClockIcon } from '@heroicons/react/24/outline'
-import { useAppSelector } from '@/hooks/redux'
 import { tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
@@ -23,7 +22,6 @@ interface TimeTrackerProps {
 }
 
 const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEntriesUpdated }) => {
-  const { user } = useAppSelector((state) => state.auth)
   const [isTracking, setIsTracking] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [startTime, setStartTime] = useState<Date | null>(null)

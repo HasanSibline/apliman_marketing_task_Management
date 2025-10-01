@@ -6,7 +6,6 @@ import {
   ChartBarIcon,
   ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline'
-import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { analyticsApi } from '@/services/api'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import toast from 'react-hot-toast'

@@ -7,7 +7,6 @@ import {
   ArrowTrendingUpIcon,
   DocumentChartBarIcon,
 } from '@heroicons/react/24/outline'
-import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { analyticsApi } from '@/services/api'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import toast from 'react-hot-toast'
@@ -35,8 +34,6 @@ const AnalyticsDashboard: React.FC = () => {
       ])
 
       setDashboardData(dashboard)
-      setUserAnalytics(user)
-      setTeamAnalytics(team)
       setTaskAnalytics(tasks)
 
       // Generate AI insights
@@ -237,7 +234,7 @@ const AnalyticsDashboard: React.FC = () => {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {Object.entries(taskAnalytics?.taskDistribution || {}).map((entry, index) => (
+                  {Object.entries(taskAnalytics?.taskDistribution || {}).map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

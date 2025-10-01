@@ -1,9 +1,8 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { PlusIcon, CheckIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { tasksApi } from '@/services/api'
-import { fetchTasks } from '@/store/slices/tasksSlice'
+import { useAppSelector } from '@/hooks/redux'
 import toast from 'react-hot-toast'
 
 interface Subtask {
@@ -24,7 +23,6 @@ interface SubtaskListProps {
 }
 
 const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksUpdated }) => {
-  const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
   const [newSubtask, setNewSubtask] = useState('')
   const [submitting, setSubmitting] = useState(false)

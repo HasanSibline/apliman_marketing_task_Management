@@ -1,7 +1,6 @@
 import React, { useState } from 'react'
 import { Tab } from '@headlessui/react'
 import { ChartBarIcon, UserGroupIcon, UserIcon } from '@heroicons/react/24/outline'
-import { useAppSelector } from '@/hooks/redux'
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard'
 import UserAnalytics from '@/components/analytics/UserAnalytics'
 import TeamAnalytics from '@/components/analytics/TeamAnalytics'
