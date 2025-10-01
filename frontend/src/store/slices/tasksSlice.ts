@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { tasksApi, CreateTaskData, ApiTask } from '@/services/api'
+import { tasksApi, CreateTaskData } from '@/services/api'
 import { Task } from '@/types/task'
 import toast from 'react-hot-toast'
 
@@ -178,14 +178,10 @@ const tasksSlice = createSlice({
       })
       .addCase(fetchTasks.fulfilled, (state, action) => {
         state.isLoading = false
-        state.tasks = action.payload.tasks.map((apiTask: ApiTask) => {
-          const { updatedAt, ...rest } = apiTask
-          return {
-            ...rest,
-            phase: apiTask.phase,
-            createdById: apiTask.createdBy?.id || ''
-          } as Task
-        })
+        state.tasks = (action.payload.tasks as unknown as Task[]).map(task => ({
+          ...task,
+          createdById: task.createdBy?.id || ''
+        }))
         state.pagination = action.payload.pagination
         state.error = null
       })
@@ -211,14 +207,10 @@ const tasksSlice = createSlice({
 
       // Fetch My Tasks
       .addCase(fetchMyTasks.fulfilled, (state, action) => {
-        state.tasks = action.payload.tasks.map((apiTask: ApiTask) => {
-          const { updatedAt, ...rest } = apiTask
-          return {
-            ...rest,
-            phase: apiTask.phase,
-            createdById: apiTask.createdBy?.id || ''
-          } as Task
-        })
+        state.tasks = (action.payload.tasks as unknown as Task[]).map(task => ({
+          ...task,
+          createdById: task.createdBy?.id || ''
+        }))
         state.pagination = action.payload.pagination
       })
 
@@ -234,11 +226,10 @@ const tasksSlice = createSlice({
       })
       .addCase(createTask.fulfilled, (state, action) => {
         state.isLoading = false
-        const { updatedAt, ...apiTask } = action.payload
         const task = {
-          ...apiTask,
-          createdById: apiTask.createdBy?.id || ''
-        } as Task
+          ...action.payload,
+          createdById: action.payload.createdBy?.id || ''
+        } as unknown as Task
         state.tasks.unshift(task)
         state.error = null
       })
@@ -249,11 +240,10 @@ const tasksSlice = createSlice({
 
       // Update Task
       .addCase(updateTask.fulfilled, (state, action) => {
-        const { updatedAt, ...apiTask } = action.payload
         const task = {
-          ...apiTask,
-          createdById: apiTask.createdBy?.id || ''
-        } as Task
+          ...action.payload,
+          createdById: action.payload.createdBy?.id || ''
+        } as unknown as Task
         const index = state.tasks.findIndex(t => t.id === task.id)
         if (index !== -1) {
           state.tasks[index] = task
