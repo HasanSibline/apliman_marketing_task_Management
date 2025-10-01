@@ -7,6 +7,15 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('🌱 Starting database seed...');
 
+  // Clear all tables first
+  await prisma.taskComment.deleteMany();
+  await prisma.task.deleteMany();
+  await prisma.analytics.deleteMany();
+  await prisma.user.deleteMany();
+  await prisma.systemSettings.deleteMany();
+
+  console.log('✅ All tables cleared');
+
   // Create system settings
   const systemSettings = await prisma.systemSettings.upsert({
     where: { id: 'default' },
@@ -181,7 +190,7 @@ async function main() {
 
   console.log('🎉 Database seeded successfully!');
   console.log('\n📋 Default Users:');
-  console.log('Super Admin: admin@system.com / Admin123!');
+  console.log('Super Admin: Admin@apliman.com / Admin123!');
   console.log('Admin: manager@company.com / Manager123!');
   console.log('Employee: employee@company.com / Employee123!');
 }
