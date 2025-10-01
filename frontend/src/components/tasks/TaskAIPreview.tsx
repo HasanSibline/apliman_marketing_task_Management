@@ -65,7 +65,7 @@ const TaskAIPreview: React.FC<TaskAIPreviewProps> = ({ task }) => {
           </span>
         </div>
         <p className="text-xs text-gray-500 line-clamp-2">
-          {analysis.summary}
+          {analysis.summary.summary}
         </p>
       </div>
     </motion.div>

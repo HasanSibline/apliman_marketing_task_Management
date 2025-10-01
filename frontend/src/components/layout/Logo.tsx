@@ -16,7 +16,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
   return (
     <Link to="/" className={`flex items-center ${className}`}>
       <img
-        src="/logo.png"
+                src="/Apliman logo.webp"
         alt="Apliman Logo"
         className={`${sizeClasses[size]} w-auto`}
       />

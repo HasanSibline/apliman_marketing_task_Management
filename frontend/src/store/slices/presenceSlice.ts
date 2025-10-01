@@ -12,7 +12,6 @@ interface TeamMember {
 }
 
 interface PresenceState {
-  socket: Socket | null
   isConnected: boolean
   teamMembers: TeamMember[]
   currentUserStatus: 'ACTIVE' | 'AWAY' | 'OFFLINE'
@@ -20,7 +19,6 @@ interface PresenceState {
 }
 
 const initialState: PresenceState = {
-  socket: null,
   isConnected: false,
   teamMembers: [],
   currentUserStatus: 'OFFLINE',
@@ -30,53 +28,10 @@ const initialState: PresenceState = {
 // Async thunks
 export const initializeSocket = createAsyncThunk(
   'presence/initializeSocket',
-  async (_, { dispatch, rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token')
-      if (!token) {
-        return rejectWithValue('No authentication token')
-      }
-
-      const socketUrl = (import.meta as any).env.VITE_SOCKET_URL || 'http://localhost:3001'
-      const socket = io(socketUrl, {
-        auth: {
-          token,
-        },
-        transports: ['websocket', 'polling'],
-      })
-
-      // Socket event listeners
-      socket.on('connect', () => {
-        dispatch(setConnected(true))
-        dispatch(setCurrentUserStatus('ACTIVE'))
-      })
-
-      socket.on('disconnect', () => {
-        dispatch(setConnected(false))
-        dispatch(setCurrentUserStatus('OFFLINE'))
-      })
-
-      socket.on('user-status-updated', (data: { userId: string; status: string; isOnline: boolean }) => {
-        dispatch(updateTeamMemberStatus(data))
-      })
-
-      socket.on('team-members', (members: TeamMember[]) => {
-        dispatch(setTeamMembers(members))
-      })
-
-      socket.on('user-joined', (member: TeamMember) => {
-        dispatch(addTeamMember(member))
-      })
-
-      socket.on('user-left', (userId: string) => {
-        dispatch(removeTeamMember(userId))
-      })
-
-      socket.on('connect_error', (error) => {
-        dispatch(setError(error.message))
-      })
-
-      return socket
+      const socket = await import('@/services/socket').then(m => m.initializeSocket())
+      return true
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to initialize socket')
     }
@@ -85,17 +40,11 @@ export const initializeSocket = createAsyncThunk(
 
 export const updateUserStatus = createAsyncThunk(
   'presence/updateUserStatus',
-  async (status: 'ACTIVE' | 'AWAY' | 'OFFLINE', { getState, rejectWithValue }) => {
+  async (status: 'ACTIVE' | 'AWAY' | 'OFFLINE', { rejectWithValue }) => {
     try {
-      const state = getState() as { presence: PresenceState }
-      const { socket } = state.presence
-
-      if (socket && socket.connected) {
-        socket.emit('update-status', { status })
-        return status
-      } else {
-        return rejectWithValue('Socket not connected')
-      }
+      const { updateUserStatus } = await import('@/services/socket')
+      updateUserStatus(status)
+      return status
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to update status')
     }
@@ -104,13 +53,9 @@ export const updateUserStatus = createAsyncThunk(
 
 export const disconnectSocket = createAsyncThunk(
   'presence/disconnectSocket',
-  async (_, { getState }) => {
-    const state = getState() as { presence: PresenceState }
-    const { socket } = state.presence
-
-    if (socket) {
-      socket.disconnect()
-    }
+  async () => {
+    const { disconnectSocket } = await import('@/services/socket')
+    disconnectSocket()
     return null
   }
 )
@@ -161,8 +106,7 @@ const presenceSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Initialize Socket
-      .addCase(initializeSocket.fulfilled, (state, action) => {
-        state.socket = action.payload as any
+      .addCase(initializeSocket.fulfilled, (state) => {
         state.error = null
       })
       .addCase(initializeSocket.rejected, (state, action) => {
@@ -179,7 +123,6 @@ const presenceSlice = createSlice({
 
       // Disconnect Socket
       .addCase(disconnectSocket.fulfilled, (state) => {
-        state.socket = null
         state.isConnected = false
         state.currentUserStatus = 'OFFLINE'
         state.teamMembers = []
