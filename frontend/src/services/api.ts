@@ -300,7 +300,15 @@ export const filesApi = {
 // Analytics API
 export const analyticsApi = {
   generateInsights: async (analyticsData: any): Promise<any> => {
-    const response = await api.post('/ai/performance-insights', analyticsData)
+    const response = await api.post('/ai/performance-insights', {
+      user_id: analyticsData.user?.id,
+      team_id: analyticsData.team?.id,
+      time_range: 'last_30_days',
+      metrics: {
+        tasks: analyticsData.tasks,
+        dashboard: analyticsData.dashboard
+      }
+    })
     return response.data
   },
   exportTasksReport: async (): Promise<any> => {

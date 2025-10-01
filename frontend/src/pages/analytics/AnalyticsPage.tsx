@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useAppSelector } from '@/hooks/redux'
 import { Tab } from '@headlessui/react'
 import { ChartBarIcon, UserGroupIcon, UserIcon } from '@heroicons/react/24/outline'
 import AnalyticsDashboard from '@/components/analytics/AnalyticsDashboard'
@@ -10,13 +11,20 @@ function classNames(...classes: string[]) {
 }
 
 const AnalyticsPage: React.FC = () => {
+  const { user } = useAppSelector((state) => state.auth)
   const [selectedTab, setSelectedTab] = useState(0)
 
-  const tabs = [
-    { name: 'Overview', icon: ChartBarIcon },
-    { name: 'My Analytics', icon: UserIcon },
-    { name: 'Team Analytics', icon: UserGroupIcon },
-  ]
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+
+  const tabs = isAdmin
+    ? [
+        { name: 'Overview', icon: ChartBarIcon },
+        { name: 'My Analytics', icon: UserIcon },
+        { name: 'Team Analytics', icon: UserGroupIcon },
+      ]
+    : [
+        { name: 'My Analytics', icon: UserIcon },
+      ]
 
   return (
     <div className="space-y-6">

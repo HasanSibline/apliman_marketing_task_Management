@@ -20,13 +20,6 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
         alt="Apliman Logo"
         className={`${sizeClasses[size]} w-auto`}
       />
-      <span className={`ml-2 font-semibold text-gray-900 ${
-        size === 'sm' ? 'text-lg' :
-        size === 'md' ? 'text-xl' :
-        'text-2xl'
-      }`}>
-        Apliman
-      </span>
     </Link>
   )
 }

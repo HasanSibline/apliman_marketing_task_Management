@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
 import { fetchUsers } from '@/store/slices/usersSlice'
 import { useEffect } from 'react'
+import ContentSuggester from '../ai/ContentSuggester'
 
 interface CreateTaskModalProps {
   isOpen: boolean
@@ -103,16 +104,21 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
                     Task Title *
                   </label>
-                  <input
-                    type="text"
-                    id="title"
-                    name="title"
-                    required
-                    value={formData.title}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    placeholder="Enter task title"
-                  />
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      id="title"
+                      name="title"
+                      required
+                      value={formData.title}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      placeholder="Enter task title"
+                    />
+                    {formData.title && (
+                      <ContentSuggester title={formData.title} type="task" />
+                    )}
+                  </div>
                 </div>
 
                 {/* Description */}
