@@ -13,6 +13,7 @@ import {
   TrashIcon,
 } from '@heroicons/react/24/outline'
 import { Menu } from '@headlessui/react'
+import ReactMarkdown from 'react-markdown'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { tasksApi } from '@/services/api'
 import { fetchTasks } from '@/store/slices/tasksSlice'
@@ -410,9 +411,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                               placeholder="Enter task description..."
                             />
                           ) : (
-                            <p className="text-gray-600 whitespace-pre-wrap">
-                              {task.description}
-                            </p>
+                            <div className="text-gray-600 prose prose-sm max-w-none">
+                              <ReactMarkdown>{task.description}</ReactMarkdown>
+                            </div>
                           )}
                         </div>
 
@@ -420,9 +421,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         {task.goals && (
                           <div>
                             <h4 className="text-sm font-medium text-gray-700 mb-2">Goals & Success Criteria</h4>
-                            <p className="text-gray-600 whitespace-pre-wrap">
-                              {task.goals}
-                            </p>
+                            <div className="text-gray-600 prose prose-sm max-w-none">
+                              <ReactMarkdown>{task.goals}</ReactMarkdown>
+                            </div>
                           </div>
                         )}
 

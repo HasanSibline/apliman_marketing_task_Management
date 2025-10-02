@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { PlusIcon, FunnelIcon, Squares2X2Icon, ListBulletIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
+import ReactMarkdown from 'react-markdown'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTasks, setFilters } from '@/store/slices/tasksSlice'
 import CreateTaskModal from '@/components/tasks/CreateTaskModal'
@@ -208,9 +209,9 @@ const TasksPage: React.FC = () => {
                       {'★'.repeat(task.priority)}
                     </span>
                   </div>
-                  <p className="text-gray-600 mb-3 line-clamp-2">
-                    {task.description}
-                  </p>
+                  <div className="text-gray-600 mb-3 line-clamp-2 prose prose-sm max-w-none">
+                    <ReactMarkdown>{task.description}</ReactMarkdown>
+                  </div>
                   <div className="flex items-center space-x-4 text-sm text-gray-500">
                     {task.assignedTo && (
                       <span>Assigned to: {task.assignedTo.name}</span>

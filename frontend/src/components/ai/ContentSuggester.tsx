@@ -5,6 +5,7 @@ import {
   ClipboardDocumentIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
+import ReactMarkdown from 'react-markdown'
 import { aiApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
@@ -78,16 +79,20 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
           className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm"
         >
           <div className="prose prose-sm max-w-none">
-            <p>{suggestion.description}</p>
+            <div className="text-sm text-gray-700">
+              <ReactMarkdown>{suggestion.description || ''}</ReactMarkdown>
+            </div>
             {suggestion.goals && (
-              <div className="mt-2">
-                <h4 className="text-sm font-medium text-gray-900">Suggested Goals</h4>
-                <p className="text-sm text-gray-600">{suggestion.goals}</p>
+              <div className="mt-3">
+                <h4 className="text-sm font-medium text-gray-900 mb-2">Suggested Goals</h4>
+                <div className="text-sm text-gray-700">
+                  <ReactMarkdown>{suggestion.goals}</ReactMarkdown>
+                </div>
               </div>
             )}
             {suggestion.priority && (
-              <div className="mt-2">
-                <h4 className="text-sm font-medium text-gray-900">Suggested Priority</h4>
+              <div className="mt-3">
+                <h4 className="text-sm font-medium text-gray-900 mb-1">Suggested Priority</h4>
                 <p className="text-sm text-gray-600">Level {suggestion.priority}</p>
               </div>
             )}

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Menu } from '@headlessui/react'
 import { useNavigate } from 'react-router-dom'
 import { EllipsisVerticalIcon, PencilIcon, TrashIcon, ArrowPathIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import ReactMarkdown from 'react-markdown'
 import TaskActivityLog from './TaskActivityLog'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
@@ -256,9 +257,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                     </div>
 
             {/* Task Description */}
-            <p className="text-xs text-gray-600 mb-3 line-clamp-3 leading-relaxed">
-              {task.description}
-            </p>
+            <div className="text-xs text-gray-600 mb-3 line-clamp-3 leading-relaxed prose prose-xs max-w-none">
+              <ReactMarkdown>{task.description}</ReactMarkdown>
+            </div>
 
             {/* Pending Approval Actions */}
             {task.phase === 'PENDING_APPROVAL' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
