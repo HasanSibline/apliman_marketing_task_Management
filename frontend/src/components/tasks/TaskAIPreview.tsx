@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
-  ChartBarIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
 import { aiApi } from '@/services/api'

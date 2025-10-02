@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
-import { io, Socket } from 'socket.io-client'
 
 interface TeamMember {
   id: string
@@ -30,7 +29,7 @@ export const initializeSocket = createAsyncThunk(
   'presence/initializeSocket',
   async (_, { rejectWithValue }) => {
     try {
-      const socket = await import('@/services/socket').then(m => m.initializeSocket())
+      await import('@/services/socket').then(m => m.initializeSocket())
       return true
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to initialize socket')
