@@ -21,7 +21,6 @@ import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 
 @ApiTags('AI Services')
 @Controller('ai')
-@UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AiController {
   private readonly logger = new Logger(AiController.name);
@@ -31,6 +30,7 @@ export class AiController {
   @Get('health')
   @ApiOperation({ summary: 'Check AI service health' })
   @ApiResponse({ status: 200, description: 'AI service health status' })
+  @UseGuards(JwtAuthGuard)
   async checkHealth() {
     const healthStatus = await this.aiService.isAiServiceHealthy();
     return {
@@ -45,6 +45,7 @@ export class AiController {
   @Post('summarize')
   @ApiOperation({ summary: 'Summarize text using AI' })
   @ApiResponse({ status: 200, description: 'Text summarized successfully' })
+  @UseGuards(JwtAuthGuard)
   async summarizeText(@Body() summarizeTextDto: SummarizeTextDto) {
     const summary = await this.aiService.summarizeText(
       summarizeTextDto.text,
@@ -62,6 +63,7 @@ export class AiController {
   @Post('analyze-priority')
   @ApiOperation({ summary: 'Analyze task priority using AI' })
   @ApiResponse({ status: 200, description: 'Priority analyzed successfully' })
+  @UseGuards(JwtAuthGuard)
   async analyzePriority(@Body() analyzePriorityDto: AnalyzePriorityDto) {
     const analysis = await this.aiService.analyzePriority(
       analyzePriorityDto.title,
@@ -74,6 +76,7 @@ export class AiController {
   @Post('check-completeness')
   @ApiOperation({ summary: 'Check task completeness using AI' })
   @ApiResponse({ status: 200, description: 'Completeness checked successfully' })
+  @UseGuards(JwtAuthGuard)
   async checkCompleteness(@Body() checkCompletenessDto: CheckCompletenessDto) {
     const analysis = await this.aiService.checkTaskCompleteness(
       checkCompletenessDto.description,
@@ -87,6 +90,7 @@ export class AiController {
   @Post('performance-insights')
   @ApiOperation({ summary: 'Generate performance insights using AI' })
   @ApiResponse({ status: 200, description: 'Insights generated successfully' })
+  @UseGuards(JwtAuthGuard)
   async generateInsights(@Body() analyticsData: PerformanceInsightsDto) {
     const insights = await this.aiService.generatePerformanceInsights(analyticsData);
     return insights;

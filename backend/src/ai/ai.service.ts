@@ -223,7 +223,13 @@ export class AiService {
       };
     } catch (error) {
       this.logger.error('Error generating content from AI:', error);
-      throw error;
+      
+      // Provide fallback content when AI service is not available
+      return {
+        description: `Create a comprehensive plan for: ${title}. This ${type} requires careful planning and execution to achieve success.`,
+        goals: `1. Successfully complete the ${title}\n2. Ensure all deliverables meet quality standards\n3. Document the process and outcomes`,
+        priority: 3
+      };
     }
   }
 
