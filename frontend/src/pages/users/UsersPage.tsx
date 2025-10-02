@@ -15,8 +15,6 @@ import CreateUserModal from '@/components/users/CreateUserModal'
 import EditUserModal from '@/components/users/EditUserModal'
 import DeleteUserModal from '@/components/users/DeleteUserModal'
 import ResetPasswordModal from '@/components/users/ResetPasswordModal'
-import { usersApi } from '@/services/api'
-import toast from 'react-hot-toast'
 
 const UsersPage: React.FC = () => {
   const dispatch = useAppDispatch()
