@@ -2,12 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
-import { BrowserRouter, UNSAFE_UNSAFE_useScrollRestoration } from 'react-router-dom'
-import { UNSAFE_enhanceManualRouteObjects } from '@remix-run/router'
-
-// Enable future flags
-UNSAFE_UNSAFE_useScrollRestoration()
-UNSAFE_enhanceManualRouteObjects()
+import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { store, persistor } from '@/store'
 import App from './App'
@@ -18,7 +13,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
       <PersistGate loading={<LoadingScreen />} persistor={persistor}>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true }}>
           <App />
           <Toaster
             position="top-right"

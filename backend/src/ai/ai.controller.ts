@@ -4,6 +4,7 @@ import {
   Body,
   Get,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -23,15 +24,20 @@ import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AiController {
+  private readonly logger = new Logger(AiController.name);
+  
   constructor(private readonly aiService: AiService) {}
 
   @Get('health')
   @ApiOperation({ summary: 'Check AI service health' })
   @ApiResponse({ status: 200, description: 'AI service health status' })
   async checkHealth() {
-    const isHealthy = await this.aiService.isAiServiceHealthy();
+    const healthStatus = await this.aiService.isAiServiceHealthy();
     return {
-      status: isHealthy ? 'healthy' : 'unhealthy',
+      status: healthStatus.status,
+      isHealthy: healthStatus.isHealthy,
+      provider: healthStatus.provider,
+      error: healthStatus.error,
       timestamp: new Date().toISOString(),
     };
   }
@@ -84,5 +90,26 @@ export class AiController {
   async generateInsights(@Body() analyticsData: PerformanceInsightsDto) {
     const insights = await this.aiService.generatePerformanceInsights(analyticsData);
     return insights;
+  }
+
+  @Post('generate-content')
+  @ApiOperation({ summary: 'Generate content suggestions using AI' })
+  @ApiResponse({ status: 200, description: 'Content generated successfully' })
+  async generateContent(@Body() data: { title: string; type: string }) {
+    try {
+      const { title, type } = data;
+      
+      // Call the AI service once to get all content
+      const response = await this.aiService.generateContentFromAI(title, type);
+      
+      return {
+        description: response.description,
+        goals: response.goals,
+        priority: response.priority || 3 // Default priority if not provided
+      };
+    } catch (error) {
+      this.logger.error('Error generating content:', error);
+      throw error;
+    }
   }
 }

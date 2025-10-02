@@ -1,66 +1,29 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import os
-from dotenv import load_dotenv
+from fastapi.responses import JSONResponse
 import logging
-from contextlib import asynccontextmanager
-
-# Import services
-from services.summarization import SummarizationService
-from services.priority_analyzer import PriorityAnalyzer
-from services.completeness_checker import CompletenessChecker
-from services.performance_insights import PerformanceInsightsService
-from services.text_extractor import TextExtractorService
-from services.model_manager import ModelManager
-
-# Load environment variables
-load_dotenv()
+from datetime import datetime
+import psutil
+import os
+from config import get_config
+from services.content_generator import ContentGenerator
+from typing import Optional
+from pydantic import BaseModel
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("ai_service")
 
-# Global services
-services = {}
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup
-    logger.info("🚀 Starting AI Service...")
-    
-    # Initialize model manager for on-demand loading
-    model_manager = ModelManager()
-    
-    # Initialize services with model manager
-    services['summarization'] = SummarizationService(model_manager)
-    services['priority_analyzer'] = PriorityAnalyzer()
-    services['completeness_checker'] = CompletenessChecker()
-    services['performance_insights'] = PerformanceInsightsService()
-    services['text_extractor'] = TextExtractorService()
-    
-    logger.info("✅ AI Service started successfully!")
-    logger.info("📝 Models will be loaded on-demand to save memory")
-    
-    yield
-    
-    # Shutdown
-    logger.info("🛑 Shutting down AI Service...")
-    
-    # Clean up models
-    if 'model_manager' in locals():
-        await model_manager.cleanup_all()
-
-# Create FastAPI app
+# Initialize FastAPI app
 app = FastAPI(
     title="AI Task Management Service",
-    description="AI-powered microservice for task management system",
-    version="1.0.0",
-    lifespan=lifespan
+    description="AI-powered service for task management using Google's Gemini",
+    version="1.0.0"
 )
 
-# CORS middleware
+# Get configuration
+config = get_config()
+
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Configure appropriately for production
@@ -69,218 +32,159 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Pydantic models
-class SummarizeRequest(BaseModel):
-    text: str
-    max_length: Optional[int] = 150
+# Initialize services
+content_generator = ContentGenerator(None)  # We don't need model_manager for Gemini
 
-class SummarizeResponse(BaseModel):
-    summary: str
-    original_length: int
-    summary_length: int
-
-class AnalyzePriorityRequest(BaseModel):
-    title: str
-    description: str
-
-class AnalyzePriorityResponse(BaseModel):
-    priority: int
-    reasoning: str
-    confidence: float
-
-class CheckCompletenessRequest(BaseModel):
-    description: str
-    goals: str
-    phase: str
-
-class CheckCompletenessResponse(BaseModel):
-    completeness_score: float
-    suggestions: List[str]
-    is_complete: bool
-
-class PerformanceInsightsRequest(BaseModel):
-    analytics: Dict[str, Any]
-
-class PerformanceInsightsResponse(BaseModel):
-    insights: List[str]
-    recommendations: List[str]
-    trends: List[str]
-
-class ExtractTextRequest(BaseModel):
-    file_path: str
-    mime_type: str
-
-class ExtractTextResponse(BaseModel):
-    extracted_text: str
-    confidence: Optional[float] = None
-
-class HealthResponse(BaseModel):
-    status: str
-    timestamp: str
-    models_loaded: Dict[str, bool]
-
-# Health check endpoint
-@app.get("/health", response_model=HealthResponse)
+@app.get("/health")
 async def health_check():
-    from datetime import datetime
-    import psutil
-    import os
-    
+    """Health check endpoint with detailed status"""
     try:
-        # Get memory usage
+        # Get system metrics
         process = psutil.Process(os.getpid())
         memory_info = process.memory_info()
         memory_mb = memory_info.rss / 1024 / 1024
         
-        logger.info(f"Memory usage: {memory_mb:.2f} MB")
+        # Test AI provider connection
+        test_result = None
+        error_message = None
+        try:
+            test_result = await content_generator.generate_description("test task")
+        except Exception as e:
+            error_message = str(e)
         
-        models_status = {
-            "summarization": services.get('summarization') is not None,
-            "priority_analyzer": services.get('priority_analyzer') is not None,
-            "completeness_checker": services.get('completeness_checker') is not None,
-            "performance_insights": services.get('performance_insights') is not None,
-            "text_extractor": services.get('text_extractor') is not None,
+        # Prepare provider-specific status
+        provider_status = {}
+        if config.AI_PROVIDER == "gemini":
+            provider_status = {
+                "ai_provider": "gemini",
+                "gemini_status": "connected" if test_result else "error",
+                "gemini_model": config.GEMINI_MODEL,
+                "gemini_error": error_message,
+                "api_key_configured": bool(config.GOOGLE_API_KEY)
+            }
+        else:
+            provider_status = {
+                "ai_provider": "legacy",
+                "legacy_status": "connected" if test_result else "error",
+                "legacy_model": config.LEGACY_MODEL,
+                "legacy_error": error_message,
+                "legacy_endpoint_configured": bool(config.LEGACY_AI_ENDPOINT),
+                "legacy_key_configured": bool(config.LEGACY_AI_KEY)
+            }
+        
+        return {
+            "status": "healthy" if test_result else "degraded",
+            "timestamp": datetime.utcnow().isoformat(),
+            "environment": config.ENVIRONMENT,
+            "memory_usage_mb": round(memory_mb, 2),
+            **provider_status  # Include provider-specific status
         }
-        
-        # Check if memory usage is too high
-        status = "healthy"
-        if memory_mb > 400:  # 400MB threshold
-            status = "degraded"
-            logger.warning(f"High memory usage: {memory_mb:.2f} MB")
-        
-        return HealthResponse(
-            status=status,
-            timestamp=datetime.utcnow().isoformat(),
-            models_loaded=models_status
-        )
     except Exception as e:
-        logger.error(f"Health check error: {e}")
-        return HealthResponse(
-            status="unhealthy",
-            timestamp=datetime.utcnow().isoformat(),
-            models_loaded={}
+        logger.error(f"Health check failed: {e}")
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "unhealthy",
+                "timestamp": datetime.utcnow().isoformat(),
+                "error": str(e)
+            }
         )
 
-# Summarization endpoint
-@app.post("/summarize", response_model=SummarizeResponse)
-async def summarize_text(request: SummarizeRequest):
+@app.post("/test-ai")
+async def test_ai(test_text: Optional[str] = "This is a test task"):
+    """Test AI provider integration with optional test text"""
     try:
-        logger.info(f"Summarization request received: {len(request.text)} characters")
+        # Generate both description and goals
+        description = await content_generator.generate_description(test_text)
+        goals = await content_generator.generate_goals(test_text)
         
-        summarization_service = services.get('summarization')
-        if not summarization_service:
-            logger.error("Summarization service not available")
-            raise HTTPException(status_code=503, detail="Summarization service not available")
-        
-        # Load model on-demand if not already loaded
-        if not summarization_service.model_loaded:
-            logger.info("Loading summarization model on-demand...")
-            await summarization_service.load_model()
-        
-        summary = await summarization_service.summarize(request.text, request.max_length)
-        
-        logger.info(f"Summarization completed: {len(summary)} characters")
-        return SummarizeResponse(
-            summary=summary,
-            original_length=len(request.text),
-            summary_length=len(summary)
-        )
-    except Exception as e:
-        logger.error(f"Error in summarization: {str(e)}")
-        # Return fallback summary instead of failing
-        fallback_summary = request.text[:request.max_length] + "..." if len(request.text) > request.max_length else request.text
-        return SummarizeResponse(
-            summary=fallback_summary,
-            original_length=len(request.text),
-            summary_length=len(fallback_summary)
-        )
-
-# Priority analysis endpoint
-@app.post("/analyze-priority", response_model=AnalyzePriorityResponse)
-async def analyze_priority(request: AnalyzePriorityRequest):
-    try:
-        priority_analyzer = services.get('priority_analyzer')
-        if not priority_analyzer:
-            raise HTTPException(status_code=503, detail="Priority analyzer service not available")
-        
-        result = await priority_analyzer.analyze(request.title, request.description)
-        
-        return AnalyzePriorityResponse(**result)
-    except Exception as e:
-        logger.error(f"Error in priority analysis: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Priority analysis failed: {str(e)}")
-
-# Completeness check endpoint
-@app.post("/check-completeness", response_model=CheckCompletenessResponse)
-async def check_completeness(request: CheckCompletenessRequest):
-    try:
-        completeness_checker = services.get('completeness_checker')
-        if not completeness_checker:
-            raise HTTPException(status_code=503, detail="Completeness checker service not available")
-        
-        result = await completeness_checker.check(
-            request.description, 
-            request.goals, 
-            request.phase
-        )
-        
-        return CheckCompletenessResponse(**result)
-    except Exception as e:
-        logger.error(f"Error in completeness check: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Completeness check failed: {str(e)}")
-
-# Performance insights endpoint
-@app.post("/performance-insights", response_model=PerformanceInsightsResponse)
-async def generate_performance_insights(request: PerformanceInsightsRequest):
-    try:
-        insights_service = services.get('performance_insights')
-        if not insights_service:
-            raise HTTPException(status_code=503, detail="Performance insights service not available")
-        
-        result = await insights_service.generate_insights(request.analytics)
-        
-        return PerformanceInsightsResponse(**result)
-    except Exception as e:
-        logger.error(f"Error in performance insights: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Performance insights failed: {str(e)}")
-
-# Text extraction endpoint
-@app.post("/extract-text", response_model=ExtractTextResponse)
-async def extract_text(request: ExtractTextRequest):
-    try:
-        text_extractor = services.get('text_extractor')
-        if not text_extractor:
-            raise HTTPException(status_code=503, detail="Text extractor service not available")
-        
-        result = await text_extractor.extract(request.file_path, request.mime_type)
-        
-        return ExtractTextResponse(**result)
-    except Exception as e:
-        logger.error(f"Error in text extraction: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Text extraction failed: {str(e)}")
-
-# Root endpoint
-@app.get("/")
-async def root():
-    return {
-        "message": "AI Task Management Service",
-        "version": "1.0.0",
-        "status": "running",
-        "endpoints": {
-            "health": "/health",
-            "summarize": "/summarize",
-            "analyze_priority": "/analyze-priority",
-            "check_completeness": "/check-completeness",
-            "performance_insights": "/performance-insights",
-            "extract_text": "/extract-text"
+        return {
+            "status": "success",
+            "timestamp": datetime.utcnow().isoformat(),
+            "ai_provider": config.AI_PROVIDER,
+            "test_text": test_text,
+            "results": {
+                "description": description,
+                "goals": goals
+            }
         }
-    }
+    except Exception as e:
+        logger.error(f"AI test failed: {e}")
+        
+        # Prepare provider-specific help message
+        help_message = (
+            "Please check your GOOGLE_API_KEY and internet connection"
+            if config.AI_PROVIDER == "gemini"
+            else "Please check your LEGACY_AI_KEY, LEGACY_AI_ENDPOINT and internet connection"
+        )
+        
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "message": str(e),
+                "ai_provider": config.AI_PROVIDER,
+                "help": help_message
+            }
+        )
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "main:app",
-        host="0.0.0.0",
-        port=int(os.getenv("PORT", 8001)),
-        reload=os.getenv("ENVIRONMENT") == "development"
-    )
+class GenerateContentRequest(BaseModel):
+    title: str
+    type: str = "task"
+
+@app.post("/generate-content")
+async def generate_content(request: GenerateContentRequest):
+    """Generate content using configured AI provider"""
+    try:
+        # Generate content
+        description = await content_generator.generate_description(request.title)
+        goals = await content_generator.generate_goals(request.title)
+        
+        return {
+            "ai_provider": config.AI_PROVIDER,
+            "description": description,
+            "goals": goals
+        }
+    except Exception as e:
+        logger.error(f"Content generation failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "message": f"Content generation failed: {str(e)}",
+                "ai_provider": config.AI_PROVIDER
+            }
+        )
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    """Run startup tasks"""
+    logger.info("Starting AI service...")
+    try:
+        # Validate configuration
+        config.validate()
+        logger.info("Configuration validated successfully")
+        
+        # Log AI provider configuration
+        logger.info(f"Using AI provider: {config.AI_PROVIDER}")
+        if config.AI_PROVIDER == "gemini":
+            logger.info(f"Gemini model: {config.GEMINI_MODEL}")
+        else:
+            logger.info(f"Legacy model: {config.LEGACY_MODEL}")
+            logger.info(f"Legacy endpoint: {config.LEGACY_AI_ENDPOINT}")
+        
+        # Test AI provider connection
+        test_result = await content_generator.generate_description("test")
+        if test_result:
+            logger.info(f"{config.AI_PROVIDER.title()} connection tested successfully")
+        
+    except Exception as e:
+        logger.error(f"Startup failed: {e}")
+        raise e
+
+# Shutdown event
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Run cleanup tasks"""
+    logger.info("Shutting down AI service...")

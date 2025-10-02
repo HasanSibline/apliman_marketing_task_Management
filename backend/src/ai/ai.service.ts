@@ -152,18 +152,110 @@ export class AiService {
     }
   }
 
-  async isAiServiceHealthy(): Promise<boolean> {
+  async generateTaskDescription(title: string): Promise<string> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
+          title,
+          type: 'task'
+        }, {
+          timeout: 10000, // 10 second timeout
+        }),
+      );
+      
+      return response.data.description.trim();
+    } catch (error) {
+      this.logger.error('Error generating task description:', error);
+      // Generate a basic description based on the title
+      const words = title.split(' ');
+      const action = words[0].toLowerCase();
+      const subject = words.slice(1).join(' ');
+      return `This task involves ${action} ${subject}. The team member assigned to this task will need to ensure all necessary steps are taken to complete this action effectively and according to our standard procedures.`;
+    }
+  }
+
+  async generateTaskGoals(title: string): Promise<string> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
+          title,
+          type: 'task'
+        }, {
+          timeout: 10000, // 10 second timeout
+        }),
+      );
+      
+      return response.data.goals.trim();
+    } catch (error) {
+      this.logger.error('Error generating task goals:', error);
+      // Generate basic goals based on the title
+      const subject = title.toLowerCase();
+      return `Goals:\n` +
+        `1. Successfully complete the ${subject}\n` +
+        `2. Ensure all deliverables meet quality standards\n` +
+        `3. Document the process and outcomes\n\n` +
+        `Success Criteria:\n` +
+        `- All required components are completed\n` +
+        `- Work is reviewed and approved by relevant stakeholders\n` +
+        `- Documentation is clear and comprehensive`;
+    }
+  }
+
+  async generateContentFromAI(title: string, type: string): Promise<{
+    description: string;
+    goals: string;
+    priority?: number;
+  }> {
+    try {
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
+          title,
+          type
+        }, {
+          timeout: 15000, // 15 second timeout for AI generation
+        }),
+      );
+      
+      return {
+        description: response.data.description,
+        goals: response.data.goals,
+        priority: response.data.priority
+      };
+    } catch (error) {
+      this.logger.error('Error generating content from AI:', error);
+      throw error;
+    }
+  }
+
+  async isAiServiceHealthy(): Promise<{
+    isHealthy: boolean;
+    provider: string;
+    status: string;
+    error?: string;
+  }> {
     try {
       const response = await firstValueFrom(
         this.httpService.get(`${this.aiServiceUrl}/health`, {
           timeout: 5000, // 5 second timeout
         }),
       );
-      return response.status === 200;
+      
+      const data = response.data;
+      return {
+        isHealthy: data.status === 'healthy',
+        provider: data.ai_provider,
+        status: data.status,
+        error: data[`${data.ai_provider}_error`],
+      };
     } catch (error) {
       this.logger.warn('AI service health check failed:', error.message);
       this.logger.warn('AI Service URL:', this.aiServiceUrl);
-      return false;
+      return {
+        isHealthy: false,
+        provider: 'unknown',
+        status: 'error',
+        error: error.message,
+      };
     }
   }
 }

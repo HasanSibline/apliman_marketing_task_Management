@@ -38,9 +38,16 @@ services:
     environment:
       PORT: 8001
       ENVIRONMENT: production
+      AI_PROVIDER: gemini
+      GOOGLE_API_KEY: AIzaSyBlMmpWp0EeZnb4D0NECDeP073DPGodhso
+      GEMINI_MODEL: gemini-2.0-flash
       MODEL_CACHE_DIR: ./models
       MAX_SUMMARY_LENGTH: 150
       LOG_LEVEL: INFO
+      RATE_LIMIT_REQUESTS: 60
+      RATE_LIMIT_INTERVAL: 60
+      CACHE_ENABLED: "true"
+      CACHE_TTL: 3600
     ports:
       - "8001:8001"
     volumes:

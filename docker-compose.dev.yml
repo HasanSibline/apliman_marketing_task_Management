@@ -11,7 +11,7 @@ services:
       DATABASE_URL: postgresql://marketing_system_user:1vACneXxnqKAZR3eBNwNPrWl4s1ZXyLH@dpg-d3d7f7i4d50c73d560qg-a.oregon-postgres.render.com/marketing_system?sslmode=require
       JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
       JWT_EXPIRES_IN: 7d
-      AI_SERVICE_URL: http://localhost:8000
+      AI_SERVICE_URL: http://ai-service:8001
       UPLOAD_PATH: ./uploads
       MAX_FILE_SIZE: 5242880
       PORT: 3001
@@ -23,6 +23,34 @@ services:
       - ./backend/uploads:/app/uploads
       - ./backend:/app
       - /app/node_modules
+    networks:
+      - taskmanagement-network
+
+  # AI Service
+  ai-service:
+    build:
+      context: ./ai-service
+      dockerfile: Dockerfile
+    container_name: taskmanagement-ai-dev
+    environment:
+      PORT: 8001
+      ENVIRONMENT: development
+      AI_PROVIDER: gemini
+      GOOGLE_API_KEY: AIzaSyBlMmpWp0EeZnb4D0NECDeP073DPGodhso
+      GEMINI_MODEL: gemini-2.0-flash
+      MODEL_CACHE_DIR: ./models
+      MAX_SUMMARY_LENGTH: 150
+      LOG_LEVEL: DEBUG
+      RATE_LIMIT_REQUESTS: 60
+      RATE_LIMIT_INTERVAL: 60
+      CACHE_ENABLED: "true"
+      CACHE_TTL: 3600
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./ai-service:/app
+      - /app/venv
+      - ai_models:/app/models
     networks:
       - taskmanagement-network
 
@@ -44,6 +72,9 @@ services:
       - backend
     networks:
       - taskmanagement-network
+
+volumes:
+  ai_models:
 
 networks:
   taskmanagement-network:

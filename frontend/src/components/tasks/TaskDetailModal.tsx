@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
+import {
   XMarkIcon, 
   PaperClipIcon,
   ChevronDownIcon,
@@ -10,6 +10,7 @@ import {
   DocumentTextIcon,
   ArrowPathIcon,
   PlayIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
 import { Menu } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -214,12 +215,34 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                       Edit Task
                     </button>
                   )}
-                  <button
-                    onClick={onClose}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <XMarkIcon className="h-6 w-6" />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('Are you sure you want to delete this task?')) {
+                            try {
+                              await tasksApi.delete(task.id)
+                              toast.success('Task deleted successfully')
+                              dispatch(fetchTasks({}))
+                              onClose()
+                            } catch (error: any) {
+                              toast.error(error.response?.data?.message || 'Failed to delete task')
+                            }
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-600 transition-colors"
+                        title="Delete task"
+                      >
+                        <TrashIcon className="h-6 w-6" />
+                      </button>
+                    )}
+                    <button
+                      onClick={onClose}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
+                  </div>
                 </div>
               </div>
 

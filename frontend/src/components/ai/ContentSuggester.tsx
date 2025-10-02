@@ -29,7 +29,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
     try {
       const response = await aiApi.generateContent(title, type)
       const newSuggestion: Suggestion = {
-        description: response.content,
+        description: response.description,
         goals: response.goals,
         priority: response.priority
       }
@@ -58,6 +58,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
   return (
     <div className="relative">
       <button
+        type="button"
         onClick={generateContent}
         disabled={isLoading}
         className="inline-flex items-center space-x-2 text-primary-600 hover:text-primary-700"
@@ -93,6 +94,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
           </div>
           <div className="mt-4 flex items-center space-x-4">
             <button
+              type="button"
               onClick={copyToClipboard}
               className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-700"
             >
@@ -101,6 +103,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
             </button>
             {onSuggestionSelect && (
               <button
+                type="button"
                 onClick={handleApply}
                 className="inline-flex items-center space-x-2 text-primary-600 hover:text-primary-700"
               >

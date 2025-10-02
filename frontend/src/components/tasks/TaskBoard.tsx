@@ -1,11 +1,14 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { Menu } from '@headlessui/react'
+import { EllipsisVerticalIcon, PencilIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import TaskActivityLog from './TaskActivityLog'
 import TaskAIPreview from './TaskAIPreview'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
-import { updateTask } from '@/store/slices/tasksSlice'
+import { updateTask, fetchTasks } from '@/store/slices/tasksSlice'
+import { tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
 
@@ -146,15 +149,88 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
             ref={provided.innerRef}
             {...provided.draggableProps}
             {...provided.dragHandleProps}
-            className={`bg-white rounded-lg p-4 shadow-sm border-l-4 cursor-pointer hover:shadow-md transition-all duration-200 ${
+            className={`bg-white rounded-lg p-4 shadow-sm border-l-4 hover:shadow-md transition-all duration-200 ${
               snapshot.isDragging ? 'shadow-lg scale-[1.02]' : ''
             } ${getPriorityColor(task.priority)}`}
-            onClick={() => onTaskClick(task)}
           >
-            {/* Task Title */}
-            <h4 className="font-medium text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">
-              {task.title}
-            </h4>
+                    {/* Task Header */}
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 
+                        className="font-medium text-gray-900 text-sm line-clamp-2 leading-tight flex-1 mr-2 cursor-pointer"
+                        onClick={() => onTaskClick(task)}
+                      >
+                        {task.title}
+                      </h4>
+                      <Menu as="div" className="relative">
+                        <Menu.Button className="p-1 rounded-full hover:bg-gray-100 transition-colors">
+                          <EllipsisVerticalIcon className="h-5 w-5 text-gray-500" />
+                        </Menu.Button>
+                        <Menu.Items className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                          <Menu.Item>
+                            {({ active }) => (
+                              <button
+                                onClick={() => onTaskClick(task)}
+                                className={`${
+                                  active ? 'bg-gray-100' : ''
+                                } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                              >
+                                <PencilIcon className="h-4 w-4 mr-2" />
+                                Edit Task
+                              </button>
+                            )}
+                          </Menu.Item>
+                          {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+                            <Menu.Item>
+                              {({ active }) => (
+                                <button
+                                  onClick={async () => {
+                                    if (window.confirm('Are you sure you want to delete this task?')) {
+                                      try {
+                                        await tasksApi.delete(task.id)
+                                        toast.success('Task deleted successfully')
+                                        dispatch(fetchTasks({}))
+                                      } catch (error: any) {
+                                        toast.error(error.response?.data?.message || 'Failed to delete task')
+                                      }
+                                    }
+                                  }}
+                                  className={`${
+                                    active ? 'bg-gray-100' : ''
+                                  } flex items-center w-full px-4 py-2 text-sm text-red-600`}
+                                >
+                                  <TrashIcon className="h-4 w-4 mr-2" />
+                                  Delete Task
+                                </button>
+                              )}
+                            </Menu.Item>
+                          )}
+                          {phases.map(phase => (
+                            phase.key !== task.phase && (
+                              <Menu.Item key={phase.key}>
+                                {({ active }) => (
+                                  <button
+                                    onClick={() => {
+                                      try {
+                                        dispatch(updateTask({ id: task.id, data: { phase: phase.key } }))
+                                        toast.success(`Task moved to ${phase.title}`)
+                                      } catch (error: any) {
+                                        toast.error(error.response?.data?.message || 'Failed to move task')
+                                      }
+                                    }}
+                                    className={`${
+                                      active ? 'bg-gray-100' : ''
+                                    } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                                  >
+                                    <ArrowPathIcon className="h-4 w-4 mr-2" />
+                                    Move to {phase.title}
+                                  </button>
+                                )}
+                              </Menu.Item>
+                            )
+                          ))}
+                        </Menu.Items>
+                      </Menu>
+                    </div>
 
             {/* Task Description */}
             <p className="text-xs text-gray-600 mb-3 line-clamp-3 leading-relaxed">
