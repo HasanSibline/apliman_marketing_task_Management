@@ -131,4 +131,24 @@ export class UsersController {
     }
     return this.usersService.resetPassword(id);
   }
+
+  @Post(':id/reset-password-manual')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Manually reset user password (Admin/Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async resetPasswordManual(
+    @Param('id') id: string,
+    @Body('newPassword') newPassword: string,
+    @Request() req
+  ) {
+    // Admins cannot reset Super Admin passwords
+    const targetUser = await this.usersService.findById(id);
+    if (req.user.role === UserRole.ADMIN && targetUser.role === UserRole.SUPER_ADMIN) {
+      throw new ForbiddenException('Admins cannot reset Super Admin passwords');
+    }
+    return this.usersService.resetPasswordManual(id, newPassword);
+  }
 }

@@ -1,9 +1,9 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Menu } from '@headlessui/react'
-import { EllipsisVerticalIcon, PencilIcon, TrashIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
+import { EllipsisVerticalIcon, PencilIcon, TrashIcon, ArrowPathIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import TaskActivityLog from './TaskActivityLog'
-import TaskAIPreview from './TaskAIPreview'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -47,6 +47,7 @@ interface TaskBoardProps {
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
+  const navigate = useNavigate()
 
   const phases = [
     { key: 'PENDING_APPROVAL', title: 'Pending Approval', color: 'bg-gray-100 border-gray-300' },
@@ -84,7 +85,29 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     }
   }
 
+  const getPhaseDuration = (task: Task) => {
+    const now = new Date()
+    const createdAt = new Date(task.createdAt)
+    const diffInMs = now.getTime() - createdAt.getTime()
+    const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24))
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60))
+    const diffInMinutes = Math.floor(diffInMs / (1000 * 60))
+
+    if (diffInDays > 0) {
+      return `${diffInDays}d in ${task.phase.replace('_', ' ').toLowerCase()}`
+    } else if (diffInHours > 0) {
+      return `${diffInHours}h in ${task.phase.replace('_', ' ').toLowerCase()}`
+    } else {
+      return `${diffInMinutes}m in ${task.phase.replace('_', ' ').toLowerCase()}`
+    }
+  }
+
   const canMoveTask = (task: Task, newPhase: string) => {
+    // Only admins can approve/reject tasks
+    if (newPhase === 'APPROVED' || newPhase === 'REJECTED') {
+      return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+    }
+
     if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true
     if (task.assignedToId !== user?.id) return false
 
@@ -237,6 +260,34 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
               {task.description}
             </p>
 
+            {/* Pending Approval Actions */}
+            {task.phase === 'PENDING_APPROVAL' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+              <div className="flex items-center justify-center space-x-2 mb-3">
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to approve this task?')) {
+                      handleTaskMove(task, 'APPROVED')
+                    }
+                  }}
+                  className="flex items-center px-3 py-1 text-xs font-medium text-white bg-green-500 rounded-full hover:bg-green-600 transition-colors"
+                >
+                  <CheckIcon className="h-3 w-3 mr-1" />
+                  Approve
+                </button>
+                <button
+                  onClick={() => {
+                    if (window.confirm('Are you sure you want to reject this task?')) {
+                      handleTaskMove(task, 'REJECTED')
+                    }
+                  }}
+                  className="flex items-center px-3 py-1 text-xs font-medium text-white bg-red-500 rounded-full hover:bg-red-600 transition-colors"
+                >
+                  <XMarkIcon className="h-3 w-3 mr-1" />
+                  Reject
+                </button>
+              </div>
+            )}
+
             {/* Task Meta */}
             <div className="flex items-center justify-between text-xs text-gray-500">
               <div className="flex items-center space-x-2">
@@ -248,6 +299,23 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                 }`}>
                   {getPriorityText(task.priority)}
                 </span>
+
+                {/* Phase Duration */}
+                <span className="text-xs text-gray-500">
+                  {getPhaseDuration(task)}
+                </span>
+
+                {/* Creator Tag */}
+                <div className="flex items-center space-x-1">
+                  <div className="w-5 h-5 rounded-full bg-gray-500 flex items-center justify-center">
+                    <span className="text-xs font-medium text-white">
+                      {task.createdBy?.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <span className="text-xs text-gray-600">
+                    {task.createdBy?.name || 'Unknown'}
+                  </span>
+                </div>
 
                 {/* Assigned User */}
                 {task.assignedTo && (
@@ -306,8 +374,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                       </span>
                     </div>
 
-                    {/* AI Preview */}
-                    <TaskAIPreview task={task} />
           </div>
         )}
       </Draggable>
@@ -373,7 +439,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                   <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
                   <button 
                     className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                    onClick={() => window.location.href = '/activity'}
+                    onClick={() => navigate('/activity')}
                   >
                     View All
                   </button>

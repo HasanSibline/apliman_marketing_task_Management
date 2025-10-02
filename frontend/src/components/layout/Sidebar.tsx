@@ -39,7 +39,7 @@ const Sidebar: React.FC = () => {
       className="fixed inset-y-0 left-0 z-50 bg-white shadow-lg border-r border-gray-200"
     >
       <div className="flex flex-col h-full">
-        {/* Logo */}
+        {/* Header */}
         <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
           {sidebarOpen ? (
             <motion.div
@@ -48,19 +48,10 @@ const Sidebar: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="flex items-center space-x-2"
             >
-              <img
-                src="/Apliman logo.webp"
-                alt="Logo"
-                className="h-8 w-8"
-              />
               <span className="text-lg font-bold text-gray-900">TaskFlow</span>
             </motion.div>
           ) : (
-            <img
-              src="/Apliman logo.webp"
-              alt="Logo"
-              className="h-8 w-8"
-            />
+            <span className="text-lg font-bold text-gray-900">TF</span>
           )}
         </div>
 

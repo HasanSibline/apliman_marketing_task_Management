@@ -16,6 +16,7 @@ import TaskDetailPage from '@/pages/tasks/TaskDetailPage'
 import UsersPage from '@/pages/users/UsersPage'
 import AnalyticsPage from '@/pages/analytics/AnalyticsPage'
 import ProfilePage from '@/pages/ProfilePage'
+import ActivityPage from '@/pages/ActivityPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 
 function App() {
@@ -63,6 +64,7 @@ function App() {
         <Route path="tasks/:id" element={<TaskDetailPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 

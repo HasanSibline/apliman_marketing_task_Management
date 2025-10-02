@@ -301,4 +301,34 @@ export class UsersService {
       throw error;
     }
   }
+
+  async resetPasswordManual(id: string, newPassword: string) {
+    try {
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      await this.prisma.user.update({
+        where: { id },
+        data: {
+          password: hashedPassword,
+        },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+        },
+      });
+
+      return {
+        message: 'Password reset successfully',
+      };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException('User not found');
+        }
+      }
+      throw error;
+    }
+  }
 }

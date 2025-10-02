@@ -14,6 +14,7 @@ import { fetchUsers } from '@/store/slices/usersSlice'
 import CreateUserModal from '@/components/users/CreateUserModal'
 import EditUserModal from '@/components/users/EditUserModal'
 import DeleteUserModal from '@/components/users/DeleteUserModal'
+import ResetPasswordModal from '@/components/users/ResetPasswordModal'
 import { usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
@@ -24,6 +25,7 @@ const UsersPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
 
   useEffect(() => {
@@ -40,14 +42,9 @@ const UsersPage: React.FC = () => {
     setShowDeleteModal(true)
   }
 
-  const handleResetPassword = async (user: any) => {
-    try {
-      await usersApi.resetPassword(user.id)
-      toast.success('Password reset email sent successfully!')
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to reset password'
-      toast.error(message)
-    }
+  const handleResetPassword = (user: any) => {
+    setSelectedUser(user)
+    setShowResetPasswordModal(true)
   }
 
   const canManageUser = (targetUser: any) => {
@@ -223,6 +220,18 @@ const UsersPage: React.FC = () => {
           isOpen={showDeleteModal}
           onClose={() => {
             setShowDeleteModal(false)
+            setSelectedUser(null)
+          }}
+          user={selectedUser}
+        />
+      )}
+
+      {/* Reset Password Modal */}
+      {selectedUser && (
+        <ResetPasswordModal
+          isOpen={showResetPasswordModal}
+          onClose={() => {
+            setShowResetPasswordModal(false)
             setSelectedUser(null)
           }}
           user={selectedUser}

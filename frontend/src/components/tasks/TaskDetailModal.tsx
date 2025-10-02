@@ -376,10 +376,44 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                         {/* Description */}
                         <div>
-                          <h4 className="text-sm font-medium text-gray-700 mb-2">Description</h4>
-                          <p className="text-gray-600 whitespace-pre-wrap">
-                            {task.description}
-                          </p>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium text-gray-700">Description</h4>
+                            {canEditTask() && formData.description !== task.description && (
+                              <button
+                                onClick={async () => {
+                                  setIsLoading(true)
+                                  try {
+                                    await tasksApi.update(task.id, { description: formData.description })
+                                    toast.success('Description updated successfully!')
+                                    dispatch(fetchTasks({}))
+                                  } catch (error: any) {
+                                    const message = error.response?.data?.message || 'Failed to update description'
+                                    toast.error(message)
+                                  } finally {
+                                    setIsLoading(false)
+                                  }
+                                }}
+                                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                disabled={isLoading}
+                              >
+                                {isLoading ? 'Saving...' : 'Save'}
+                              </button>
+                            )}
+                          </div>
+                          {canEditTask() ? (
+                            <textarea
+                              value={formData.description}
+                              onChange={handleChange}
+                              name="description"
+                              rows={4}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600"
+                              placeholder="Enter task description..."
+                            />
+                          ) : (
+                            <p className="text-gray-600 whitespace-pre-wrap">
+                              {task.description}
+                            </p>
+                          )}
                         </div>
 
                         {/* Goals */}

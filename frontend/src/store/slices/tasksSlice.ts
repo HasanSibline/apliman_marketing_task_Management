@@ -19,6 +19,7 @@ interface TasksState {
     phase?: string
     assignedToId?: string
     createdById?: string
+    search?: string
   }
 }
 
@@ -44,6 +45,7 @@ export const fetchTasks = createAsyncThunk(
     phase?: string
     assignedToId?: string
     createdById?: string
+    search?: string
     page?: number
     limit?: number
   } = {}, { rejectWithValue }) => {

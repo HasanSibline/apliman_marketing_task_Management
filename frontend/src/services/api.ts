@@ -175,6 +175,10 @@ export const usersApi = {
     const response = await api.post(`/users/${id}/reset-password`)
     return response.data
   },
+
+  resetPasswordManual: async (userId: string, newPassword: string): Promise<void> => {
+    await api.post(`/users/${userId}/reset-password-manual`, { newPassword })
+  },
 }
 
 // Tasks API
@@ -321,13 +325,10 @@ export const filesApi = {
 export const analyticsApi = {
   generateInsights: async (analyticsData: any): Promise<any> => {
     const response = await api.post('/ai/performance-insights', {
-      user_id: analyticsData.user?.id,
-      team_id: analyticsData.team?.id,
-      time_range: 'last_30_days',
-      metrics: {
-        tasks: analyticsData.tasks,
-        dashboard: analyticsData.dashboard
-      }
+      dashboard: analyticsData.dashboard,
+      user: analyticsData.user,
+      team: analyticsData.team,
+      tasks: analyticsData.tasks
     })
     return response.data
   },

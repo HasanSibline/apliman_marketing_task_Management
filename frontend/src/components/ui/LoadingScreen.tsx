@@ -6,13 +6,9 @@ const LoadingScreen: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
       <div className="glass-card rounded-2xl p-8 max-w-md w-full mx-4">
         <div className="text-center">
-          {/* Logo */}
+          {/* Header */}
           <div className="mb-8">
-            <img
-              src="/Apliman logo.webp"
-              alt="Task Management System"
-              className="h-16 w-auto mx-auto"
-            />
+            <h1 className="text-3xl font-bold text-gray-800">TaskFlow</h1>
           </div>
 
           {/* Loading Animation */}

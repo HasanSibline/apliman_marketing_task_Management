@@ -61,14 +61,14 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
         type="button"
         onClick={generateContent}
         disabled={isLoading}
-        className="inline-flex items-center space-x-2 text-primary-600 hover:text-primary-700"
+        className="inline-flex items-center justify-center w-10 h-10 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-full transition-colors"
+        title="Generate Content"
       >
         {isLoading ? (
           <ArrowPathIcon className="h-5 w-5 animate-spin" />
         ) : (
           <SparklesIcon className="h-5 w-5" />
         )}
-        <span>✨ Generate Content</span>
       </button>
 
       {suggestion && (

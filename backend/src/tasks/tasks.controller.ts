@@ -49,6 +49,7 @@ export class TasksController {
   @ApiQuery({ name: 'phase', enum: TaskPhase, required: false })
   @ApiQuery({ name: 'assignedToId', type: 'string', required: false })
   @ApiQuery({ name: 'createdById', type: 'string', required: false })
+  @ApiQuery({ name: 'search', type: 'string', required: false })
   @ApiQuery({ name: 'page', type: 'number', required: false, example: 1 })
   @ApiQuery({ name: 'limit', type: 'number', required: false, example: 10 })
   @ApiResponse({ status: 200, description: 'Tasks retrieved successfully' })
@@ -57,6 +58,7 @@ export class TasksController {
     @Query('phase') phase?: TaskPhase,
     @Query('assignedToId') assignedToId?: string,
     @Query('createdById') createdById?: string,
+    @Query('search') search?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -68,6 +70,7 @@ export class TasksController {
       phase,
       assignedToId,
       createdById,
+      search,
       pageNum,
       limitNum,
     );
@@ -76,12 +79,14 @@ export class TasksController {
   @Get('my-tasks')
   @ApiOperation({ summary: 'Get tasks assigned to current user' })
   @ApiQuery({ name: 'phase', enum: TaskPhase, required: false })
+  @ApiQuery({ name: 'search', type: 'string', required: false })
   @ApiQuery({ name: 'page', type: 'number', required: false, example: 1 })
   @ApiQuery({ name: 'limit', type: 'number', required: false, example: 10 })
   @ApiResponse({ status: 200, description: 'User tasks retrieved successfully' })
   getMyTasks(
     @Request() req,
     @Query('phase') phase?: TaskPhase,
+    @Query('search') search?: string,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
   ) {
@@ -91,6 +96,7 @@ export class TasksController {
       phase,
       req.user.id, // assignedToId
       undefined,
+      search,
       page,
       limit,
     );

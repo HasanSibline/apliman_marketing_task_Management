@@ -16,6 +16,7 @@ export class AnalyticsService {
       totalUsers,
       activeUsers,
       totalTasks,
+      completedTasks,
       tasksByPhase,
       recentTasks,
       topPerformers,
@@ -27,6 +28,9 @@ export class AnalyticsService {
         where: { status: 'ACTIVE' },
       }),
       this.prisma.task.count(),
+      this.prisma.task.count({
+        where: { phase: TaskPhase.COMPLETED },
+      }),
       this.getTasksByPhase(),
       this.getRecentTasks(),
       this.getTopPerformers(),
@@ -36,6 +40,7 @@ export class AnalyticsService {
       totalUsers,
       activeUsers,
       totalTasks,
+      completedTasks,
       tasksByPhase,
       recentTasks,
       topPerformers,
@@ -140,12 +145,24 @@ export class AnalyticsService {
       averageCompletionTime,
       overdueTasks,
       recentlyCompleted,
+      totalTimeSpent,
+      activeTimers,
+      completionRate,
+      tasksCompletedThisWeek,
+      weekOverWeekChange,
+      taskDistribution,
     ] = await Promise.all([
       this.getTasksByPhase(),
       this.getTasksByPriority(),
       this.getAverageCompletionTime(),
       this.getOverdueTasks(),
       this.getRecentlyCompletedTasks(),
+      this.getTotalTimeSpent(),
+      this.getActiveTimers(),
+      this.getCompletionRate(),
+      this.getTasksCompletedThisWeek(),
+      this.getWeekOverWeekChange(),
+      this.getTaskDistribution(),
     ]);
 
     return {
@@ -154,6 +171,12 @@ export class AnalyticsService {
       averageCompletionTime,
       overdueTasks,
       recentlyCompleted,
+      totalTimeSpent,
+      activeTimers,
+      completionRate,
+      tasksCompletedThisWeek,
+      weekOverWeekChange,
+      taskDistribution,
     };
   }
 
@@ -364,5 +387,85 @@ export class AnalyticsService {
         },
       },
     });
+  }
+
+  private async getTotalTimeSpent() {
+    // Time tracking not implemented in current schema
+    // Return 0 for now
+    return 0;
+  }
+
+  private async getActiveTimers() {
+    // Time tracking not implemented in current schema
+    // Return 0 for now
+    return 0;
+  }
+
+  private async getCompletionRate() {
+    const totalTasks = await this.prisma.task.count();
+    const completedTasks = await this.prisma.task.count({
+      where: { phase: TaskPhase.COMPLETED },
+    });
+
+    return totalTasks > 0 ? completedTasks / totalTasks : 0;
+  }
+
+  private async getTasksCompletedThisWeek() {
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    return this.prisma.task.count({
+      where: {
+        phase: TaskPhase.COMPLETED,
+        updatedAt: { gte: startOfWeek },
+      },
+    });
+  }
+
+  private async getWeekOverWeekChange() {
+    const now = new Date();
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setDate(now.getDate() - now.getDay());
+    startOfThisWeek.setHours(0, 0, 0, 0);
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfThisWeek.getDate() - 7);
+
+    const [thisWeekTasks, lastWeekTasks] = await Promise.all([
+      this.prisma.task.count({
+        where: {
+          phase: TaskPhase.COMPLETED,
+          updatedAt: { gte: startOfThisWeek },
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          phase: TaskPhase.COMPLETED,
+          updatedAt: { 
+            gte: startOfLastWeek,
+            lt: startOfThisWeek,
+          },
+        },
+      }),
+    ]);
+
+    if (lastWeekTasks === 0) return thisWeekTasks > 0 ? 1 : 0;
+    return (thisWeekTasks - lastWeekTasks) / lastWeekTasks;
+  }
+
+  private async getTaskDistribution() {
+    const [byPriority, byPhase] = await Promise.all([
+      this.getTasksByPriority(),
+      this.getTasksByPhase(),
+    ]);
+
+    return {
+      byPriority: byPriority.reduce((acc, item) => {
+        acc[`priority_${item.priority}`] = item.count;
+        return acc;
+      }, {} as Record<string, number>),
+      byPhase,
+    };
   }
 }

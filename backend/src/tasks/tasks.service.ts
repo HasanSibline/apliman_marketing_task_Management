@@ -66,6 +66,7 @@ export class TasksService {
     phase?: TaskPhase,
     assignedToId?: string,
     createdById?: string,
+    search?: string,
     page: number = 1,
     limit: number = 10,
   ) {
@@ -91,6 +92,24 @@ export class TasksService {
     }
     if (createdById) {
       where.createdById = createdById;
+    }
+    if (search) {
+      const searchConditions = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+        { goals: { contains: search, mode: 'insensitive' } },
+      ];
+
+      if (where.OR) {
+        // If there's already an OR clause (for role-based filtering), combine them with AND
+        where.AND = [
+          { OR: where.OR },
+          { OR: searchConditions }
+        ];
+        delete where.OR;
+      } else {
+        where.OR = searchConditions;
+      }
     }
 
     const [tasks, total] = await Promise.all([
