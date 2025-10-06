@@ -6,11 +6,8 @@ load_dotenv()
 
 class Config:
     """Base configuration"""
-    # AI Provider Configuration
-    AI_PROVIDER = os.getenv("AI_PROVIDER", "gemini")  # 'gemini' or 'legacy'
+    # AI Provider Configuration (Gemini only)
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    LEGACY_AI_KEY = os.getenv("LEGACY_AI_KEY")  # For legacy AI system
-    LEGACY_AI_ENDPOINT = os.getenv("LEGACY_AI_ENDPOINT")  # For legacy AI system
     
     # Server Configuration
     PORT = int(os.getenv("PORT", 8001))
@@ -44,33 +41,12 @@ class Config:
                 "Must be one of: development, production, testing"
             )
         
-        # Validate AI provider
-        if cls.AI_PROVIDER not in ["gemini", "legacy"]:
-            raise ValueError(
-                f"Invalid AI_PROVIDER value: {cls.AI_PROVIDER}. "
-                "Must be one of: gemini, legacy"
-            )
-        
-        # Validate required API keys based on provider
-        if cls.AI_PROVIDER == "gemini" and not cls.GOOGLE_API_KEY:
+        # Validate Gemini API key
+        if not cls.GOOGLE_API_KEY:
             raise ValueError(
                 "GOOGLE_API_KEY not found in environment variables. "
-                "Required when AI_PROVIDER is set to 'gemini'. "
                 "Please set it in your .env file or environment variables."
             )
-        elif cls.AI_PROVIDER == "legacy":
-            if not cls.LEGACY_AI_KEY:
-                raise ValueError(
-                    "LEGACY_AI_KEY not found in environment variables. "
-                    "Required when AI_PROVIDER is set to 'legacy'. "
-                    "Please set it in your .env file or environment variables."
-                )
-            if not cls.LEGACY_AI_ENDPOINT:
-                raise ValueError(
-                    "LEGACY_AI_ENDPOINT not found in environment variables. "
-                    "Required when AI_PROVIDER is set to 'legacy'. "
-                    "Please set it in your .env file or environment variables."
-                )
 
 class DevelopmentConfig(Config):
     """Development configuration"""

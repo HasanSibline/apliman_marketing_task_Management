@@ -17,9 +17,14 @@ export class AnalyticsService {
       activeUsers,
       totalTasks,
       completedTasks,
+      inProgressTasks,
+      pendingTasks,
+      overdueTasks,
       tasksByPhase,
       recentTasks,
       topPerformers,
+      tasksCompletedThisWeek,
+      weekOverWeekChange,
     ] = await Promise.all([
       this.prisma.user.count({
         where: { status: { not: 'RETIRED' } },
@@ -31,16 +36,38 @@ export class AnalyticsService {
       this.prisma.task.count({
         where: { phase: TaskPhase.COMPLETED },
       }),
+      this.prisma.task.count({
+        where: { phase: TaskPhase.IN_PROGRESS },
+      }),
+      this.prisma.task.count({
+        where: { phase: TaskPhase.PENDING_APPROVAL },
+      }),
+      this.prisma.task.count({
+        where: {
+          dueDate: { lt: new Date() },
+          phase: { not: 'COMPLETED' },
+        },
+      }),
       this.getTasksByPhase(),
       this.getRecentTasks(),
       this.getTopPerformers(),
+      this.getTasksCompletedThisWeek(),
+      this.getWeekOverWeekChange(),
     ]);
+
+    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
     return {
       totalUsers,
       activeUsers,
       totalTasks,
       completedTasks,
+      inProgressTasks,
+      pendingTasks,
+      overdueTasks,
+      completionRate,
+      tasksCompletedThisWeek,
+      weekOverWeekChange,
       tasksByPhase,
       recentTasks,
       topPerformers,
@@ -48,7 +75,56 @@ export class AnalyticsService {
   }
 
   async getUserAnalytics(userId: string) {
-    const analytics = await this.prisma.analytics.findUnique({
+    console.log('Getting analytics for user ID:', userId);
+    
+    // First verify the user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        position: true,
+        role: true,
+      },
+    });
+
+    if (!user) {
+      console.error(`User with ID ${userId} not found in database`);
+      // Return a default analytics object instead of throwing an error
+      return {
+        id: 'temp',
+        userId,
+        tasksAssigned: 0,
+        tasksCompleted: 0,
+        tasksInProgress: 0,
+        interactions: 0,
+        totalTimeSpent: 0,
+        lastActive: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        user: {
+          id: userId,
+          name: 'Unknown User',
+          email: 'unknown@example.com',
+          position: 'Unknown',
+          role: 'EMPLOYEE',
+        },
+        assignedTasks: [],
+        completedTasks: 0,
+        overdueTasks: 0,
+        inProgressTasks: 0,
+        pendingTasks: 0,
+        productivityScore: 0,
+        taskQuality: 0,
+        timeTracked: 0,
+        totalAssigned: 0,
+        onTimeCompleted: 0,
+      };
+    }
+
+    // Ensure analytics record exists for user
+    let analytics = await this.prisma.analytics.findUnique({
       where: { userId },
       include: {
         user: {
@@ -64,11 +140,49 @@ export class AnalyticsService {
     });
 
     if (!analytics) {
-      return null;
+      // Create analytics record if it doesn't exist
+      try {
+        analytics = await this.prisma.analytics.create({
+          data: {
+            userId,
+            tasksAssigned: 0,
+            tasksCompleted: 0,
+            interactions: 0,
+            lastActive: new Date(),
+          },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                position: true,
+                role: true,
+              },
+            },
+          },
+        });
+      } catch (error) {
+        // If creation fails, return a default analytics object
+        console.error('Failed to create analytics record:', error);
+        analytics = {
+          id: 'temp',
+          userId,
+          tasksAssigned: 0,
+          tasksCompleted: 0,
+          tasksInProgress: 0,
+          interactions: 0,
+          totalTimeSpent: 0,
+          lastActive: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          user,
+        };
+      }
     }
 
-    // Get additional task statistics
-    const [assignedTasks, completedTasks, overdueTasks] = await Promise.all([
+    // Get real-time task statistics
+    const [assignedTasks, completedTasks, overdueTasks, inProgressTasks, pendingTasks] = await Promise.all([
       this.prisma.task.findMany({
         where: { assignedToId: userId },
         select: {
@@ -78,6 +192,7 @@ export class AnalyticsService {
           priority: true,
           dueDate: true,
           createdAt: true,
+          updatedAt: true,
         },
         orderBy: { createdAt: 'desc' },
         take: 10,
@@ -92,49 +207,126 @@ export class AnalyticsService {
         where: {
           assignedToId: userId,
           dueDate: { lt: new Date() },
-          phase: { not: TaskPhase.COMPLETED },
+          phase: { not: 'COMPLETED' },
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          assignedToId: userId,
+          phase: TaskPhase.IN_PROGRESS,
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          assignedToId: userId,
+          phase: TaskPhase.PENDING_APPROVAL,
         },
       }),
     ]);
+
+    // Calculate productivity score (0-100)
+    const totalAssigned = assignedTasks.length;
+    const productivityScore = totalAssigned > 0 ? Math.round((completedTasks / totalAssigned) * 100) : 0;
+
+    // Calculate task quality (based on completion rate and timeliness)
+    const onTimeCompleted = await this.prisma.task.count({
+      where: {
+        assignedToId: userId,
+        phase: TaskPhase.COMPLETED,
+        dueDate: { gte: new Date() }, // Completed before or on due date
+      },
+    });
+    const taskQuality = completedTasks > 0 ? Math.round((onTimeCompleted / completedTasks) * 100) : 0;
+
+    // Calculate time tracked (placeholder - would need time tracking implementation)
+    const timeTracked = 0; // Hours tracked
+
+    // Generate productivity history (last 7 days)
+    const productivityHistory = await this.generateProductivityHistory(userId);
 
     return {
       ...analytics,
       assignedTasks,
       completedTasks,
       overdueTasks,
+      inProgressTasks,
+      pendingTasks,
+      productivityScore,
+      taskQuality,
+      timeTracked,
+      totalAssigned,
+      onTimeCompleted,
+      productivityHistory,
     };
   }
 
   async getTeamAnalytics() {
-    const teamStats = await this.prisma.analytics.findMany({
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            position: true,
-            role: true,
-            status: true,
-          },
-        },
+    // Get all active team members
+    const teamMembers = await this.prisma.user.findMany({
+      where: { 
+        status: 'ACTIVE',
+        role: { in: [UserRole.ADMIN, UserRole.EMPLOYEE] }
       },
-      orderBy: { tasksCompleted: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        position: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        lastActiveAt: true,
+      },
     });
 
+    // Get real-time team statistics
+    const [
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      overdueTasks,
+      teamPerformance,
+    ] = await Promise.all([
+      this.prisma.task.count(),
+      this.prisma.task.count({ where: { phase: TaskPhase.COMPLETED } }),
+      this.prisma.task.count({ where: { phase: TaskPhase.IN_PROGRESS } }),
+      this.prisma.task.count({
+        where: {
+          dueDate: { lt: new Date() },
+          phase: { not: 'COMPLETED' },
+        },
+      }),
+      this.calculateTeamPerformance(teamMembers),
+    ]);
+
     const summary = {
-      totalTeamMembers: teamStats.length,
-      totalTasksAssigned: teamStats.reduce((sum, stat) => sum + stat.tasksAssigned, 0),
-      totalTasksCompleted: teamStats.reduce((sum, stat) => sum + stat.tasksCompleted, 0),
-      totalInteractions: teamStats.reduce((sum, stat) => sum + stat.interactions, 0),
-      averageCompletionRate: teamStats.length > 0 
-        ? teamStats.reduce((sum, stat) => sum + (stat.tasksCompleted / Math.max(stat.tasksAssigned, 1)), 0) / teamStats.length
-        : 0,
+      totalTeamMembers: teamMembers.length,
+      totalTasks,
+      completedTasks,
+      inProgressTasks,
+      overdueTasks,
+      teamPerformance: Math.round(teamPerformance),
+      averageCompletionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
+      tasksCompletedThisWeek: await this.getTasksCompletedThisWeek(),
     };
 
     return {
       summary,
-      teamMembers: teamStats,
+      teamMembers: await Promise.all(teamMembers.map(async (member) => {
+        try {
+          const userAnalytics = await this.getUserAnalytics(member.id);
+          return {
+            ...member,
+            analytics: userAnalytics,
+          };
+        } catch (error) {
+          console.error(`Failed to get analytics for team member ${member.id}:`, error);
+          return {
+            ...member,
+            analytics: null,
+          };
+        }
+      })),
     };
   }
 
@@ -177,6 +369,118 @@ export class AnalyticsService {
       tasksCompletedThisWeek,
       weekOverWeekChange,
       taskDistribution,
+    };
+  }
+
+  async getUserDashboardStats(userId: string) {
+    const [
+      userTasks,
+      userCompletedTasks,
+      userInProgressTasks,
+      userPendingTasks,
+      userOverdueTasks,
+      userTasksByPhase,
+      userRecentTasks,
+      userTasksCompletedThisWeek,
+      userWeekOverWeekChange,
+    ] = await Promise.all([
+      this.prisma.task.count({
+        where: { 
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        },
+      }),
+      this.prisma.task.count({
+        where: { 
+          phase: TaskPhase.COMPLETED,
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        },
+      }),
+      this.prisma.task.count({
+        where: { 
+          phase: TaskPhase.IN_PROGRESS,
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        },
+      }),
+      this.prisma.task.count({
+        where: { 
+          phase: TaskPhase.PENDING_APPROVAL,
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          dueDate: { lt: new Date() },
+          phase: { not: 'COMPLETED' },
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        },
+      }),
+      this.getUserTasksByPhase(userId),
+      this.getUserRecentTasks(userId),
+      this.getUserTasksCompletedThisWeek(userId),
+      this.getUserWeekOverWeekChange(userId),
+    ]);
+
+    const completionRate = userTasks > 0 ? Math.round((userCompletedTasks / userTasks) * 100) : 0;
+
+    return {
+      totalTasks: userTasks,
+      completedTasks: userCompletedTasks,
+      inProgressTasks: userInProgressTasks,
+      pendingTasks: userPendingTasks,
+      overdueTasks: userOverdueTasks,
+      completionRate,
+      tasksCompletedThisWeek: userTasksCompletedThisWeek,
+      weekOverWeekChange: userWeekOverWeekChange,
+      tasksByPhase: userTasksByPhase,
+      recentTasks: userRecentTasks,
+    };
+  }
+
+  async getUserTaskAnalytics(userId: string) {
+    const [
+      tasksByPhase,
+      tasksByPriority,
+      averageCompletionTime,
+      overdueTasks,
+      recentlyCompleted,
+      completionRate,
+      tasksCompletedThisWeek,
+      weekOverWeekChange,
+    ] = await Promise.all([
+      this.getUserTasksByPhase(userId),
+      this.getUserTasksByPriority(userId),
+      this.getUserAverageCompletionTime(userId),
+      this.getUserOverdueTasks(userId),
+      this.getUserRecentlyCompletedTasks(userId),
+      this.getUserCompletionRate(userId),
+      this.getUserTasksCompletedThisWeek(userId),
+      this.getUserWeekOverWeekChange(userId),
+    ]);
+
+    return {
+      tasksByPhase,
+      tasksByPriority,
+      averageCompletionTime,
+      overdueTasks,
+      recentlyCompleted,
+      completionRate,
+      tasksCompletedThisWeek,
+      weekOverWeekChange,
     };
   }
 
@@ -279,7 +583,7 @@ export class AnalyticsService {
     const counts = await Promise.all(
       phases.map(async (phase) => {
         const count = await this.prisma.task.count({
-          where: { phase },
+          where: { phase: phase as any },
         });
         return { phase, count };
       }),
@@ -462,10 +766,354 @@ export class AnalyticsService {
 
     return {
       byPriority: byPriority.reduce((acc, item) => {
-        acc[`priority_${item.priority}`] = item.count;
+        acc[`Priority ${item.priority}`] = item.count;
         return acc;
       }, {} as Record<string, number>),
-      byPhase,
+      byPhase: Object.entries(byPhase).reduce((acc, [phase, count]) => {
+        acc[phase.replace('_', ' ')] = count;
+        return acc;
+      }, {} as Record<string, number>),
     };
+  }
+
+  private async calculateTeamPerformance(teamMembers: any[]) {
+    if (teamMembers.length === 0) return 0;
+
+    const performanceScores = await Promise.all(
+      teamMembers.map(async (member) => {
+        try {
+          const userAnalytics = await this.getUserAnalytics(member.id);
+          return userAnalytics?.productivityScore || 0;
+        } catch (error) {
+          console.error(`Failed to get analytics for user ${member.id}:`, error);
+          return 0;
+        }
+      })
+    );
+
+    return performanceScores.reduce((sum, score) => sum + score, 0) / performanceScores.length;
+  }
+
+  async initializeAnalyticsForAllUsers() {
+    try {
+      // Get all users who don't have analytics records
+      const usersWithoutAnalytics = await this.prisma.user.findMany({
+        where: {
+          analytics: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      // Create analytics records for all users
+      const analyticsData = usersWithoutAnalytics.map(user => ({
+        userId: user.id,
+        tasksAssigned: 0,
+        tasksCompleted: 0,
+        interactions: 0,
+        lastActive: new Date(),
+      }));
+
+      if (analyticsData.length > 0) {
+        await this.prisma.analytics.createMany({
+          data: analyticsData,
+        });
+        console.log(`Created analytics records for ${analyticsData.length} users`);
+      }
+
+      return { success: true, count: analyticsData.length };
+    } catch (error) {
+      console.error('Failed to initialize analytics for all users:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async debugUsers() {
+    try {
+      const users = await this.prisma.user.findMany({
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+        },
+      });
+      console.log('All users in database:', users);
+      return users;
+    } catch (error) {
+      console.error('Failed to get users:', error);
+      return [];
+    }
+  }
+
+  private async generateProductivityHistory(userId: string) {
+    const history = [];
+    const today = new Date();
+    
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - i);
+      
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      // Get tasks completed on this day
+      const tasksCompleted = await this.prisma.task.count({
+        where: {
+          assignedToId: userId,
+          phase: 'COMPLETED',
+          updatedAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      });
+      
+      // Get tasks assigned on this day
+      const tasksAssigned = await this.prisma.task.count({
+        where: {
+          assignedToId: userId,
+          createdAt: {
+            gte: startOfDay,
+            lte: endOfDay,
+          },
+        },
+      });
+      
+      const productivityScore = tasksAssigned > 0 ? Math.round((tasksCompleted / tasksAssigned) * 100) : 0;
+      
+      history.push({
+        date: date.toISOString().split('T')[0],
+        score: productivityScore,
+        tasksCompleted,
+        tasksAssigned,
+      });
+    }
+    
+    return history;
+  }
+
+  // User-specific helper methods
+  private async getUserTasksByPhase(userId: string) {
+    const taskCounts = await this.prisma.task.groupBy({
+      by: ['phase'],
+      where: {
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId }
+        ]
+      },
+      _count: true,
+    });
+
+    const phaseMap = {
+      [TaskPhase.PENDING_APPROVAL]: 0,
+      [TaskPhase.APPROVED]: 0,
+      [TaskPhase.REJECTED]: 0,
+      [TaskPhase.ASSIGNED]: 0,
+      [TaskPhase.IN_PROGRESS]: 0,
+      [TaskPhase.COMPLETED]: 0,
+      [TaskPhase.ARCHIVED]: 0,
+    };
+
+    taskCounts.forEach(({ phase, _count }) => {
+      phaseMap[phase] = _count;
+    });
+
+    return phaseMap;
+  }
+
+  private async getUserTasksByPriority(userId: string) {
+    return this.prisma.task.groupBy({
+      by: ['priority'],
+      where: {
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId }
+        ]
+      },
+      _count: true,
+      orderBy: { priority: 'asc' },
+    }).then(results => 
+      results.map(({ priority, _count }) => ({
+        priority,
+        count: _count,
+      }))
+    );
+  }
+
+  private async getUserRecentTasks(userId: string) {
+    return this.prisma.task.findMany({
+      where: {
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId }
+        ]
+      },
+      include: {
+        assignedTo: {
+          select: { name: true, email: true },
+        },
+        createdBy: {
+          select: { name: true, email: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+  }
+
+  private async getUserTasksCompletedThisWeek(userId: string) {
+    const startOfWeek = new Date();
+    startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    return this.prisma.task.count({
+      where: {
+        phase: TaskPhase.COMPLETED,
+        updatedAt: { gte: startOfWeek },
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId }
+        ]
+      },
+    });
+  }
+
+  private async getUserWeekOverWeekChange(userId: string) {
+    const now = new Date();
+    const startOfThisWeek = new Date(now);
+    startOfThisWeek.setDate(now.getDate() - now.getDay());
+    startOfThisWeek.setHours(0, 0, 0, 0);
+
+    const startOfLastWeek = new Date(startOfThisWeek);
+    startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+
+    const [thisWeekTasks, lastWeekTasks] = await Promise.all([
+      this.prisma.task.count({
+        where: {
+          phase: TaskPhase.COMPLETED,
+          updatedAt: { gte: startOfThisWeek },
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        },
+      }),
+      this.prisma.task.count({
+        where: {
+          phase: TaskPhase.COMPLETED,
+          updatedAt: {
+            gte: startOfLastWeek,
+            lt: startOfThisWeek,
+          },
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        },
+      }),
+    ]);
+
+    if (lastWeekTasks === 0) return thisWeekTasks > 0 ? 1 : 0;
+    return (thisWeekTasks - lastWeekTasks) / lastWeekTasks;
+  }
+
+  private async getUserAverageCompletionTime(userId: string) {
+    // This is a simplified calculation - you might want to track actual time spent
+    const completedTasks = await this.prisma.task.findMany({
+      where: {
+        phase: TaskPhase.COMPLETED,
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId }
+        ]
+      },
+      select: {
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (completedTasks.length === 0) return 0;
+
+    const totalTime = completedTasks.reduce((sum, task) => {
+      const timeDiff = task.updatedAt.getTime() - task.createdAt.getTime();
+      return sum + timeDiff;
+    }, 0);
+
+    return Math.round(totalTime / completedTasks.length / (1000 * 60 * 60 * 24)); // Convert to days
+  }
+
+  private async getUserOverdueTasks(userId: string) {
+    return this.prisma.task.findMany({
+      where: {
+        dueDate: { lt: new Date() },
+        phase: { not: 'COMPLETED' },
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId }
+        ]
+      },
+      include: {
+        assignedTo: {
+          select: { name: true, email: true },
+        },
+        createdBy: {
+          select: { name: true, email: true },
+        },
+      },
+      orderBy: { dueDate: 'asc' },
+    });
+  }
+
+  private async getUserRecentlyCompletedTasks(userId: string) {
+    return this.prisma.task.findMany({
+      where: {
+        phase: TaskPhase.COMPLETED,
+        OR: [
+          { assignedToId: userId },
+          { createdById: userId }
+        ]
+      },
+      include: {
+        assignedTo: {
+          select: { name: true, email: true },
+        },
+        createdBy: {
+          select: { name: true, email: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 10,
+    });
+  }
+
+  private async getUserCompletionRate(userId: string) {
+    const [totalTasks, completedTasks] = await Promise.all([
+      this.prisma.task.count({
+        where: {
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        }
+      }),
+      this.prisma.task.count({
+        where: {
+          phase: TaskPhase.COMPLETED,
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId }
+          ]
+        }
+      }),
+    ]);
+
+    return totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
   }
 }

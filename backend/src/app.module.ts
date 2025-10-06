@@ -8,6 +8,7 @@ import { TasksModule } from './tasks/tasks.module';
 import { FilesModule } from './files/files.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PresenceModule } from './presence/presence.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -26,6 +27,7 @@ import { AppService } from './app.service';
     FilesModule,
     AnalyticsModule,
     PresenceModule,
+    NotificationsModule,
     AiModule,
   ],
   controllers: [AppController],

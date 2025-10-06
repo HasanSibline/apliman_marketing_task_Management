@@ -60,7 +60,7 @@ export interface ApiTask {
   id: string
   title: string
   description: string
-  phase: 'PENDING_APPROVAL' | 'APPROVED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED'
+  phase: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'ASSIGNED' | 'IN_PROGRESS' | 'COMPLETED' | 'ARCHIVED'
   priority: number
   goals?: string
   dueDate?: string
@@ -128,6 +128,11 @@ export const authApi = {
 export const usersApi = {
   getAll: async (params?: { role?: string; status?: string }): Promise<any[]> => {
     const response = await api.get('/users', { params })
+    return response.data
+  },
+
+  getAssignable: async (): Promise<any[]> => {
+    const response = await api.get('/users/assignable')
     return response.data
   },
 
@@ -220,7 +225,7 @@ export const tasksApi = {
   },
 
   getMyTasks: async (params?: { phase?: string; page?: number; limit?: number }): Promise<any> => {
-    const response = await api.get('/tasks/my-tasks', { params })
+    const response = await api.get('/tasks/my-tasks', { params: params || {} })
     return response.data
   },
 
@@ -343,6 +348,11 @@ export const analyticsApi = {
     return response.data
   },
 
+  getMyDashboard: async (): Promise<any> => {
+    const response = await api.get('/analytics/dashboard/me')
+    return response.data
+  },
+
   getUserAnalytics: async (userId?: string): Promise<any> => {
     const url = userId ? `/analytics/user/${userId}` : '/analytics/user/me'
     const response = await api.get(url)
@@ -356,6 +366,11 @@ export const analyticsApi = {
 
   getTaskAnalytics: async (): Promise<any> => {
     const response = await api.get('/analytics/tasks')
+    return response.data
+  },
+
+  getMyTaskAnalytics: async (): Promise<any> => {
+    const response = await api.get('/analytics/tasks/me')
     return response.data
   },
 
@@ -398,9 +413,37 @@ export const aiApi = {
     const response = await api.post('/ai/check-completeness', { description, goals, phase })
     return response.data
   },
+}
 
-  generateInsights: async (analyticsData: any): Promise<any> => {
-    const response = await api.post('/ai/performance-insights', analyticsData)
+// Notifications API
+export const notificationsApi = {
+  getNotifications: async (params?: { page?: number; limit?: number }): Promise<any> => {
+    const response = await api.get('/notifications', { params: params || {} })
+    return response.data
+  },
+
+  getUnreadCount: async (): Promise<{ count: number }> => {
+    const response = await api.get('/notifications/unread-count')
+    return response.data
+  },
+
+  markAsRead: async (id: string): Promise<any> => {
+    const response = await api.patch(`/notifications/${id}/read`)
+    return response.data
+  },
+
+  markAllAsRead: async (): Promise<any> => {
+    const response = await api.patch('/notifications/mark-all-read')
+    return response.data
+  },
+
+  deleteNotification: async (id: string): Promise<any> => {
+    const response = await api.delete(`/notifications/${id}`)
+    return response.data
+  },
+
+  deleteAllNotifications: async (): Promise<any> => {
+    const response = await api.delete('/notifications')
     return response.data
   },
 }

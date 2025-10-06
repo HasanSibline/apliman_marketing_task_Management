@@ -45,6 +45,18 @@ export const fetchUsers = createAsyncThunk(
   }
 )
 
+export const fetchAssignableUsers = createAsyncThunk(
+  'users/fetchAssignableUsers',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await usersApi.getAssignable()
+      return response
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch assignable users')
+    }
+  }
+)
+
 export const fetchUserById = createAsyncThunk(
   'users/fetchUserById',
   async (id: string, { rejectWithValue }) => {
@@ -129,6 +141,21 @@ const usersSlice = createSlice({
         state.error = null
       })
       .addCase(fetchUsers.rejected, (state, action) => {
+        state.isLoading = false
+        state.error = action.payload as string
+      })
+
+      // Fetch Assignable Users
+      .addCase(fetchAssignableUsers.pending, (state) => {
+        state.isLoading = true
+        state.error = null
+      })
+      .addCase(fetchAssignableUsers.fulfilled, (state, action) => {
+        state.isLoading = false
+        state.users = action.payload
+        state.error = null
+      })
+      .addCase(fetchAssignableUsers.rejected, (state, action) => {
         state.isLoading = false
         state.error = action.payload as string
       })

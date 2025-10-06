@@ -7,6 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicRoute from '@/components/auth/PublicRoute'
 import Layout from '@/components/layout/Layout'
 import LoadingScreen from '@/components/ui/LoadingScreen'
+import keepaliveService from '@/services/keepalive'
 
 // Pages
 import LoginPage from '@/pages/auth/LoginPage'
@@ -32,6 +33,16 @@ function App() {
       dispatch(initializeSocket())
     }
   }, [dispatch, isAuthenticated, user])
+
+  // Start keepalive service to prevent Render services from sleeping
+  useEffect(() => {
+    keepaliveService.start()
+    
+    // Cleanup on unmount
+    return () => {
+      keepaliveService.stop()
+    }
+  }, [])
 
   if (isLoading) {
     return <LoadingScreen />

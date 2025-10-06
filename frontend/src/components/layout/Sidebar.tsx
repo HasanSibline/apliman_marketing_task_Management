@@ -93,27 +93,29 @@ const Sidebar: React.FC = () => {
 
         {/* User info */}
         <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                <span className="text-sm font-medium text-white">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+                  <span className="text-sm font-medium text-white">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
               </div>
+              {sidebarOpen && (
+                <motion.div
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="ml-3"
+                >
+                  <p className="text-sm font-medium text-gray-700">{user?.name}</p>
+                  <p className="text-xs text-gray-500 capitalize">
+                    {user?.role?.replace('_', ' ').toLowerCase()}
+                  </p>
+                </motion.div>
+              )}
             </div>
-            {sidebarOpen && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 }}
-                className="ml-3"
-              >
-                <p className="text-sm font-medium text-gray-700">{user?.name}</p>
-                <p className="text-xs text-gray-500 capitalize">
-                  {user?.role?.replace('_', ' ').toLowerCase()}
-                </p>
-              </motion.div>
-            )}
           </div>
         </div>
       </div>

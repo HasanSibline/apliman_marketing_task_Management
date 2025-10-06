@@ -11,7 +11,6 @@ import { fetchDashboardAnalytics } from '@/store/slices/analyticsSlice'
 import { fetchPhaseCount } from '@/store/slices/tasksSlice'
 import StatsCard from '@/components/dashboard/StatsCard'
 import TaskPhaseChart from '@/components/dashboard/TaskPhaseChart'
-import RecentActivity from '@/components/dashboard/RecentActivity'
 
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -98,8 +97,8 @@ const DashboardPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Charts and Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts */}
+      <div className="grid grid-cols-1 gap-6">
         {/* Task Phase Chart */}
         <TaskPhaseChart 
           data={Object.entries(phaseCount || {}).map(([phase, count]) => ({
@@ -108,9 +107,6 @@ const DashboardPage: React.FC = () => {
             color: '#3B82F6'
           }))}
         />
-
-        {/* Recent Activity */}
-        <RecentActivity activities={dashboard?.recentActivity || []} />
       </div>
 
       {/* Team Status */}

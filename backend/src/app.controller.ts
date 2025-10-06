@@ -26,4 +26,19 @@ export class AppController {
   } {
     return this.appService.getHealth();
   }
+
+  @Get('keepalive')
+  @ApiOperation({ summary: 'Keepalive endpoint to prevent service sleep' })
+  @ApiResponse({ status: 200, description: 'Service is alive' })
+  getKeepalive(): { 
+    status: string
+    timestamp: string
+    message: string
+  } {
+    return {
+      status: 'alive',
+      timestamp: new Date().toISOString(),
+      message: 'Service is awake and running'
+    };
+  }
 }

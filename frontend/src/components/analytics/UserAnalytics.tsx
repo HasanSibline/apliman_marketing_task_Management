@@ -65,10 +65,10 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500">
-              {analytics?.totalTasks || 0} total tasks
+              {analytics?.totalAssigned || 0} assigned
             </span>
             <span className="text-primary-600 font-medium">
-              {Math.round((analytics?.tasksCompleted || 0) / (analytics?.totalTasks || 1) * 100)}%
+              {analytics?.productivityScore || 0}%
             </span>
           </div>
         </motion.div>
@@ -81,21 +81,21 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Time Tracked</p>
+              <p className="text-sm font-medium text-gray-600">In Progress</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                {Math.round((analytics?.totalTimeSpent || 0) / 3600)}h
+                {analytics?.inProgressTasks || 0}
               </h3>
             </div>
-            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <ClockIcon className="h-6 w-6 text-blue-600" />
+            <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <ClockIcon className="h-6 w-6 text-yellow-600" />
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500">
-              {analytics?.averageTaskTime ? Math.round(analytics.averageTaskTime / 3600) + 'h avg' : 'N/A'}
+              {analytics?.pendingTasks || 0} pending
             </span>
-            <span className="text-blue-600 font-medium">
-              {analytics?.activeTimers || 0} active
+            <span className="text-yellow-600 font-medium">
+              Active tasks
             </span>
           </div>
         </motion.div>
@@ -110,7 +110,7 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
             <div>
               <p className="text-sm font-medium text-gray-600">Productivity Score</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                {Math.round((analytics?.productivityScore || 0) * 100)}
+                {Math.round(analytics?.productivityScore || 0)}%
               </h3>
             </div>
             <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -119,10 +119,12 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500">
-              Based on {analytics?.metrics?.total || 0} metrics
+              Performance Score
             </span>
             <span className="text-green-600 font-medium">
-              {analytics?.productivityTrend ? (analytics.productivityTrend > 0 ? '+' : '') + Math.round(analytics.productivityTrend * 100) + '%' : 'N/A'}
+              {analytics?.productivityScore >= 80 ? 'Excellent' : 
+               analytics?.productivityScore >= 60 ? 'Good' : 
+               analytics?.productivityScore >= 40 ? 'Average' : 'Needs Improvement'}
             </span>
           </div>
         </motion.div>
@@ -137,7 +139,7 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
             <div>
               <p className="text-sm font-medium text-gray-600">Task Quality</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                {Math.round((analytics?.taskQuality || 0) * 100)}%
+                {Math.round(analytics?.taskQuality || 0)}%
               </h3>
             </div>
             <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -146,10 +148,12 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500">
-              {analytics?.qualityMetrics?.reviewed || 0} tasks reviewed
+              Quality Score
             </span>
             <span className="text-yellow-600 font-medium">
-              {analytics?.qualityTrend ? (analytics.qualityTrend > 0 ? '+' : '') + Math.round(analytics.qualityTrend * 100) + '%' : 'N/A'}
+              {analytics?.taskQuality >= 80 ? 'High' : 
+               analytics?.taskQuality >= 60 ? 'Good' : 
+               analytics?.taskQuality >= 40 ? 'Average' : 'Low'}
             </span>
           </div>
         </motion.div>
@@ -169,13 +173,79 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
               data={analytics?.productivityHistory || []}
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             >
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="score" stroke="#8884d8" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis 
+                dataKey="date" 
+                tickFormatter={(value) => new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#e0e0e0' }}
+              />
+              <YAxis 
+                domain={[0, 100]} 
+                tick={{ fontSize: 12 }}
+                tickLine={{ stroke: '#e0e0e0' }}
+                axisLine={{ stroke: '#e0e0e0' }}
+              />
+              <Tooltip 
+                labelFormatter={(value) => new Date(value).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric',
+                  year: 'numeric'
+                })}
+                formatter={(value, name) => [`${value}%`, 'Productivity Score']}
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="score" 
+                stroke="#3B82F6" 
+                strokeWidth={3}
+                dot={{ fill: '#3B82F6', strokeWidth: 2, r: 4 }}
+                activeDot={{ r: 6, stroke: '#3B82F6', strokeWidth: 2 }}
+              />
             </LineChart>
           </ResponsiveContainer>
+        </div>
+      </motion.div>
+
+      {/* Task Details Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="bg-white rounded-lg shadow-sm p-6"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Breakdown</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gray-50 rounded-lg p-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900">
+                {analytics?.tasksAssigned || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Total Assigned</div>
+            </div>
+          </div>
+          <div className="bg-green-50 rounded-lg p-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {analytics?.tasksCompleted || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">Completed</div>
+            </div>
+          </div>
+          <div className="bg-yellow-50 rounded-lg p-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-yellow-600">
+                {analytics?.inProgressTasks || 0}
+              </div>
+              <div className="text-sm text-gray-600 mt-1">In Progress</div>
+            </div>
+          </div>
         </div>
       </motion.div>
 

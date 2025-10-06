@@ -3,10 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
-import { fetchUsers } from '@/store/slices/usersSlice'
+import { fetchAssignableUsers } from '@/store/slices/usersSlice'
 import { useEffect } from 'react'
 import ContentSuggester from '../ai/ContentSuggester'
-import { tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
 interface CreateTaskModalProps {
@@ -17,6 +16,7 @@ interface CreateTaskModalProps {
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) => {
   const dispatch = useAppDispatch()
   const { users } = useAppSelector((state) => state.users)
+  const { user } = useAppSelector((state) => state.auth)
   const { isLoading, filters } = useAppSelector((state) => state.tasks)
   
   const [formData, setFormData] = useState({
@@ -26,14 +26,24 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     priority: 3,
     dueDate: '',
     assignedToId: '',
+    assignedUserIds: [] as string[],
     phase: 'PENDING_APPROVAL' as const,
   })
 
   useEffect(() => {
     if (isOpen) {
-      dispatch(fetchUsers({ role: 'EMPLOYEE' }))
+      dispatch(fetchAssignableUsers())
+      
+      // Auto-select current user as assigned
+      if (user?.id && !formData.assignedUserIds.includes(user.id)) {
+        setFormData(prev => ({
+          ...prev,
+          assignedToId: user.id, // For backward compatibility
+          assignedUserIds: [user.id] // Auto-select current user
+        }))
+      }
     }
-  }, [isOpen, dispatch])
+  }, [isOpen, dispatch, user?.id])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -42,6 +52,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       ...formData,
       dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
       assignedToId: formData.assignedToId || undefined,
+      assignedUserIds: formData.assignedUserIds.length > 0 ? formData.assignedUserIds : undefined,
     }
 
     try {
@@ -50,19 +61,24 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         // Refresh the tasks list
         dispatch(fetchTasks(filters))
 
+        // TODO: Implement notifications system
         // Notify admins about the new task
-        const admins = await tasksApi.getAdmins()
-        admins.forEach(admin => {
-          tasksApi.createNotification({
-            userId: admin.id,
-            type: 'task_approval',
-            title: 'New Task Requires Approval',
-            message: `A new task "${formData.title}" requires your approval.`,
-            taskId: result.payload.id
-          })
-        })
+        // const admins = await tasksApi.getAdmins()
+        // admins.forEach(admin => {
+        //   tasksApi.createNotification({
+        //     userId: admin.id,
+        //     type: 'task_approval',
+        //     title: 'New Task Requires Approval',
+        //     message: `A new task "${formData.title}" requires your approval.`,
+        //     taskId: result.payload.id
+        //   })
+        // })
 
         toast.success('Task created successfully! Waiting for admin approval.')
+        
+        // Dispatch custom event to notify NotificationBell
+        window.dispatchEvent(new CustomEvent('taskUpdated'))
+        
         onClose()
         setFormData({
           title: '',
@@ -70,7 +86,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           goals: '',
           priority: 3,
           dueDate: '',
-          assignedToId: '',
+          assignedToId: user?.id || '', // Auto-select current user
+          assignedUserIds: user?.id ? [user.id] : [], // Auto-select current user
           phase: 'PENDING_APPROVAL' as const,
         })
       }
@@ -250,23 +267,75 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Assign To */}
                 <div>
-                  <label htmlFor="assignedToId" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Assign To
                   </label>
-                  <select
-                    id="assignedToId"
-                    name="assignedToId"
-                    value={formData.assignedToId}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  >
-                    <option value="">Select an employee (optional)</option>
-                    {users.filter(user => user.role === 'EMPLOYEE').map(user => (
-                      <option key={user.id} value={user.id}>
-                        {user.name} ({user.email})
-                      </option>
-                    ))}
-                  </select>
+                  <div className="space-y-2">
+                    {/* Single assignment (backward compatibility) */}
+                    <div>
+                      <label htmlFor="assignedToId" className="block text-xs text-gray-500 mb-1">
+                        Single Assignment (Legacy)
+                      </label>
+                      <select
+                        id="assignedToId"
+                        name="assignedToId"
+                        value={formData.assignedToId}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      >
+                        <option value="">Select primary assignee</option>
+                        {users.map(userItem => (
+                          <option key={userItem.id} value={userItem.id}>
+                            {userItem.name} ({userItem.email}) {userItem.id === user?.id ? '(You)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    {/* Multiple assignments */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Assign Team Members
+                      </label>
+                      <p className="text-xs text-gray-500 mb-2">
+                        You are automatically assigned. Select additional team members to collaborate.
+                      </p>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {users.map(userItem => (
+                          <label key={userItem.id} className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={formData.assignedUserIds.includes(userItem.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    assignedUserIds: [...prev.assignedUserIds, userItem.id]
+                                  }))
+                                } else {
+                                  setFormData(prev => ({
+                                    ...prev,
+                                    assignedUserIds: prev.assignedUserIds.filter(id => id !== userItem.id)
+                                  }))
+                                }
+                              }}
+                              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                            />
+                            <span className="text-sm text-gray-700">
+                              {userItem.name} ({userItem.email}) {userItem.id === user?.id ? '(You)' : ''}
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                      {formData.assignedUserIds.length > 0 && (
+                        <div className="mt-2">
+                          <p className="text-xs text-gray-500">
+                            Selected: {formData.assignedUserIds.length} user(s)
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* Actions */}

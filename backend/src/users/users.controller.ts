@@ -47,6 +47,14 @@ export class UsersController {
     return this.usersService.findAll(role, status);
   }
 
+  @Get('assignable')
+  @ApiOperation({ summary: 'Get assignable users for task creation (All authenticated users)' })
+  @ApiResponse({ status: 200, description: 'Assignable users retrieved successfully' })
+  getAssignableUsers() {
+    // Return all active users for task assignment
+    return this.usersService.findAll(undefined, UserStatus.ACTIVE);
+  }
+
   @Get('me')
   @ApiOperation({ summary: 'Get current user profile' })
   @ApiResponse({ status: 200, description: 'User profile retrieved successfully' })

@@ -5,14 +5,13 @@ import ReactMarkdown from 'react-markdown'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTasks, setFilters } from '@/store/slices/tasksSlice'
 import CreateTaskModal from '@/components/tasks/CreateTaskModal'
+import TaskDetailModal from '@/components/tasks/TaskDetailModal'
 import ExportButton from '@/components/tasks/ExportButton'
 import TaskBoard from '@/components/tasks/TaskBoard'
-import { useNavigate } from 'react-router-dom'
 import { Task } from '@/types/task'
 
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
-  const navigate = useNavigate()
   const { tasks: apiTasks, isLoading, filters, pagination } = useAppSelector((state) => state.tasks)
   const tasks = apiTasks.map(task => ({
     ...task,
@@ -21,6 +20,8 @@ const TasksPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [showFilters, setShowFilters] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [viewMode, setViewMode] = useState<'list' | 'board'>('board')
 
   useEffect(() => {
@@ -29,9 +30,20 @@ const TasksPage: React.FC = () => {
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
 
+  const handleTaskClick = (task: Task) => {
+    setSelectedTask(task)
+    setShowTaskModal(true)
+  }
+
+  const handleCloseTaskModal = () => {
+    setShowTaskModal(false)
+    setSelectedTask(null)
+  }
+
   const phaseColors = {
     PENDING_APPROVAL: 'bg-gray-100 text-gray-800',
-    APPROVED: 'bg-blue-100 text-blue-800',
+    APPROVED: 'bg-cyan-100 text-cyan-800',
+    REJECTED: 'bg-red-100 text-red-800',
     ASSIGNED: 'bg-purple-100 text-purple-800',
     IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
     COMPLETED: 'bg-green-100 text-green-800',
@@ -104,17 +116,15 @@ const TasksPage: React.FC = () => {
             <FunnelIcon className="h-4 w-4 mr-2" />
             Filters
           </button>
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create Task
+          </button>
           {isAdmin && (
-            <>
-              <ExportButton filters={filters} />
-              <button 
-                onClick={() => setShowCreateModal(true)}
-                className="btn-primary"
-              >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                Create Task
-              </button>
-            </>
+            <ExportButton filters={filters} />
           )}
         </div>
       </div>
@@ -140,10 +150,14 @@ const TasksPage: React.FC = () => {
                 <option value="">All Phases</option>
                 <option value="PENDING_APPROVAL">Pending Approval</option>
                 <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
                 <option value="ASSIGNED">Assigned</option>
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="COMPLETED">Completed</option>
-                <option value="ARCHIVED">Archived</option>
+                {/* Only show ARCHIVED option for admins */}
+                {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+                  <option value="ARCHIVED">Archived</option>
+                )}
               </select>
             </div>
             <div>
@@ -183,7 +197,7 @@ const TasksPage: React.FC = () => {
       ) : viewMode === 'board' ? (
         <TaskBoard 
           tasks={tasks} 
-          onTaskClick={(task) => navigate(`/tasks/${task.id}`)}
+          onTaskClick={handleTaskClick}
         />
       ) : (
         <div className="space-y-4">
@@ -194,7 +208,7 @@ const TasksPage: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
               className="card hover:shadow-md transition-shadow duration-200 cursor-pointer"
-              onClick={() => navigate(`/tasks/${task.id}`)}
+              onClick={() => handleTaskClick(task)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -265,6 +279,15 @@ const TasksPage: React.FC = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
       />
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          isOpen={showTaskModal}
+          onClose={handleCloseTaskModal}
+          task={selectedTask}
+        />
+      )}
     </div>
   )
 }

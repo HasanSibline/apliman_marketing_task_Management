@@ -33,7 +33,7 @@ app.add_middleware(
 )
 
 # Initialize services
-content_generator = ContentGenerator(None)  # We don't need model_manager for Gemini
+content_generator = ContentGenerator()
 
 @app.get("/health")
 async def health_check():
@@ -44,7 +44,7 @@ async def health_check():
         memory_info = process.memory_info()
         memory_mb = memory_info.rss / 1024 / 1024
         
-        # Test AI provider connection
+        # Test Gemini connection
         test_result = None
         error_message = None
         try:
@@ -52,25 +52,14 @@ async def health_check():
         except Exception as e:
             error_message = str(e)
         
-        # Prepare provider-specific status
-        provider_status = {}
-        if config.AI_PROVIDER == "gemini":
-            provider_status = {
-                "ai_provider": "gemini",
-                "gemini_status": "connected" if test_result else "error",
-                "gemini_model": config.GEMINI_MODEL,
-                "gemini_error": error_message,
-                "api_key_configured": bool(config.GOOGLE_API_KEY)
-            }
-        else:
-            provider_status = {
-                "ai_provider": "legacy",
-                "legacy_status": "connected" if test_result else "error",
-                "legacy_model": config.LEGACY_MODEL,
-                "legacy_error": error_message,
-                "legacy_endpoint_configured": bool(config.LEGACY_AI_ENDPOINT),
-                "legacy_key_configured": bool(config.LEGACY_AI_KEY)
-            }
+        # Gemini status
+        provider_status = {
+            "ai_provider": "gemini",
+            "gemini_status": "connected" if test_result else "error",
+            "gemini_model": config.GEMINI_MODEL,
+            "gemini_error": error_message,
+            "api_key_configured": bool(config.GOOGLE_API_KEY)
+        }
         
         return {
             "status": "healthy" if test_result else "degraded",
@@ -90,6 +79,15 @@ async def health_check():
             }
         )
 
+@app.get("/keepalive")
+async def keepalive():
+    """Keepalive endpoint to prevent service sleep"""
+    return {
+        "status": "alive",
+        "timestamp": datetime.utcnow().isoformat(),
+        "message": "AI service is awake and running"
+    }
+
 @app.post("/test-ai")
 async def test_ai(test_text: Optional[str] = "This is a test task"):
     """Test AI provider integration with optional test text"""
@@ -101,7 +99,7 @@ async def test_ai(test_text: Optional[str] = "This is a test task"):
         return {
             "status": "success",
             "timestamp": datetime.utcnow().isoformat(),
-            "ai_provider": config.AI_PROVIDER,
+            "ai_provider": "gemini",
             "test_text": test_text,
             "results": {
                 "description": description,
@@ -111,12 +109,8 @@ async def test_ai(test_text: Optional[str] = "This is a test task"):
     except Exception as e:
         logger.error(f"AI test failed: {e}")
         
-        # Prepare provider-specific help message
-        help_message = (
-            "Please check your GOOGLE_API_KEY and internet connection"
-            if config.AI_PROVIDER == "gemini"
-            else "Please check your LEGACY_AI_KEY, LEGACY_AI_ENDPOINT and internet connection"
-        )
+        # Prepare help message
+        help_message = "Please check your GOOGLE_API_KEY and internet connection"
         
         raise HTTPException(
             status_code=500,
@@ -141,7 +135,7 @@ async def generate_content(request: GenerateContentRequest):
         goals = await content_generator.generate_goals(request.title)
         
         return {
-            "ai_provider": config.AI_PROVIDER,
+            "ai_provider": "gemini",
             "description": description,
             "goals": goals
         }
@@ -152,9 +146,64 @@ async def generate_content(request: GenerateContentRequest):
             detail={
                 "status": "error",
                 "message": f"Content generation failed: {str(e)}",
-                "ai_provider": config.AI_PROVIDER
+                "ai_provider": "gemini"
             }
         )
+
+@app.post("/performance-insights")
+async def generate_performance_insights(request: dict):
+    """Generate performance insights from analytics data"""
+    try:
+        analytics_data = request.get("analytics", {})
+        
+        # Create a prompt for performance insights
+        prompt = f"""
+        Based on the following analytics data, provide performance insights, recommendations, and trends:
+        
+        Dashboard Data: {analytics_data.get('dashboard', {})}
+        User Data: {analytics_data.get('user', {})}
+        Team Data: {analytics_data.get('team', {})}
+        Task Data: {analytics_data.get('tasks', {})}
+        
+        Please provide:
+        1. Key insights about performance
+        2. Actionable recommendations
+        3. Trends and patterns observed
+        
+        Format the response as JSON with 'insights', 'recommendations', and 'trends' arrays.
+        """
+        
+        # Generate insights using Gemini
+        response = await content_generator._make_gemini_request(prompt)
+        
+        # Try to parse as JSON, fallback to structured response
+        try:
+            import json
+            parsed_response = json.loads(response)
+            return {
+                "insights": parsed_response.get("insights", ["Performance analysis completed"]),
+                "recommendations": parsed_response.get("recommendations", ["Continue monitoring performance"]),
+                "trends": parsed_response.get("trends", ["Data analysis in progress"]),
+                "ai_provider": "gemini"
+            }
+        except json.JSONDecodeError:
+            # Fallback if response isn't valid JSON
+            return {
+                "insights": [response[:200] + "..." if len(response) > 200 else response],
+                "recommendations": ["Review the insights above for actionable steps"],
+                "trends": ["Continue monitoring for patterns"],
+                "ai_provider": "gemini"
+            }
+            
+    except Exception as e:
+        logger.error(f"Error generating performance insights: {e}")
+        return {
+            "insights": ["Unable to generate insights at this time"],
+            "recommendations": ["Please try again later"],
+            "trends": ["Data analysis temporarily unavailable"],
+            "ai_provider": "gemini",
+            "error": str(e)
+        }
 
 # Startup event
 @app.on_event("startup")
@@ -166,18 +215,14 @@ async def startup_event():
         config.validate()
         logger.info("Configuration validated successfully")
         
-        # Log AI provider configuration
-        logger.info(f"Using AI provider: {config.AI_PROVIDER}")
-        if config.AI_PROVIDER == "gemini":
-            logger.info(f"Gemini model: {config.GEMINI_MODEL}")
-        else:
-            logger.info(f"Legacy model: {config.LEGACY_MODEL}")
-            logger.info(f"Legacy endpoint: {config.LEGACY_AI_ENDPOINT}")
+        # Log Gemini configuration
+        logger.info("Using AI provider: Gemini")
+        logger.info(f"Gemini model: {config.GEMINI_MODEL}")
         
-        # Test AI provider connection
+        # Test Gemini connection
         test_result = await content_generator.generate_description("test")
         if test_result:
-            logger.info(f"{config.AI_PROVIDER.title()} connection tested successfully")
+            logger.info("Gemini connection tested successfully")
         
     except Exception as e:
         logger.error(f"Startup failed: {e}")

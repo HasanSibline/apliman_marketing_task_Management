@@ -35,12 +35,12 @@ export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
   @Post()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Create new task (Admin/Super Admin only)' })
+  @ApiOperation({ summary: 'Create new task' })
   @ApiResponse({ status: 201, description: 'Task created successfully' })
-  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   create(@Body() createTaskDto: CreateTaskDto, @Request() req) {
+    console.log('Task creation request received');
+    console.log('User:', req.user);
+    console.log('Task data:', createTaskDto);
     return this.tasksService.create(createTaskDto, req.user.id);
   }
 
@@ -156,5 +156,46 @@ export class TasksController {
     @Request() req,
   ) {
     return this.tasksService.addComment(taskId, createCommentDto, req.user.id, req.user.role);
+  }
+
+  // Subtask endpoints
+  @Post(':id/subtasks')
+  @ApiOperation({ summary: 'Add subtask to task' })
+  @ApiResponse({ status: 201, description: 'Subtask created successfully' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  addSubtask(
+    @Param('id') taskId: string,
+    @Body() data: { title: string; description?: string; assignedToId?: string; dueDate?: string },
+    @Request() req,
+  ) {
+    return this.tasksService.addSubtask(taskId, data, req.user.id);
+  }
+
+  @Patch(':id/subtasks/:subtaskId')
+  @ApiOperation({ summary: 'Update subtask' })
+  @ApiResponse({ status: 200, description: 'Subtask updated successfully' })
+  @ApiResponse({ status: 404, description: 'Subtask not found' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  updateSubtask(
+    @Param('id') taskId: string,
+    @Param('subtaskId') subtaskId: string,
+    @Body() data: { title?: string; description?: string; completed?: boolean; assignedToId?: string; dueDate?: string },
+    @Request() req,
+  ) {
+    return this.tasksService.updateSubtask(taskId, subtaskId, data, req.user.id);
+  }
+
+  @Delete(':id/subtasks/:subtaskId')
+  @ApiOperation({ summary: 'Delete subtask' })
+  @ApiResponse({ status: 200, description: 'Subtask deleted successfully' })
+  @ApiResponse({ status: 404, description: 'Subtask not found' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  deleteSubtask(
+    @Param('id') taskId: string,
+    @Param('subtaskId') subtaskId: string,
+    @Request() req,
+  ) {
+    return this.tasksService.deleteSubtask(taskId, subtaskId, req.user.id);
   }
 }

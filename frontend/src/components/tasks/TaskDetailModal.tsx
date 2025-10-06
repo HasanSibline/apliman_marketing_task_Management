@@ -7,7 +7,6 @@ import {
   CheckIcon,
   ClockIcon,
   ChatBubbleLeftIcon,
-  DocumentTextIcon,
   ArrowPathIcon,
   PlayIcon,
   TrashIcon,
@@ -20,7 +19,6 @@ import { fetchTasks } from '@/store/slices/tasksSlice'
 import TaskComments from './TaskComments'
 import FileUpload from './FileUpload'
 import TaskActivityLog from './TaskActivityLog'
-import TaskAIAnalysis from './TaskAIAnalysis'
 import SubtaskList from './SubtaskList'
 import TimeTracker from './TimeTracker'
 import toast from 'react-hot-toast'
@@ -39,7 +37,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
   const [showComments, setShowComments] = useState(false)
   const [showFiles, setShowFiles] = useState(false)
   const [showActivityLog, setShowActivityLog] = useState(false)
-  const [showAIAnalysis, setShowAIAnalysis] = useState(false)
   const [showSubtasks, setShowSubtasks] = useState(false)
   const [showTimeTracker, setShowTimeTracker] = useState(false)
   
@@ -67,14 +64,24 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
     }
   }, [task])
 
-  const phases = [
+  const allPhases = [
     { key: 'PENDING_APPROVAL', title: 'Pending Approval' },
     { key: 'APPROVED', title: 'Approved' },
+    { key: 'REJECTED', title: 'Rejected' },
     { key: 'ASSIGNED', title: 'Assigned' },
     { key: 'IN_PROGRESS', title: 'In Progress' },
     { key: 'COMPLETED', title: 'Completed' },
     { key: 'ARCHIVED', title: 'Archived' },
   ]
+
+  // Filter phases based on user role - hide restricted options for employees
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  const phases = isAdmin 
+    ? allPhases 
+    : allPhases.filter(phase => {
+        // Employees can see: PENDING_APPROVAL (read-only), APPROVED (read-only), ASSIGNED (read-only), IN_PROGRESS, COMPLETED
+        return ['PENDING_APPROVAL', 'APPROVED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(phase.key)
+      })
 
   const canEditTask = () => {
     if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true
@@ -82,16 +89,22 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
   }
 
   const canChangePhase = (newPhase: string) => {
+    // Admins can change any task to any phase
     if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true
+    
+    // Employees can only change their assigned tasks
     if (task.assignedToId !== user?.id) return false
+    
+    // Employees cannot approve (assign) or reject tasks
+    if (newPhase === 'ASSIGNED' && task.phase === 'PENDING_APPROVAL') return false
+    if (newPhase === 'REJECTED') return false
+    
+    // Employees cannot archive tasks
+    if (newPhase === 'ARCHIVED') return false
 
-    // Phase transition rules for employees
-    const phaseOrder = ['PENDING_APPROVAL', 'APPROVED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED']
-    const currentIndex = phaseOrder.indexOf(task.phase)
-    const newIndex = phaseOrder.indexOf(newPhase)
-
-    // Can only move one step forward or backward
-    return Math.abs(newIndex - currentIndex) === 1
+    // Employees can move through normal workflow phases (from ASSIGNED onwards)
+    const allowedPhases = ['IN_PROGRESS', 'COMPLETED']
+    return allowedPhases.includes(newPhase)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,6 +122,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
       toast.success('Task updated successfully!')
       dispatch(fetchTasks({}))
       setIsEditing(false)
+      
+      // Dispatch custom event to notify NotificationBell
+      window.dispatchEvent(new CustomEvent('taskUpdated'))
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to update task'
       toast.error(message)
@@ -128,6 +144,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
       await tasksApi.update(task.id, { phase: newPhase })
       toast.success('Task phase updated successfully!')
       dispatch(fetchTasks({}))
+      
+      // Dispatch custom event to notify NotificationBell
+      window.dispatchEvent(new CustomEvent('taskUpdated'))
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to update task phase'
       toast.error(message)
@@ -359,9 +378,48 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                       <div className="space-y-6">
                         {/* Title */}
                         <div>
+                          <div className="flex items-center justify-between mb-2">
                           <h3 className="text-lg font-medium text-gray-900">
-                            {task.title}
+                              {canEditTask() ? (
+                                <input
+                                  type="text"
+                                  value={formData.title}
+                                  onChange={handleChange}
+                                  name="title"
+                                  className="w-full text-lg font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-500 rounded px-2 py-1"
+                                  placeholder="Enter task title..."
+                                />
+                              ) : (
+                                task.title
+                              )}
                           </h3>
+                            {canEditTask() && formData.title !== task.title && (
+                              <button
+                                onClick={async () => {
+                                  setIsLoading(true)
+                                  try {
+                                    await tasksApi.update(task.id, { title: formData.title })
+                                    toast.success('Title updated successfully!')
+                                    dispatch(fetchTasks({}))
+                                  } catch (error: any) {
+                                    const message = error.response?.data?.message || 'Failed to update title'
+                                    toast.error(message)
+                                  } finally {
+                                    setIsLoading(false)
+                                  }
+                                }}
+                                disabled={isLoading}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md transition-colors"
+                              >
+                                {isLoading ? (
+                                  <ArrowPathIcon className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <CheckIcon className="h-3 w-3 mr-1" />
+                                )}
+                                Save
+                              </button>
+                            )}
+                          </div>
                           <div className="mt-2 flex items-center space-x-4">
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
                               {getPriorityText(task.priority)}
@@ -418,14 +476,51 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         </div>
 
                         {/* Goals */}
-                        {task.goals && (
                           <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Goals & Success Criteria</h4>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium text-gray-700">Goals & Success Criteria</h4>
+                            {canEditTask() && formData.goals !== task.goals && (
+                              <button
+                                onClick={async () => {
+                                  setIsLoading(true)
+                                  try {
+                                    await tasksApi.update(task.id, { goals: formData.goals })
+                                    toast.success('Goals updated successfully!')
+                                    dispatch(fetchTasks({}))
+                                  } catch (error: any) {
+                                    const message = error.response?.data?.message || 'Failed to update goals'
+                                    toast.error(message)
+                                  } finally {
+                                    setIsLoading(false)
+                                  }
+                                }}
+                                disabled={isLoading}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md transition-colors"
+                              >
+                                {isLoading ? (
+                                  <ArrowPathIcon className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <CheckIcon className="h-3 w-3 mr-1" />
+                                )}
+                                Save
+                              </button>
+                            )}
+                          </div>
+                          {canEditTask() ? (
+                            <textarea
+                              value={formData.goals}
+                              onChange={handleChange}
+                              name="goals"
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600"
+                              placeholder="Enter task goals and success criteria..."
+                            />
+                          ) : (
                             <div className="text-gray-600 prose prose-sm max-w-none">
-                              <ReactMarkdown>{task.goals}</ReactMarkdown>
-                            </div>
+                              <ReactMarkdown>{task.goals || 'No goals specified'}</ReactMarkdown>
                           </div>
                         )}
+                        </div>
 
                         {/* Task Stats */}
                         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
@@ -576,15 +671,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         </span>
                       </button>
 
-                      <button
-                        onClick={() => setShowAIAnalysis (!showAIAnalysis)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                      >
-                        <span className="flex items-center">
-                          <DocumentTextIcon className="h-5 w-5 mr-2" />
-                          AI Analysis
-                        </span>
-                      </button>
 
                       <button
                         onClick={() => setShowSubtasks(!showSubtasks)}
@@ -642,15 +728,6 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                   <div className="mt-8 pt-6 border-t border-gray-200">
                     <TaskActivityLog
                       activities={task.activities || []}
-                    />
-                  </div>
-                )}
-
-                {/* AI Analysis Section */}
-                {showAIAnalysis && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
-                    <TaskAIAnalysis
-                      task={task}
                     />
                   </div>
                 )}

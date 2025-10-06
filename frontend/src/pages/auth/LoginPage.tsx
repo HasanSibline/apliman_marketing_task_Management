@@ -141,26 +141,6 @@ const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          {/* Demo Credentials */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.5 }}
-            className="mt-8 p-4 bg-gray-50 rounded-lg"
-          >
-            <h3 className="text-sm font-medium text-gray-700 mb-3">Demo Credentials:</h3>
-            <div className="space-y-2 text-xs text-gray-600">
-              <div>
-                <strong>Super Admin:</strong> admin@system.com / Admin123!
-              </div>
-              <div>
-                <strong>Admin:</strong> manager@company.com / Manager123!
-              </div>
-              <div>
-                <strong>Employee:</strong> employee@company.com / Employee123!
-              </div>
-            </div>
-          </motion.div>
         </motion.div>
 
         {/* Footer */}

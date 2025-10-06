@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://marketing_system_user:1vACneXxnqKAZR3eBNwNPrWl4s1ZXyLH@dpg-d3d7f7i4d50c73d560qg-a.oregon-postgres.render.com/marketing_system"
 }
 
 enum UserRole {
@@ -48,8 +48,13 @@ model User {
   // Relations
   createdTasks    Task[] @relation("TaskCreator")
   assignedTasks   Task[] @relation("TaskAssignee")
+  taskAssignments TaskAssignment[] @relation("TaskAssignments")
+  assignedByMe    TaskAssignment[] @relation("TaskAssigner")
   taskComments    TaskComment[]
+  notifications   Notification[]
   analytics       Analytics?
+  createdSubtasks Subtask[] @relation("SubtaskCreator")
+  assignedSubtasks Subtask[] @relation("SubtaskAssignee")
 
   @@map("users")
 }
@@ -66,16 +71,35 @@ model Task {
   updatedAt   DateTime  @updatedAt
 
   // Foreign Keys
-  assignedToId String?
+  assignedToId String? // Keep for backward compatibility
   createdById  String
 
   // Relations
   assignedTo   User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
   createdBy    User          @relation("TaskCreator", fields: [createdById], references: [id])
+  assignments  TaskAssignment[]
   files        TaskFile[]
   comments     TaskComment[]
+  notifications Notification[]
+  subtasks     Subtask[]
 
   @@map("tasks")
+}
+
+model TaskAssignment {
+  id        String   @id @default(uuid())
+  taskId    String
+  userId    String
+  assignedAt DateTime @default(now())
+  assignedBy String? // Who assigned this user to the task
+
+  // Relations
+  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       User @relation("TaskAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  assigner   User? @relation("TaskAssigner", fields: [assignedBy], references: [id])
+
+  @@unique([taskId, userId])
+  @@map("task_assignments")
 }
 
 model TaskFile {
@@ -126,13 +150,53 @@ model Analytics {
   @@map("analytics")
 }
 
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  taskId    String?
+  type      String   // 'task_created', 'task_assigned', 'task_updated', 'task_approved', 'task_rejected', 'task_completed'
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
 model SystemSettings {
   id                String   @id @default(uuid())
   maxFileSize       Int      @default(5242880) // 5MB in bytes
-  allowedFileTypes  String[] @default(["image/jpeg", "image/png", "image/webp", "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"])
+  allowedFileTypes  String   @default("image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document")
   sessionTimeout    Int      @default(480) // 8 hours in minutes
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model Subtask {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  priority    Int      @default(1) // 1-5 scale, inherits from parent task
+  dueDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Foreign Keys
+  taskId       String   // Parent task
+  assignedToId String?  // Can be assigned to different user than parent task
+  createdById  String
+  
+  // Relations
+  task        Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignedTo  User? @relation("SubtaskAssignee", fields: [assignedToId], references: [id])
+  createdBy   User @relation("SubtaskCreator", fields: [createdById], references: [id])
+  
+  @@map("subtasks")
 }

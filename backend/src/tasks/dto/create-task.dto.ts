@@ -70,11 +70,20 @@ export class CreateTaskDto {
   dueDate?: string;
 
   @ApiProperty({
-    description: 'ID of user to assign task to',
+    description: 'ID of user to assign task to (for backward compatibility)',
     example: 'uuid-string',
     required: false,
   })
   @IsOptional()
   @IsString()
   assignedToId?: string;
+
+  @ApiProperty({
+    description: 'Array of user IDs to assign task to',
+    example: ['uuid-string-1', 'uuid-string-2'],
+    required: false,
+  })
+  @IsOptional()
+  @IsString({ each: true })
+  assignedUserIds?: string[];
 }

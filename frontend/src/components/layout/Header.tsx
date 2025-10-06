@@ -6,7 +6,7 @@ import {
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
 import Logo from './Logo'
-import NotificationManager from '../notifications/NotificationManager'
+import NotificationBell from '../notifications/NotificationBell'
 import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { toggleSidebar } from '@/store/slices/uiSlice'
@@ -66,7 +66,7 @@ const Header: React.FC = () => {
           </div>
 
           {/* Notifications */}
-          <NotificationManager />
+          <NotificationBell />
 
           {/* User menu */}
           <Menu as="div" className="relative">
