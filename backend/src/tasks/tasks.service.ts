@@ -221,9 +221,9 @@ export class TasksService {
               files: true,
               comments: true,
               subtasks: true,
-            },
+            } as any,
           },
-        },
+        } as any,
         orderBy: [
           { priority: 'desc' },
           { createdAt: 'desc' },
@@ -293,7 +293,7 @@ export class TasksService {
           },
           orderBy: { createdAt: 'asc' }
         },
-      },
+      } as any,
     });
 
     if (!task) {
