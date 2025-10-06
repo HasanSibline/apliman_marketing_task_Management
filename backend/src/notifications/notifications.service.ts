@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export interface CreateNotificationData {
   userId: string;
   taskId?: string;
-  type: 'task_created' | 'task_assigned' | 'task_updated' | 'task_approved' | 'task_rejected' | 'task_completed' | 'task_phase_changed';
+  type: 'task_created' | 'task_assigned' | 'task_updated' | 'task_approved' | 'task_rejected' | 'task_completed' | 'task_phase_changed' | 'subtask_assigned' | 'subtask_completed';
   title: string;
   message: string;
 }
