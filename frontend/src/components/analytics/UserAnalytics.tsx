@@ -192,7 +192,7 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
                   day: 'numeric',
                   year: 'numeric'
                 })}
-                formatter={(value, name) => [`${value}%`, 'Productivity Score']}
+                formatter={(value) => [`${value}%`, 'Productivity Score']}
                 contentStyle={{ 
                   backgroundColor: '#fff', 
                   border: '1px solid #e0e0e0',
