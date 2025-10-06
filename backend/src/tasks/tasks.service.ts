@@ -671,7 +671,7 @@ export class TasksService {
       throw new ForbiddenException('You do not have permission to add subtasks to this task');
     }
 
-    const subtask = await this.prisma.subtask.create({
+    const subtask = await (this.prisma as any).subtask.create({
       data: {
         title: data.title,
         description: data.description,
@@ -707,7 +707,7 @@ export class TasksService {
 
   async updateSubtask(taskId: string, subtaskId: string, data: { title?: string; description?: string; completed?: boolean; assignedToId?: string; dueDate?: string }, userId: string) {
     // Check if subtask exists
-    const subtask = await this.prisma.subtask.findUnique({
+    const subtask = await (this.prisma as any).subtask.findUnique({
       where: { id: subtaskId },
       include: { 
         task: { include: { createdBy: true, assignedTo: true } },
@@ -734,7 +734,7 @@ export class TasksService {
       throw new ForbiddenException('You do not have permission to update this subtask');
     }
 
-    const updatedSubtask = await this.prisma.subtask.update({
+    const updatedSubtask = await (this.prisma as any).subtask.update({
       where: { id: subtaskId },
       data: {
         ...(data.title && { title: data.title }),
@@ -769,7 +769,7 @@ export class TasksService {
 
   async deleteSubtask(taskId: string, subtaskId: string, userId: string) {
     // Check if subtask exists
-    const subtask = await this.prisma.subtask.findUnique({
+    const subtask = await (this.prisma as any).subtask.findUnique({
       where: { id: subtaskId },
       include: { 
         task: { include: { createdBy: true, assignedTo: true } },
@@ -794,7 +794,7 @@ export class TasksService {
       throw new ForbiddenException('You do not have permission to delete this subtask');
     }
 
-    await this.prisma.subtask.delete({
+    await (this.prisma as any).subtask.delete({
       where: { id: subtaskId }
     });
 
