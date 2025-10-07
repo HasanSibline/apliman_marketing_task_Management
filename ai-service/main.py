@@ -133,11 +133,13 @@ async def generate_content(request: GenerateContentRequest):
         # Generate content
         description = await content_generator.generate_description(request.title)
         goals = await content_generator.generate_goals(request.title)
+        priority = await content_generator.analyze_priority(request.title, description)
         
         return {
             "ai_provider": "gemini",
             "description": description,
-            "goals": goals
+            "goals": goals,
+            "priority": priority
         }
     except Exception as e:
         logger.error(f"Content generation failed: {e}")
