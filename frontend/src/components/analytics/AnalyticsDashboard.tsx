@@ -3,7 +3,6 @@ import { motion } from 'framer-motion'
 import {
   UserGroupIcon,
   ClockIcon,
-  CheckCircleIcon,
   ArrowTrendingUpIcon,
   DocumentChartBarIcon,
 } from '@heroicons/react/24/outline'
