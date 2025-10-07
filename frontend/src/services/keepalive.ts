@@ -94,7 +94,8 @@ class KeepaliveService {
       const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
 
       // Try keepalive endpoint first, fallback to health
-      const endpoints = ['/api/keepalive', '/api/health']
+      // Note: BACKEND_URL already includes /api, so don't add it again
+      const endpoints = ['/keepalive', '/health']
       let lastError = null
 
       for (const endpoint of endpoints) {
