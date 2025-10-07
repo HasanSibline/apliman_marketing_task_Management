@@ -282,3 +282,49 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
         except Exception as e:
             logger.error(f"Error generating goals: {str(e)}")
             raise ContentGeneratorError(f"Failed to generate goals: {str(e)}")
+
+    async def analyze_priority(self, title: str, description: str) -> int:
+        """Analyze task priority based on title and description"""
+        try:
+            await self._rate_limit()
+            
+            prompt = f"""
+            Task: Analyze the priority level for this task:
+            Title: {title}
+            Description: {description}
+            
+            Determine the priority level (1-5) based on:
+            1. Urgency - How time-sensitive is this task?
+            2. Impact - How much value/impact will this deliver?
+            3. Dependencies - Are other tasks waiting on this?
+            4. Complexity - How challenging or risky is this?
+            5. Strategic importance - How critical is this to business goals?
+            
+            Priority Scale:
+            5 = Critical/Urgent (immediate action required)
+            4 = High (important, short timeline)
+            3 = Medium (standard priority)
+            2 = Low (can be scheduled flexibly)
+            1 = Minimal (nice-to-have)
+            
+            Reply with ONLY a single number (1-5) representing the priority level.
+            """
+
+            response = await self._make_request(prompt)
+            
+            # Extract number from response
+            priority_str = response.strip()
+            # Try to find a number in the response
+            for char in priority_str:
+                if char.isdigit():
+                    priority = int(char)
+                    if 1 <= priority <= 5:
+                        return priority
+            
+            # Default to medium priority if parsing fails
+            logger.warning(f"Could not parse priority from response: {response}")
+            return 3
+
+        except Exception as e:
+            logger.error(f"Error analyzing priority: {str(e)}")
+            return 3  # Default to medium priority on error
