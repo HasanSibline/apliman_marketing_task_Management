@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
-import logoImage from '/apliman-logo.webp'
+import logoImage from '@/assets/apliman-logo.webp'
 
 interface LogoProps {
   className?: string
