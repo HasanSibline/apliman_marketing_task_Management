@@ -49,7 +49,7 @@ const LoginPage: React.FC = () => {
           >
             <img
               className="mx-auto h-20 w-auto"
-              src="/Apliman logo.webp"
+              src="/apliman-logo.webp"
               alt="Task Management System"
             />
           </motion.div>
