@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
+import logoImage from '/apliman-logo.webp'
 
 interface LogoProps {
   className?: string
@@ -16,7 +17,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
   return (
     <Link to="/" className={`flex items-center ${className}`}>
       <img
-                src="/apliman-logo.webp"
+                src={logoImage}
         alt="Apliman Logo"
         className={`${sizeClasses[size]} w-auto`}
       />

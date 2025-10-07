@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { login } from '@/store/slices/authSlice'
+import logoImage from '/apliman-logo.webp'
 
 const schema = yup.object({
   email: yup.string().email('Invalid email').required('Email is required'),
@@ -49,7 +50,7 @@ const LoginPage: React.FC = () => {
           >
             <img
               className="mx-auto h-20 w-auto"
-              src="/apliman-logo.webp"
+              src={logoImage}
               alt="Task Management System"
             />
           </motion.div>
