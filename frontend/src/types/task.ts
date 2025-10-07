@@ -35,37 +35,9 @@ export interface Task {
   updatedAt?: string
   comments?: any[]
   files?: any[]
-  subtasks?: Subtask[]
   goals?: string
   _count?: {
     files: number
     comments: number
-    subtasks: number
-  }
-}
-
-export interface Subtask {
-  id: string
-  title: string
-  description?: string
-  completed: boolean
-  priority: number
-  dueDate?: string
-  createdAt: string
-  updatedAt: string
-  taskId: string
-  assignedToId?: string
-  assignedTo?: {
-    id: string
-    name: string
-    email: string
-    position: string
-  }
-  createdById: string
-  createdBy: {
-    id: string
-    name: string
-    email: string
-    position: string
   }
 }

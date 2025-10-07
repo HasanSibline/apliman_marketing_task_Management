@@ -7,7 +7,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
 enum UserRole {
@@ -52,9 +52,6 @@ model User {
   assignedByMe    TaskAssignment[] @relation("TaskAssigner")
   taskComments    TaskComment[]
   notifications   Notification[]
-  analytics       Analytics?
-  createdSubtasks Subtask[] @relation("SubtaskCreator")
-  assignedSubtasks Subtask[] @relation("SubtaskAssignee")
 
   @@map("users")
 }
@@ -81,7 +78,6 @@ model Task {
   files        TaskFile[]
   comments     TaskComment[]
   notifications Notification[]
-  subtasks     Subtask[]
 
   @@map("tasks")
 }
@@ -132,24 +128,6 @@ model TaskComment {
   @@map("task_comments")
 }
 
-model Analytics {
-  id               String   @id @default(uuid())
-  userId           String   @unique
-  tasksAssigned    Int      @default(0)
-  tasksCompleted   Int      @default(0)
-  tasksInProgress  Int      @default(0)
-  interactions     Int      @default(0)
-  totalTimeSpent   Int      @default(0) // in minutes
-  lastActive       DateTime @default(now())
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("analytics")
-}
-
 model Notification {
   id        String   @id @default(uuid())
   userId    String
@@ -176,27 +154,4 @@ model SystemSettings {
   updatedAt         DateTime @updatedAt
 
   @@map("system_settings")
-}
-
-model Subtask {
-  id          String   @id @default(uuid())
-  title       String
-  description String?
-  completed   Boolean  @default(false)
-  priority    Int      @default(1) // 1-5 scale, inherits from parent task
-  dueDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Foreign Keys
-  taskId       String   // Parent task
-  assignedToId String?  // Can be assigned to different user than parent task
-  createdById  String
-  
-  // Relations
-  task        Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  assignedTo  User? @relation("SubtaskAssignee", fields: [assignedToId], references: [id])
-  createdBy   User @relation("SubtaskCreator", fields: [createdById], references: [id])
-  
-  @@map("subtasks")
 }

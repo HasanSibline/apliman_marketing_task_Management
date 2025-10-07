@@ -205,25 +205,13 @@ export class TasksService {
               position: true,
             },
           },
-          subtasks: {
-            include: {
-              assignedTo: {
-                select: { id: true, name: true, email: true, position: true }
-              },
-              createdBy: {
-                select: { id: true, name: true, email: true, position: true }
-              }
-            },
-            orderBy: { createdAt: 'asc' }
-          },
           _count: {
             select: {
               files: true,
               comments: true,
-              subtasks: true,
-            } as any,
+            },
           },
-        } as any,
+        },
         orderBy: [
           { priority: 'desc' },
           { createdAt: 'desc' },
@@ -282,18 +270,7 @@ export class TasksService {
           },
           orderBy: { createdAt: 'asc' },
         },
-        subtasks: {
-          include: {
-            assignedTo: {
-              select: { id: true, name: true, email: true, position: true }
-            },
-            createdBy: {
-              select: { id: true, name: true, email: true, position: true }
-            }
-          },
-          orderBy: { createdAt: 'asc' }
-        },
-      } as any,
+      },
     });
 
     if (!task) {
@@ -501,23 +478,11 @@ export class TasksService {
         break;
     }
 
-    updateData.lastActive = new Date();
-
-    await this.prisma.analytics.upsert({
-      where: { userId },
-      update: updateData,
-      create: {
-        userId,
-        ...Object.keys(updateData).reduce((acc, key) => {
-          if (key === 'lastActive') {
-            acc[key] = updateData[key];
-          } else {
-            acc[key] = 1;
-          }
-          return acc;
-        }, {}),
-      },
-    });
+    // Analytics model removed - just update user's lastActiveAt
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastActiveAt: new Date() },
+    }).catch(() => {});
   }
 
   private async handlePhaseChange(task: any, oldPhase: TaskPhase) {
@@ -528,80 +493,24 @@ export class TasksService {
       }
     }
 
-    if (task.phase === TaskPhase.IN_PROGRESS && oldPhase !== TaskPhase.IN_PROGRESS) {
-      // Task started
-      if (task.assignedToId) {
-        await this.prisma.analytics.upsert({
-          where: { userId: task.assignedToId },
-          update: {
-            tasksInProgress: { increment: 1 },
-            lastActive: new Date(),
-          },
-          create: {
-            userId: task.assignedToId,
-            tasksInProgress: 1,
-            lastActive: new Date(),
-          },
-        });
-      }
-    }
-
-    if (oldPhase === TaskPhase.IN_PROGRESS && task.phase !== TaskPhase.IN_PROGRESS) {
-      // Task no longer in progress
-      if (task.assignedToId) {
-        await this.prisma.analytics.update({
-          where: { userId: task.assignedToId },
-          data: {
-            tasksInProgress: { decrement: 1 },
-            lastActive: new Date(),
-          },
-        });
-      }
+    // Analytics model removed - just update lastActiveAt
+    if (task.assignedToId) {
+      await this.prisma.user.update({
+        where: { id: task.assignedToId },
+        data: { lastActiveAt: new Date() },
+      }).catch(() => {});
     }
   }
 
   private async updateAnalyticsForUser(userId: string, action: 'assigned' | 'completed' | 'interaction') {
+    // Analytics model removed - just update user's lastActiveAt
     try {
-      // Ensure analytics record exists
-      let analytics = await this.prisma.analytics.findUnique({
-        where: { userId },
-      });
-
-      if (!analytics) {
-        analytics = await this.prisma.analytics.create({
-          data: {
-            userId,
-            tasksAssigned: 0,
-            tasksCompleted: 0,
-            interactions: 0,
-            lastActive: new Date(),
-          },
-        });
-      }
-
-      // Update analytics based on action
-      const updateData: any = {
-        lastActive: new Date(),
-      };
-
-      switch (action) {
-        case 'assigned':
-          updateData.tasksAssigned = { increment: 1 };
-          break;
-        case 'completed':
-          updateData.tasksCompleted = { increment: 1 };
-          break;
-        case 'interaction':
-          updateData.interactions = { increment: 1 };
-          break;
-      }
-
-      await this.prisma.analytics.update({
-        where: { userId },
-        data: updateData,
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lastActiveAt: new Date() },
       });
     } catch (error) {
-      console.error('Failed to update analytics:', error);
+      console.error('Failed to update user lastActiveAt:', error);
     }
   }
 
@@ -645,159 +554,5 @@ export class TasksService {
       message,
       updatedBy
     );
-  }
-
-  // Subtask methods
-  async addSubtask(taskId: string, data: { title: string; description?: string; assignedToId?: string; dueDate?: string }, createdById: string) {
-    // Check if task exists and user has access
-    const task = await this.prisma.task.findUnique({
-      where: { id: taskId },
-      include: { createdBy: true, assignedTo: true }
-    });
-
-    if (!task) {
-      throw new NotFoundException('Task not found');
-    }
-
-    // Check permissions - task creator, assignee, or admin can add subtasks
-    const user = await this.prisma.user.findUnique({ where: { id: createdById } });
-    const canAddSubtask = 
-      task.createdById === createdById ||
-      task.assignedToId === createdById ||
-      user?.role === UserRole.SUPER_ADMIN ||
-      user?.role === UserRole.ADMIN;
-
-    if (!canAddSubtask) {
-      throw new ForbiddenException('You do not have permission to add subtasks to this task');
-    }
-
-    const subtask = await (this.prisma as any).subtask.create({
-      data: {
-        title: data.title,
-        description: data.description,
-        assignedToId: data.assignedToId,
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        priority: task.priority, // Inherit parent task priority
-        taskId,
-        createdById,
-      },
-      include: {
-        assignedTo: {
-          select: { id: true, name: true, email: true, position: true }
-        },
-        createdBy: {
-          select: { id: true, name: true, email: true, position: true }
-        }
-      }
-    });
-
-    // Send notification if subtask is assigned to someone
-    if (data.assignedToId && data.assignedToId !== createdById) {
-      await this.notificationsService.createNotification({
-        userId: data.assignedToId,
-        taskId: taskId,
-        type: 'subtask_assigned',
-        title: 'New Subtask Assigned',
-        message: `You have been assigned a new subtask: "${data.title}"`,
-      });
-    }
-
-    return subtask;
-  }
-
-  async updateSubtask(taskId: string, subtaskId: string, data: { title?: string; description?: string; completed?: boolean; assignedToId?: string; dueDate?: string }, userId: string) {
-    // Check if subtask exists
-    const subtask = await (this.prisma as any).subtask.findUnique({
-      where: { id: subtaskId },
-      include: { 
-        task: { include: { createdBy: true, assignedTo: true } },
-        assignedTo: true,
-        createdBy: true 
-      }
-    });
-
-    if (!subtask || subtask.taskId !== taskId) {
-      throw new NotFoundException('Subtask not found');
-    }
-
-    // Check permissions
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const canUpdateSubtask = 
-      subtask.task.createdById === userId ||
-      subtask.task.assignedToId === userId ||
-      subtask.assignedToId === userId ||
-      subtask.createdById === userId ||
-      user?.role === UserRole.SUPER_ADMIN ||
-      user?.role === UserRole.ADMIN;
-
-    if (!canUpdateSubtask) {
-      throw new ForbiddenException('You do not have permission to update this subtask');
-    }
-
-    const updatedSubtask = await (this.prisma as any).subtask.update({
-      where: { id: subtaskId },
-      data: {
-        ...(data.title && { title: data.title }),
-        ...(data.description !== undefined && { description: data.description }),
-        ...(data.completed !== undefined && { completed: data.completed }),
-        ...(data.assignedToId !== undefined && { assignedToId: data.assignedToId }),
-        ...(data.dueDate !== undefined && { dueDate: data.dueDate ? new Date(data.dueDate) : null }),
-      },
-      include: {
-        assignedTo: {
-          select: { id: true, name: true, email: true, position: true }
-        },
-        createdBy: {
-          select: { id: true, name: true, email: true, position: true }
-        }
-      }
-    });
-
-    // Send notification if subtask was completed
-    if (data.completed === true && !subtask.completed) {
-      await this.notificationsService.createNotification({
-        userId: subtask.task.createdById,
-        taskId: taskId,
-        type: 'subtask_completed',
-        title: 'Subtask Completed',
-        message: `Subtask "${updatedSubtask.title}" has been marked as completed`,
-      });
-    }
-
-    return updatedSubtask;
-  }
-
-  async deleteSubtask(taskId: string, subtaskId: string, userId: string) {
-    // Check if subtask exists
-    const subtask = await (this.prisma as any).subtask.findUnique({
-      where: { id: subtaskId },
-      include: { 
-        task: { include: { createdBy: true, assignedTo: true } },
-        assignedTo: true,
-        createdBy: true 
-      }
-    });
-
-    if (!subtask || subtask.taskId !== taskId) {
-      throw new NotFoundException('Subtask not found');
-    }
-
-    // Check permissions - only admins, task creator, or subtask creator can delete
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const canDeleteSubtask = 
-      subtask.task.createdById === userId ||
-      subtask.createdById === userId ||
-      user?.role === UserRole.SUPER_ADMIN ||
-      user?.role === UserRole.ADMIN;
-
-    if (!canDeleteSubtask) {
-      throw new ForbiddenException('You do not have permission to delete this subtask');
-    }
-
-    await (this.prisma as any).subtask.delete({
-      where: { id: subtaskId }
-    });
-
-    return { message: 'Subtask deleted successfully' };
   }
 }

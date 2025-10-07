@@ -1,5 +1,7 @@
 import React from 'react'
+import { motion } from 'framer-motion'
 import { Menu } from '@headlessui/react'
+import { useNavigate } from 'react-router-dom'
 import { 
   EllipsisVerticalIcon, 
   PencilIcon, 
@@ -21,6 +23,7 @@ import {
   XCircleIcon as XCircleIconSolid,
   ArchiveBoxIcon as ArchiveBoxIconSolid
 } from '@heroicons/react/24/solid'
+import TaskActivityLog from './TaskActivityLog'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -37,6 +40,7 @@ interface TaskBoardProps {
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
+  const navigate = useNavigate()
 
   const allPhases = [
     { 
@@ -429,31 +433,21 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                     <div className="flex items-center space-x-1">
                       <PaperClipIcon className="w-3.5 h-3.5" />
                       <span>{task.files.length}</span>
-                    </div>
-                  )}
+                  </div>
+                )}
+              </div>
 
-                  {/* Subtasks */}
-                  {task.subtasks && task.subtasks.length > 0 && (
-                    <div className="flex items-center space-x-1">
-                      <CheckCircleIcon className="w-3.5 h-3.5" />
-                      <span>
-                        {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Due Date */}
-                {task.dueDate && (
+              {/* Due Date */}
+              {task.dueDate && (
                   <div className={`flex items-center space-x-1 ${
                     new Date(task.dueDate) < new Date() ? 'text-red-600 font-medium' : ''
                   }`}>
                     <CalendarIcon className="w-3.5 h-3.5" />
                     <span>{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                  </div>
-                )}
-              </div>
             </div>
+                        )}
+                      </div>
+                    </div>
           </div>
         )}
       </Draggable>
@@ -526,6 +520,31 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
         </div>
       </div>
 
+              {/* Activity Log */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-6 bg-white rounded-lg shadow-lg p-6 border-t-4 border-primary-500"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
+                  <button 
+                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    onClick={() => navigate('/activity')}
+                  >
+                    View All
+                  </button>
+                </div>
+                <TaskActivityLog activities={[
+                  {
+                    id: '1',
+                    type: 'PHASE_CHANGE',
+                    user: { name: 'System' },
+                    description: 'Task board initialized',
+                    createdAt: new Date().toISOString()
+                  }
+                ]} />
+              </motion.div>
     </DragDropContext>
   )
 }

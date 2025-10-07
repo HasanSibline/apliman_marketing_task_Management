@@ -17,14 +17,6 @@ interface AnalyticsData {
     tasksCompleted: number
     completionRate: number
   }>
-  recentActivity: Array<{
-    id: string
-    type: string
-    description: string
-    timestamp: string
-    userId: string
-    userName: string
-  }>
 }
 
 interface UserAnalytics {

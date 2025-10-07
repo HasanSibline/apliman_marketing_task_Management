@@ -86,6 +86,7 @@ export class AnalyticsService {
         email: true,
         position: true,
         role: true,
+        lastActiveAt: true,
       },
     });
 
@@ -121,64 +122,6 @@ export class AnalyticsService {
         totalAssigned: 0,
         onTimeCompleted: 0,
       };
-    }
-
-    // Ensure analytics record exists for user
-    let analytics = await this.prisma.analytics.findUnique({
-      where: { userId },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            position: true,
-            role: true,
-          },
-        },
-      },
-    });
-
-    if (!analytics) {
-      // Create analytics record if it doesn't exist
-      try {
-        analytics = await this.prisma.analytics.create({
-          data: {
-            userId,
-            tasksAssigned: 0,
-            tasksCompleted: 0,
-            interactions: 0,
-            lastActive: new Date(),
-          },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                position: true,
-                role: true,
-              },
-            },
-          },
-        });
-      } catch (error) {
-        // If creation fails, return a default analytics object
-        console.error('Failed to create analytics record:', error);
-        analytics = {
-          id: 'temp',
-          userId,
-          tasksAssigned: 0,
-          tasksCompleted: 0,
-          tasksInProgress: 0,
-          interactions: 0,
-          totalTimeSpent: 0,
-          lastActive: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          user,
-        };
-      }
     }
 
     // Get real-time task statistics
@@ -245,7 +188,17 @@ export class AnalyticsService {
     const productivityHistory = await this.generateProductivityHistory(userId);
 
     return {
-      ...analytics,
+      id: userId,
+      userId,
+      tasksAssigned: totalAssigned,
+      tasksCompleted: completedTasks,
+      tasksInProgress: inProgressTasks,
+      interactions: 0,
+      totalTimeSpent: 0,
+      lastActive: user.lastActiveAt || new Date(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      user,
       assignedTasks,
       completedTasks,
       overdueTasks,
@@ -678,19 +631,34 @@ export class AnalyticsService {
   }
 
   private async getTopPerformers() {
-    return this.prisma.analytics.findMany({
-      take: 5,
-      orderBy: { tasksCompleted: 'desc' },
-      include: {
-        user: {
-          select: {
-            name: true,
-            email: true,
-            position: true,
-          },
+    // Get users with their completed task counts
+    const users = await this.prisma.user.findMany({
+      where: { status: { not: 'RETIRED' } },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        position: true,
+        assignedTasks: {
+          where: { phase: TaskPhase.COMPLETED },
+          select: { id: true },
         },
       },
     });
+
+    // Sort by completed tasks count
+    return users
+      .map(user => ({
+        userId: user.id,
+        tasksCompleted: user.assignedTasks.length,
+        user: {
+          name: user.name,
+          email: user.email,
+          position: user.position,
+        },
+      }))
+      .sort((a, b) => b.tasksCompleted - a.tasksCompleted)
+      .slice(0, 5);
   }
 
   private async getTotalTimeSpent() {
@@ -795,38 +763,8 @@ export class AnalyticsService {
   }
 
   async initializeAnalyticsForAllUsers() {
-    try {
-      // Get all users who don't have analytics records
-      const usersWithoutAnalytics = await this.prisma.user.findMany({
-        where: {
-          analytics: null,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      // Create analytics records for all users
-      const analyticsData = usersWithoutAnalytics.map(user => ({
-        userId: user.id,
-        tasksAssigned: 0,
-        tasksCompleted: 0,
-        interactions: 0,
-        lastActive: new Date(),
-      }));
-
-      if (analyticsData.length > 0) {
-        await this.prisma.analytics.createMany({
-          data: analyticsData,
-        });
-        console.log(`Created analytics records for ${analyticsData.length} users`);
-      }
-
-      return { success: true, count: analyticsData.length };
-    } catch (error) {
-      console.error('Failed to initialize analytics for all users:', error);
-      return { success: false, error: error.message };
-    }
+    // Analytics model removed - this method is now a no-op
+    return { success: true, count: 0 };
   }
 
   async debugUsers() {

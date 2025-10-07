@@ -7,6 +7,7 @@ import {
   CheckIcon,
   ClockIcon,
   ChatBubbleLeftIcon,
+  DocumentTextIcon,
   ArrowPathIcon,
   PlayIcon,
   TrashIcon,
@@ -19,6 +20,7 @@ import { fetchTasks } from '@/store/slices/tasksSlice'
 import TaskComments from './TaskComments'
 import FileUpload from './FileUpload'
 import TaskActivityLog from './TaskActivityLog'
+import TaskAIAnalysis from './TaskAIAnalysis'
 import SubtaskList from './SubtaskList'
 import TimeTracker from './TimeTracker'
 import toast from 'react-hot-toast'
@@ -37,6 +39,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
   const [showComments, setShowComments] = useState(false)
   const [showFiles, setShowFiles] = useState(false)
   const [showActivityLog, setShowActivityLog] = useState(false)
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false)
   const [showSubtasks, setShowSubtasks] = useState(false)
   const [showTimeTracker, setShowTimeTracker] = useState(false)
   
@@ -671,6 +674,15 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         </span>
                       </button>
 
+                      <button
+                        onClick={() => setShowAIAnalysis (!showAIAnalysis)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        <span className="flex items-center">
+                          <DocumentTextIcon className="h-5 w-5 mr-2" />
+                          AI Analysis
+                        </span>
+                      </button>
 
                       <button
                         onClick={() => setShowSubtasks(!showSubtasks)}
@@ -728,6 +740,15 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                   <div className="mt-8 pt-6 border-t border-gray-200">
                     <TaskActivityLog
                       activities={task.activities || []}
+                    />
+                  </div>
+                )}
+
+                {/* AI Analysis Section */}
+                {showAIAnalysis && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <TaskAIAnalysis
+                      task={task}
                     />
                   </div>
                 )}

@@ -30,12 +30,7 @@ export class UsersService {
         },
       });
 
-      // Create analytics record for the new user
-      await this.prisma.analytics.create({
-        data: {
-          userId: user.id,
-        },
-      });
+      // Analytics model removed - no longer creating analytics records
 
       return user;
     } catch (error) {
@@ -231,17 +226,22 @@ export class UsersService {
   async getUserStats(id: string) {
     const user = await this.findById(id);
     
-    const [assignedTasks, createdTasks, analytics] = await Promise.all([
+    const [assignedTasks, createdTasks] = await Promise.all([
       this.prisma.task.count({
         where: { assignedToId: id },
       }),
       this.prisma.task.count({
         where: { createdById: id },
       }),
-      this.prisma.analytics.findUnique({
-        where: { userId: id },
-      }),
     ]);
+
+    // Count tasks for basic stats
+    const completedTasks = await this.prisma.task.count({
+      where: {
+        assignedToId: id,
+        phase: 'COMPLETED',
+      },
+    });
 
     return {
       user: {
@@ -256,9 +256,10 @@ export class UsersService {
       stats: {
         assignedTasks,
         createdTasks,
-        analytics: analytics || {
-          tasksAssigned: 0,
-          tasksCompleted: 0,
+        completedTasks,
+        analytics: {
+          tasksAssigned: assignedTasks,
+          tasksCompleted: completedTasks,
           tasksInProgress: 0,
           interactions: 0,
           totalTimeSpent: 0,

@@ -97,9 +97,8 @@ const DashboardPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Charts */}
+      {/* Task Phase Chart */}
       <div className="grid grid-cols-1 gap-6">
-        {/* Task Phase Chart */}
         <TaskPhaseChart 
           data={Object.entries(phaseCount || {}).map(([phase, count]) => ({
             phase,
