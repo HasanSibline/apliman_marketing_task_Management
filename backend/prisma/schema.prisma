@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -193,7 +193,7 @@ model Phase {
   order       Int
   color       String   @default("#6B7280")
   
-  allowedRoles String   @default("[]") // JSON array of roles
+  allowedRoles String[]  @default([]) // Array of roles allowed to work on this phase
   autoAssignRole String?
   
   isStartPhase Boolean  @default(false)
@@ -222,7 +222,7 @@ model Transition {
   
   name        String?
   conditions  Json?
-  notifyRoles String   @default("[]") // JSON array of roles
+  notifyRoles String[]  @default([]) // Array of roles to notify on this transition
   
   createdAt   DateTime @default(now())
   
