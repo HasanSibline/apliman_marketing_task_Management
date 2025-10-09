@@ -30,7 +30,7 @@ export class WorkflowsService {
             description: phase.description,
             order: index,
             color: phase.color || '#6B7280',
-            allowedRoles: JSON.stringify(phase.allowedRoles),
+            allowedRoles: phase.allowedRoles, // Native array for PostgreSQL
             autoAssignRole: phase.autoAssignRole,
             requiresApproval: phase.requiresApproval || false,
             isStartPhase: index === 0,
