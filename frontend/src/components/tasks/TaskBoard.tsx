@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+// TaskBoard component for managing tasks in a Kanban-style interface
 import { Menu } from '@headlessui/react'
 import { 
   EllipsisVerticalIcon, 
