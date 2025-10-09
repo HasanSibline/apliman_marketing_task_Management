@@ -216,7 +216,7 @@ export class AiService {
           title,
           type
         }, {
-          timeout: 15000, // 15 second timeout for AI generation
+          timeout: 30000, // Increased timeout for better AI generation
         }),
       );
       
@@ -237,13 +237,8 @@ export class AiService {
         this.logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
       }
       
-      // Provide fallback content when AI service is not available
-      return {
-        description: `Create a comprehensive plan for: ${title}. This ${type} requires careful planning and execution to achieve success.`,
-        goals: `1. Successfully complete the ${title}\n2. Ensure all deliverables meet quality standards\n3. Document the process and outcomes`,
-        priority: 3,
-        ai_provider: 'fallback'
-      };
+      // Don't provide fallback - let the frontend handle the error
+      throw new Error(`AI content generation failed: ${error.message}`);
     }
   }
 

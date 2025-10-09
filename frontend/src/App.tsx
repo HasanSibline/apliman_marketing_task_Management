@@ -7,7 +7,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicRoute from '@/components/auth/PublicRoute'
 import Layout from '@/components/layout/Layout'
 import LoadingScreen from '@/components/ui/LoadingScreen'
-import keepaliveService from '@/services/keepalive'
+import { keepAliveService } from '@/services/keepalive'
 
 // Pages
 import LoginPage from '@/pages/auth/LoginPage'
@@ -27,6 +27,14 @@ function App() {
 
   useEffect(() => {
     dispatch(checkAuth())
+    
+    // Start keepalive service to prevent AI service from sleeping
+    keepAliveService.start()
+    
+    // Cleanup on unmount
+    return () => {
+      keepAliveService.stop()
+    }
   }, [dispatch])
 
   useEffect(() => {

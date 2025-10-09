@@ -25,6 +25,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(false)
   const [aiGeneratedSubtasks, setAiGeneratedSubtasks] = useState<any[]>([])
   const [isGeneratingContent, setIsGeneratingContent] = useState(false)
+  const [loadingStage, setLoadingStage] = useState('')
   const [aiPreview, setAiPreview] = useState<{
     description?: string
     goals?: string
@@ -45,8 +46,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     workflowId: '',
     generateSubtasks: false,
     autoAssign: false,
-    // Legacy field for backward compatibility
-    phase: 'PENDING_APPROVAL' as const,
   })
 
   useEffect(() => {
@@ -99,34 +98,36 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
     try {
       setIsGeneratingContent(true)
+      setLoadingStage('🤖 AI is thinking about your task...')
       const preview: any = {}
       
       // Generate basic content
+      setLoadingStage('✍️ Writing detailed description and goals...')
       const contentResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-content`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
         },
-        body: JSON.stringify({ title: formData.title }),
+        body: JSON.stringify({ 
+          title: formData.title,
+          type: selectedWorkflow?.taskType || 'GENERAL'
+        }),
       })
 
-      if (contentResponse.ok) {
-        const contentData = await contentResponse.json()
-        preview.description = contentData.description
-        preview.goals = contentData.goals
-        preview.priority = contentData.priority
-        preview.aiProvider = contentData.ai_provider
-        
-        if (contentData.ai_provider !== 'fallback') {
-          toast.success('AI content generated successfully!')
-        } else {
-          toast('Using fallback content - check AI service configuration', { icon: '⚠️' })
-        }
+      if (!contentResponse.ok) {
+        throw new Error(`AI service error: ${contentResponse.status}`)
       }
+
+      const contentData = await contentResponse.json()
+      preview.description = contentData.description
+      preview.goals = contentData.goals
+      preview.priority = contentData.priority
+      preview.aiProvider = contentData.ai_provider
 
       // Generate subtasks if workflow is selected
       if (selectedWorkflow && formData.generateSubtasks) {
+        setLoadingStage('📝 Creating smart subtasks for your workflow...')
+        
         const subtasksResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-subtasks`, {
           method: 'POST',
           headers: {
@@ -144,30 +145,32 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         if (subtasksResponse.ok) {
           const subtasksData = await subtasksResponse.json()
           preview.subtasks = subtasksData.subtasks || []
-          
-          if (subtasksData.ai_provider !== 'fallback') {
-            toast.success(`Generated ${subtasksData.subtasks?.length || 0} AI subtasks!`)
-          } else {
-            toast('Using fallback subtasks - check AI service configuration', { icon: '⚠️' })
-          }
         }
       }
 
+      setLoadingStage('✨ Finalizing your AI-generated content...')
+      
       // Show preview modal
       setAiPreview(preview)
       setShowAiPreview(true)
+      toast.success('🎉 AI content generated successfully!')
       
     } catch (error: any) {
       console.error('Error generating AI content:', error)
-      if (error.response?.status === 401) {
+      
+      // Show specific error messages
+      if (error.message.includes('AI service error')) {
+        toast.error('AI service is temporarily unavailable. Please try again later.')
+      } else if (error.response?.status === 401) {
         toast.error('Session expired. Please refresh the page and log in again.')
         localStorage.removeItem('token')
         window.location.href = '/login'
       } else {
-        toast.error('Failed to generate AI content')
+        toast.error('Failed to generate AI content. Please check your connection and try again.')
       }
     } finally {
       setIsGeneratingContent(false)
+      setLoadingStage('')
     }
   }
 
@@ -265,7 +268,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           workflowId: '',
           generateSubtasks: false,
           autoAssign: false,
-          phase: 'PENDING_APPROVAL' as const,
         })
         setAiGeneratedSubtasks([]) // Clear AI subtasks
       }
@@ -389,6 +391,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         <span className="text-xs">{isGeneratingContent ? 'Generating...' : 'Generate AI'}</span>
                       </button>
                     </div>
+                    
+                    {/* Loading Stage Display */}
+                    {isGeneratingContent && loadingStage && (
+                      <div className="mt-2 text-sm text-purple-600 animate-pulse flex items-center">
+                        <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce mr-2"></div>
+                        {loadingStage}
+                      </div>
+                    )}
                     <div 
                       id="content-suggester" 
                       className="absolute top-full mt-1 left-0 right-0 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4" 

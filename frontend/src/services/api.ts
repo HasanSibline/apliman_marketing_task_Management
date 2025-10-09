@@ -99,8 +99,6 @@ export interface CreateTaskData {
   workflowId?: string
   generateSubtasks?: boolean
   autoAssign?: boolean
-  // Note: 'phase' is deprecated - use workflowId instead
-  phase?: string
 }
 
 // Auth API

@@ -186,24 +186,18 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
         try:
             await self._rate_limit()
             
-            prompt = f"""
-            Task: Generate a detailed and specific description for: "{title}"
-            
-            Requirements:
-            1. Start with a clear overview of what needs to be done
-            2. Include specific steps or requirements
-            3. Mention any tools, resources, or dependencies needed
-            4. Consider potential challenges or important considerations
-            5. Keep the tone professional and actionable
-            
-            Important:
-            - Be specific to {title} - avoid generic content
-            - Include concrete details and examples
-            - Make it actionable and clear
-            - Focus on practical implementation
-            
-            Generate a cohesive paragraph (3-4 sentences) that covers these points.
-            """
+            prompt = f"""Generate a clean, professional description for this task. NO introductions, greetings, or extra text.
+
+Task: {title}
+
+Requirements:
+- 2-3 detailed sentences describing what needs to be done
+- Include specific deliverables and requirements  
+- Mention relevant Apliman products (aïda, aïReach, CCS, SRBT) if applicable
+- Focus on business value and practical implementation
+- Professional tone, actionable content
+
+Respond with ONLY the description, no other text."""
 
             description = await self._make_request(prompt)
             
@@ -211,6 +205,9 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                 raise ContentGeneratorError("Gemini returned empty response")
                 
             description = description.strip()
+            
+            # Clean up any introductory phrases
+            description = self._clean_ai_response(description)
             
             # Validate the response
             if len(description.split()) < 10:
@@ -222,39 +219,47 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             logger.error(f"Error generating description: {str(e)}")
             raise ContentGeneratorError(f"Failed to generate description: {str(e)}")
 
+    def _clean_ai_response(self, text: str) -> str:
+        """Remove introductory phrases and clean up AI responses"""
+        # Remove common AI introductions
+        introductions = [
+            "Here's a", "Here is a", "I'll help you", "Let me help",
+            "Certainly!", "Of course!", "Sure!", "Absolutely!",
+            "Here's what", "Here is what", "I'll create", "I'll generate",
+            "🚀", "✨", "🎯", "📝", "💡"  # Remove emojis
+        ]
+        
+        for intro in introductions:
+            if text.startswith(intro):
+                text = text[len(intro):].strip()
+                if text.startswith(":"):
+                    text = text[1:].strip()
+        
+        return text
+
     async def generate_goals(self, title: str) -> str:
         """Generate specific goals and success criteria using Gemini"""
         try:
             await self._rate_limit()
             
-            prompt = f"""
-            Task: Generate specific goals and success criteria for: "{title}"
-            
-            Requirements:
-            1. Goals must be specific to {title}
-            2. Include measurable outcomes
-            3. Consider quality standards
-            4. Add timeline or deadline aspects
-            5. Include stakeholder considerations
-            
-            Format:
-            Goals:
-            1. [Specific, measurable goal]
-            2. [Specific, measurable goal]
-            3. [Specific, measurable goal]
+            prompt = f"""Generate clean, specific goals for this task. NO introductions or extra text.
 
-            Success Criteria:
-            - [Clear, verifiable criterion]
-            - [Clear, verifiable criterion]
-            - [Clear, verifiable criterion]
-            - [Clear, verifiable criterion]
-            
-            Important:
-            - Make each goal specific to {title}
-            - Include numbers or metrics where possible
-            - Make success criteria clearly verifiable
-            - Focus on practical, achievable outcomes
-            """
+Task: {title}
+
+Requirements:
+- 3-4 specific, measurable goals
+- Include business value and outcomes
+- Use bullet points (•)
+- No greetings or explanations
+- Professional, actionable content
+
+Format:
+• [Specific goal with measurable outcome]
+• [Specific goal with measurable outcome]  
+• [Specific goal with measurable outcome]
+• [Specific goal with measurable outcome]
+
+Respond with ONLY the bullet points, no other text."""
 
             goals = await self._make_request(prompt)
             
@@ -263,9 +268,12 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                 
             goals = goals.strip()
             
-            # Validate the response format
-            if "Goals:" not in goals or "Success Criteria:" not in goals:
-                raise ContentGeneratorError("Generated goals do not match required format")
+            # Clean up any introductory phrases
+            goals = self._clean_ai_response(goals)
+            
+            # Validate the response
+            if len(goals.split()) < 15:
+                raise ContentGeneratorError("Generated goals are too short")
                 
             return goals
 
@@ -376,34 +384,42 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             
             phases_str = ", ".join(workflow_phases) if workflow_phases else "various phases"
             
-            prompt = f"""
-            Generate 4-8 specific subtasks for this Apliman marketing task:
-            
-            Title: {title}
-            Type: {task_type}
-            Description: {description}
-            Workflow Phases: {phases_str}
-            
-            For each subtask provide:
-            1. Title (clear, actionable)
-            2. Description (what needs to be done)
-            3. Phase Name (from: {phases_str})
-            4. Suggested Role (Marketing Manager, Content Writer, Graphic Designer, Video Editor, Social Media Manager, SEO Specialist)
-            5. Estimated Hours (realistic)
-            
-            Format as JSON array:
-            [
-              {{
-                "title": "Research competitors",
-                "description": "Analyze 5 competitors' strategies",
-                "phaseName": "Research",
-                "suggestedRole": "Marketing Strategist",
-                "estimatedHours": 3
-              }}
-            ]
-            
-            Make subtasks specific to Apliman's telecom/CPaaS solutions.
-            """
+            prompt = f"""Generate clean, specific subtasks for this Apliman marketing task. NO introductions or extra text.
+
+Title: {title}
+Type: {task_type}
+Description: {description}
+Workflow Phases: {phases_str}
+
+IMPORTANT: Use ONLY these real team positions (don't invent roles):
+- Marketing Manager
+- Content Writer  
+- Graphic Designer
+- Social Media Manager
+- Video Editor
+- Marketing Strategist
+- Marketing Coordinator
+- SEO Specialist
+
+Requirements:
+- 3-6 specific, actionable subtasks
+- Match subtasks to appropriate workflow phases
+- Suggest realistic team roles based on actual positions
+- Estimate realistic hours (1-8 hours per subtask)
+- Focus on Apliman's telecom/CPaaS solutions context
+
+Format as JSON array ONLY:
+[
+  {{
+    "title": "Clear, actionable subtask title",
+    "description": "Specific description of deliverable",
+    "phaseName": "Phase from workflow phases above",
+    "suggestedRole": "One of the real positions listed above",
+    "estimatedHours": 3
+  }}
+]
+
+Respond with ONLY the JSON array, no other text."""
 
             response = await self._make_request(prompt)
             
