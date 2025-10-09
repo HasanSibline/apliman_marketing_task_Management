@@ -75,16 +75,26 @@ export class TasksService {
         },
       });
 
-      // 4. Generate AI subtasks if requested
-      if (createTaskDto.generateSubtasks) {
+      // 4. Create subtasks (either pre-generated from frontend or generate via AI)
+      let subtasksToCreate: Array<any> = [];
+      
+      if (createTaskDto.aiSubtasks && createTaskDto.aiSubtasks.length > 0) {
+        // Use pre-generated subtasks that user may have edited in the modal
+        subtasksToCreate = createTaskDto.aiSubtasks;
+      } else if (createTaskDto.generateSubtasks) {
+        // Generate subtasks via AI
         const aiSubtasks = await this.aiService.generateSubtasks({
           title: createTaskDto.title,
           description,
           taskType,
           workflowPhases: workflow.phases.map(p => p.name),
         });
+        subtasksToCreate = aiSubtasks.subtasks;
+      }
 
-        for (const [index, subtask] of aiSubtasks.subtasks.entries()) {
+      // Process subtasks
+      if (subtasksToCreate.length > 0) {
+        for (const [index, subtask] of subtasksToCreate.entries()) {
           // Find matching phase for subtask
           const subtaskPhase = workflow.phases.find(p => 
             subtask.phaseName && p.name.toLowerCase().includes(subtask.phaseName.toLowerCase())

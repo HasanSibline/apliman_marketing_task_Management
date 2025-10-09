@@ -87,12 +87,10 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
     try {
       setIsLoading(true)
       
+      // Don't send 'order' field - backend determines order from array position
       await workflowsApi.create({
         ...formData,
-        phases: phases.map((phase, index) => ({
-          ...phase,
-          order: index,
-        })),
+        phases: phases,
       })
 
       toast.success('Workflow created successfully!')

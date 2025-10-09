@@ -90,12 +90,17 @@ export interface ApiTask {
 
 export interface CreateTaskData {
   title: string
-  description: string
-  phase?: string
+  description?: string
   goals?: string
   priority?: number
   dueDate?: string
   assignedToId?: string
+  assignedUserIds?: string[]
+  workflowId?: string
+  generateSubtasks?: boolean
+  autoAssign?: boolean
+  // Note: 'phase' is deprecated - use workflowId instead
+  phase?: string
 }
 
 // Auth API

@@ -103,4 +103,24 @@ export class CreateTaskDto {
   @IsOptional()
   @IsBoolean()
   autoAssign?: boolean;
+
+  @ApiProperty({
+    description: 'Pre-generated subtasks from AI (if user edited them in the modal)',
+    example: [{
+      title: 'Research content',
+      description: 'Research and gather content for the post',
+      phaseName: 'Research',
+      suggestedRole: 'Content Writer',
+      estimatedHours: 2
+    }],
+    required: false,
+  })
+  @IsOptional()
+  aiSubtasks?: Array<{
+    title: string;
+    description: string;
+    phaseName?: string;
+    suggestedRole?: string;
+    estimatedHours?: number;
+  }>;
 }
