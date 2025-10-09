@@ -52,7 +52,7 @@ export class WorkflowsService {
           fromPhaseId: phases[i].id,
           toPhaseId: phases[i + 1].id,
           name: `Move to ${phases[i + 1].name}`,
-          notifyRoles: '[]',
+          notifyRoles: [],
         },
       });
     }
@@ -75,7 +75,7 @@ export class WorkflowsService {
       ...workflow,
       phases: workflow.phases.map(phase => ({
         ...phase,
-        allowedRoles: JSON.parse(phase.allowedRoles),
+        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
       })),
     }));
   }
@@ -102,15 +102,15 @@ export class WorkflowsService {
       throw new NotFoundException('Workflow not found');
     }
 
-    // Parse JSON fields
+    // Return workflow with native arrays (PostgreSQL)
     return {
       ...workflow,
       phases: workflow.phases.map(phase => ({
         ...phase,
-        allowedRoles: JSON.parse(phase.allowedRoles),
+        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
         transitionsFrom: phase.transitionsFrom.map(t => ({
           ...t,
-          notifyRoles: JSON.parse(t.notifyRoles),
+          notifyRoles: t.notifyRoles, // Already an array in PostgreSQL
         })),
       })),
     };
@@ -131,7 +131,7 @@ export class WorkflowsService {
       ...workflow,
       phases: workflow.phases.map(phase => ({
         ...phase,
-        allowedRoles: JSON.parse(phase.allowedRoles),
+        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
       })),
     };
   }
@@ -166,7 +166,7 @@ export class WorkflowsService {
       ...workflow,
       phases: workflow.phases.map(phase => ({
         ...phase,
-        allowedRoles: JSON.parse(phase.allowedRoles),
+        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
       })),
     };
   }
