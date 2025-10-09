@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { PlusIcon, CogIcon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, CogIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 import { workflowsApi } from '@/services/api'
 import { Workflow } from '@/types/task'

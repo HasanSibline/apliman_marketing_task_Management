@@ -64,7 +64,7 @@ const TaskDetailPage: React.FC = () => {
                 {currentTask.title}
               </h1>
               <span className={`status-badge ${phaseColors[currentTask.phase as keyof typeof phaseColors]}`}>
-                {currentTask.phase.replace('_', ' ')}
+                {currentTask.phase?.replace('_', ' ') || 'N/A'}
               </span>
             </div>
             <div className="flex items-center space-x-4 text-sm text-gray-600">

@@ -216,8 +216,8 @@ const TasksPage: React.FC = () => {
                     <h3 className="text-lg font-semibold text-gray-900">
                       {task.title}
                     </h3>
-                    <span className={`status-badge ${phaseColors[task.phase as keyof typeof phaseColors]}`}>
-                      {task.phase.replace('_', ' ')}
+                    <span className={`status-badge ${task.phase ? phaseColors[task.phase as keyof typeof phaseColors] : ''}`}>
+                      {task.phase?.replace('_', ' ') || 'N/A'}
                     </span>
                     <span className={`text-lg ${priorityColors[task.priority as keyof typeof priorityColors]}`}>
                       {'★'.repeat(task.priority)}
