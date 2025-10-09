@@ -157,5 +157,193 @@ export class WorkflowsService {
 
     return this.prisma.workflow.delete({ where: { id } });
   }
+
+  async seedDefaultWorkflows(userId: string) {
+    // Check if workflows already exist
+    const existingWorkflows = await this.prisma.workflow.count();
+    if (existingWorkflows > 0) {
+      return { 
+        message: 'Workflows already exist',
+        count: existingWorkflows 
+      };
+    }
+
+    // Create Social Media Workflow
+    const socialMediaWorkflow = await this.prisma.workflow.create({
+      data: {
+        name: 'Social Media Workflow',
+        description: 'Standard workflow for social media content creation',
+        taskType: 'SOCIAL_MEDIA_POST',
+        isDefault: true,
+        color: '#3B82F6',
+        createdById: userId,
+        phases: {
+          create: [
+            {
+              name: 'Research & Strategy',
+              description: 'Define objectives and strategy',
+              order: 0,
+              color: '#9333EA',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+              isStartPhase: true,
+            },
+            {
+              name: 'Content Creation',
+              description: 'Write copy and create visuals',
+              order: 1,
+              color: '#2563EB',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+            },
+            {
+              name: 'Review & Approval',
+              description: 'Quality check and approval',
+              order: 2,
+              color: '#F59E0B',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+              requiresApproval: true,
+            },
+            {
+              name: 'Published',
+              description: 'Content published',
+              order: 3,
+              color: '#10B981',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+              isEndPhase: true,
+            },
+          ],
+        },
+      },
+    });
+
+    // Create Video Production Workflow
+    const videoWorkflow = await this.prisma.workflow.create({
+      data: {
+        name: 'Video Production Workflow',
+        description: 'Workflow for video content production',
+        taskType: 'VIDEO_CONTENT',
+        isDefault: true,
+        color: '#EC4899',
+        createdById: userId,
+        phases: {
+          create: [
+            {
+              name: 'Pre-Production',
+              description: 'Script, storyboard, and planning',
+              order: 0,
+              color: '#8B5CF6',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+              isStartPhase: true,
+            },
+            {
+              name: 'Production',
+              description: 'Filming and recording',
+              order: 1,
+              color: '#3B82F6',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+            },
+            {
+              name: 'Post-Production',
+              description: 'Editing and effects',
+              order: 2,
+              color: '#F59E0B',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+            },
+            {
+              name: 'Review',
+              description: 'Final review and approval',
+              order: 3,
+              color: '#EF4444',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+              requiresApproval: true,
+            },
+            {
+              name: 'Published',
+              description: 'Video published',
+              order: 4,
+              color: '#10B981',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+              isEndPhase: true,
+            },
+          ],
+        },
+      },
+    });
+
+    // Create General Marketing Workflow
+    const generalWorkflow = await this.prisma.workflow.create({
+      data: {
+        name: 'General Marketing Workflow',
+        description: 'General workflow for marketing tasks',
+        taskType: 'GENERAL',
+        isDefault: true,
+        color: '#6366F1',
+        createdById: userId,
+        phases: {
+          create: [
+            {
+              name: 'To Do',
+              description: 'Tasks to be started',
+              order: 0,
+              color: '#9CA3AF',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+              isStartPhase: true,
+            },
+            {
+              name: 'In Progress',
+              description: 'Tasks being worked on',
+              order: 1,
+              color: '#3B82F6',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+            },
+            {
+              name: 'Review',
+              description: 'Tasks under review',
+              order: 2,
+              color: '#F59E0B',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+            },
+            {
+              name: 'Completed',
+              description: 'Completed tasks',
+              order: 3,
+              color: '#10B981',
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+              isEndPhase: true,
+            },
+          ],
+        },
+      },
+    });
+
+    // Create transitions for each workflow
+    const workflows = [socialMediaWorkflow, videoWorkflow, generalWorkflow];
+    
+    for (const workflow of workflows) {
+      const phases = await this.prisma.phase.findMany({
+        where: { workflowId: workflow.id },
+        orderBy: { order: 'asc' },
+      });
+
+      for (let i = 0; i < phases.length - 1; i++) {
+        await this.prisma.transition.create({
+          data: {
+            fromPhaseId: phases[i].id,
+            toPhaseId: phases[i + 1].id,
+            name: `Move to ${phases[i + 1].name}`,
+            notifyRoles: [],
+          },
+        });
+      }
+    }
+
+    return {
+      message: 'Default workflows seeded successfully',
+      workflows: [
+        { name: socialMediaWorkflow.name, id: socialMediaWorkflow.id },
+        { name: videoWorkflow.name, id: videoWorkflow.id },
+        { name: generalWorkflow.name, id: generalWorkflow.id },
+      ],
+    };
+  }
 }
 
