@@ -170,8 +170,8 @@ export class TasksService {
               include: {
                 assignedTo: { select: { id: true, name: true, email: true, position: true } },
                 createdBy: { select: { id: true, name: true, email: true, position: true } },
-              },
-            });
+        },
+      });
 
             // Create task assignment record for individual task
             await this.prisma.taskAssignment.create({
@@ -198,7 +198,7 @@ export class TasksService {
               type: 'SUBTASK_CREATED',
               title: 'Subtask Created',
               message: `Subtask "${subtask.title}" was created but needs assignment`,
-              taskId: task.id,
+          taskId: task.id,
               subtaskId: createdSubtask.id,
               actionUrl: `/tasks/${task.id}`,
             });
@@ -206,7 +206,25 @@ export class TasksService {
         }
       }
 
-      // 5. Handle task assignments
+      // 5. Handle main task placement when subtasks are auto-created
+      // If subtasks were created and assigned to others, mark main task as coordination task
+      const hasAssignedSubtasks = subtasksToCreate.some(subtask => 
+        createTaskDto.autoAssign && (subtask.suggestedUserId || subtask.suggestedRole)
+      );
+      
+      if (hasAssignedSubtasks) {
+        // Update main task to reflect its coordination role
+        await this.prisma.task.update({
+          where: { id: task.id },
+          data: {
+            taskType: 'COORDINATION',
+            description: task.description + '\n\n📋 This is a coordination task with individual subtasks assigned to team members.',
+            goals: task.goals + '\n\n• Coordinate and monitor subtask completion\n• Ensure quality and timeline adherence\n• Facilitate communication between team members',
+          },
+        });
+      }
+
+      // 6. Handle task assignments for main task
       if (createTaskDto.assignedUserIds && createTaskDto.assignedUserIds.length > 0) {
         for (const userId of createTaskDto.assignedUserIds) {
           await this.prisma.taskAssignment.create({
@@ -235,7 +253,7 @@ export class TasksService {
             assignedById: creatorId,
           },
         });
-
+        
         await this.notificationsService.createNotification({
           userId: createTaskDto.assignedToId,
           type: 'TASK_ASSIGNED',
@@ -318,12 +336,12 @@ export class TasksService {
     );
 
     for (const user of usersToNotify) {
-      await this.notificationsService.createNotification({
+            await this.notificationsService.createNotification({
         userId: user.id,
         type: 'TASK_PHASE_CHANGED',
         title: 'Task Phase Updated',
         message: `Task "${task.title}" moved from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`,
-        taskId: task.id,
+              taskId: task.id,
         phaseId: toPhaseId,
         actionUrl: `/tasks/${task.id}`,
       });

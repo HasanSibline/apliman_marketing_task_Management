@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 enum UserRole {
@@ -90,7 +90,7 @@ model Task {
   currentPhase    Phase?        @relation(fields: [currentPhaseId], references: [id])
   parentTask      Task?         @relation("ParentChildTasks", fields: [parentTaskId], references: [id])
   childTasks      Task[]        @relation("ParentChildTasks")
-  linkedSubtask   Subtask?      @relation(fields: [subtaskId], references: [id])
+  linkedSubtask   Subtask?      @relation("TaskSubtaskLink", fields: [subtaskId], references: [id])
   assignments     TaskAssignment[]
   files           TaskFile[]
   comments        TaskComment[]
@@ -200,7 +200,7 @@ model Phase {
   order       Int
   color       String   @default("#6B7280")
   
-  allowedRoles String[]  @default([]) // Array of roles allowed to work on this phase
+  allowedRoles String  @default("[]") // JSON string for SQLite compatibility
   autoAssignRole String?
   
   isStartPhase Boolean  @default(false)
@@ -229,7 +229,7 @@ model Transition {
   
   name        String?
   conditions  Json?
-  notifyRoles String[]  @default([]) // Array of roles to notify on this transition
+  notifyRoles String  @default("[]") // JSON string for SQLite compatibility
   
   createdAt   DateTime @default(now())
   
@@ -262,7 +262,7 @@ model Subtask {
   updatedAt       DateTime @updatedAt
   
   notifications   Notification[]
-  linkedTask      Task?    // Individual task created for this subtask
+  linkedTask      Task?    @relation("TaskSubtaskLink") // Individual task created for this subtask
   
   @@map("subtasks")
 }

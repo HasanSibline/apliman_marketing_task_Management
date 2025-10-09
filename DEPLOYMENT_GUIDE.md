@@ -32,10 +32,10 @@ AI_SERVICE_URL=https://apliman-marketing-task-management.onrender.com
 FRONTEND_URL=https://apliman-marketing-task-management.pages.dev
 NODE_ENV=production
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-JWT_EXPIRES_IN=7d
+   JWT_EXPIRES_IN=7d
 UPLOAD_PATH=./uploads
 MAX_FILE_SIZE=5242880
-PORT=3001
+   PORT=3001
 SESSION_TIMEOUT=480
 ```
 
