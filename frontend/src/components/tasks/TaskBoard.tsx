@@ -1,4 +1,4 @@
-// TaskBoard component for managing tasks in a Kanban-style interface
+import React, { useState, useEffect } from 'react'
 import { Menu } from '@headlessui/react'
 import { 
   EllipsisVerticalIcon, 
@@ -150,7 +150,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 
   // Filter phases based on user role
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
-  const visiblePhases = phases.filter(phase => {
+  const visiblePhases = phases.filter((phase: Phase) => {
     // Hide archived phases for employees
     if (!isAdmin && phase.name.toLowerCase().includes('archived')) {
       return false
@@ -166,7 +166,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       }
       // Fallback to legacy phase matching
       if (task.phase) {
-        const legacyPhase = phases.find(p => 
+        const legacyPhase = phases.find((p: Phase) => 
           p.name.toLowerCase().replace(/\s+/g, '_') === task.phase?.toLowerCase()
         )
         return legacyPhase?.id === phaseId
@@ -251,7 +251,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 
 
   const canMoveTask = (task: Task, toPhaseId: string) => {
-    const toPhase = phases.find(p => p.id === toPhaseId)
+    const toPhase = phases.find((p: Phase) => p.id === toPhaseId)
     if (!toPhase) return false
 
     // Check if user has permission for this phase
@@ -501,7 +501,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="w-full overflow-x-auto">
         <div className="flex space-x-6 min-w-max pb-4">
-          {visiblePhases.map((phase) => {
+          {visiblePhases.map((phase: Phase) => {
             const phaseTasks = getTasksByPhase(phase.id)
             
             return (
