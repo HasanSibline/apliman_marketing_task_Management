@@ -14,7 +14,7 @@ export class WorkflowsController {
   @Post()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async createWorkflow(@Body() dto: CreateWorkflowDto, @Request() req) {
-    return this.workflowsService.createWorkflow(dto, req.user.userId);
+    return this.workflowsService.createWorkflow(dto, req.user.id);
   }
 
   @Get()
