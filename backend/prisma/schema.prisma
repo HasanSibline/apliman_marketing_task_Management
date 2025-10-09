@@ -78,12 +78,19 @@ model Task {
   // Foreign Keys
   assignedToId String? // Keep for backward compatibility
   createdById  String
+  
+  // Parent-child task relationships
+  parentTaskId String?
+  subtaskId    String? @unique
 
   // Relations
   assignedTo      User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
   createdBy       User          @relation("TaskCreator", fields: [createdById], references: [id])
   workflow        Workflow?     @relation(fields: [workflowId], references: [id])
   currentPhase    Phase?        @relation(fields: [currentPhaseId], references: [id])
+  parentTask      Task?         @relation("ParentChildTasks", fields: [parentTaskId], references: [id])
+  childTasks      Task[]        @relation("ParentChildTasks")
+  linkedSubtask   Subtask?      @relation(fields: [subtaskId], references: [id])
   assignments     TaskAssignment[]
   files           TaskFile[]
   comments        TaskComment[]
@@ -255,6 +262,7 @@ model Subtask {
   updatedAt       DateTime @updatedAt
   
   notifications   Notification[]
+  linkedTask      Task?    // Individual task created for this subtask
   
   @@map("subtasks")
 }

@@ -106,7 +106,7 @@ export class TasksService {
         subtasksToCreate = aiSubtasks.subtasks;
       }
 
-      // Process subtasks
+      // Process subtasks - Create individual tasks for assigned subtasks
       if (subtasksToCreate.length > 0) {
         for (const [index, subtask] of subtasksToCreate.entries()) {
           // Find matching phase for subtask
@@ -128,7 +128,7 @@ export class TasksService {
             } else if (subtask.suggestedRole) {
               // Fallback to role-based assignment
               suggestedAssignee = await this.prisma.user.findFirst({
-            where: {
+                where: {
                   position: { contains: subtask.suggestedRole },
                   status: 'ACTIVE',
                 },
@@ -136,7 +136,8 @@ export class TasksService {
             }
           }
 
-          await this.prisma.subtask.create({
+          // Create subtask record
+          const createdSubtask = await this.prisma.subtask.create({
             data: {
               taskId: task.id,
               title: subtask.title,
@@ -149,14 +150,56 @@ export class TasksService {
             },
           });
 
-          // Notify assigned user
+          // Create individual task for assigned subtask
           if (suggestedAssignee) {
+            const individualTask = await this.prisma.task.create({
+              data: {
+                title: `${subtask.title} (from: ${task.title})`,
+                description: subtask.description || `Subtask from main task: ${task.title}`,
+                goals: `Complete subtask: ${subtask.title}`,
+                priority: task.priority,
+                taskType: 'SUBTASK',
+                workflowId: workflow.id,
+                currentPhaseId: subtaskPhase.id,
+                assignedToId: suggestedAssignee.id,
+                createdById: creatorId,
+                dueDate: task.dueDate, // Inherit due date from parent
+                parentTaskId: task.id, // Link to parent task
+                subtaskId: createdSubtask.id, // Link to subtask record
+              },
+              include: {
+                assignedTo: { select: { id: true, name: true, email: true, position: true } },
+                createdBy: { select: { id: true, name: true, email: true, position: true } },
+              },
+            });
+
+            // Create task assignment record for individual task
+            await this.prisma.taskAssignment.create({
+              data: {
+                taskId: individualTask.id,
+                userId: suggestedAssignee.id,
+                assignedById: creatorId,
+              },
+            });
+
+            // Notify assigned user about individual task
             await this.notificationsService.createNotification({
               userId: suggestedAssignee.id,
-              type: 'SUBTASK_ASSIGNED',
-              title: 'New Subtask Assigned',
-              message: `You've been assigned to: ${subtask.title} in task "${task.title}"`,
+              type: 'TASK_ASSIGNED',
+              title: 'New Task Assigned',
+              message: `You've been assigned a new task: "${individualTask.title}"`,
+              taskId: individualTask.id,
+              actionUrl: `/tasks/${individualTask.id}`,
+            });
+          } else {
+            // Notify about unassigned subtask
+            await this.notificationsService.createNotification({
+              userId: creatorId,
+              type: 'SUBTASK_CREATED',
+              title: 'Subtask Created',
+              message: `Subtask "${subtask.title}" was created but needs assignment`,
               taskId: task.id,
+              subtaskId: createdSubtask.id,
               actionUrl: `/tasks/${task.id}`,
             });
           }
