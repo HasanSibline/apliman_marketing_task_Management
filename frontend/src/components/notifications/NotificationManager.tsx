@@ -161,7 +161,7 @@ const NotificationManager: React.FC = () => {
     setUnreadCount(prev => Math.max(0, prev - 1))
   }
 
-  const handleTaskAction = async (taskId: string, action: 'approve' | 'reject') => {
+  const handleTaskAction = async (taskId: string, _action: 'approve' | 'reject') => {
     try {
       // Note: This functionality needs to be updated for the new workflow system
       // For now, we'll disable this action

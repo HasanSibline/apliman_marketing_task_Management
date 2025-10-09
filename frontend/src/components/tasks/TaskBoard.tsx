@@ -16,7 +16,7 @@ import {
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
-import { updateTask, fetchTasks } from '@/store/slices/tasksSlice'
+import { fetchTasks } from '@/store/slices/tasksSlice'
 import { tasksApi, workflowsApi } from '@/services/api'
 import { Task, Phase } from '@/types/task'
 import toast from 'react-hot-toast'
