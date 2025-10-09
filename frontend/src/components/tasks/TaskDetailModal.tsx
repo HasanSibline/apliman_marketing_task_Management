@@ -11,6 +11,7 @@ import {
   ArrowPathIcon,
   PlayIcon,
   TrashIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 import { Menu } from '@headlessui/react'
 import ReactMarkdown from 'react-markdown'
@@ -148,7 +149,9 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
       if (task.currentPhaseId && task.workflowId) {
         // Find the target phase ID based on the new phase name
         // This is a simplified approach - in practice, you'd need proper phase management
-        toast.info('Phase updates are now handled through the workflow system. Use the Kanban board to move tasks.')
+        toast('Phase updates are now handled through the workflow system. Use the Kanban board to move tasks.', {
+          icon: <InformationCircleIcon className="h-4 w-4" />
+        })
       } else {
         toast.error('Cannot update phase for tasks without workflows')
       }
