@@ -280,13 +280,9 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       if (task.currentPhaseId && task.workflowId) {
         await tasksApi.moveToPhase(task.id, toPhaseId)
       } else {
-        // Fallback to legacy update
-        const toPhase = phases.find(p => p.id === toPhaseId)
-        const legacyPhase = toPhase?.name.toUpperCase().replace(/\s+/g, '_')
-        await dispatch(updateTask({ 
-          id: task.id, 
-          data: { phase: legacyPhase } 
-        })).unwrap()
+        // Fallback: For tasks without workflow, we can't move them
+        toast.error('Cannot move tasks without a workflow. Please assign a workflow first.')
+        return
       }
       
       toast.success('Task moved successfully')

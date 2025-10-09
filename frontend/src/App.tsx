@@ -45,11 +45,11 @@ function App() {
 
   // Start keepalive service to prevent Render services from sleeping
   useEffect(() => {
-    keepaliveService.start()
+    keepAliveService.start()
     
     // Cleanup on unmount
     return () => {
-      keepaliveService.stop()
+      keepAliveService.stop()
     }
   }, [])
 

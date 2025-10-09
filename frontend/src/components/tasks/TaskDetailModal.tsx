@@ -144,9 +144,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
     setIsLoading(true)
     try {
-      await tasksApi.update(task.id, { phase: newPhase })
-      toast.success('Task phase updated successfully!')
-      dispatch(fetchTasks({}))
+      // Note: Phase updates need to be done through the workflow system now
+      if (task.currentPhaseId && task.workflowId) {
+        // Find the target phase ID based on the new phase name
+        // This is a simplified approach - in practice, you'd need proper phase management
+        toast.info('Phase updates are now handled through the workflow system. Use the Kanban board to move tasks.')
+      } else {
+        toast.error('Cannot update phase for tasks without workflows')
+      }
       
       // Dispatch custom event to notify NotificationBell
       window.dispatchEvent(new CustomEvent('taskUpdated'))

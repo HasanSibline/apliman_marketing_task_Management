@@ -163,8 +163,9 @@ const NotificationManager: React.FC = () => {
 
   const handleTaskAction = async (taskId: string, action: 'approve' | 'reject') => {
     try {
-      await tasksApi.update(taskId, { phase: action === 'approve' ? 'APPROVED' : 'REJECTED' })
-      toast.success(`Task ${action === 'approve' ? 'approved' : 'rejected'} successfully`)
+      // Note: This functionality needs to be updated for the new workflow system
+      // For now, we'll disable this action
+      toast.error('Task approval system is being updated for the new workflow system')
       clearNotification(taskId)
     } catch (error) {
       toast.error('Failed to update task status')
