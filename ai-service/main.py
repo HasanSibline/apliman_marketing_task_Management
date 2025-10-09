@@ -277,3 +277,21 @@ async def startup_event():
 async def shutdown_event():
     """Run cleanup tasks"""
     logger.info("Shutting down AI service...")
+
+# Main entry point for direct execution
+if __name__ == "__main__":
+    import uvicorn
+    
+    # Get port from environment (Render sets this automatically)
+    port = int(os.getenv("PORT", config.PORT))
+    host = os.getenv("HOST", config.HOST)
+    
+    logger.info(f"Starting server on {host}:{port}")
+    
+    uvicorn.run(
+        "main:app",
+        host=host,
+        port=port,
+        reload=False,  # Disable reload in production
+        log_level=config.LOG_LEVEL.lower(),
+    )
