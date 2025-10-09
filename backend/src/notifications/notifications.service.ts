@@ -4,9 +4,12 @@ import { PrismaService } from '../prisma/prisma.service';
 export interface CreateNotificationData {
   userId: string;
   taskId?: string;
-  type: 'task_created' | 'task_assigned' | 'task_updated' | 'task_approved' | 'task_rejected' | 'task_completed' | 'task_phase_changed';
+  subtaskId?: string;
+  phaseId?: string;
+  type: string;
   title: string;
   message: string;
+  actionUrl?: string;
 }
 
 @Injectable()
@@ -18,9 +21,12 @@ export class NotificationsService {
       data: {
         userId: data.userId,
         taskId: data.taskId,
+        subtaskId: data.subtaskId,
+        phaseId: data.phaseId,
         type: data.type,
         title: data.title,
         message: data.message,
+        actionUrl: data.actionUrl,
       },
       include: {
         user: {
@@ -34,7 +40,20 @@ export class NotificationsService {
           select: {
             id: true,
             title: true,
-            phase: true,
+            taskType: true,
+          },
+        },
+        subtask: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        phase: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
           },
         },
       },
@@ -58,7 +77,20 @@ export class NotificationsService {
             select: {
               id: true,
               title: true,
-              phase: true,
+              taskType: true,
+            },
+          },
+          subtask: {
+            select: {
+              id: true,
+              title: true,
+            },
+          },
+          phase: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
             },
           },
         },
@@ -89,7 +121,8 @@ export class NotificationsService {
         userId,
       },
       data: {
-        read: true,
+        isRead: true,
+        readAt: new Date(),
       },
     });
     
@@ -100,10 +133,11 @@ export class NotificationsService {
     return this.prisma.notification.updateMany({
       where: {
         userId,
-        read: false,
+        isRead: false,
       },
       data: {
-        read: true,
+        isRead: true,
+        readAt: new Date(),
       },
     });
   }
@@ -112,7 +146,7 @@ export class NotificationsService {
     return this.prisma.notification.count({
       where: {
         userId,
-        read: false,
+        isRead: false,
       },
     });
   }

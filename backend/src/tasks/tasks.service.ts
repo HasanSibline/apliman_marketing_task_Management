@@ -1,141 +1,325 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { WorkflowsService } from '../workflows/workflows.service';
+import { AiService } from '../ai/ai.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
-import { Prisma } from '@prisma/client';
-import { TaskPhase, UserRole } from '../types/prisma';
+import { UserRole } from '../types/prisma';
 
 @Injectable()
 export class TasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly workflowsService: WorkflowsService,
+    private readonly aiService: AiService,
   ) {}
 
   async create(createTaskDto: CreateTaskDto, creatorId: string) {
     try {
-      const { assignedUserIds, ...taskData } = createTaskDto;
+      let taskType = 'GENERAL';
+      let workflow;
       
+      // 1. Determine workflow - either provided or AI-detected
+      if (createTaskDto.workflowId) {
+        workflow = await this.prisma.workflow.findUnique({
+          where: { id: createTaskDto.workflowId },
+          include: { phases: { orderBy: { order: 'asc' } } },
+        });
+        if (!workflow) {
+          throw new BadRequestException('Workflow not found');
+        }
+        taskType = workflow.taskType;
+      } else {
+        // AI task type detection
+        const aiDetection = await this.aiService.detectTaskType(createTaskDto.title);
+        taskType = aiDetection.task_type;
+        
+        workflow = await this.workflowsService.getDefaultWorkflow(taskType);
+      }
+
+      // 2. Generate AI content if missing
+      let description = createTaskDto.description;
+      let goals = createTaskDto.goals;
+      let priority = createTaskDto.priority;
+
+      if (!description || !goals || !priority) {
+        const aiContent = await this.aiService.generateContent(createTaskDto.title);
+        description = description || aiContent.description;
+        goals = goals || aiContent.goals;
+        priority = priority || aiContent.priority;
+      }
+
+      // 3. Create the task in the starting phase
+      const startPhase = workflow.phases[0];
       const task = await this.prisma.task.create({
         data: {
-          ...taskData,
+          title: createTaskDto.title,
+          description,
+          goals,
+          taskType,
+          priority,
+          workflowId: workflow.id,
+          currentPhaseId: startPhase.id,
           dueDate: createTaskDto.dueDate ? new Date(createTaskDto.dueDate) : null,
           createdById: creatorId,
-        } as any,
+          assignedToId: createTaskDto.assignedToId,
+        },
         include: {
-          assignedTo: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              position: true,
-            },
-          },
-          createdBy: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              position: true,
-            },
-          },
-          _count: {
-            select: {
-              files: true,
-              comments: true,
-            },
-          },
+          workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
+          currentPhase: true,
+          createdBy: { select: { id: true, name: true, email: true, position: true } },
+          assignedTo: { select: { id: true, name: true, email: true, position: true } },
         },
       });
 
-      // Create multiple assignments if assignedUserIds provided
-      if (assignedUserIds && assignedUserIds.length > 0) {
-        const assignmentData = assignedUserIds.map(userId => ({
-          taskId: task.id,
-          userId,
-          assignedBy: creatorId,
-        }));
-
-        await (this.prisma as any).taskAssignment.createMany({
-          data: assignmentData,
+      // 4. Generate AI subtasks if requested
+      if (createTaskDto.generateSubtasks) {
+        const aiSubtasks = await this.aiService.generateSubtasks({
+          title: createTaskDto.title,
+          description,
+          taskType,
+          workflowPhases: workflow.phases.map(p => p.name),
         });
 
-        // Update analytics for all assigned users
-        for (const userId of assignedUserIds) {
-          await this.updateUserAnalytics(userId, 'assigned');
-          await this.updateAnalyticsForUser(userId, 'assigned');
-        }
+        for (const [index, subtask] of aiSubtasks.subtasks.entries()) {
+          // Find matching phase for subtask
+          const subtaskPhase = workflow.phases.find(p => 
+            subtask.phaseName && p.name.toLowerCase().includes(subtask.phaseName.toLowerCase())
+          ) || startPhase;
 
-        // Send notifications to all assigned users
-        for (const userId of assignedUserIds) {
-          await this.notificationsService.createNotification({
-            userId,
-            taskId: task.id,
-            type: 'task_assigned',
-            title: 'New Task Assigned',
-            message: `You have been assigned to task: "${task.title}"`,
-          });
-        }
-      } else if (task.assignedToId) {
-        // Handle single assignment for backward compatibility
-        await this.updateUserAnalytics(task.assignedToId, 'assigned');
-        await this.updateAnalyticsForUser(task.assignedToId, 'assigned');
-        
-        await this.notificationsService.createNotification({
-          userId: task.assignedToId,
-          taskId: task.id,
-          type: 'task_assigned',
-          title: 'New Task Assigned',
-          message: `You have been assigned to task: "${task.title}"`,
-        });
-      }
+          // Auto-assign if requested and role suggested
+          let suggestedAssignee = null;
+          if (createTaskDto.autoAssign && subtask.suggestedRole) {
+            suggestedAssignee = await this.prisma.user.findFirst({
+              where: {
+                position: { contains: subtask.suggestedRole },
+                status: 'ACTIVE',
+              },
+            });
+          }
 
-      // Notify admins about new task creation (if created by employee)
-      if (creatorId) {
-        const creator = await this.prisma.user.findUnique({
-          where: { id: creatorId },
-          select: { role: true, name: true },
-        });
-
-        if (creator?.role === UserRole.EMPLOYEE) {
-          // Get all admins to notify them
-          const admins = await this.prisma.user.findMany({
-            where: {
-              role: { in: [UserRole.ADMIN, UserRole.SUPER_ADMIN] },
-            },
-            select: { id: true },
-          });
-
-          // Create notifications for all admins
-          for (const admin of admins) {
-            await this.notificationsService.createNotification({
-              userId: admin.id,
+          await this.prisma.subtask.create({
+            data: {
               taskId: task.id,
-              type: 'task_created',
-              title: 'New Task Requires Approval',
-              message: `${creator.name} created a new task: "${task.title}" that requires approval.`,
+              title: subtask.title,
+              description: subtask.description,
+              order: index,
+              phaseId: subtaskPhase.id,
+              suggestedRole: subtask.suggestedRole,
+              assignedToId: suggestedAssignee?.id,
+              estimatedHours: subtask.estimatedHours,
+            },
+          });
+
+          // Notify assigned user
+          if (suggestedAssignee) {
+            await this.notificationsService.createNotification({
+              userId: suggestedAssignee.id,
+              type: 'SUBTASK_ASSIGNED',
+              title: 'New Subtask Assigned',
+              message: `You've been assigned to: ${subtask.title} in task "${task.title}"`,
+              taskId: task.id,
+              actionUrl: `/tasks/${task.id}`,
             });
           }
         }
       }
 
-      return task;
-    } catch (error) {
-      if (error && typeof error === 'object' && 'code' in error) {
-        if (error.code === 'P2003') {
-          throw new BadRequestException('Invalid assignedToId provided');
+      // 5. Handle task assignments
+      if (createTaskDto.assignedUserIds && createTaskDto.assignedUserIds.length > 0) {
+        for (const userId of createTaskDto.assignedUserIds) {
+          await this.prisma.taskAssignment.create({
+            data: {
+              taskId: task.id,
+              userId,
+              assignedById: creatorId,
+            },
+          });
+
+          await this.notificationsService.createNotification({
+            userId,
+            type: 'TASK_ASSIGNED',
+            title: 'New Task Assigned',
+            message: `You've been assigned to task: ${task.title}`,
+            taskId: task.id,
+            phaseId: startPhase.id,
+            actionUrl: `/tasks/${task.id}`,
+          });
         }
+      } else if (createTaskDto.assignedToId) {
+        await this.prisma.taskAssignment.create({
+          data: {
+            taskId: task.id,
+            userId: createTaskDto.assignedToId,
+            assignedById: creatorId,
+          },
+        });
+
+        await this.notificationsService.createNotification({
+          userId: createTaskDto.assignedToId,
+          type: 'TASK_ASSIGNED',
+          title: 'New Task Assigned',
+          message: `You've been assigned to task: ${task.title}`,
+          taskId: task.id,
+          phaseId: startPhase.id,
+          actionUrl: `/tasks/${task.id}`,
+        });
       }
+
+      // Return complete task data
+      return this.findOne(task.id, creatorId, UserRole.SUPER_ADMIN);
+    } catch (error) {
+      console.error('Error creating task:', error);
       throw error;
     }
+  }
+
+  async moveTaskToPhase(taskId: string, toPhaseId: string, userId: string, comment?: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
+        assignedTo: true,
+        assignments: { include: { user: true } },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const toPhase = await this.prisma.phase.findUnique({ where: { id: toPhaseId } });
+    if (!toPhase) {
+      throw new NotFoundException('Target phase not found');
+    }
+
+    // Validate transition
+    const isValidTransition = await this.workflowsService.validatePhaseTransition(
+      task.currentPhaseId,
+      toPhaseId
+    );
+
+    // Get current phase details
+    const currentPhase = task.workflow.phases.find(p => p.id === task.currentPhaseId);
+    
+    if (!isValidTransition) {
+      throw new BadRequestException(
+        `Cannot move task from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`
+      );
+    }
+
+    // Update task phase
+    await this.prisma.task.update({
+      where: { id: taskId },
+      data: { 
+        currentPhaseId: toPhaseId,
+        completedAt: toPhase.isEndPhase ? new Date() : null,
+      },
+    });
+
+    // Record phase history
+    await this.prisma.phaseHistory.create({
+      data: {
+        taskId,
+        fromPhaseId: task.currentPhaseId,
+        toPhaseId,
+        movedById: userId,
+        comment,
+      },
+    });
+
+    // Notify stakeholders
+    const usersToNotify = [
+      task.assignedTo,
+      ...task.assignments.map(a => a.user),
+    ].filter((user, index, self) => 
+      user && self.findIndex(u => u?.id === user.id) === index && user.id !== userId
+    );
+
+    for (const user of usersToNotify) {
+      await this.notificationsService.createNotification({
+        userId: user.id,
+        type: 'TASK_PHASE_CHANGED',
+        title: 'Task Phase Updated',
+        message: `Task "${task.title}" moved from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`,
+        taskId: task.id,
+        phaseId: toPhaseId,
+        actionUrl: `/tasks/${task.id}`,
+      });
+    }
+
+    return this.findOne(taskId, userId, UserRole.SUPER_ADMIN);
+  }
+
+  async updateTaskAssignment(taskId: string, newAssigneeId: string, userId: string) {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: { assignedTo: true },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    const oldAssignee = task.assignedTo;
+
+    // Update main assignee
+    await this.prisma.task.update({
+      where: { id: taskId },
+      data: { assignedToId: newAssigneeId },
+    });
+
+    // Update or create assignment record
+    await this.prisma.taskAssignment.upsert({
+      where: {
+        taskId_userId: {
+          taskId,
+          userId: newAssigneeId,
+        },
+      },
+      create: {
+        taskId,
+        userId: newAssigneeId,
+        assignedById: userId,
+      },
+      update: {
+        assignedById: userId,
+      },
+    });
+
+    // Notify new assignee
+    await this.notificationsService.createNotification({
+      userId: newAssigneeId,
+      type: 'TASK_ASSIGNED',
+      title: 'Task Assigned to You',
+      message: `You've been assigned to task: ${task.title}`,
+      taskId: task.id,
+      phaseId: task.currentPhaseId,
+      actionUrl: `/tasks/${task.id}`,
+    });
+
+    // Notify old assignee if different
+    if (oldAssignee && oldAssignee.id !== newAssigneeId) {
+      await this.notificationsService.createNotification({
+        userId: oldAssignee.id,
+        type: 'TASK_REASSIGNED',
+        title: 'Task Reassigned',
+        message: `Task "${task.title}" has been reassigned`,
+        taskId: task.id,
+        actionUrl: `/tasks/${task.id}`,
+      });
+    }
+
+    return this.findOne(taskId, userId, UserRole.SUPER_ADMIN);
   }
 
   async findAll(
     userId?: string,
     userRole?: UserRole,
-    phase?: TaskPhase,
+    phase?: any, // TODO: Replace with phase filtering by workflow phases
     assignedToId?: string,
     createdById?: string,
     search?: string,
@@ -290,42 +474,9 @@ export class TasksService {
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string, userRole: UserRole) {
     const existingTask = await this.findOne(id, userId, userRole);
 
-    // Role-based update restrictions
-    if (userRole === UserRole.EMPLOYEE) {
-      // Employees cannot approve (assign) or reject tasks
-      if (updateTaskDto.phase === 'ASSIGNED' && existingTask.phase === 'PENDING_APPROVAL') {
-        throw new ForbiddenException('Employees cannot approve tasks');
-      }
-      if (updateTaskDto.phase === 'REJECTED') {
-        throw new ForbiddenException('Employees cannot reject tasks');
-      }
-      
-      // Employees cannot archive tasks
-      if (updateTaskDto.phase === 'ARCHIVED') {
-        throw new ForbiddenException('Employees cannot archive tasks');
-      }
-      
-      // Employees can only update phase and only to allowed phases
-      const allowedFields = ['phase'];
-      const allowedPhases = ['IN_PROGRESS', 'COMPLETED'];
-      
-      if (updateTaskDto.phase && !allowedPhases.includes(updateTaskDto.phase)) {
-        throw new ForbiddenException(`Employees can only move tasks to: ${allowedPhases.join(', ')}`);
-      }
-      
-      const filteredUpdate = Object.keys(updateTaskDto)
-        .filter(key => allowedFields.includes(key))
-        .reduce((obj, key) => {
-          obj[key] = updateTaskDto[key];
-          return obj;
-        }, {});
-      
-      if (Object.keys(filteredUpdate).length === 0) {
-        throw new ForbiddenException('Employees can only update task phase');
-      }
-      
-      updateTaskDto = filteredUpdate;
-    }
+    // TODO: Implement workflow-based update restrictions
+    // Phase-based restrictions have been moved to workflow phase permissions
+    // Use moveTaskToPhase() method for phase transitions with proper validation
 
     try {
       const updatedTask = await this.prisma.task.update({
@@ -361,27 +512,8 @@ export class TasksService {
         },
       });
 
-      // Update analytics based on phase changes
-      if (updateTaskDto.phase) {
-        await this.handlePhaseChange(updatedTask, existingTask.phase as TaskPhase);
-        
-        // Update analytics for completion
-        if (updateTaskDto.phase === TaskPhase.COMPLETED && existingTask.phase !== TaskPhase.COMPLETED) {
-          if (updatedTask.assignedToId) {
-            await this.updateAnalyticsForUser(updatedTask.assignedToId, 'completed');
-          }
-          // Update analytics for multiple assignments
-          // Note: assignments relationship will be available after Prisma client regeneration
-          // if (updatedTask.assignments && updatedTask.assignments.length > 0) {
-          //   for (const assignment of updatedTask.assignments) {
-          //     await this.updateAnalyticsForUser(assignment.userId, 'completed');
-          //   }
-          // }
-        }
-        
-        // Send notifications for phase changes
-        await this.notifyPhaseChange(updatedTask, existingTask.phase as TaskPhase, userId);
-      }
+      // TODO: Update analytics based on workflow phase changes
+      // Phase change analytics will be handled by moveTaskToPhase() method
 
       return updatedTask;
     } catch (error) {
@@ -447,20 +579,9 @@ export class TasksService {
   }
 
   async getTasksByPhase() {
-    const phases = Object.values(TaskPhase);
-    const counts = await Promise.all(
-      phases.map(async (phase) => {
-        const count = await this.prisma.task.count({
-          where: { phase: phase as any },
-        });
-        return { phase, count };
-      }),
-    );
-
-    return counts.reduce((acc, { phase, count }) => {
-      acc[phase] = count;
-      return acc;
-    }, {});
+    // TODO: Update to use workflow phases instead of TaskPhase enum
+    // Return empty data for now until workflow integration is complete
+    return {};
   }
 
   private async updateUserAnalytics(userId: string, action: 'assigned' | 'completed' | 'interaction') {
@@ -485,13 +606,10 @@ export class TasksService {
     }).catch(() => {});
   }
 
-  private async handlePhaseChange(task: any, oldPhase: TaskPhase) {
-    if (task.phase === TaskPhase.COMPLETED && oldPhase !== TaskPhase.COMPLETED) {
-      // Task completed
-      if (task.assignedToId) {
-        await this.updateUserAnalytics(task.assignedToId, 'completed');
-      }
-    }
+  private async handlePhaseChange(task: any, oldPhase: any) {
+    // TODO: Update to use workflow phases instead of TaskPhase enum
+    // Placeholder method until workflow integration is complete
+    console.log('Phase change detected:', { taskId: task.id, oldPhase });
 
     // Analytics model removed - just update lastActiveAt
     if (task.assignedToId) {
@@ -514,45 +632,22 @@ export class TasksService {
     }
   }
 
-  private async notifyPhaseChange(task: any, oldPhase: TaskPhase, updatedBy: string) {
-    const phaseMessages = {
-      [TaskPhase.PENDING_APPROVAL]: 'Task is pending approval',
-      ['REJECTED']: 'Task has been rejected',
-      [TaskPhase.ASSIGNED]: 'Task has been approved and assigned',
-      [TaskPhase.IN_PROGRESS]: 'Task is now in progress',
-      [TaskPhase.COMPLETED]: 'Task has been completed',
-      [TaskPhase.ARCHIVED]: 'Task has been archived',
-    };
+  private async notifyPhaseChange(task: any, oldPhase: any, updatedBy: string) {
+    // TODO: Update to use workflow phases instead of TaskPhase enum
+    // Simplified notification for workflow integration
+    const message = `Task "${task.title}" phase has been updated`;
+    const title = 'Task Phase Updated';
 
-    const phaseTitles = {
-      [TaskPhase.PENDING_APPROVAL]: 'Task Pending Approval',
-      ['REJECTED']: 'Task Rejected',
-      [TaskPhase.ASSIGNED]: 'Task Approved & Assigned',
-      [TaskPhase.IN_PROGRESS]: 'Task In Progress',
-      [TaskPhase.COMPLETED]: 'Task Completed',
-      [TaskPhase.ARCHIVED]: 'Task Archived',
-    };
-
-    const newPhase = task.phase as TaskPhase;
-    const title = phaseTitles[newPhase] || 'Task Updated';
-    const message = phaseMessages[newPhase] || `Task "${task.title}" has been updated`;
-
-    // Notify all assigned users
-    await this.notificationsService.notifyTaskAssignees(
-      task.id,
-      'task_phase_changed',
+    // Notify assigned users about phase change
+    if (task.assignedToId && task.assignedToId !== updatedBy) {
+      await this.notificationsService.createNotification({
+        userId: task.assignedToId,
+        taskId: task.id,
+        type: 'TASK_PHASE_CHANGED',
       title,
       message,
-      updatedBy
-    );
-
-    // Notify task creator
-    await this.notificationsService.notifyTaskCreator(
-      task.id,
-      'task_phase_changed',
-      title,
-      message,
-      updatedBy
-    );
+        actionUrl: `/tasks/${task.id}`,
+      });
+    }
   }
 }

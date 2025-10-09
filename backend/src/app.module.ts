@@ -10,6 +10,7 @@ import { AnalyticsModule } from './analytics/analytics.module';
 import { PresenceModule } from './presence/presence.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
+import { WorkflowsModule } from './workflows/workflows.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -29,6 +30,7 @@ import { AppService } from './app.service';
     PresenceModule,
     NotificationsModule,
     AiModule,
+    WorkflowsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

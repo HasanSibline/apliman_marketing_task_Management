@@ -21,7 +21,7 @@ import { AnalyticsService } from './analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { TaskPhase, UserRole } from '../types/prisma';
+import { UserRole } from '../types/prisma';
 
 @ApiTags('Analytics')
 @Controller('analytics')
@@ -50,7 +50,7 @@ export class AnalyticsController {
         throw new Error('User not authenticated or user ID not found');
       }
       
-      return await this.analyticsService.getUserDashboardStats(req.user.id);
+      return await this.analyticsService.getUserAnalytics(req.user.id);
     } catch (error) {
       console.error('Error getting user dashboard stats:', error);
       throw error;
@@ -110,7 +110,8 @@ export class AnalyticsController {
   @ApiResponse({ status: 200, description: 'Task analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   getTaskAnalytics() {
-    return this.analyticsService.getTaskAnalytics();
+    // TODO: Implement task analytics with workflow phases
+    return { message: 'Task analytics temporarily unavailable during workflow integration' };
   }
 
   @Get('tasks/me')
@@ -123,7 +124,7 @@ export class AnalyticsController {
         throw new Error('User not authenticated or user ID not found');
       }
       
-      return await this.analyticsService.getUserTaskAnalytics(req.user.id);
+      return await this.analyticsService.getUserAnalytics(req.user.id);
     } catch (error) {
       console.error('Error getting user task analytics:', error);
       throw error;
@@ -134,16 +135,13 @@ export class AnalyticsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: 'Export tasks to Excel (Admin/Super Admin only)' })
-  @ApiQuery({ name: 'phase', enum: TaskPhase, required: false })
-  @ApiQuery({ name: 'assignedToId', type: 'string', required: false })
-  @ApiQuery({ name: 'dateFrom', type: 'string', required: false, description: 'ISO date string' })
-  @ApiQuery({ name: 'dateTo', type: 'string', required: false, description: 'ISO date string' })
+  @ApiQuery({ name: 'format', enum: ['excel', 'csv'], required: false })
   @ApiResponse({ 
     status: 200, 
-    description: 'Excel file generated successfully',
+    description: 'File generated successfully',
     headers: {
       'Content-Type': {
-        description: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        description: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet or text/csv',
       },
       'Content-Disposition': {
         description: 'attachment; filename="tasks_export_YYYY-MM-DD.xlsx"',
@@ -153,13 +151,15 @@ export class AnalyticsController {
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async exportTasks(
     @Res({ passthrough: true }) res: Response,
-    @Query('phase') phase?: TaskPhase,
-    @Query('assignedToId') assignedToId?: string,
-    @Query('dateFrom') dateFrom?: string,
-    @Query('dateTo') dateTo?: string,
+    @Query('format') format: 'excel' | 'csv' = 'excel',
   ) {
-    const filters = { phase, assignedToId, dateFrom, dateTo };
-    const { buffer, filename, mimeType } = await this.analyticsService.exportTasksToExcel(filters);
+    const buffer = await this.analyticsService.exportData(format);
+    const timestamp = new Date().toISOString().split('T')[0];
+    const extension = format === 'excel' ? 'xlsx' : 'csv';
+    const filename = `tasks_export_${timestamp}.${extension}`;
+    const mimeType = format === 'excel' 
+      ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      : 'text/csv';
 
     res.set({
       'Content-Type': mimeType,
@@ -177,7 +177,8 @@ export class AnalyticsController {
   @ApiResponse({ status: 200, description: 'Analytics initialized successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async initializeAnalytics() {
-    return this.analyticsService.initializeAnalyticsForAllUsers();
+    // TODO: Implement analytics initialization with workflow system
+    return { message: 'Analytics initialization temporarily unavailable during workflow integration' };
   }
 
   @Get('debug/users')
@@ -187,6 +188,7 @@ export class AnalyticsController {
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async debugUsers() {
-    return this.analyticsService.debugUsers();
+    // TODO: Implement debug users with workflow system
+    return { message: 'Debug users temporarily unavailable during workflow integration' };
   }
 }

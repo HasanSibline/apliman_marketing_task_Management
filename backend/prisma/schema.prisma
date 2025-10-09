@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 enum UserRole {
@@ -40,44 +40,56 @@ model User {
   password  String
   role      UserRole @default(EMPLOYEE)
   position  String?
+  department String?
   status    UserStatus @default(OFFLINE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   lastActiveAt DateTime?
 
   // Relations
-  createdTasks    Task[] @relation("TaskCreator")
-  assignedTasks   Task[] @relation("TaskAssignee")
-  taskAssignments TaskAssignment[] @relation("TaskAssignments")
-  assignedByMe    TaskAssignment[] @relation("TaskAssigner")
-  taskComments    TaskComment[]
-  notifications   Notification[]
+  createdTasks      Task[] @relation("TaskCreator")
+  assignedTasks     Task[] @relation("TaskAssignee")
+  taskAssignments   TaskAssignment[] @relation("TaskAssignments")
+  assignedByMe      TaskAssignment[] @relation("TaskAssigner")
+  taskComments      TaskComment[]
+  notifications     Notification[]
+  createdWorkflows  Workflow[] @relation("WorkflowCreator")
+  assignedSubtasks  Subtask[]
+  phaseHistory      PhaseHistory[]
 
   @@map("users")
 }
 
 model Task {
-  id          String    @id @default(uuid())
-  title       String
-  description String
-  phase       TaskPhase @default(PENDING_APPROVAL)
-  goals       String?
-  priority    Int       @default(1) // 1-5 scale
-  dueDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id            String    @id @default(uuid())
+  title         String
+  description   String
+  taskType      String?
+  workflowId    String?
+  currentPhaseId String?
+  phase         TaskPhase @default(PENDING_APPROVAL) // Keep for backward compatibility
+  goals         String?
+  priority      Int       @default(1) // 1-5 scale
+  dueDate       DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   // Foreign Keys
   assignedToId String? // Keep for backward compatibility
   createdById  String
 
   // Relations
-  assignedTo   User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
-  createdBy    User          @relation("TaskCreator", fields: [createdById], references: [id])
-  assignments  TaskAssignment[]
-  files        TaskFile[]
-  comments     TaskComment[]
-  notifications Notification[]
+  assignedTo      User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy       User          @relation("TaskCreator", fields: [createdById], references: [id])
+  workflow        Workflow?     @relation(fields: [workflowId], references: [id])
+  currentPhase    Phase?        @relation(fields: [currentPhaseId], references: [id])
+  assignments     TaskAssignment[]
+  files           TaskFile[]
+  comments        TaskComment[]
+  notifications   Notification[]
+  subtasks        Subtask[]
+  phaseHistory    PhaseHistory[]
 
   @@map("tasks")
 }
@@ -87,12 +99,12 @@ model TaskAssignment {
   taskId    String
   userId    String
   assignedAt DateTime @default(now())
-  assignedBy String? // Who assigned this user to the task
+  assignedById String? // Who assigned this user to the task
 
   // Relations
   task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user       User @relation("TaskAssignments", fields: [userId], references: [id], onDelete: Cascade)
-  assigner   User? @relation("TaskAssigner", fields: [assignedBy], references: [id])
+  assignedBy User? @relation("TaskAssigner", fields: [assignedById], references: [id])
 
   @@unique([taskId, userId])
   @@map("task_assignments")
@@ -132,17 +144,136 @@ model Notification {
   id        String   @id @default(uuid())
   userId    String
   taskId    String?
-  type      String   // 'task_created', 'task_assigned', 'task_updated', 'task_approved', 'task_rejected', 'task_completed'
+  subtaskId String?
+  phaseId   String?
+  type      String   // 'task_created', 'task_assigned', 'task_updated', 'task_approved', 'task_rejected', 'task_completed', 'phase_changed', 'subtask_assigned'
   title     String
   message   String
-  read      Boolean  @default(false)
+  actionUrl String?
+  isRead    Boolean  @default(false)
+  readAt    DateTime?
   createdAt DateTime @default(now())
 
   // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  task Task? @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task    Task?    @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  subtask Subtask? @relation(fields: [subtaskId], references: [id], onDelete: Cascade)
+  phase   Phase?   @relation(fields: [phaseId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model Workflow {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  taskType    String
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false)
+  color       String   @default("#3B82F6")
+  icon        String?
+  createdById String
+  createdBy   User     @relation("WorkflowCreator", fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  phases      Phase[]
+  tasks       Task[]
+  
+  @@map("workflows")
+}
+
+model Phase {
+  id          String   @id @default(uuid())
+  workflowId  String
+  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  
+  name        String
+  description String?
+  order       Int
+  color       String   @default("#6B7280")
+  
+  allowedRoles String   @default("[]") // JSON array of roles
+  autoAssignRole String?
+  
+  isStartPhase Boolean  @default(false)
+  isEndPhase   Boolean  @default(false)
+  requiresApproval Boolean @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  tasks       Task[]
+  subtasks    Subtask[]
+  transitionsFrom Transition[] @relation("FromPhase")
+  transitionsTo   Transition[] @relation("ToPhase")
+  notifications Notification[]
+  
+  @@unique([workflowId, order])
+  @@map("phases")
+}
+
+model Transition {
+  id          String   @id @default(uuid())
+  fromPhaseId String
+  fromPhase   Phase    @relation("FromPhase", fields: [fromPhaseId], references: [id], onDelete: Cascade)
+  toPhaseId   String
+  toPhase     Phase    @relation("ToPhase", fields: [toPhaseId], references: [id], onDelete: Cascade)
+  
+  name        String?
+  conditions  Json?
+  notifyRoles String   @default("[]") // JSON array of roles
+  
+  createdAt   DateTime @default(now())
+  
+  @@unique([fromPhaseId, toPhaseId])
+  @@map("transitions")
+}
+
+model Subtask {
+  id              String   @id @default(uuid())
+  taskId          String
+  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  title           String
+  description     String?
+  order           Int
+  
+  phaseId         String?
+  phase           Phase?   @relation(fields: [phaseId], references: [id])
+  
+  assignedToId    String?
+  assignedTo      User?    @relation(fields: [assignedToId], references: [id])
+  suggestedRole   String?
+  
+  isCompleted     Boolean  @default(false)
+  completedAt     DateTime?
+  dueDate         DateTime?
+  estimatedHours  Float?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  notifications   Notification[]
+  
+  @@map("subtasks")
+}
+
+model PhaseHistory {
+  id          String   @id @default(uuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  fromPhaseId String?
+  toPhaseId   String
+  
+  movedById   String
+  movedBy     User     @relation(fields: [movedById], references: [id])
+  
+  comment     String?
+  movedAt     DateTime @default(now())
+  
+  @@map("phase_history")
 }
 
 model SystemSettings {

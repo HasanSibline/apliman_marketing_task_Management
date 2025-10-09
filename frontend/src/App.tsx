@@ -14,6 +14,7 @@ import LoginPage from '@/pages/auth/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import TasksPage from '@/pages/tasks/TasksPage'
 import TaskDetailPage from '@/pages/tasks/TaskDetailPage'
+import WorkflowsPage from '@/pages/workflows/WorkflowsPage'
 import UsersPage from '@/pages/users/UsersPage'
 import AnalyticsPage from '@/pages/analytics/AnalyticsPage'
 import ProfilePage from '@/pages/ProfilePage'
@@ -73,6 +74,7 @@ function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
+        <Route path="workflows" element={<WorkflowsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="activity" element={<ActivityPage />} />

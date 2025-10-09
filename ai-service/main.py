@@ -152,6 +152,48 @@ async def generate_content(request: GenerateContentRequest):
             }
         )
 
+@app.post("/detect-task-type")
+async def detect_task_type(request: dict):
+    """Detect task type from title"""
+    try:
+        title = request.get("title", "")
+        if not title:
+            raise HTTPException(status_code=400, detail="Title required")
+        
+        task_type = await content_generator.detect_task_type(title)
+        
+        return {
+            "task_type": task_type,
+            "ai_provider": "gemini"
+        }
+    except Exception as e:
+        logger.error(f"Task type detection failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/generate-subtasks")
+async def generate_subtasks(request: dict):
+    """Generate intelligent subtasks"""
+    try:
+        title = request.get("title", "")
+        description = request.get("description", "")
+        task_type = request.get("task_type", "GENERAL")
+        workflow_phases = request.get("workflowPhases", [])
+        
+        if not title:
+            raise HTTPException(status_code=400, detail="Title required")
+        
+        subtasks = await content_generator.generate_subtasks(
+            title, task_type, description, workflow_phases
+        )
+        
+        return {
+            "ai_provider": "gemini",
+            "subtasks": subtasks
+        }
+    except Exception as e:
+        logger.error(f"Subtask generation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/performance-insights")
 async def generate_performance_insights(request: dict):
     """Generate performance insights from analytics data"""

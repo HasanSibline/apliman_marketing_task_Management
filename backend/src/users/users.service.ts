@@ -235,13 +235,8 @@ export class UsersService {
       }),
     ]);
 
-    // Count tasks for basic stats
-    const completedTasks = await this.prisma.task.count({
-      where: {
-        assignedToId: id,
-        phase: 'COMPLETED',
-      },
-    });
+    // Count tasks for basic stats - TODO: Update to use workflow phases
+    const completedTasks = 0; // Placeholder until workflow integration
 
     return {
       user: {

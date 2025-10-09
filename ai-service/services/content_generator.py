@@ -56,48 +56,38 @@ class ContentGenerator:
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
         is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
         
-        # Apliman system prompt
-        system_prompt = """You are the AI content generator for Apliman (www.apliman.com).
-Your purpose is to generate strategic and actionable marketing content tailored to Apliman's services, knowledge, and mindset.
+        # Apliman system prompt with comprehensive business context
+        system_prompt = """You are the AI assistant for Apliman Technologies' internal marketing task management system.
 
-Rules:
+ABOUT APLIMAN:
+Apliman is a leading provider of integrated communication solutions with presence in 50+ countries, serving 75+ governmental and private enterprises globally.
 
-Knowledge Source → Use only Apliman's brand, expertise, services, and positioning. No external assumptions.
+CORE PRODUCTS & SERVICES:
+1. aïda - Intelligent platform enabling 100+ customer journey automations with AI-driven personalization
+2. aïReach - CPaaS (Communication Platform as a Service) supporting Voice, SMS, WhatsApp, Email, RCS with AI-driven channel optimization
+3. Call Completion Solutions (CCS) - Converting failed calls into successful connections
+4. Smart Ring Back Tone (SRBT) - Advanced ringback tone system with smart engagement features
+5. NameTag - Numeric digital identities for brands
+6. Interactive Voice Response (IVR) - Automated customer service systems
 
-Output Structure → Always reply with two plain text sections WITHOUT using "Description:" or "Goals:" as headers:
+TARGET INDUSTRIES:
+- Telecom Mobile Network Operators (MNOs)
+- Fintech, Education, Travel & Hospitality, E-Commerce, Government
 
-Section 1 (Context): A detailed, business-oriented explanation of the user's task title in Apliman's context. Describe why this content matters, how it ties into Apliman's offerings, and what strategic value it provides. DO NOT start with "Description:" - just begin with the content directly.
+CONTENT GENERATION RULES:
+1. Always reference specific Apliman products (aïda, aïReach, CCS, SRBT, etc.)
+2. Highlight industry-specific applications
+3. Emphasize key differentiators: AI-driven, multi-channel, scalable, secure
+4. Include technical depth for B2B/Enterprise audience
+5. Focus on business outcomes: revenue growth, customer engagement, efficiency
+6. Use telecom/tech terminology accurately (CPaaS, MNO, customer journey, omnichannel)
 
-Section 2 (Strategy & Deliverables): A comprehensive breakdown of what the user should aim to achieve, including the final crafted output/content that solves the task (e.g., Instagram bio, ad copy, blog draft). Provide clear reasoning, strategic insights, and the deliverable in the same section. DO NOT start with "Goals:" - just begin with the content directly.
+OUTPUT FORMAT:
+Section 1 (Context): Explain WHY this task matters for Apliman's business, which products/solutions it promotes, target audience, strategic value.
+Section 2 (Strategy & Deliverables): Specific execution steps, deliverables, success metrics, ready-to-use content.
 
-Style & Format →
-
-No intros like "Okay…" or "Let's…"
-No bold/italics/markdown formatting.
-Professional, business-driven, and aligned with Apliman's innovative voice.
-Every response must include actual deliverables (not just advice).
-DO NOT use "Description:" or "Goals:" as section headers - just provide the content directly.
-
-Example
-
-Input (user title):
-"Writing about Aiservice provided by www.apliman.com short for a bio on Instagram"
-
-Output (Gemini):
-
-Apliman's AI service empowers businesses with marketing automation, hyper-personalized engagement, and advanced analytics. Positioning this on Instagram requires translating complex capabilities into a simple, memorable bio that resonates with businesses seeking innovation and measurable growth. This bio will serve as the first touchpoint to communicate trust, expertise, and digital leadership.
-
-Increase profile visits by presenting Apliman as a leader in AI-driven marketing.
-
-Build brand recall by associating Apliman with innovation, ROI, and personalization.
-
-Provide a ready-to-use Instagram bio:
-"AI-powered marketing by Apliman. Personalize engagement, boost ROI, and drive growth. www.apliman.com"
-
-This way:
-
-First section = context + explanation for the user.
-Second section = strategy + actual output."""
+For social media: Include caption, hashtags, posting recommendations.
+For technical content: Include key talking points about Apliman's technology."""
         
         # Add social media specific instructions
         if is_social_media:
@@ -328,3 +318,127 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
         except Exception as e:
             logger.error(f"Error analyzing priority: {str(e)}")
             return 3  # Default to medium priority on error
+
+    async def detect_task_type(self, title: str) -> str:
+        """Detect task type from title using AI with Apliman context"""
+        try:
+            await self._rate_limit()
+            
+            prompt = f"""
+            Analyze this task title and categorize it into ONE of these marketing task types:
+            
+            - SOCIAL_MEDIA_POST: Social media content about Apliman products
+            - VIDEO_CONTENT: Product demos, explainer videos, testimonials
+            - BLOG_ARTICLE: Thought leadership, technical articles
+            - EMAIL_CAMPAIGN: Product announcements, feature launches
+            - CASE_STUDY: Customer success stories, ROI demonstrations
+            - WEBSITE_CONTENT: Landing pages, product pages
+            - WHITEPAPER: Technical documentation, research papers
+            - WEBINAR: Live presentations, product training
+            - INFOGRAPHIC: Data visualizations, process flows
+            - PRESS_RELEASE: Company announcements, partnerships
+            - GENERAL: Other marketing activities
+            
+            Task Title: "{title}"
+            
+            Reply with ONLY the task type name (e.g., "SOCIAL_MEDIA_POST")
+            """
+
+            response = await self._make_request(prompt)
+            task_type = response.strip().upper().replace(" ", "_")
+            
+            valid_types = [
+                'SOCIAL_MEDIA_POST', 'VIDEO_CONTENT', 'BLOG_ARTICLE', 
+                'EMAIL_CAMPAIGN', 'CASE_STUDY', 'WEBSITE_CONTENT',
+                'WHITEPAPER', 'WEBINAR', 'INFOGRAPHIC', 'PRESS_RELEASE', 'GENERAL'
+            ]
+            
+            if task_type in valid_types:
+                return task_type
+            
+            logger.warning(f"Unknown task type: {response}, defaulting to GENERAL")
+            return 'GENERAL'
+
+        except Exception as e:
+            logger.error(f"Error detecting task type: {str(e)}")
+            return 'GENERAL'
+
+    async def generate_subtasks(
+        self, 
+        title: str, 
+        task_type: str, 
+        description: str,
+        workflow_phases: list
+    ) -> list:
+        """Generate intelligent subtasks with AI"""
+        try:
+            await self._rate_limit()
+            
+            phases_str = ", ".join(workflow_phases) if workflow_phases else "various phases"
+            
+            prompt = f"""
+            Generate 4-8 specific subtasks for this Apliman marketing task:
+            
+            Title: {title}
+            Type: {task_type}
+            Description: {description}
+            Workflow Phases: {phases_str}
+            
+            For each subtask provide:
+            1. Title (clear, actionable)
+            2. Description (what needs to be done)
+            3. Phase Name (from: {phases_str})
+            4. Suggested Role (Marketing Manager, Content Writer, Graphic Designer, Video Editor, Social Media Manager, SEO Specialist)
+            5. Estimated Hours (realistic)
+            
+            Format as JSON array:
+            [
+              {{
+                "title": "Research competitors",
+                "description": "Analyze 5 competitors' strategies",
+                "phaseName": "Research",
+                "suggestedRole": "Marketing Strategist",
+                "estimatedHours": 3
+              }}
+            ]
+            
+            Make subtasks specific to Apliman's telecom/CPaaS solutions.
+            """
+
+            response = await self._make_request(prompt)
+            
+            try:
+                # Extract JSON from response
+                json_start = response.find('[')
+                json_end = response.rfind(']') + 1
+                if json_start >= 0 and json_end > json_start:
+                    json_str = response[json_start:json_end]
+                    subtasks = json.loads(json_str)
+                    return subtasks
+                else:
+                    raise ValueError("No JSON found")
+            except json.JSONDecodeError as e:
+                logger.error(f"Failed to parse subtasks JSON: {e}")
+                return self._generate_fallback_subtasks(title, task_type)
+
+        except Exception as e:
+            logger.error(f"Error generating subtasks: {str(e)}")
+            return self._generate_fallback_subtasks(title, task_type)
+
+    def _generate_fallback_subtasks(self, title: str, task_type: str) -> list:
+        """Generate basic subtasks as fallback"""
+        templates = {
+            'SOCIAL_MEDIA_POST': [
+                {"title": "Research & Strategy", "description": "Define objectives", "phaseName": "Planning", "suggestedRole": "Marketing Strategist", "estimatedHours": 2},
+                {"title": "Content Creation", "description": "Write copy and visuals", "phaseName": "Creation", "suggestedRole": "Content Writer", "estimatedHours": 3},
+                {"title": "Review & Approval", "description": "Quality check", "phaseName": "Review", "suggestedRole": "Marketing Manager", "estimatedHours": 1},
+                {"title": "Publishing", "description": "Schedule and publish", "phaseName": "Publishing", "suggestedRole": "Social Media Manager", "estimatedHours": 1},
+            ],
+            'GENERAL': [
+                {"title": "Planning", "description": "Plan execution", "phaseName": "Planning", "suggestedRole": "Project Manager", "estimatedHours": 2},
+                {"title": "Execution", "description": "Complete deliverables", "phaseName": "In Progress", "suggestedRole": "Team Member", "estimatedHours": 5},
+                {"title": "Review", "description": "Quality review", "phaseName": "Review", "suggestedRole": "Manager", "estimatedHours": 1},
+            ],
+        }
+        
+        return templates.get(task_type, templates['GENERAL'])

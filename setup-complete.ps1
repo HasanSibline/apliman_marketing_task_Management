@@ -127,3 +127,5 @@ Write-Host "- Check the logs in each service for detailed error messages" -Foreg
 
 Write-Host "`n✨ Happy coding! ✨" -ForegroundColor Green
 
+
+

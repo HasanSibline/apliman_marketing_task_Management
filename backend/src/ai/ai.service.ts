@@ -205,8 +205,12 @@ export class AiService {
     description: string;
     goals: string;
     priority?: number;
+    ai_provider?: string;
   }> {
     try {
+      this.logger.log(`Calling AI service at: ${this.aiServiceUrl}/generate-content`);
+      this.logger.log(`Request data: ${JSON.stringify({ title, type })}`);
+      
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
@@ -216,19 +220,129 @@ export class AiService {
         }),
       );
       
+      this.logger.log(`AI service response received: ${JSON.stringify({ ai_provider: response.data.ai_provider })}`);
+      
       return {
         description: response.data.description,
         goals: response.data.goals,
-        priority: response.data.priority
+        priority: response.data.priority,
+        ai_provider: response.data.ai_provider || 'gemini'
       };
     } catch (error) {
-      this.logger.error('Error generating content from AI:', error);
+      this.logger.error('Error generating content from AI:');
+      this.logger.error(`Error message: ${error.message}`);
+      this.logger.error(`Error stack: ${error.stack}`);
+      if (error.response) {
+        this.logger.error(`Response status: ${error.response.status}`);
+        this.logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
+      }
       
       // Provide fallback content when AI service is not available
       return {
         description: `Create a comprehensive plan for: ${title}. This ${type} requires careful planning and execution to achieve success.`,
         goals: `1. Successfully complete the ${title}\n2. Ensure all deliverables meet quality standards\n3. Document the process and outcomes`,
-        priority: 3
+        priority: 3,
+        ai_provider: 'fallback'
+      };
+    }
+  }
+
+  async detectTaskType(title: string): Promise<{ task_type: string; ai_provider: string }> {
+    try {
+      this.logger.log(`Detecting task type for: ${title}`);
+      
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
+          title,
+        }, {
+          timeout: 10000,
+        }),
+      );
+
+      this.logger.log(`Task type detected: ${response.data.task_type}`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error detecting task type:', error.message);
+      return {
+        task_type: 'GENERAL',
+        ai_provider: 'fallback',
+      };
+    }
+  }
+
+  async generateSubtasks(data: {
+    title: string;
+    description: string;
+    taskType: string;
+    workflowPhases: string[];
+  }): Promise<{ subtasks: any[]; ai_provider: string }> {
+    try {
+      this.logger.log(`Generating subtasks for: ${data.title}`);
+      
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, data, {
+          timeout: 15000,
+        }),
+      );
+
+      this.logger.log(`Generated ${response.data.subtasks.length} subtasks`);
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error generating subtasks:', error.message);
+      return {
+        subtasks: [
+          {
+            title: 'Planning',
+            description: 'Plan execution',
+            phaseName: 'Planning',
+            suggestedRole: 'Project Manager',
+            estimatedHours: 2,
+          },
+          {
+            title: 'Execution',
+            description: 'Complete deliverables',
+            phaseName: 'In Progress',
+            suggestedRole: 'Team Member',
+            estimatedHours: 5,
+          },
+        ],
+        ai_provider: 'fallback',
+      };
+    }
+  }
+
+  async generateContent(title: string): Promise<{
+    description: string;
+    goals: string;
+    priority: number;
+    ai_provider: string;
+  }> {
+    try {
+      this.logger.log(`Generating content for: ${title}`);
+      
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
+          title,
+          type: 'task',
+        }, {
+          timeout: 15000,
+        }),
+      );
+
+      this.logger.log(`Content generation successful`);
+      return {
+        description: response.data.description,
+        goals: response.data.goals,
+        priority: response.data.priority || 3,
+        ai_provider: response.data.ai_provider || 'gemini',
+      };
+    } catch (error) {
+      this.logger.error('Error generating content:', error.message);
+      return {
+        description: `Create a comprehensive plan for: ${title}. This task requires careful planning and execution.`,
+        goals: `1. Successfully complete ${title}\n2. Ensure all deliverables meet quality standards\n3. Document the process and outcomes`,
+        priority: 3,
+        ai_provider: 'fallback',
       };
     }
   }

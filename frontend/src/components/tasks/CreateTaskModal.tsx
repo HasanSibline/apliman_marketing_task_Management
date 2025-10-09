@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
-import { useEffect } from 'react'
+import { workflowsApi } from '@/services/api'
+import { Workflow } from '@/types/task'
 import ContentSuggester from '../ai/ContentSuggester'
 import toast from 'react-hot-toast'
 
@@ -19,6 +20,20 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const { user } = useAppSelector((state) => state.auth)
   const { isLoading, filters } = useAppSelector((state) => state.tasks)
   
+  const [workflows, setWorkflows] = useState<Workflow[]>([])
+  const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null)
+  const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(false)
+  const [aiGeneratedSubtasks, setAiGeneratedSubtasks] = useState<any[]>([])
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false)
+  const [aiPreview, setAiPreview] = useState<{
+    description?: string
+    goals?: string
+    priority?: number
+    subtasks?: any[]
+    aiProvider?: string
+  } | null>(null)
+  const [showAiPreview, setShowAiPreview] = useState(false)
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -27,12 +42,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     dueDate: '',
     assignedToId: '',
     assignedUserIds: [] as string[],
+    workflowId: '',
+    generateSubtasks: false,
+    autoAssign: false,
+    // Legacy field for backward compatibility
     phase: 'PENDING_APPROVAL' as const,
   })
 
   useEffect(() => {
     if (isOpen) {
       dispatch(fetchAssignableUsers())
+      loadWorkflows()
       
       // Auto-select current user as assigned
       if (user?.id && !formData.assignedUserIds.includes(user.id)) {
@@ -45,6 +65,158 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     }
   }, [isOpen, dispatch, user?.id])
 
+  const loadWorkflows = async () => {
+    try {
+      setIsLoadingWorkflows(true)
+      const workflowsData = await workflowsApi.getAll()
+      setWorkflows(workflowsData)
+      
+      // Auto-select default general workflow if available
+      const defaultWorkflow = workflowsData.find(w => w.isDefault && w.taskType === 'GENERAL')
+      if (defaultWorkflow) {
+        setSelectedWorkflow(defaultWorkflow)
+        setFormData(prev => ({ ...prev, workflowId: defaultWorkflow.id }))
+      }
+    } catch (error) {
+      console.error('Error loading workflows:', error)
+      toast.error('Failed to load workflows')
+    } finally {
+      setIsLoadingWorkflows(false)
+    }
+  }
+
+  const handleWorkflowChange = (workflowId: string) => {
+    const workflow = workflows.find(w => w.id === workflowId) || null
+    setSelectedWorkflow(workflow)
+    setFormData(prev => ({ ...prev, workflowId }))
+  }
+
+  const generateAIContent = async () => {
+    if (!formData.title.trim()) {
+      toast.error('Please enter a task title first')
+      return
+    }
+
+    try {
+      setIsGeneratingContent(true)
+      const preview: any = {}
+      
+      // Generate basic content
+      const contentResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-content`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({ title: formData.title }),
+      })
+
+      if (contentResponse.ok) {
+        const contentData = await contentResponse.json()
+        preview.description = contentData.description
+        preview.goals = contentData.goals
+        preview.priority = contentData.priority
+        preview.aiProvider = contentData.ai_provider
+        
+        if (contentData.ai_provider !== 'fallback') {
+          toast.success('AI content generated successfully!')
+        } else {
+          toast('Using fallback content - check AI service configuration', { icon: '⚠️' })
+        }
+      }
+
+      // Generate subtasks if workflow is selected
+      if (selectedWorkflow && formData.generateSubtasks) {
+        const subtasksResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-subtasks`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+          body: JSON.stringify({
+            title: formData.title,
+            description: formData.description || preview.description,
+            taskType: selectedWorkflow.taskType,
+            workflowPhases: selectedWorkflow.phases.map(p => p.name),
+          }),
+        })
+
+        if (subtasksResponse.ok) {
+          const subtasksData = await subtasksResponse.json()
+          preview.subtasks = subtasksData.subtasks || []
+          
+          if (subtasksData.ai_provider !== 'fallback') {
+            toast.success(`Generated ${subtasksData.subtasks?.length || 0} AI subtasks!`)
+          } else {
+            toast('Using fallback subtasks - check AI service configuration', { icon: '⚠️' })
+          }
+        }
+      }
+
+      // Show preview modal
+      setAiPreview(preview)
+      setShowAiPreview(true)
+      
+    } catch (error: any) {
+      console.error('Error generating AI content:', error)
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please refresh the page and log in again.')
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      } else {
+        toast.error('Failed to generate AI content')
+      }
+    } finally {
+      setIsGeneratingContent(false)
+    }
+  }
+
+  const applyAiContent = () => {
+    if (!aiPreview) return
+
+    // Apply basic content
+    setFormData(prev => ({
+      ...prev,
+      description: prev.description || aiPreview.description || '',
+      goals: prev.goals || aiPreview.goals || '',
+      priority: prev.priority || aiPreview.priority || 3,
+    }))
+
+    // Apply subtasks
+    if (aiPreview.subtasks) {
+      setAiGeneratedSubtasks(aiPreview.subtasks)
+    }
+
+    // Close preview
+    setShowAiPreview(false)
+    toast.success('AI content applied to form!')
+  }
+
+  const discardAiContent = () => {
+    setAiPreview(null)
+    setShowAiPreview(false)
+  }
+
+  const updateSubtask = (index: number, field: string, value: string) => {
+    const updatedSubtasks = [...aiGeneratedSubtasks]
+    updatedSubtasks[index] = { ...updatedSubtasks[index], [field]: value }
+    setAiGeneratedSubtasks(updatedSubtasks)
+  }
+
+  const removeSubtask = (index: number) => {
+    setAiGeneratedSubtasks(subtasks => subtasks.filter((_, i) => i !== index))
+  }
+
+  const addCustomSubtask = () => {
+    setAiGeneratedSubtasks(prev => [...prev, {
+      title: '',
+      description: '',
+      phaseName: selectedWorkflow?.phases[0]?.name || '',
+      suggestedRole: '',
+      estimatedHours: 2,
+    }])
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -53,6 +225,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
       assignedToId: formData.assignedToId || undefined,
       assignedUserIds: formData.assignedUserIds.length > 0 ? formData.assignedUserIds : undefined,
+      // Include AI-generated subtasks if any
+      aiSubtasks: aiGeneratedSubtasks.length > 0 ? aiGeneratedSubtasks : undefined,
     }
 
     try {
@@ -88,11 +262,22 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           dueDate: '',
           assignedToId: user?.id || '', // Auto-select current user
           assignedUserIds: user?.id ? [user.id] : [], // Auto-select current user
+          workflowId: '',
+          generateSubtasks: false,
+          autoAssign: false,
           phase: 'PENDING_APPROVAL' as const,
         })
+        setAiGeneratedSubtasks([]) // Clear AI subtasks
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create task')
+      console.error('Error creating task:', error)
+      if (error.response?.status === 401) {
+        toast.error('Session expired. Please refresh the page and log in again.')
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to create task')
+      }
     }
   }
 
@@ -107,7 +292,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div key="create-task-modal" className="fixed inset-0 z-50 overflow-y-auto">
           <div className="flex min-h-screen items-center justify-center p-4">
             {/* Backdrop */}
             <motion.div
@@ -138,6 +323,45 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                {/* Workflow Selection */}
+                <div>
+                  <label htmlFor="workflowId" className="block text-sm font-medium text-gray-700 mb-2">
+                    <CogIcon className="h-4 w-4 inline mr-1" />
+                    Workflow
+                  </label>
+                  <select
+                    id="workflowId"
+                    name="workflowId"
+                    value={formData.workflowId}
+                    onChange={(e) => handleWorkflowChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    disabled={isLoadingWorkflows}
+                  >
+                    <option value="">Select a workflow</option>
+                    {workflows.map((workflow) => (
+                      <option key={workflow.id} value={workflow.id}>
+                        {workflow.name} ({workflow.taskType})
+                      </option>
+                    ))}
+                  </select>
+                  {selectedWorkflow && (
+                    <div className="mt-2 p-3 bg-gray-50 rounded-md">
+                      <p className="text-sm text-gray-600">{selectedWorkflow.description}</p>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {selectedWorkflow.phases.map((phase) => (
+                          <span
+                            key={phase.id}
+                            className="text-xs px-2 py-1 rounded-full text-white"
+                            style={{ backgroundColor: phase.color }}
+                          >
+                            {phase.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 {/* Title */}
                 <div>
                   <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -157,16 +381,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       />
                       <button
                         type="button"
-                        onClick={() => {
-                          const suggester = document.getElementById('content-suggester');
-                          if (suggester) {
-                            suggester.style.display = suggester.style.display === 'none' ? 'block' : 'none';
-                          }
-                        }}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-gray-100 transition-colors"
-                        title="Get AI suggestions"
+                        onClick={generateAIContent}
+                        disabled={isGeneratingContent || !formData.title.trim()}
+                        className="btn-secondary text-sm flex items-center space-x-2 disabled:opacity-50 absolute right-2 top-1/2 -translate-y-1/2"
                       >
-                        <SparklesIcon className="h-5 w-5 text-primary-500" />
+                        <SparklesIcon className="h-4 w-4" />
+                        <span className="text-xs">{isGeneratingContent ? 'Generating...' : 'Generate AI'}</span>
                       </button>
                     </div>
                     <div 
@@ -338,6 +558,162 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
                 </div>
 
+                {/* AI Options */}
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <SparklesIcon className="h-5 w-5 mr-2 text-purple-500" />
+                    AI-Powered Features
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.generateSubtasks}
+                        onChange={(e) => setFormData(prev => ({ ...prev, generateSubtasks: e.target.checked }))}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        Generate AI subtasks based on task type and workflow
+                      </span>
+                    </label>
+
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={formData.autoAssign}
+                        onChange={(e) => setFormData(prev => ({ ...prev, autoAssign: e.target.checked }))}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">
+                        Auto-assign subtasks to team members based on their roles
+                      </span>
+                    </label>
+
+                    <div className="text-xs text-gray-500 bg-purple-50 p-3 rounded-md">
+                      <p className="font-medium mb-1">AI will help with:</p>
+                      <ul className="list-disc list-inside space-y-1">
+                        <li>Task type detection from title</li>
+                        <li>Generate description and goals if not provided</li>
+                        <li>Create intelligent subtasks matched to workflow phases</li>
+                        <li>Suggest team members for subtasks based on their positions</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* AI-Generated Subtasks */}
+                {aiGeneratedSubtasks.length > 0 && (
+                  <div className="border-t pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                        <SparklesIcon className="h-5 w-5 mr-2 text-green-500" />
+                        AI-Generated Subtasks ({aiGeneratedSubtasks.length})
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={addCustomSubtask}
+                        className="btn-secondary text-sm flex items-center space-x-2"
+                      >
+                        <PlusIcon className="h-4 w-4" />
+                        <span>Add Custom</span>
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {aiGeneratedSubtasks.map((subtask, index) => (
+                        <div
+                          key={`subtask-${index}-${Date.now()}`}
+                          className="bg-gray-50 border border-gray-200 rounded-lg p-4 relative group"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => removeSubtask(index)}
+                            className="absolute top-2 right-2 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                          </button>
+                          
+                          <div className="space-y-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Subtask Title
+                              </label>
+                              <input
+                                type="text"
+                                value={subtask.title}
+                                onChange={(e) => updateSubtask(index, 'title', e.target.value)}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                placeholder="Subtask title"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                                Description
+                              </label>
+                              <textarea
+                                rows={2}
+                                value={subtask.description}
+                                onChange={(e) => updateSubtask(index, 'description', e.target.value)}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                placeholder="Brief description"
+                              />
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Phase
+                                </label>
+                                <select
+                                  value={subtask.phaseName}
+                                  onChange={(e) => updateSubtask(index, 'phaseName', e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                >
+                                  {selectedWorkflow?.phases.map((phase) => (
+                                    <option key={phase.id} value={phase.name}>
+                                      {phase.name}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                  Est. Hours
+                                </label>
+                                <input
+                                  type="number"
+                                  min="0.5"
+                                  step="0.5"
+                                  value={subtask.estimatedHours}
+                                  onChange={(e) => updateSubtask(index, 'estimatedHours', e.target.value)}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+                            </div>
+                            
+                            {subtask.suggestedRole && (
+                              <div className="flex items-center space-x-2">
+                                <span className="text-xs text-gray-500">Suggested for:</span>
+                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                  {subtask.suggestedRole}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="mt-4 text-sm text-gray-600 bg-green-50 p-3 rounded-md">
+                      <p className="font-medium mb-1">📝 These subtasks were generated by AI based on your task details.</p>
+                      <p>You can edit, remove, or add custom subtasks. They will be created automatically when you create the task.</p>
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
                   <button
@@ -357,6 +733,165 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </div>
+        </div>
+      )}
+
+      {/* AI Preview Modal */}
+      {showAiPreview && aiPreview && (
+        <div key="ai-preview-modal" className="fixed inset-0 z-[9999] overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50"
+              onClick={discardAiContent}
+            />
+            
+            {/* Preview Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+                  <SparklesIcon className="h-6 w-6 mr-2 text-purple-500" />
+                  AI Generated Content Preview
+                  {aiPreview.aiProvider === 'fallback' && (
+                    <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                      Fallback Mode
+                    </span>
+                  )}
+                </h2>
+                <button
+                  onClick={discardAiContent}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+
+              {/* Preview Content */}
+              <div className="p-6 space-y-6">
+                {/* Description Preview */}
+                {aiPreview.description && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">📝 Description</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <p className="text-gray-700 whitespace-pre-wrap">{aiPreview.description}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Goals Preview */}
+                {aiPreview.goals && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">🎯 Goals</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <p className="text-gray-700 whitespace-pre-wrap">{aiPreview.goals}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Priority Preview */}
+                {aiPreview.priority && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">⚡ Priority</h3>
+                    <div className="bg-gray-50 p-4 rounded-lg border">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        aiPreview.priority === 5 ? 'bg-red-100 text-red-800' :
+                        aiPreview.priority === 4 ? 'bg-orange-100 text-orange-800' :
+                        aiPreview.priority === 3 ? 'bg-yellow-100 text-yellow-800' :
+                        aiPreview.priority === 2 ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {aiPreview.priority === 5 ? 'Critical' :
+                         aiPreview.priority === 4 ? 'High' :
+                         aiPreview.priority === 3 ? 'Normal' :
+                         aiPreview.priority === 2 ? 'Medium' :
+                         'Low'} Priority
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Subtasks Preview */}
+                {aiPreview.subtasks && aiPreview.subtasks.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                      📋 Subtasks ({aiPreview.subtasks.length})
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {aiPreview.subtasks.map((subtask, index) => (
+                        <div key={`preview-subtask-${index}-${subtask.title || index}-${Date.now()}`} className="bg-gray-50 p-4 rounded-lg border">
+                          <h4 className="font-medium text-gray-900 mb-2">{subtask.title}</h4>
+                          {subtask.description && (
+                            <p className="text-sm text-gray-600 mb-2">{subtask.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            {subtask.phaseName && (
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                📍 {subtask.phaseName}
+                              </span>
+                            )}
+                            {subtask.suggestedRole && (
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                                👤 {subtask.suggestedRole}
+                              </span>
+                            )}
+                            {subtask.estimatedHours && (
+                              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                ⏱️ {subtask.estimatedHours}h
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* AI Provider Info */}
+                <div className={`p-4 rounded-lg ${
+                  aiPreview.aiProvider === 'fallback' 
+                    ? 'bg-yellow-50 border border-yellow-200' 
+                    : 'bg-green-50 border border-green-200'
+                }`}>
+                  <p className="text-sm">
+                    {aiPreview.aiProvider === 'fallback' ? (
+                      <>
+                        ⚠️ <strong>Fallback Mode:</strong> Using template content. Set up Google API key for AI-powered generation.
+                      </>
+                    ) : (
+                      <>
+                        ✨ <strong>AI Generated:</strong> Content created using advanced AI based on your task details.
+                      </>
+                    )}
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+                <button
+                  onClick={discardAiContent}
+                  className="btn-secondary"
+                >
+                  Discard
+                </button>
+                <button
+                  onClick={applyAiContent}
+                  className="btn-primary"
+                >
+                  Apply to Form
+                </button>
+              </div>
             </motion.div>
           </div>
         </div>

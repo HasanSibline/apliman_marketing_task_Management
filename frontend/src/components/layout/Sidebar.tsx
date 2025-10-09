@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import {
   HomeIcon,
   ClipboardDocumentListIcon,
+  CogIcon,
   UsersIcon,
   ChartBarIcon,
   UserCircleIcon,
@@ -18,6 +19,7 @@ const Sidebar: React.FC = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
     { name: 'Profile', href: '/profile', icon: UserCircleIcon },

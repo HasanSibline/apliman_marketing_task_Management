@@ -1,20 +1,19 @@
 import { 
   IsString, 
   IsOptional, 
-  IsEnum, 
   IsInt, 
   Min, 
   Max,
   IsDateString,
   MinLength,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { TaskPhase } from '../../types/prisma';
 
 export class CreateTaskDto {
   @ApiProperty({
     description: 'Task title',
-    example: 'Implement user authentication',
+    example: 'Create social media campaign for aïda platform launch',
   })
   @IsString()
   @MinLength(3, { message: 'Title must be at least 3 characters long' })
@@ -22,21 +21,12 @@ export class CreateTaskDto {
 
   @ApiProperty({
     description: 'Task description',
-    example: 'Implement JWT-based authentication system with role-based access control',
-  })
-  @IsString()
-  @MinLength(10, { message: 'Description must be at least 10 characters long' })
-  description: string;
-
-  @ApiProperty({
-    description: 'Task phase',
-    enum: TaskPhase,
-    example: TaskPhase.PENDING_APPROVAL,
+    example: 'Create comprehensive social media campaign highlighting aïda AI features',
     required: false,
   })
   @IsOptional()
-  @IsEnum(TaskPhase, { message: 'Phase must be a valid TaskPhase' })
-  phase?: TaskPhase;
+  @IsString()
+  description?: string;
 
   @ApiProperty({
     description: 'Task goals set by admin',
@@ -86,4 +76,31 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString({ each: true })
   assignedUserIds?: string[];
+
+  @ApiProperty({
+    description: 'Workflow ID to use (optional, will auto-detect if not provided)',
+    example: 'uuid-string',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  workflowId?: string;
+
+  @ApiProperty({
+    description: 'Whether to generate subtasks using AI',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  generateSubtasks?: boolean;
+
+  @ApiProperty({
+    description: 'Whether to auto-assign subtasks based on roles',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  autoAssign?: boolean;
 }

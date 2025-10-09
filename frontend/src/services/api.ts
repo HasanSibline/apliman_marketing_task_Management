@@ -248,6 +248,18 @@ export const tasksApi = {
     await api.delete(`/tasks/${id}`)
   },
 
+  // NEW: Phase transition endpoint
+  moveToPhase: async (taskId: string, toPhaseId: string, comment?: string): Promise<Task> => {
+    const response = await api.post(`/tasks/${taskId}/move-phase`, { toPhaseId, comment })
+    return response.data
+  },
+
+  // NEW: Update task assignment
+  updateAssignment: async (taskId: string, assignedToId: string): Promise<Task> => {
+    const response = await api.patch(`/tasks/${taskId}/assignment`, { assignedToId })
+    return response.data
+  },
+
   addComment: async (taskId: string, comment: string): Promise<any> => {
     const response = await api.post(`/tasks/${taskId}/comments`, { comment })
     return response.data
@@ -285,6 +297,52 @@ export const tasksApi = {
   getTimeEntries: async (taskId: string): Promise<any[]> => {
     const response = await api.get(`/tasks/${taskId}/time`)
     return response.data
+  },
+}
+
+// Workflows API
+export const workflowsApi = {
+  getAll: async (taskType?: string): Promise<any[]> => {
+    const response = await api.get('/workflows', { params: taskType ? { taskType } : {} })
+    return response.data
+  },
+
+  getById: async (id: string): Promise<any> => {
+    const response = await api.get(`/workflows/${id}`)
+    return response.data
+  },
+
+  getDefault: async (taskType: string): Promise<any> => {
+    const response = await api.get(`/workflows/default/${taskType}`)
+    return response.data
+  },
+
+  create: async (data: {
+    name: string
+    description?: string
+    taskType: string
+    isDefault?: boolean
+    color?: string
+    phases: Array<{
+      name: string
+      description?: string
+      allowedRoles: string[]
+      autoAssignRole?: string
+      requiresApproval?: boolean
+      color?: string
+    }>
+  }): Promise<any> => {
+    const response = await api.post('/workflows', data)
+    return response.data
+  },
+
+  update: async (id: string, data: any): Promise<any> => {
+    const response = await api.put(`/workflows/${id}`, data)
+    return response.data
+  },
+
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/workflows/${id}`)
   },
 }
 

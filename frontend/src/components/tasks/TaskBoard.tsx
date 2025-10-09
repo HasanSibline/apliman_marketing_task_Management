@@ -1,7 +1,5 @@
-import React from 'react'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect } from 'react'
 import { Menu } from '@headlessui/react'
-import { useNavigate } from 'react-router-dom'
 import { 
   EllipsisVerticalIcon, 
   PencilIcon, 
@@ -15,21 +13,12 @@ import {
   UserIcon,
   UserCircleIcon as UserCircleIconOutline
 } from '@heroicons/react/24/outline'
-import { 
-  BoltIcon as BoltIconSolid,
-  CheckCircleIcon as CheckCircleIconSolid,
-  ClockIcon as ClockIconSolid,
-  UserCircleIcon as UserCircleIconSolid,
-  XCircleIcon as XCircleIconSolid,
-  ArchiveBoxIcon as ArchiveBoxIconSolid
-} from '@heroicons/react/24/solid'
-import TaskActivityLog from './TaskActivityLog'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { updateTask, fetchTasks } from '@/store/slices/tasksSlice'
-import { tasksApi } from '@/services/api'
-import { Task } from '@/types/task'
+import { tasksApi, workflowsApi } from '@/services/api'
+import { Task, Phase } from '@/types/task'
 import toast from 'react-hot-toast'
 
 interface TaskBoardProps {
@@ -40,66 +29,150 @@ interface TaskBoardProps {
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
-  const navigate = useNavigate()
+  const [phases, setPhases] = useState<Phase[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const allPhases = [
+  useEffect(() => {
+    loadPhases()
+  }, [])
+
+  const loadPhases = async () => {
+    try {
+      setIsLoading(true)
+      const workflows = await workflowsApi.getAll()
+      
+      // Extract all unique phases from all workflows
+      const allPhases: Phase[] = []
+      const phaseMap = new Map<string, Phase>()
+      
+      workflows.forEach(workflow => {
+        workflow.phases?.forEach((phase: Phase) => {
+          if (!phaseMap.has(phase.id)) {
+            phaseMap.set(phase.id, phase)
+            allPhases.push(phase)
+          }
+        })
+      })
+      
+      // Sort phases by workflow order
+      allPhases.sort((a, b) => a.order - b.order)
+      setPhases(allPhases)
+    } catch (error) {
+      console.error('Error loading phases:', error)
+      toast.error('Failed to load workflow phases')
+      // Fallback to legacy phases if workflows fail
+      setPhases(getLegacyPhases())
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Fallback legacy phases for backward compatibility
+  const getLegacyPhases = (): Phase[] => [
     { 
-      key: 'PENDING_APPROVAL', 
-      title: 'PENDING APPROVAL',
+      id: 'legacy-pending',
+      name: 'PENDING APPROVAL',
+      order: 0,
       color: '#DFE1E6',
-      Icon: ClockIconSolid,
-      iconColor: 'text-gray-600'
+      allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+      isStartPhase: true,
+      isEndPhase: false,
+      requiresApproval: false,
+      workflowId: 'legacy'
     },
     { 
-      key: 'APPROVED', 
-      title: 'APPROVED',
+      id: 'legacy-approved',
+      name: 'APPROVED',
+      order: 1,
       color: '#E6F7FF',
-      Icon: CheckCircleIconSolid,
-      iconColor: 'text-cyan-600'
+      allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+      isStartPhase: false,
+      isEndPhase: false,
+      requiresApproval: false,
+      workflowId: 'legacy'
     },
     { 
-      key: 'REJECTED', 
-      title: 'REJECTED',
+      id: 'legacy-rejected',
+      name: 'REJECTED',
+      order: 2,
       color: '#FFEBE6',
-      Icon: XCircleIconSolid,
-      iconColor: 'text-red-600'
+      allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+      isStartPhase: false,
+      isEndPhase: false,
+      requiresApproval: false,
+      workflowId: 'legacy'
     },
     { 
-      key: 'ASSIGNED', 
-      title: 'ASSIGNED',
+      id: 'legacy-assigned',
+      name: 'ASSIGNED',
+      order: 3,
       color: '#EAE6FF',
-      Icon: UserCircleIconSolid,
-      iconColor: 'text-purple-600'
+      allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+      isStartPhase: false,
+      isEndPhase: false,
+      requiresApproval: false,
+      workflowId: 'legacy'
     },
     { 
-      key: 'IN_PROGRESS', 
-      title: 'IN PROGRESS',
+      id: 'legacy-progress',
+      name: 'IN PROGRESS',
+      order: 4,
       color: '#FFF0B3',
-      Icon: BoltIconSolid,
-      iconColor: 'text-blue-600'
+      allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+      isStartPhase: false,
+      isEndPhase: false,
+      requiresApproval: false,
+      workflowId: 'legacy'
     },
     { 
-      key: 'COMPLETED', 
-      title: 'DONE',
+      id: 'legacy-completed',
+      name: 'COMPLETED',
+      order: 5,
       color: '#E3FCEF',
-      Icon: CheckCircleIconSolid,
-      iconColor: 'text-green-600'
+      allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
+      isStartPhase: false,
+      isEndPhase: true,
+      requiresApproval: false,
+      workflowId: 'legacy'
     },
     { 
-      key: 'ARCHIVED', 
-      title: 'ARCHIVED',
+      id: 'legacy-archived',
+      name: 'ARCHIVED',
+      order: 6,
       color: '#F4F5F7',
-      Icon: ArchiveBoxIconSolid,
-      iconColor: 'text-gray-500'
+      allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
+      isStartPhase: false,
+      isEndPhase: true,
+      requiresApproval: false,
+      workflowId: 'legacy'
     },
   ]
 
-  // Filter phases based on user role - hide ARCHIVED column for employees
+  // Filter phases based on user role
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
-  const phases = isAdmin ? allPhases : allPhases.filter(phase => phase.key !== 'ARCHIVED')
+  const visiblePhases = phases.filter(phase => {
+    // Hide archived phases for employees
+    if (!isAdmin && phase.name.toLowerCase().includes('archived')) {
+      return false
+    }
+    return true
+  })
 
-  const getTasksByPhase = (phase: string) => {
-    return tasks.filter(task => task.phase === phase)
+  const getTasksByPhase = (phaseId: string) => {
+    return tasks.filter(task => {
+      // Try new workflow system first
+      if (task.currentPhaseId) {
+        return task.currentPhaseId === phaseId
+      }
+      // Fallback to legacy phase matching
+      if (task.phase) {
+        const legacyPhase = phases.find(p => 
+          p.name.toLowerCase().replace(/\s+/g, '_') === task.phase?.toLowerCase()
+        )
+        return legacyPhase?.id === phaseId
+      }
+      return false
+    })
   }
 
   const getPriorityConfig = (priority: number) => {
@@ -177,51 +250,53 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
   }
 
 
-  const canMoveTask = (task: Task, newPhase: string) => {
-    // Only admins can approve (assign) or reject tasks
-    if (newPhase === 'ASSIGNED' && task.phase === 'PENDING_APPROVAL') {
-      return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
-    }
-    
-    if (newPhase === 'REJECTED') {
-      return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  const canMoveTask = (task: Task, toPhaseId: string) => {
+    const toPhase = phases.find(p => p.id === toPhaseId)
+    if (!toPhase) return false
+
+    // Check if user has permission for this phase
+    const userRole = user?.role || 'EMPLOYEE'
+    if (!toPhase.allowedRoles.includes(userRole)) {
+      return false
     }
 
-    // Only admins can archive tasks
-    if (newPhase === 'ARCHIVED') {
-      return user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
-    }
-
-    // Admins can move any task to any phase
+    // Admins can move any task to any allowed phase
     if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true
     
     // Employees can only move their assigned tasks
     if (task.assignedToId !== user?.id) return false
 
-    // Employees can move through normal workflow phases (from ASSIGNED onwards)
-    const allowedPhases = ['IN_PROGRESS', 'COMPLETED']
-    return allowedPhases.includes(newPhase)
+    return true
   }
 
-  const handleTaskMove = async (task: Task, newPhase: string) => {
-    if (!canMoveTask(task, newPhase)) {
+  const handleTaskMove = async (task: Task, toPhaseId: string) => {
+    if (!canMoveTask(task, toPhaseId)) {
       toast.error('You do not have permission to move this task')
       return
     }
 
     try {
-      await dispatch(updateTask({ 
-        id: task.id, 
-        data: { phase: newPhase } 
-      })).unwrap()
-      toast.success('Task phase updated successfully')
+      // Use new workflow API if task has workflow info
+      if (task.currentPhaseId && task.workflowId) {
+        await tasksApi.moveToPhase(task.id, toPhaseId)
+      } else {
+        // Fallback to legacy update
+        const toPhase = phases.find(p => p.id === toPhaseId)
+        const legacyPhase = toPhase?.name.toUpperCase().replace(/\s+/g, '_')
+        await dispatch(updateTask({ 
+          id: task.id, 
+          data: { phase: legacyPhase } 
+        })).unwrap()
+      }
+      
+      toast.success('Task moved successfully')
+      dispatch(fetchTasks({})) // Refresh tasks
       
       // Dispatch custom event to notify NotificationBell
-      console.log('Dispatching taskUpdated event')
       window.dispatchEvent(new CustomEvent('taskUpdated'))
     } catch (error) {
-      console.error('Failed to update task phase:', error)
-      toast.error('Failed to update task phase')
+      console.error('Failed to move task:', error)
+      toast.error('Failed to move task')
     }
   }
 
@@ -241,13 +316,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     const task = tasks.find(t => t.id === draggableId)
     if (!task) return
 
-    // Check if the phase change is allowed
-    if (!canMoveTask(task, destination.droppableId)) {
-      toast.error('You do not have permission to move this task')
-      return
-    }
-
-    // Update the task phase
+    // Move the task
     handleTaskMove(task, destination.droppableId)
   }
 
@@ -325,37 +394,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                             </Menu.Item>
                       </>
                           )}
-                    <div className="my-1 border-t border-gray-100" />
-                    <div className="px-2 py-1">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-2">Move To</p>
-                    </div>
-                          {phases.map(phase => (
-                            phase.key !== task.phase && canMoveTask(task, phase.key) && (
-                              <Menu.Item key={phase.key}>
-                                {({ active }) => (
-                                  <button
-                                    onClick={async () => {
-                                      try {
-                                        await dispatch(updateTask({ id: task.id, data: { phase: phase.key } }))
-                                        toast.success(`Task moved to ${phase.title}`)
-                                        
-                                        // Dispatch custom event to notify NotificationBell
-                                        window.dispatchEvent(new CustomEvent('taskUpdated'))
-                                      } catch (error: any) {
-                                        toast.error(error.response?.data?.message || 'Failed to move task')
-                                      }
-                                    }}
-                                    className={`${
-                                active ? 'bg-gray-50' : ''
-                              } flex items-center w-full px-4 py-2 text-sm text-gray-700 font-medium transition-colors`}
-                                  >
-                              <phase.Icon className={`h-4 w-4 mr-3 ${phase.iconColor}`} />
-                              {phase.title}
-                                  </button>
-                                )}
-                              </Menu.Item>
-                            )
-                          ))}
                         </Menu.Items>
                       </Menu>
                     </div>
@@ -454,45 +492,61 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     )
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-2 text-gray-600">Loading workflow phases...</span>
+      </div>
+    )
+  }
+
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div className="w-full overflow-x-auto">
         <div className="flex space-x-6 min-w-max pb-4">
-          {phases.map((phase) => {
-            const phaseTasks = getTasksByPhase(phase.key)
+          {visiblePhases.map((phase) => {
+            const phaseTasks = getTasksByPhase(phase.id)
             
             return (
               <div 
-                key={phase.key} 
+                key={phase.id} 
                 className="flex flex-col w-80 flex-shrink-0"
               >
-                {/* Column Header - Enhanced Jira Style */}
+                {/* Column Header - Enhanced Workflow Style */}
                 <div 
                   className="px-4 py-3 mb-2 rounded-t-lg border-b-2"
                   style={{ 
                     backgroundColor: phase.color,
-                    borderBottomColor: phase.iconColor.includes('gray') ? '#9CA3AF' : 
-                                      phase.iconColor.includes('green') ? '#10B981' :
-                                      phase.iconColor.includes('red') ? '#EF4444' :
-                                      phase.iconColor.includes('purple') ? '#8B5CF6' :
-                                      phase.iconColor.includes('blue') ? '#3B82F6' : '#9CA3AF'
+                    borderBottomColor: phase.color
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <phase.Icon className={`h-4 w-4 ${phase.iconColor}`} />
+                      <div 
+                        className="h-3 w-3 rounded-full"
+                        style={{ backgroundColor: phase.color === '#FFFFFF' ? '#6B7280' : '#FFFFFF' }}
+                      />
                       <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
-                    {phase.title}
-                  </h3>
+                        {phase.name}
+                      </h3>
+                      {phase.requiresApproval && (
+                        <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
+                          Approval
+                        </span>
+                      )}
                     </div>
                     <span className="text-xs font-bold text-gray-700 bg-white/80 px-2.5 py-1 rounded-full shadow-sm">
                       {phaseTasks.length}
                     </span>
                   </div>
+                  {phase.description && (
+                    <p className="text-xs text-gray-600 mt-1">{phase.description}</p>
+                  )}
                 </div>
 
                 {/* Tasks Container */}
-                <Droppable droppableId={phase.key}>
+                <Droppable droppableId={phase.id}>
                   {(provided: DroppableProvided, snapshot: DroppableStateSnapshot) => (
                     <div
                       ref={provided.innerRef}
@@ -506,11 +560,12 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 
                         {/* Empty State */}
                         {phaseTasks.length === 0 && (
-                        <div className="text-center py-8 text-gray-400 text-sm">
-                          Drop tasks here
+                          <div className="text-center py-8 text-gray-500">
+                            <div className="text-2xl mb-2">📋</div>
+                            <p className="text-sm">No tasks in {phase.name}</p>
                           </div>
                         )}
-                      {provided.placeholder}
+                        {provided.placeholder}
                     </div>
                   )}
                 </Droppable>
@@ -519,32 +574,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
           })}
         </div>
       </div>
-
-              {/* Activity Log */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mt-6 bg-white rounded-lg shadow-lg p-6 border-t-4 border-primary-500"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold text-gray-900">Recent Activity</h3>
-                  <button 
-                    className="text-sm text-primary-600 hover:text-primary-700 font-medium"
-                    onClick={() => navigate('/activity')}
-                  >
-                    View All
-                  </button>
-                </div>
-                <TaskActivityLog activities={[
-                  {
-                    id: '1',
-                    type: 'PHASE_CHANGE',
-                    user: { name: 'System' },
-                    description: 'Task board initialized',
-                    createdAt: new Date().toISOString()
-                  }
-                ]} />
-              </motion.div>
     </DragDropContext>
   )
 }

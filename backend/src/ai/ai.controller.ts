@@ -109,10 +109,44 @@ export class AiController {
       return {
         description: response.description,
         goals: response.goals,
-        priority: response.priority || 3 // Default priority if not provided
+        priority: response.priority || 3, // Default priority if not provided
+        ai_provider: response.ai_provider || 'fallback'
       };
     } catch (error) {
       this.logger.error('Error generating content:', error);
+      throw error;
+    }
+  }
+
+  @Post('detect-task-type')
+  @ApiOperation({ summary: 'Detect task type using AI' })
+  @ApiResponse({ status: 200, description: 'Task type detected successfully' })
+  @UseGuards(JwtAuthGuard)
+  async detectTaskType(@Body() data: { title: string }) {
+    try {
+      const result = await this.aiService.detectTaskType(data.title);
+      return result;
+    } catch (error) {
+      this.logger.error('Error detecting task type:', error);
+      throw error;
+    }
+  }
+
+  @Post('generate-subtasks')
+  @ApiOperation({ summary: 'Generate subtasks using AI' })
+  @ApiResponse({ status: 200, description: 'Subtasks generated successfully' })
+  @UseGuards(JwtAuthGuard)
+  async generateSubtasks(@Body() data: {
+    title: string;
+    description: string;
+    taskType: string;
+    workflowPhases: string[];
+  }) {
+    try {
+      const result = await this.aiService.generateSubtasks(data);
+      return result;
+    } catch (error) {
+      this.logger.error('Error generating subtasks:', error);
       throw error;
     }
   }

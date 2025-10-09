@@ -25,7 +25,7 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { TaskPhase, UserRole } from '../types/prisma';
+import { UserRole } from '../types/prisma';
 
 @ApiTags('Tasks')
 @Controller('tasks')
@@ -46,7 +46,6 @@ export class TasksController {
 
   @Get()
   @ApiOperation({ summary: 'Get all tasks (filtered by user role)' })
-  @ApiQuery({ name: 'phase', enum: TaskPhase, required: false })
   @ApiQuery({ name: 'assignedToId', type: 'string', required: false })
   @ApiQuery({ name: 'createdById', type: 'string', required: false })
   @ApiQuery({ name: 'search', type: 'string', required: false })
@@ -55,7 +54,6 @@ export class TasksController {
   @ApiResponse({ status: 200, description: 'Tasks retrieved successfully' })
   findAll(
     @Request() req,
-    @Query('phase') phase?: TaskPhase,
     @Query('assignedToId') assignedToId?: string,
     @Query('createdById') createdById?: string,
     @Query('search') search?: string,
@@ -67,7 +65,7 @@ export class TasksController {
     return this.tasksService.findAll(
       req.user.id,
       req.user.role,
-      phase,
+      undefined, // phase - removed old enum
       assignedToId,
       createdById,
       search,
@@ -78,14 +76,12 @@ export class TasksController {
 
   @Get('my-tasks')
   @ApiOperation({ summary: 'Get tasks assigned to current user' })
-  @ApiQuery({ name: 'phase', enum: TaskPhase, required: false })
   @ApiQuery({ name: 'search', type: 'string', required: false })
   @ApiQuery({ name: 'page', type: 'number', required: false, example: 1 })
   @ApiQuery({ name: 'limit', type: 'number', required: false, example: 10 })
   @ApiResponse({ status: 200, description: 'User tasks retrieved successfully' })
   getMyTasks(
     @Request() req,
-    @Query('phase') phase?: TaskPhase,
     @Query('search') search?: string,
     @Query('page', new ParseIntPipe({ optional: true })) page?: number,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
@@ -93,7 +89,7 @@ export class TasksController {
     return this.tasksService.findAll(
       req.user.id,
       req.user.role,
-      phase,
+      undefined, // phase - removed old enum
       req.user.id, // assignedToId
       undefined,
       search,
@@ -156,5 +152,34 @@ export class TasksController {
     @Request() req,
   ) {
     return this.tasksService.addComment(taskId, createCommentDto, req.user.id, req.user.role);
+  }
+
+  @Post(':id/move-phase')
+  @ApiOperation({ summary: 'Move task to different phase' })
+  @ApiResponse({ status: 200, description: 'Task phase updated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid phase transition' })
+  @ApiResponse({ status: 404, description: 'Task or phase not found' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  async moveTaskToPhase(
+    @Param('id') id: string,
+    @Body() body: { toPhaseId: string; comment?: string },
+    @Request() req,
+  ) {
+    return this.tasksService.moveTaskToPhase(id, body.toPhaseId, req.user.id, body.comment);
+  }
+
+  @Patch(':id/assignment')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update task assignment (Admin/Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'Task assignment updated successfully' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async updateTaskAssignment(
+    @Param('id') id: string,
+    @Body() body: { assignedToId: string },
+    @Request() req,
+  ) {
+    return this.tasksService.updateTaskAssignment(id, body.assignedToId, req.user.id);
   }
 }
