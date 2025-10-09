@@ -77,17 +77,31 @@ export class TasksService {
 
       // 4. Create subtasks (either pre-generated from frontend or generate via AI)
       let subtasksToCreate: Array<any> = [];
-      
+
       if (createTaskDto.aiSubtasks && createTaskDto.aiSubtasks.length > 0) {
         // Use pre-generated subtasks that user may have edited in the modal
         subtasksToCreate = createTaskDto.aiSubtasks;
       } else if (createTaskDto.generateSubtasks) {
-        // Generate subtasks via AI
+        // Fetch available users for AI assignment suggestions
+        const availableUsers = await this.prisma.user.findMany({
+          where: {
+            status: 'ACTIVE',
+          },
+            select: {
+              id: true,
+              name: true,
+              position: true,
+            role: true,
+          },
+        });
+
+        // Generate subtasks via AI with real user data
         const aiSubtasks = await this.aiService.generateSubtasks({
           title: createTaskDto.title,
           description,
           taskType,
           workflowPhases: workflow.phases.map(p => p.name),
+          availableUsers,
         });
         subtasksToCreate = aiSubtasks.subtasks;
       }
@@ -100,15 +114,26 @@ export class TasksService {
             subtask.phaseName && p.name.toLowerCase().includes(subtask.phaseName.toLowerCase())
           ) || startPhase;
 
-          // Auto-assign if requested and role suggested
+          // Auto-assign if requested and role/user suggested
           let suggestedAssignee = null;
-          if (createTaskDto.autoAssign && subtask.suggestedRole) {
-            suggestedAssignee = await this.prisma.user.findFirst({
-              where: {
-                position: { contains: subtask.suggestedRole },
-                status: 'ACTIVE',
-              },
-            });
+          if (createTaskDto.autoAssign) {
+            if (subtask.suggestedUserId) {
+              // Use specific user ID if provided by AI
+              suggestedAssignee = await this.prisma.user.findUnique({
+                where: {
+                  id: subtask.suggestedUserId,
+                  status: 'ACTIVE',
+                },
+              });
+            } else if (subtask.suggestedRole) {
+              // Fallback to role-based assignment
+              suggestedAssignee = await this.prisma.user.findFirst({
+            where: {
+                  position: { contains: subtask.suggestedRole },
+                  status: 'ACTIVE',
+                },
+              });
+            }
           }
 
           await this.prisma.subtask.create({
@@ -399,10 +424,62 @@ export class TasksService {
               position: true,
             },
           },
+          workflow: {
+            select: {
+              id: true,
+              name: true,
+              taskType: true,
+              color: true,
+              phases: true,
+            },
+          },
+          currentPhase: {
+            select: {
+              id: true,
+              name: true,
+              color: true,
+              order: true,
+            },
+          },
+          subtasks: {
+            include: {
+              assignedTo: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  position: true,
+                },
+              },
+              phase: {
+                select: {
+                  id: true,
+                  name: true,
+                  color: true,
+                },
+              },
+            },
+            orderBy: {
+              order: 'asc',
+            },
+          },
+          assignments: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  position: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               files: true,
               comments: true,
+              subtasks: true,
             },
           },
         },
@@ -446,6 +523,57 @@ export class TasksService {
             name: true,
             email: true,
             position: true,
+          },
+        },
+        workflow: {
+          select: {
+            id: true,
+            name: true,
+            taskType: true,
+            color: true,
+            phases: true,
+          },
+        },
+        currentPhase: {
+          select: {
+            id: true,
+            name: true,
+            color: true,
+            order: true,
+          },
+        },
+        subtasks: {
+          include: {
+            assignedTo: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                position: true,
+              },
+            },
+            phase: {
+              select: {
+                id: true,
+                name: true,
+                color: true,
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+        assignments: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                position: true,
+              },
+            },
           },
         },
         files: {

@@ -189,8 +189,8 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             prompt = f"""Generate a clean, professional description for this task. NO introductions, greetings, or extra text.
 
 Task: {title}
-
-Requirements:
+            
+            Requirements:
 - 2-3 detailed sentences describing what needs to be done
 - Include specific deliverables and requirements  
 - Mention relevant Apliman products (aïda, aïReach, CCS, SRBT) if applicable
@@ -245,15 +245,15 @@ Respond with ONLY the description, no other text."""
             prompt = f"""Generate clean, specific goals for this task. NO introductions or extra text.
 
 Task: {title}
-
-Requirements:
+            
+            Requirements:
 - 3-4 specific, measurable goals
 - Include business value and outcomes
 - Use bullet points (•)
 - No greetings or explanations
 - Professional, actionable content
-
-Format:
+            
+            Format:
 • [Specific goal with measurable outcome]
 • [Specific goal with measurable outcome]  
 • [Specific goal with measurable outcome]
@@ -376,35 +376,38 @@ Respond with ONLY the bullet points, no other text."""
         title: str, 
         task_type: str, 
         description: str,
-        workflow_phases: list
+        workflow_phases: list,
+        available_users: list = None
     ) -> list:
-        """Generate intelligent subtasks with AI"""
+        """Generate intelligent subtasks with AI using real user data"""
         try:
             await self._rate_limit()
             
             phases_str = ", ".join(workflow_phases) if workflow_phases else "various phases"
+            
+            # Format available users for AI context
+            users_context = ""
+            if available_users:
+                users_list = []
+                for user in available_users:
+                    users_list.append(f"- {user.get('name', 'Unknown')} ({user.get('position', 'No position')} - {user.get('role', 'EMPLOYEE')})")
+                users_context = f"\n\nAVAILABLE TEAM MEMBERS:\n" + "\n".join(users_list)
+            else:
+                users_context = "\n\nAVAILABLE TEAM MEMBERS:\n- Marketing Manager\n- Content Writer\n- Graphic Designer\n- Social Media Manager\n- Video Editor\n- Marketing Strategist\n- Marketing Coordinator\n- SEO Specialist"
             
             prompt = f"""Generate clean, specific subtasks for this Apliman marketing task. NO introductions or extra text.
 
 Title: {title}
 Type: {task_type}
 Description: {description}
-Workflow Phases: {phases_str}
+Workflow Phases: {phases_str}{users_context}
 
-IMPORTANT: Use ONLY these real team positions (don't invent roles):
-- Marketing Manager
-- Content Writer  
-- Graphic Designer
-- Social Media Manager
-- Video Editor
-- Marketing Strategist
-- Marketing Coordinator
-- SEO Specialist
+IMPORTANT: Use ONLY the team members listed above. Suggest specific people by name and position when possible.
 
 Requirements:
 - 3-6 specific, actionable subtasks
 - Match subtasks to appropriate workflow phases
-- Suggest realistic team roles based on actual positions
+- Suggest realistic team members based on their actual positions
 - Estimate realistic hours (1-8 hours per subtask)
 - Focus on Apliman's telecom/CPaaS solutions context
 
@@ -414,7 +417,9 @@ Format as JSON array ONLY:
     "title": "Clear, actionable subtask title",
     "description": "Specific description of deliverable",
     "phaseName": "Phase from workflow phases above",
-    "suggestedRole": "One of the real positions listed above",
+    "suggestedRole": "Position from available team members above",
+    "suggestedUserId": "User ID if specific person suggested (optional)",
+    "suggestedUserName": "User name if specific person suggested (optional)",
     "estimatedHours": 3
   }}
 ]

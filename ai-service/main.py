@@ -176,14 +176,15 @@ async def generate_subtasks(request: dict):
     try:
         title = request.get("title", "")
         description = request.get("description", "")
-        task_type = request.get("task_type", "GENERAL")
+        task_type = request.get("taskType", "GENERAL")
         workflow_phases = request.get("workflowPhases", [])
+        available_users = request.get("availableUsers", [])
         
         if not title:
             raise HTTPException(status_code=400, detail="Title required")
         
         subtasks = await content_generator.generate_subtasks(
-            title, task_type, description, workflow_phases
+            title, task_type, description, workflow_phases, available_users
         )
         
         return {

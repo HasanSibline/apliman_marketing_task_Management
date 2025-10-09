@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 
@@ -270,6 +271,7 @@ export class AiService {
     description: string;
     taskType: string;
     workflowPhases: string[];
+    availableUsers?: { id: string; name: string; position: string; role: string }[];
   }): Promise<{ subtasks: any[]; ai_provider: string }> {
     try {
       this.logger.log(`Generating subtasks for: ${data.title}`);

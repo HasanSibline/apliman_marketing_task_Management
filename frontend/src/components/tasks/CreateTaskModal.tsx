@@ -139,6 +139,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
             description: formData.description || preview.description,
             taskType: selectedWorkflow.taskType,
             workflowPhases: selectedWorkflow.phases.map(p => p.name),
+            availableUsers: users.map(user => ({
+              id: user.id,
+              name: user.name,
+              position: user.position,
+              role: user.role
+            }))
           }),
         })
 

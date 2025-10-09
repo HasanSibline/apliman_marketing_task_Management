@@ -454,6 +454,16 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
               {/* Task Footer */}
               <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t border-gray-100">
                 <div className="flex items-center space-x-3">
+                  {/* Subtasks */}
+                  {task.subtasks && task.subtasks.length > 0 && (
+                    <div className="flex items-center space-x-1">
+                      <div className="w-3.5 h-3.5 bg-purple-100 rounded flex items-center justify-center">
+                        <span className="text-purple-700 font-bold text-xs">✓</span>
+                      </div>
+                      <span>{task.subtasks.filter(s => s.isCompleted).length}/{task.subtasks.length}</span>
+                    </div>
+                  )}
+
                   {/* Comments */}
                   {task.comments && task.comments.length > 0 && (
                     <div className="flex items-center space-x-1">

@@ -141,6 +141,7 @@ export class AiController {
     description: string;
     taskType: string;
     workflowPhases: string[];
+    availableUsers?: { id: string; name: string; position: string; role: string }[];
   }) {
     try {
       const result = await this.aiService.generateSubtasks(data);
