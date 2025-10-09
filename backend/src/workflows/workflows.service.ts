@@ -70,14 +70,8 @@ export class WorkflowsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Parse JSON fields
-    return workflows.map(workflow => ({
-      ...workflow,
-      phases: workflow.phases.map(phase => ({
-        ...phase,
-        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
-      })),
-    }));
+    // Return workflows as-is (PostgreSQL arrays don't need parsing)
+    return workflows;
   }
 
   async getWorkflowById(id: string) {
@@ -102,18 +96,8 @@ export class WorkflowsService {
       throw new NotFoundException('Workflow not found');
     }
 
-    // Return workflow with native arrays (PostgreSQL)
-    return {
-      ...workflow,
-      phases: workflow.phases.map(phase => ({
-        ...phase,
-        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
-        transitionsFrom: phase.transitionsFrom.map(t => ({
-          ...t,
-          notifyRoles: t.notifyRoles, // Already an array in PostgreSQL
-        })),
-      })),
-    };
+    // Return workflow as-is (PostgreSQL arrays don't need parsing)
+    return workflow;
   }
 
   async getDefaultWorkflow(taskType: string) {
@@ -126,14 +110,8 @@ export class WorkflowsService {
       throw new NotFoundException(`No default workflow found for task type: ${taskType}`);
     }
 
-    // Parse JSON fields
-    return {
-      ...workflow,
-      phases: workflow.phases.map(phase => ({
-        ...phase,
-        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
-      })),
-    };
+    // Return workflow as-is (PostgreSQL arrays don't need parsing)
+    return workflow;
   }
 
   async validatePhaseTransition(fromPhaseId: string, toPhaseId: string): Promise<boolean> {
