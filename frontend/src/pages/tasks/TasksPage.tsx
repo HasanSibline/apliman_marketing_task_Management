@@ -118,10 +118,10 @@ const TasksPage: React.FC = () => {
           </button>
           <button 
             onClick={() => setShowCreateModal(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white px-4 py-2 rounded-lg font-medium shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center space-x-2"
+            className="btn-primary"
           >
-            <PlusIcon className="h-4 w-4" />
-            <span>✨ Create Task</span>
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create Task
           </button>
           {isAdmin && (
             <ExportButton filters={filters} />

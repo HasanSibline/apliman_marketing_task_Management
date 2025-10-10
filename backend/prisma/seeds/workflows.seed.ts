@@ -5,19 +5,6 @@ const prisma = new PrismaClient();
 export async function seedWorkflows(adminUserId: string) {
   console.log('🌱 Seeding workflows...');
 
-  // Get all users to use for allowedUsers
-  const allUsers = await prisma.user.findMany({
-    select: { id: true }
-  });
-  const allUserIds = allUsers.map(u => u.id);
-  
-  // Admin users only
-  const adminUsers = await prisma.user.findMany({
-    where: { role: { in: ['SUPER_ADMIN', 'ADMIN'] } },
-    select: { id: true }
-  });
-  const adminUserIds = adminUsers.map(u => u.id);
-
   // Social Media Workflow
   const socialMediaWorkflow = await prisma.workflow.create({
     data: {
@@ -34,7 +21,7 @@ export async function seedWorkflows(adminUserId: string) {
             description: 'Define objectives and strategy',
             order: 0,
             color: '#9333EA',
-            allowedUsers: allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
             isStartPhase: true,
           },
           {
@@ -42,14 +29,14 @@ export async function seedWorkflows(adminUserId: string) {
             description: 'Write copy and create visuals',
             order: 1,
             color: '#2563EB',
-            allowedUsers: allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
           },
           {
             name: 'Review & Approval',
             description: 'Quality check and approval',
             order: 2,
             color: '#F59E0B',
-            allowedUsers: adminUserIds.length > 0 ? adminUserIds : allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
             requiresApproval: true,
           },
           {
@@ -57,83 +44,71 @@ export async function seedWorkflows(adminUserId: string) {
             description: 'Content published',
             order: 3,
             color: '#10B981',
-            allowedUsers: adminUserIds.length > 0 ? adminUserIds : allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
             isEndPhase: true,
           },
         ],
       },
     },
     include: {
-      phases: true,
+      phases: { orderBy: { order: 'asc' } },
     },
   });
 
+  // Create transitions for social media workflow
   const smPhases = socialMediaWorkflow.phases;
+  for (let i = 0; i < smPhases.length - 1; i++) {
+    await prisma.transition.create({
+      data: {
+        fromPhaseId: smPhases[i].id,
+        toPhaseId: smPhases[i + 1].id,
+        name: `Move to ${smPhases[i + 1].name}`,
+        notifyRoles: [],
+      },
+    });
+  }
 
-  // Create transitions for Social Media Workflow
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: smPhases[0].id,
-      toPhaseId: smPhases[1].id,
-      notifyUsers: [],
-    },
-  });
+  console.log('  ✅ Social Media Workflow created');
 
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: smPhases[1].id,
-      toPhaseId: smPhases[2].id,
-      notifyUsers: [],
-    },
-  });
-
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: smPhases[2].id,
-      toPhaseId: smPhases[3].id,
-      notifyUsers: [],
-    },
-  });
-
-  // Video Content Workflow
+  // Video Production Workflow
   const videoWorkflow = await prisma.workflow.create({
     data: {
-      name: 'Video Content Workflow',
-      description: 'Workflow for video content creation and production',
+      name: 'Video Production Workflow',
+      description: 'Complete video production pipeline',
       taskType: 'VIDEO_CONTENT',
-      isDefault: false,
-      color: '#EF4444',
+      isDefault: true,
+      color: '#EC4899',
       createdById: adminUserId,
       phases: {
         create: [
           {
-            name: 'Pre-production',
-            description: 'Planning and scripting',
+            name: 'Pre-Production',
+            description: 'Script, storyboard, planning',
             order: 0,
             color: '#9333EA',
-            allowedUsers: allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
             isStartPhase: true,
           },
           {
             name: 'Production',
-            description: 'Recording and filming',
+            description: 'Filming and recording',
             order: 1,
             color: '#2563EB',
-            allowedUsers: allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
           },
           {
-            name: 'Post-production',
-            description: 'Editing and effects',
+            name: 'Post-Production',
+            description: 'Editing, effects, sound',
             order: 2,
             color: '#F59E0B',
-            allowedUsers: allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
           },
           {
-            name: 'Review & Approval',
+            name: 'Review',
             description: 'Final review and approval',
             order: 3,
-            color: '#F97316',
-            allowedUsers: adminUserIds.length > 0 ? adminUserIds : allUserIds,
+            color: '#EF4444',
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
             requiresApproval: true,
           },
           {
@@ -141,57 +116,37 @@ export async function seedWorkflows(adminUserId: string) {
             description: 'Video published',
             order: 4,
             color: '#10B981',
-            allowedUsers: adminUserIds.length > 0 ? adminUserIds : allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
             isEndPhase: true,
           },
         ],
       },
     },
     include: {
-      phases: true,
+      phases: { orderBy: { order: 'asc' } },
     },
   });
 
+  // Create transitions for video workflow
   const vPhases = videoWorkflow.phases;
+  for (let i = 0; i < vPhases.length - 1; i++) {
+    await prisma.transition.create({
+      data: {
+        fromPhaseId: vPhases[i].id,
+        toPhaseId: vPhases[i + 1].id,
+        name: `Move to ${vPhases[i + 1].name}`,
+        notifyRoles: [],
+      },
+    });
+  }
 
-  // Create transitions for Video Workflow
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: vPhases[0].id,
-      toPhaseId: vPhases[1].id,
-      notifyUsers: [],
-    },
-  });
+  console.log('  ✅ Video Production Workflow created');
 
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: vPhases[1].id,
-      toPhaseId: vPhases[2].id,
-      notifyUsers: [],
-    },
-  });
-
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: vPhases[2].id,
-      toPhaseId: vPhases[3].id,
-      notifyUsers: [],
-    },
-  });
-
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: vPhases[3].id,
-      toPhaseId: vPhases[4].id,
-      notifyUsers: [],
-    },
-  });
-
-  // General Task Workflow
+  // General Marketing Workflow
   const generalWorkflow = await prisma.workflow.create({
     data: {
-      name: 'General Task Workflow',
-      description: 'Standard workflow for general tasks',
+      name: 'General Marketing Workflow',
+      description: 'Default workflow for all other task types',
       taskType: 'GENERAL',
       isDefault: true,
       color: '#6B7280',
@@ -200,71 +155,57 @@ export async function seedWorkflows(adminUserId: string) {
         create: [
           {
             name: 'To Do',
-            description: 'Task ready to start',
+            description: 'Task pending',
             order: 0,
-            color: '#9333EA',
-            allowedUsers: allUserIds,
+            color: '#9CA3AF',
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
             isStartPhase: true,
           },
           {
             name: 'In Progress',
-            description: 'Task being worked on',
+            description: 'Task in progress',
             order: 1,
-            color: '#2563EB',
-            allowedUsers: allUserIds,
+            color: '#3B82F6',
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
           },
           {
             name: 'Review',
-            description: 'Task under review',
+            description: 'Under review',
             order: 2,
             color: '#F59E0B',
-            allowedUsers: adminUserIds.length > 0 ? adminUserIds : allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
           },
           {
-            name: 'Complete',
+            name: 'Completed',
             description: 'Task completed',
             order: 3,
             color: '#10B981',
-            allowedUsers: adminUserIds.length > 0 ? adminUserIds : allUserIds,
+            allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
             isEndPhase: true,
           },
         ],
       },
     },
     include: {
-      phases: true,
+      phases: { orderBy: { order: 'asc' } },
     },
   });
 
+  // Create transitions for general workflow
   const gPhases = generalWorkflow.phases;
+  for (let i = 0; i < gPhases.length - 1; i++) {
+    await prisma.transition.create({
+      data: {
+        fromPhaseId: gPhases[i].id,
+        toPhaseId: gPhases[i + 1].id,
+        name: `Move to ${gPhases[i + 1].name}`,
+        notifyRoles: [],
+      },
+    });
+  }
 
-  // Create transitions for General Workflow
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: gPhases[0].id,
-      toPhaseId: gPhases[1].id,
-      notifyUsers: [],
-    },
-  });
+  console.log('  ✅ General Marketing Workflow created');
 
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: gPhases[1].id,
-      toPhaseId: gPhases[2].id,
-      notifyUsers: [],
-    },
-  });
-
-  await prisma.transition.create({
-    data: {
-      fromPhaseId: gPhases[2].id,
-      toPhaseId: gPhases[3].id,
-      notifyUsers: [],
-    },
-  });
-
-  console.log('✅ Workflows seeded successfully');
-  console.log(`   - Social Media Workflow: ${socialMediaWorkflow.id}`);
-  console.log(`   - Video Content Workflow: ${videoWorkflow.id}`);
-  console.log(`   - General Task Workflow: ${generalWorkflow.id}`);
+  console.log('✅ Default workflows seeded successfully!');
 }
+

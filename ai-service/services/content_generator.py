@@ -182,27 +182,22 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
         self.last_request_time = datetime.now()
 
     async def generate_description(self, title: str) -> str:
-        """Generate clean, executive-level task description"""
+        """Generate a detailed task description using Gemini"""
         try:
             await self._rate_limit()
             
-            prompt = f"""Generate a clean, executive-level description for this task. NO introductions, greetings, markdown, bold text, or extra formatting.
+            prompt = f"""Generate a clean, professional description for this task. NO introductions, greetings, or extra text.
 
 Task: {title}
             
             Requirements:
-- Maximum 2-3 clear sentences describing WHAT needs to be done
-- NO implementation details (those go in subtasks)
-- NO markdown formatting (**bold**, *italic*, etc.)
-- NO bullet points or lists
-- Focus on business objective and expected outcome
-- Professional, concise tone
-- Mention relevant Apliman products if applicable
+- 2-3 detailed sentences describing what needs to be done
+- Include specific deliverables and requirements  
+- Mention relevant Apliman products (aïda, aïReach, CCS, SRBT) if applicable
+- Focus on business value and practical implementation
+- Professional tone, actionable content
 
-Example good format:
-"Create a comprehensive social media campaign to promote Apliman's aïReach CPaaS platform targeting telecom operators. The campaign should highlight multi-channel communication capabilities and AI-driven optimization features. Expected outcome is increased brand awareness and lead generation in the telecom sector."
-
-Respond with ONLY the clean description, no other text."""
+Respond with ONLY the description, no other text."""
 
             description = await self._make_request(prompt)
             
@@ -211,11 +206,8 @@ Respond with ONLY the clean description, no other text."""
                 
             description = description.strip()
             
-            # Clean up any formatting and introductory phrases
+            # Clean up any introductory phrases
             description = self._clean_ai_response(description)
-            
-            # Remove any markdown formatting
-            description = self._remove_markdown(description)
             
             # Validate the response
             if len(description.split()) < 10:
@@ -244,29 +236,6 @@ Respond with ONLY the clean description, no other text."""
                     text = text[1:].strip()
         
         return text
-
-    def _remove_markdown(self, text: str) -> str:
-        """Remove markdown formatting from text"""
-        import re
-        
-        # Remove bold (**text** or __text__)
-        text = re.sub(r'\*\*(.*?)\*\*', r'\1', text)
-        text = re.sub(r'__(.*?)__', r'\1', text)
-        
-        # Remove italic (*text* or _text_)
-        text = re.sub(r'\*(.*?)\*', r'\1', text)
-        text = re.sub(r'_(.*?)_', r'\1', text)
-        
-        # Remove headers (# ## ###)
-        text = re.sub(r'^#+\s*', '', text, flags=re.MULTILINE)
-        
-        # Remove bullet points
-        text = re.sub(r'^[\-\*\+]\s*', '', text, flags=re.MULTILINE)
-        
-        # Remove numbered lists
-        text = re.sub(r'^\d+\.\s*', '', text, flags=re.MULTILINE)
-        
-        return text.strip()
 
     async def generate_goals(self, title: str) -> str:
         """Generate specific goals and success criteria using Gemini"""
@@ -426,45 +395,36 @@ Respond with ONLY the bullet points, no other text."""
             else:
                 users_context = "\n\nAVAILABLE TEAM MEMBERS:\n- Marketing Manager\n- Content Writer\n- Graphic Designer\n- Social Media Manager\n- Video Editor\n- Marketing Strategist\n- Marketing Coordinator\n- SEO Specialist"
             
-            prompt = f"""Generate detailed, actionable subtasks for this Apliman marketing task. NO introductions or extra text.
+            prompt = f"""Generate clean, specific subtasks for this Apliman marketing task. NO introductions or extra text.
 
-Main Task: {title}
-Task Type: {task_type}
-Executive Summary: {description}
+Title: {title}
+Type: {task_type}
+Description: {description}
 Workflow Phases: {phases_str}{users_context}
 
-CRITICAL REQUIREMENTS:
-- Use ONLY the team members listed above. Suggest specific people by name and position when possible.
-- Each subtask should contain detailed step-by-step implementation instructions
-- Include specific deliverables, tools, and resources needed
-- Estimate realistic hours based on complexity
-- Match subtasks to appropriate workflow phases
-- Focus on actionable, implementable tasks
+IMPORTANT: Use ONLY the team members listed above. Suggest specific people by name and position when possible.
 
-For each subtask provide:
-1. Clear, specific title (what exactly needs to be done)
-2. Detailed description with step-by-step instructions (3-5 sentences minimum)
-3. Specific deliverables expected
-4. Estimated hours (1-8 hours realistic range)
-5. Dependencies (what must be completed first)
-6. Suggested team member from the available list
+Requirements:
+- 3-6 specific, actionable subtasks
+- Match subtasks to appropriate workflow phases
+- Suggest realistic team members based on their actual positions
+- Estimate realistic hours (1-8 hours per subtask)
+- Focus on Apliman's telecom/CPaaS solutions context
 
 Format as JSON array ONLY:
 [
   {{
-    "title": "Specific actionable subtask title",
-    "description": "Detailed step-by-step instructions: 1) First do this specific action, 2) Then complete this deliverable, 3) Finally validate and deliver. Use specific tools, platforms, and methods. Include quality criteria and success metrics.",
-    "deliverables": ["Specific output 1", "Specific output 2"],
+    "title": "Clear, actionable subtask title",
+    "description": "Specific description of deliverable",
     "phaseName": "Phase from workflow phases above",
     "suggestedRole": "Position from available team members above",
     "suggestedUserId": "User ID if specific person suggested (optional)",
     "suggestedUserName": "User name if specific person suggested (optional)",
-    "estimatedHours": 4,
-    "dependencies": ["What needs to be done first"]
+    "estimatedHours": 3
   }}
 ]
 
-Generate 4-6 comprehensive subtasks. Respond with ONLY the JSON array, no other text."""
+Respond with ONLY the JSON array, no other text."""
 
             response = await self._make_request(prompt)
             

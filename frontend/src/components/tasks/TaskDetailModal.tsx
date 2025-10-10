@@ -2,20 +2,28 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   XMarkIcon, 
-  PlayIcon,
-  StopIcon,
+  PaperClipIcon,
+  ChevronDownIcon,
+  CheckIcon,
   ClockIcon,
   ChatBubbleLeftIcon,
-  PaperClipIcon,
-  ListBulletIcon,
-  CalendarIcon,
-  UserIcon,
-  TagIcon
+  DocumentTextIcon,
+  ArrowPathIcon,
+  PlayIcon,
+  TrashIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
-import { useAppDispatch } from '@/hooks/redux'
-import { fetchTasks } from '@/store/slices/tasksSlice'
+import { Menu } from '@headlessui/react'
+import ReactMarkdown from 'react-markdown'
+import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { tasksApi } from '@/services/api'
+import { fetchTasks } from '@/store/slices/tasksSlice'
+import TaskComments from './TaskComments'
+import FileUpload from './FileUpload'
+import TaskActivityLog from './TaskActivityLog'
+import TaskAIAnalysis from './TaskAIAnalysis'
 import SubtaskList from './SubtaskList'
+import TimeTracker from './TimeTracker'
 import toast from 'react-hot-toast'
 
 interface TaskDetailModalProps {
@@ -24,525 +32,761 @@ interface TaskDetailModalProps {
   task: any
 }
 
-interface TimeEntry {
-  id: string
-  description?: string
-  startTime: string
-  endTime?: string
-  duration: number
-  isActive: boolean
-}
-
-interface Comment {
-  id: string
-  comment: string
-  createdAt: string
-  user: {
-    id: string
-    name: string
-    email: string
-    position?: string
-  }
-}
-
-interface TaskFile {
-  id: string
-  fileName: string
-  filePath: string
-  fileSize: number
-  mimeType: string
-  uploadedAt: string
-}
-
 const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task }) => {
   const dispatch = useAppDispatch()
-  const [activeTab, setActiveTab] = useState<'overview' | 'time' | 'comments' | 'files' | 'activity'>('overview')
-  const [isTracking, setIsTracking] = useState(false)
-  const [currentSession, setCurrentSession] = useState<TimeEntry | null>(null)
-  const [timeEntries, setTimeEntries] = useState<TimeEntry[]>([])
-  const [comments, setComments] = useState<Comment[]>([])
-  const [files, setFiles] = useState<TaskFile[]>([])
-  const [newComment, setNewComment] = useState('')
+  const { user } = useAppSelector((state) => state.auth)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [showFiles, setShowFiles] = useState(false)
+  const [showActivityLog, setShowActivityLog] = useState(false)
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false)
+  const [showSubtasks, setShowSubtasks] = useState(false)
+  const [showTimeTracker, setShowTimeTracker] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    goals: '',
+    priority: 3,
+    dueDate: '',
+    assignedToId: '',
+    phase: '',
+  })
 
   useEffect(() => {
-    if (isOpen && task) {
-      loadTaskData()
+    if (task) {
+      setFormData({
+        title: task.title,
+        description: task.description,
+        goals: task.goals || '',
+        priority: task.priority,
+        dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
+        assignedToId: task.assignedToId || '',
+        phase: task.phase,
+      })
     }
-  }, [isOpen, task])
+  }, [task])
 
-  const loadTaskData = async () => {
+  const allPhases = [
+    { key: 'PENDING_APPROVAL', title: 'Pending Approval' },
+    { key: 'APPROVED', title: 'Approved' },
+    { key: 'REJECTED', title: 'Rejected' },
+    { key: 'ASSIGNED', title: 'Assigned' },
+    { key: 'IN_PROGRESS', title: 'In Progress' },
+    { key: 'COMPLETED', title: 'Completed' },
+    { key: 'ARCHIVED', title: 'Archived' },
+  ]
+
+  // Filter phases based on user role - hide restricted options for employees
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  const phases = isAdmin 
+    ? allPhases 
+    : allPhases.filter(phase => {
+        // Employees can see: PENDING_APPROVAL (read-only), APPROVED (read-only), ASSIGNED (read-only), IN_PROGRESS, COMPLETED
+        return ['PENDING_APPROVAL', 'APPROVED', 'ASSIGNED', 'IN_PROGRESS', 'COMPLETED'].includes(phase.key)
+      })
+
+  const canEditTask = () => {
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true
+    return task.createdById === user?.id || task.assignedToId === user?.id
+  }
+
+  const canChangePhase = (newPhase: string) => {
+    // Admins can change any task to any phase
+    if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true
+    
+    // Employees can only change their assigned tasks
+    if (task.assignedToId !== user?.id) return false
+    
+    // Employees cannot approve (assign) or reject tasks
+    if (newPhase === 'ASSIGNED' && task.phase === 'PENDING_APPROVAL') return false
+    if (newPhase === 'REJECTED') return false
+    
+    // Employees cannot archive tasks
+    if (newPhase === 'ARCHIVED') return false
+
+    // Employees can move through normal workflow phases (from ASSIGNED onwards)
+    const allowedPhases = ['IN_PROGRESS', 'COMPLETED']
+    return allowedPhases.includes(newPhase)
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    setIsLoading(true)
     try {
-      // Load time entries
-      const timeResponse = await fetch(`/api/time-tracking?taskId=${task.id}`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      })
-      if (timeResponse.ok) {
-        setTimeEntries(await timeResponse.json())
+      const taskData = {
+        ...formData,
+        dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
+        assignedToId: formData.assignedToId || undefined,
       }
 
-      // Load active session
-      const activeResponse = await fetch('/api/time-tracking/active', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      })
-      if (activeResponse.ok) {
-        const activeSession = await activeResponse.json()
-        if (activeSession && activeSession.taskId === task.id) {
-          setCurrentSession(activeSession)
-          setIsTracking(true)
-        }
-      }
-
-      // Load comments
-      if (task.comments) {
-        setComments(task.comments)
-      }
-
-      // Load files
-      if (task.files) {
-        setFiles(task.files)
-      }
-    } catch (error) {
-      console.error('Error loading task data:', error)
+      await tasksApi.update(task.id, taskData)
+      toast.success('Task updated successfully!')
+      dispatch(fetchTasks({}))
+      setIsEditing(false)
+      
+      // Dispatch custom event to notify NotificationBell
+      window.dispatchEvent(new CustomEvent('taskUpdated'))
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update task'
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const startTracking = async () => {
+  const handlePhaseChange = async (newPhase: string) => {
+    if (!canChangePhase(newPhase)) {
+      toast.error('You do not have permission to change to this phase')
+      return
+    }
+
+    setIsLoading(true)
     try {
-      const response = await fetch('/api/time-tracking/start', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          taskId: task.id,
-          description: `Working on: ${task.title}`
+      // Note: Phase updates need to be done through the workflow system now
+      if (task.currentPhaseId && task.workflowId) {
+        // Find the target phase ID based on the new phase name
+        // This is a simplified approach - in practice, you'd need proper phase management
+        toast('Phase updates are now handled through the workflow system. Use the Kanban board to move tasks.', {
+          icon: <InformationCircleIcon className="h-4 w-4" />
         })
-      })
-
-      if (response.ok) {
-        const session = await response.json()
-        setCurrentSession(session)
-        setIsTracking(true)
-        toast.success('Time tracking started')
+      } else {
+        toast.error('Cannot update phase for tasks without workflows')
       }
-    } catch (error) {
-      console.error('Error starting time tracking:', error)
-      toast.error('Failed to start time tracking')
+      
+      // Dispatch custom event to notify NotificationBell
+      window.dispatchEvent(new CustomEvent('taskUpdated'))
+    } catch (error: any) {
+      const message = error.response?.data?.message || 'Failed to update task phase'
+      toast.error(message)
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const stopTracking = async () => {
-    if (!currentSession) return
-
-    try {
-      const response = await fetch(`/api/time-tracking/${currentSession.id}/stop`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      })
-
-      if (response.ok) {
-        setIsTracking(false)
-        setCurrentSession(null)
-        loadTaskData() // Reload to get updated entries
-        toast.success('Time tracking stopped')
-      }
-    } catch (error) {
-      console.error('Error stopping time tracking:', error)
-      toast.error('Failed to stop time tracking')
-    }
-  }
-
-  const submitComment = async () => {
-    if (!newComment.trim()) return
-
-    try {
-      const response = await tasksApi.addComment(task.id, newComment.trim())
-      setComments(prev => [...prev, response])
-      setNewComment('')
-      toast.success('Comment added')
-    } catch (error) {
-      console.error('Error adding comment:', error)
-      toast.error('Failed to add comment')
-    }
-  }
-
-  const handleFileUpload = async (files: FileList) => {
-    if (!files.length) return
-
-    try {
-      for (const file of Array.from(files)) {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('taskId', task.id)
-
-        const response = await fetch('/api/files/upload', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          body: formData
-        })
-
-        if (response.ok) {
-          const uploadedFile = await response.json()
-          setFiles(prev => [...prev, uploadedFile])
-        }
-      }
-      toast.success('Files uploaded successfully')
-    } catch (error) {
-      console.error('Error uploading files:', error)
-      toast.error('Failed to upload files')
-    }
-  }
-
-  const formatDuration = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    return `${hours}h ${minutes}m`
-  }
-
-  const getTotalTimeLogged = () => {
-    return timeEntries.reduce((total, entry) => total + entry.duration, 0)
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({
+      ...prev,
+      [name]: name === 'priority' ? parseInt(value) : value
+    }))
   }
 
   const getPriorityColor = (priority: number) => {
-    const colors = {
-      1: 'bg-gray-100 text-gray-800',
-      2: 'bg-blue-100 text-blue-800',
-      3: 'bg-yellow-100 text-yellow-800',
-      4: 'bg-orange-100 text-orange-800',
-      5: 'bg-red-100 text-red-800'
+    switch (priority) {
+      case 1: return 'bg-gray-100 text-gray-800'
+      case 2: return 'bg-blue-100 text-blue-800'
+      case 3: return 'bg-yellow-100 text-yellow-800'
+      case 4: return 'bg-orange-100 text-orange-800'
+      case 5: return 'bg-red-100 text-red-800'
+      default: return 'bg-gray-100 text-gray-800'
     }
-    return colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800'
   }
 
-  const getSubtaskProgress = () => {
-    if (!task.subtasks || task.subtasks.length === 0) return null
-    const completed = task.subtasks.filter((s: any) => s.isCompleted).length
-    const total = task.subtasks.length
-    return { completed, total, percentage: Math.round((completed / total) * 100) }
+  const getPriorityText = (priority: number) => {
+    switch (priority) {
+      case 1: return 'Low'
+      case 2: return 'Medium'
+      case 3: return 'Normal'
+      case 4: return 'High'
+      case 5: return 'Critical'
+      default: return 'Normal'
+    }
   }
 
-  if (!isOpen || !task) return null
-
-  const subtaskProgress = getSubtaskProgress()
+  const getPhaseColor = (phase: string) => {
+    switch (phase) {
+      case 'PENDING_APPROVAL': return 'bg-gray-100 text-gray-800'
+      case 'APPROVED': return 'bg-blue-100 text-blue-800'
+      case 'ASSIGNED': return 'bg-purple-100 text-purple-800'
+      case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800'
+      case 'COMPLETED': return 'bg-green-100 text-green-800'
+      case 'ARCHIVED': return 'bg-gray-100 text-gray-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black bg-opacity-50"
+              className="fixed inset-0 bg-black bg-opacity-50"
               onClick={onClose}
             />
             
+            {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-          className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col"
+              className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-2">
-                <h2 className="text-xl font-semibold text-gray-900">{task.title}</h2>
-                {task.taskType === 'SUBTASK' && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                    SUBTASK
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <div className="flex items-center space-x-1">
-                  <UserIcon className="h-4 w-4" />
-                  <span>{task.assignedTo?.name || 'Unassigned'}</span>
-                </div>
-                
-                <div className="flex items-center space-x-1">
-                  <CalendarIcon className="h-4 w-4" />
-                  <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
-                </div>
-                
-                <div className="flex items-center space-x-1">
-                  <TagIcon className="h-4 w-4" />
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
-                    Priority {task.priority}
+                <div className="flex items-center space-x-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Task Details</h2>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPhaseColor(task.phase)}`}>
+                    {task.phase.replace('_', ' ')}
                   </span>
                 </div>
-
-                {task.workflow && (
-                  <div className="flex items-center space-x-1">
-                    <span 
-                      className="inline-flex items-center px-2 py-1 rounded text-xs font-medium text-white"
-                      style={{ backgroundColor: task.workflow.color }}
+                <div className="flex items-center space-x-4">
+                  {canEditTask() && !isEditing && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="btn-secondary"
                     >
-                      {task.workflow.name}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex border-b border-gray-200">
-            {[
-              { id: 'overview', label: 'Overview', icon: ListBulletIcon },
-              { id: 'time', label: 'Time Tracking', icon: ClockIcon },
-              { id: 'comments', label: `Comments (${comments.length})`, icon: ChatBubbleLeftIcon },
-              { id: 'files', label: `Files (${files.length})`, icon: PaperClipIcon },
-            ].map(tab => {
-              const Icon = tab.icon
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  <span>{tab.label}</span>
+                      Edit Task
                     </button>
-              )
-            })}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {activeTab === 'overview' && (
-              <div className="space-y-6">
-                {/* Description */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Description</h3>
-                  <p className="text-gray-700">{task.description}</p>
-                </div>
-
-                {/* Goals */}
-                {task.goals && (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Goals</h3>
-                    <p className="text-gray-700">{task.goals}</p>
-                  </div>
-                )}
-
-                {/* Progress */}
-                {subtaskProgress && (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">Progress</h3>
-                    <div className="bg-gray-200 rounded-full h-3 mb-2">
-                      <div 
-                        className="bg-blue-600 h-3 rounded-full transition-all duration-300"
-                        style={{ width: `${subtaskProgress.percentage}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {subtaskProgress.completed} of {subtaskProgress.total} subtasks completed ({subtaskProgress.percentage}%)
-                    </p>
-                  </div>
-                )}
-
-                {/* Subtasks */}
-                {task.subtasks && task.subtasks.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Subtasks</h3>
-                    <SubtaskList
-                      taskId={task.id}
-                      subtasks={task.subtasks}
-                      onSubtasksUpdated={() => dispatch(fetchTasks({}))}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'time' && (
-              <div className="space-y-6">
-                {/* Timer Controls */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Time Tracker</h3>
-                    <div className="text-2xl font-mono text-gray-900">
-                      {currentSession ? formatDuration(Math.floor((new Date().getTime() - new Date(currentSession.startTime).getTime()) / 1000)) : '0h 0m'}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    {!isTracking ? (
+                  )}
+                  <div className="flex items-center space-x-2">
+                    {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
                       <button
-                        onClick={startTracking}
-                        className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                        onClick={async () => {
+                          if (window.confirm('Are you sure you want to delete this task?')) {
+                            try {
+                              await tasksApi.delete(task.id)
+                              toast.success('Task deleted successfully')
+                              dispatch(fetchTasks({}))
+                              onClose()
+                            } catch (error: any) {
+                              toast.error(error.response?.data?.message || 'Failed to delete task')
+                            }
+                          }
+                        }}
+                        className="text-red-500 hover:text-red-600 transition-colors"
+                        title="Delete task"
                       >
-                        <PlayIcon className="h-4 w-4" />
-                        <span>Start Timer</span>
-                      </button>
-                    ) : (
-                      <button
-                        onClick={stopTracking}
-                        className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-                      >
-                        <StopIcon className="h-4 w-4" />
-                        <span>Stop Timer</span>
+                        <TrashIcon className="h-6 w-6" />
                       </button>
                     )}
-                </div>
-              </div>
-
-                {/* Time Summary */}
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <h4 className="font-medium text-blue-900 mb-2">Total Time Logged</h4>
-                  <p className="text-2xl font-semibold text-blue-700">
-                    {formatDuration(getTotalTimeLogged())}
-                  </p>
-                        </div>
-
-                {/* Time Entries */}
-                        <div>
-                  <h4 className="font-medium text-gray-900 mb-4">Time Entries</h4>
-                  <div className="space-y-2">
-                    {timeEntries.map(entry => (
-                      <div key={entry.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <p className="text-sm text-gray-900">{entry.description || 'No description'}</p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(entry.startTime).toLocaleString()}
-                              {entry.endTime && ` - ${new Date(entry.endTime).toLocaleString()}`}
-                            </p>
-                          </div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {formatDuration(entry.duration)}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    {timeEntries.length === 0 && (
-                      <p className="text-gray-500 text-center py-4">No time entries yet</p>
-                    )}
-                  </div>
-                </div>
-                        </div>
-            )}
-
-            {activeTab === 'comments' && (
-                      <div className="space-y-6">
-                {/* Add Comment */}
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <textarea
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Add a comment..."
-                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    rows={3}
-                  />
-                  <div className="flex justify-end mt-3">
-                              <button
-                      onClick={submitComment}
-                      disabled={!newComment.trim()}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    <button
+                      onClick={onClose}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
                     >
-                      Post Comment
-                              </button>
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
                   </div>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="flex space-x-8">
+                  {/* Main Content */}
+                  <div className="flex-1">
+                    {isEditing ? (
+                      <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Title */}
+                        <div>
+                          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                            Task Title *
+                          </label>
+                          <input
+                            type="text"
+                            id="title"
+                            name="title"
+                            required
+                            value={formData.title}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        {/* Description */}
+                        <div>
+                          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                            Description *
+                          </label>
+                          <textarea
+                            id="description"
+                            name="description"
+                            required
+                            rows={4}
+                            value={formData.description}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        {/* Goals */}
+                        <div>
+                          <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
+                            Goals & Success Criteria
+                          </label>
+                          <textarea
+                            id="goals"
+                            name="goals"
+                            rows={3}
+                            value={formData.goals}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                          />
+                        </div>
+
+                        {/* Priority and Due Date */}
+                        <div className="grid grid-cols-2 gap-6">
+                          <div>
+                            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
+                              Priority
+                            </label>
+                            <select
+                              id="priority"
+                              name="priority"
+                              value={formData.priority}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                              <option value={1}>1 - Low</option>
+                              <option value={2}>2 - Medium</option>
+                              <option value={3}>3 - Normal</option>
+                              <option value={4}>4 - High</option>
+                              <option value={5}>5 - Critical</option>
+                            </select>
                           </div>
 
-                {/* Comments List */}
-                <div className="space-y-4">
-                  {comments.map(comment => (
-                    <div key={comment.id} className="bg-white border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-start space-x-3">
-                        <div className="flex-shrink-0">
-                          <div className="h-8 w-8 bg-blue-500 rounded-full flex items-center justify-center">
-                            <span className="text-white text-sm font-medium">
-                              {comment.user.name.charAt(0).toUpperCase()}
-                            </span>
+                          <div>
+                            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                              Due Date
+                            </label>
+                            <input
+                              type="date"
+                              id="dueDate"
+                              name="dueDate"
+                              value={formData.dueDate}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            />
                           </div>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-1">
-                            <span className="font-medium text-gray-900">{comment.user.name}</span>
-                            {comment.user.position && (
-                              <span className="text-xs text-gray-500">({comment.user.position})</span>
+
+                        {/* Actions */}
+                        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditing(false)}
+                            className="btn-secondary"
+                            disabled={isLoading}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            className="btn-primary"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? 'Saving...' : 'Save Changes'}
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="space-y-6">
+                        {/* Title */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                          <h3 className="text-lg font-medium text-gray-900">
+                              {canEditTask() ? (
+                                <input
+                                  type="text"
+                                  value={formData.title}
+                                  onChange={handleChange}
+                                  name="title"
+                                  className="w-full text-lg font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-500 rounded px-2 py-1"
+                                  placeholder="Enter task title..."
+                                />
+                              ) : (
+                                task.title
+                              )}
+                          </h3>
+                            {canEditTask() && formData.title !== task.title && (
+                              <button
+                                onClick={async () => {
+                                  setIsLoading(true)
+                                  try {
+                                    await tasksApi.update(task.id, { title: formData.title })
+                                    toast.success('Title updated successfully!')
+                                    dispatch(fetchTasks({}))
+                                  } catch (error: any) {
+                                    const message = error.response?.data?.message || 'Failed to update title'
+                                    toast.error(message)
+                                  } finally {
+                                    setIsLoading(false)
+                                  }
+                                }}
+                                disabled={isLoading}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md transition-colors"
+                              >
+                                {isLoading ? (
+                                  <ArrowPathIcon className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <CheckIcon className="h-3 w-3 mr-1" />
+                                )}
+                                Save
+                              </button>
                             )}
-                            <span className="text-xs text-gray-500">
-                              {new Date(comment.createdAt).toLocaleString()}
-                            </span>
                           </div>
-                          <p className="text-gray-700">{comment.comment}</p>
+                          <div className="mt-2 flex items-center space-x-4">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getPriorityColor(task.priority)}`}>
+                              {getPriorityText(task.priority)}
+                            </span>
+                            {task.dueDate && (
+                              <span className="text-sm text-gray-500 flex items-center">
+                                <ClockIcon className="h-4 w-4 mr-1" />
+                                Due {new Date(task.dueDate).toLocaleDateString()}
+                              </span>
+                            )}
+                          </div>
                         </div>
+
+                        {/* Description */}
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium text-gray-700">Description</h4>
+                            {canEditTask() && formData.description !== task.description && (
+                              <button
+                                onClick={async () => {
+                                  setIsLoading(true)
+                                  try {
+                                    await tasksApi.update(task.id, { description: formData.description })
+                                    toast.success('Description updated successfully!')
+                                    dispatch(fetchTasks({}))
+                                  } catch (error: any) {
+                                    const message = error.response?.data?.message || 'Failed to update description'
+                                    toast.error(message)
+                                  } finally {
+                                    setIsLoading(false)
+                                  }
+                                }}
+                                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                disabled={isLoading}
+                              >
+                                {isLoading ? 'Saving...' : 'Save'}
+                              </button>
+                            )}
+                          </div>
+                          {canEditTask() ? (
+                            <textarea
+                              value={formData.description}
+                              onChange={handleChange}
+                              name="description"
+                              rows={4}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600"
+                              placeholder="Enter task description..."
+                            />
+                          ) : (
+                            <div className="text-gray-600 prose prose-sm max-w-none">
+                              <ReactMarkdown>{task.description}</ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Goals */}
+                          <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-sm font-medium text-gray-700">Goals & Success Criteria</h4>
+                            {canEditTask() && formData.goals !== task.goals && (
+                              <button
+                                onClick={async () => {
+                                  setIsLoading(true)
+                                  try {
+                                    await tasksApi.update(task.id, { goals: formData.goals })
+                                    toast.success('Goals updated successfully!')
+                                    dispatch(fetchTasks({}))
+                                  } catch (error: any) {
+                                    const message = error.response?.data?.message || 'Failed to update goals'
+                                    toast.error(message)
+                                  } finally {
+                                    setIsLoading(false)
+                                  }
+                                }}
+                                disabled={isLoading}
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md transition-colors"
+                              >
+                                {isLoading ? (
+                                  <ArrowPathIcon className="h-3 w-3 animate-spin mr-1" />
+                                ) : (
+                                  <CheckIcon className="h-3 w-3 mr-1" />
+                                )}
+                                Save
+                              </button>
+                            )}
+                          </div>
+                          {canEditTask() ? (
+                            <textarea
+                              value={formData.goals}
+                              onChange={handleChange}
+                              name="goals"
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600"
+                              placeholder="Enter task goals and success criteria..."
+                            />
+                          ) : (
+                            <div className="text-gray-600 prose prose-sm max-w-none">
+                              <ReactMarkdown>{task.goals || 'No goals specified'}</ReactMarkdown>
+                          </div>
+                        )}
+                        </div>
+
+                        {/* Task Stats */}
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Created By</h4>
+                            <div className="flex items-center space-x-2">
+                              <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+                                <span className="text-sm font-medium text-white">
+                                  {task.createdBy?.name?.charAt(0).toUpperCase() || 'U'}
+                                </span>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">
+                                  {task.createdBy?.name || 'Unknown User'}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(task.createdAt).toLocaleDateString()}
+                                </p>
                               </div>
                             </div>
-                  ))}
-                  
-                  {comments.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">No comments yet</p>
+                          </div>
+
+                          {task.assignedTo && (
+                            <div>
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned To</h4>
+                              <div className="flex items-center space-x-2">
+                                <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
+                                  <span className="text-sm font-medium text-white">
+                                    {task.assignedTo?.name?.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <div>
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {task.assignedTo?.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {task.assignedTo?.position}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           )}
                         </div>
                       </div>
                     )}
-
-            {activeTab === 'files' && (
-              <div className="space-y-6">
-                {/* File Upload */}
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <PaperClipIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-4">Drag and drop files here, or click to browse</p>
-                  <input
-                    type="file"
-                    multiple
-                    onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label
-                    htmlFor="file-upload"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 cursor-pointer"
-                  >
-                    Choose Files
-                  </label>
                   </div>
 
-                {/* Files List */}
-                <div className="space-y-2">
-                  {files.map(file => (
-                    <div key={file.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <PaperClipIcon className="h-5 w-5 text-gray-400" />
+                  {/* Sidebar */}
+                  <div className="w-64 space-y-6">
+                    {/* Phase Selection */}
+                    {!isEditing && (
                       <div>
-                          <p className="text-sm font-medium text-gray-900">{file.fileName}</p>
-                          <p className="text-xs text-gray-500">
-                            {(file.fileSize / 1024 / 1024).toFixed(2)} MB • {new Date(file.uploadedAt).toLocaleDateString()}
-                          </p>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Task Phase</h4>
+                        {task.phase === 'PENDING_APPROVAL' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') ? (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
+                              <span className="text-sm font-medium text-yellow-800">Pending Approval</span>
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  onClick={() => handlePhaseChange('APPROVED')}
+                                  className="px-3 py-1 text-sm font-medium text-white bg-green-500 rounded hover:bg-green-600"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handlePhaseChange('REJECTED')}
+                                  className="px-3 py-1 text-sm font-medium text-white bg-red-500 rounded hover:bg-red-600"
+                                >
+                                  Reject
+                                </button>
                               </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <Menu as="div" className="relative">
+                            <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                              <span className="flex items-center justify-between">
+                                {task.phase.replace('_', ' ')}
+                                <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                              </span>
+                            </Menu.Button>
+                            <Menu.Items className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 focus:outline-none z-10">
+                              <div className="py-1">
+                                {phases.map((phase) => (
+                                  <Menu.Item key={phase.key}>
+                                    {({ active }) => (
+                                      <button
+                                        onClick={() => handlePhaseChange(phase.key)}
+                                        disabled={!canChangePhase(phase.key)}
+                                        className={`${
+                                          active ? 'bg-gray-100' : ''
+                                        } ${
+                                          !canChangePhase(phase.key) ? 'opacity-50 cursor-not-allowed' : ''
+                                        } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                                      >
+                                        {task.phase === phase.key && (
+                                          <CheckIcon className="h-4 w-4 mr-3 text-primary-600" />
+                                        )}
+                                        <span className={task.phase !== phase.key ? 'ml-7' : ''}>
+                                          {phase.title}
+                                        </span>
+                                      </button>
+                                    )}
+                                  </Menu.Item>
+                                ))}
+                              </div>
+                            </Menu.Items>
+                          </Menu>
+                        )}
                       </div>
+                    )}
+
+                    {/* Activity Buttons */}
+                    <div className="space-y-2">
                       <button
-                        onClick={() => window.open(file.filePath, '_blank')}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        onClick={() => setShowComments(!showComments)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                       >
-                        Download
+                        <span className="flex items-center">
+                          <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
+                          Comments
+                        </span>
+                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                          {task.comments?.length || 0}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowFiles(!showFiles)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        <span className="flex items-center">
+                          <PaperClipIcon className="h-5 w-5 mr-2" />
+                          Files
+                        </span>
+                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                          {task.files?.length || 0}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowActivityLog(!showActivityLog)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        <span className="flex items-center">
+                          <ArrowPathIcon className="h-5 w-5 mr-2" />
+                          Activity
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowAIAnalysis (!showAIAnalysis)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        <span className="flex items-center">
+                          <DocumentTextIcon className="h-5 w-5 mr-2" />
+                          AI Analysis
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowSubtasks(!showSubtasks)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        <span className="flex items-center">
+                          <CheckIcon className="h-5 w-5 mr-2" />
+                          Subtasks
+                        </span>
+                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                          {task.subtasks?.length || 0}
+                        </span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowTimeTracker(!showTimeTracker)}
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                      >
+                        <span className="flex items-center">
+                          <PlayIcon className="h-5 w-5 mr-2" />
+                          Time Tracking
+                        </span>
+                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                          {task.timeEntries?.length || 0}
+                        </span>
                       </button>
                     </div>
-                  ))}
-                  
-                  {files.length === 0 && (
-                    <p className="text-gray-500 text-center py-4">No files attached</p>
-                  )}
+                  </div>
                 </div>
+
+                {/* Comments Section */}
+                {showComments && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <TaskComments
+                      taskId={task.id}
+                      comments={task.comments || []}
+                      onCommentsUpdated={() => dispatch(fetchTasks({}))}
+                    />
+                  </div>
+                )}
+
+                {/* Files Section */}
+                {showFiles && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <FileUpload
+                      taskId={task.id}
+                      files={task.files || []}
+                      onFilesUpdated={() => dispatch(fetchTasks({}))}
+                    />
+                  </div>
+                )}
+
+                {/* Activity Log Section */}
+                {showActivityLog && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <TaskActivityLog
+                      activities={task.activities || []}
+                    />
+                  </div>
+                )}
+
+                {/* AI Analysis Section */}
+                {showAIAnalysis && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <TaskAIAnalysis
+                      task={task}
+                    />
+                  </div>
+                )}
+
+                {/* Subtasks Section */}
+                {showSubtasks && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <SubtaskList
+                      taskId={task.id}
+                      subtasks={task.subtasks || []}
+                      onSubtasksUpdated={() => dispatch(fetchTasks({}))}
+                    />
+                  </div>
+                )}
+
+                {/* Time Tracking Section */}
+                {showTimeTracker && (
+                  <div className="mt-8 pt-6 border-t border-gray-200">
+                    <TimeTracker
+                      taskId={task.id}
+                      timeEntries={task.timeEntries || []}
+                      onTimeEntriesUpdated={() => dispatch(fetchTasks({}))}
+                    />
                   </div>
                 )}
               </div>
             </motion.div>
           </div>
+        </div>
+      )}
     </AnimatePresence>
   )
 }

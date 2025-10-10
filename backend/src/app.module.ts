@@ -11,7 +11,6 @@ import { PresenceModule } from './presence/presence.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { WorkflowsModule } from './workflows/workflows.module';
-import { TimeTrackingModule } from './time-tracking/time-tracking.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -32,7 +31,6 @@ import { AppService } from './app.service';
     NotificationsModule,
     AiModule,
     WorkflowsModule,
-    TimeTrackingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

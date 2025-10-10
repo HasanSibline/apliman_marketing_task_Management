@@ -31,10 +31,13 @@ export class AnalyticsController {
   constructor(private readonly analyticsService: AnalyticsService) {}
 
   @Get('dashboard')
-  @ApiOperation({ summary: 'Get dashboard statistics' })
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get dashboard statistics (Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'Dashboard statistics retrieved successfully' })
-  async getDashboardStats(@Request() req) {
-    return this.analyticsService.getDashboardStats(req.user?.id);
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  getDashboardStats() {
+    return this.analyticsService.getDashboardStats();
   }
 
   @Get('dashboard/me')
@@ -100,14 +103,15 @@ export class AnalyticsController {
     return this.analyticsService.getTeamAnalytics();
   }
 
-  @Get('workflows')
+  @Get('tasks')
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get workflow analytics (Admin/Super Admin only)' })
-  @ApiResponse({ status: 200, description: 'Workflow analytics retrieved successfully' })
+  @ApiOperation({ summary: 'Get task analytics (Admin/Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'Task analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  getWorkflowAnalytics() {
-    return this.analyticsService.getWorkflowAnalytics();
+  getTaskAnalytics() {
+    // TODO: Implement task analytics with workflow phases
+    return { message: 'Task analytics temporarily unavailable during workflow integration' };
   }
 
   @Get('tasks/me')
@@ -127,11 +131,11 @@ export class AnalyticsController {
     }
   }
 
-  @Get('export')
+  @Get('export/tasks')
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Export analytics to Excel/CSV (Admin/Super Admin only)' })
-  @ApiQuery({ name: 'format', enum: ['xlsx', 'csv'], required: false })
+  @ApiOperation({ summary: 'Export tasks to Excel (Admin/Super Admin only)' })
+  @ApiQuery({ name: 'format', enum: ['excel', 'csv'], required: false })
   @ApiResponse({ 
     status: 200, 
     description: 'File generated successfully',
@@ -140,20 +144,20 @@ export class AnalyticsController {
         description: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet or text/csv',
       },
       'Content-Disposition': {
-        description: 'attachment; filename="analytics_export_YYYY-MM-DD.xlsx"',
+        description: 'attachment; filename="tasks_export_YYYY-MM-DD.xlsx"',
       },
     },
   })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  async exportAnalytics(
+  async exportTasks(
     @Res({ passthrough: true }) res: Response,
-    @Query('format') format: 'xlsx' | 'csv' = 'xlsx',
+    @Query('format') format: 'excel' | 'csv' = 'excel',
   ) {
-    const buffer = await this.analyticsService.exportAnalytics(format);
+    const buffer = await this.analyticsService.exportData(format);
     const timestamp = new Date().toISOString().split('T')[0];
-    const extension = format;
-    const filename = `analytics_export_${timestamp}.${extension}`;
-    const mimeType = format === 'xlsx' 
+    const extension = format === 'excel' ? 'xlsx' : 'csv';
+    const filename = `tasks_export_${timestamp}.${extension}`;
+    const mimeType = format === 'excel' 
       ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       : 'text/csv';
 

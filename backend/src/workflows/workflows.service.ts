@@ -30,8 +30,8 @@ export class WorkflowsService {
             description: phase.description,
             order: index,
             color: phase.color || '#6B7280',
-            allowedUsers: phase.allowedUsers || [], // User IDs instead of roles
-            autoAssignUserId: phase.autoAssignUserId,
+            allowedRoles: phase.allowedRoles, // Native array for PostgreSQL
+            autoAssignRole: phase.autoAssignRole,
             requiresApproval: phase.requiresApproval || false,
             isStartPhase: index === 0,
             isEndPhase: index === dto.phases.length - 1,
@@ -52,7 +52,7 @@ export class WorkflowsService {
           fromPhaseId: phases[i].id,
           toPhaseId: phases[i + 1].id,
           name: `Move to ${phases[i + 1].name}`,
-          notifyUsers: [],
+          notifyRoles: [],
         },
       });
     }
@@ -127,22 +127,6 @@ export class WorkflowsService {
     return !!transition;
   }
 
-  async validateUserPermission(userId: string, phaseId: string): Promise<boolean> {
-    const phase = await this.prisma.phase.findUnique({
-      where: { id: phaseId },
-      select: { allowedUsers: true }
-    });
-    
-    return phase?.allowedUsers.includes(userId) || false;
-  }
-
-  async updatePhasePermissions(phaseId: string, allowedUsers: string[]) {
-    return this.prisma.phase.update({
-      where: { id: phaseId },
-      data: { allowedUsers }
-    });
-  }
-
   async updateWorkflow(id: string, dto: Partial<CreateWorkflowDto>) {
     const workflow = await this.prisma.workflow.update({
       where: { id },
@@ -160,7 +144,7 @@ export class WorkflowsService {
       ...workflow,
       phases: workflow.phases.map(phase => ({
         ...phase,
-        allowedUsers: phase.allowedUsers, // Already an array in PostgreSQL
+        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
       })),
     };
   }
@@ -184,15 +168,6 @@ export class WorkflowsService {
       };
     }
 
-    // Get all active users to assign permissions
-    const activeUsers = await this.prisma.user.findMany({
-      where: { status: 'ACTIVE' },
-      select: { id: true, role: true }
-    });
-
-    const adminUsers = activeUsers.filter(u => u.role === 'SUPER_ADMIN' || u.role === 'ADMIN').map(u => u.id);
-    const allUsers = activeUsers.map(u => u.id);
-
     // Create Social Media Workflow
     const socialMediaWorkflow = await this.prisma.workflow.create({
       data: {
@@ -209,7 +184,7 @@ export class WorkflowsService {
               description: 'Define objectives and strategy',
               order: 0,
               color: '#9333EA',
-              allowedUsers: allUsers, // All users can access
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
               isStartPhase: true,
             },
             {
@@ -217,14 +192,14 @@ export class WorkflowsService {
               description: 'Write copy and create visuals',
               order: 1,
               color: '#2563EB',
-              allowedUsers: allUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
             },
             {
               name: 'Review & Approval',
               description: 'Quality check and approval',
               order: 2,
               color: '#F59E0B',
-              allowedUsers: adminUsers, // Only admins
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
               requiresApproval: true,
             },
             {
@@ -232,7 +207,7 @@ export class WorkflowsService {
               description: 'Content published',
               order: 3,
               color: '#10B981',
-              allowedUsers: adminUsers, // Only admins
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
               isEndPhase: true,
             },
           ],
@@ -256,7 +231,7 @@ export class WorkflowsService {
               description: 'Script, storyboard, and planning',
               order: 0,
               color: '#8B5CF6',
-              allowedUsers: allUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
               isStartPhase: true,
             },
             {
@@ -264,21 +239,21 @@ export class WorkflowsService {
               description: 'Filming and recording',
               order: 1,
               color: '#3B82F6',
-              allowedUsers: allUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
             },
             {
               name: 'Post-Production',
               description: 'Editing and effects',
               order: 2,
               color: '#F59E0B',
-              allowedUsers: allUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
             },
             {
               name: 'Review',
               description: 'Final review and approval',
               order: 3,
               color: '#EF4444',
-              allowedUsers: adminUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
               requiresApproval: true,
             },
             {
@@ -286,7 +261,7 @@ export class WorkflowsService {
               description: 'Video published',
               order: 4,
               color: '#10B981',
-              allowedUsers: adminUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
               isEndPhase: true,
             },
           ],
@@ -310,7 +285,7 @@ export class WorkflowsService {
               description: 'Tasks to be started',
               order: 0,
               color: '#9CA3AF',
-              allowedUsers: allUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
               isStartPhase: true,
             },
             {
@@ -318,21 +293,21 @@ export class WorkflowsService {
               description: 'Tasks being worked on',
               order: 1,
               color: '#3B82F6',
-              allowedUsers: allUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
             },
             {
               name: 'Review',
               description: 'Tasks under review',
               order: 2,
               color: '#F59E0B',
-              allowedUsers: adminUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
             },
             {
               name: 'Completed',
               description: 'Completed tasks',
               order: 3,
               color: '#10B981',
-              allowedUsers: adminUsers,
+              allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
               isEndPhase: true,
             },
           ],
@@ -355,7 +330,7 @@ export class WorkflowsService {
             fromPhaseId: phases[i].id,
             toPhaseId: phases[i + 1].id,
             name: `Move to ${phases[i + 1].name}`,
-            notifyUsers: [],
+            notifyRoles: [],
           },
         });
       }
