@@ -72,7 +72,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
 
   const handleToggleComplete = async (subtaskId: string, completed: boolean) => {
     try {
-      await tasksApi.updateSubtask(taskId, subtaskId, { isCompleted: completed })
+      await tasksApi.updateSubtask(taskId, subtaskId, { completed: completed })
       onSubtasksUpdated()
       toast.success('Subtask updated successfully')
     } catch (error: any) {

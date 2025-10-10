@@ -843,22 +843,84 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">
                       📋 Subtasks ({aiPreview.subtasks.length})
                     </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       {aiPreview.subtasks.map((subtask, index) => (
                         <div key={`preview-subtask-${index}-${subtask.title || index}-${Date.now()}`} className="bg-gray-50 p-4 rounded-lg border">
-                          <h4 className="font-medium text-gray-900 mb-2">{subtask.title}</h4>
+                          <div className="flex items-start justify-between mb-3">
+                            <h4 className="font-medium text-gray-900 flex-1">{subtask.title}</h4>
+                            <button
+                              onClick={() => {
+                                const updatedSubtasks = aiPreview.subtasks?.filter((_, i) => i !== index) || []
+                                setAiPreview(prev => prev ? { ...prev, subtasks: updatedSubtasks } : null)
+                              }}
+                              className="text-red-500 hover:text-red-700 ml-2"
+                              title="Remove subtask"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                          
                           {subtask.description && (
-                            <p className="text-sm text-gray-600 mb-2">{subtask.description}</p>
+                            <p className="text-sm text-gray-600 mb-3">{subtask.description}</p>
                           )}
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                            {/* Phase Selection */}
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Phase</label>
+                              <select
+                                value={subtask.phaseName || ''}
+                                onChange={(e) => {
+                                  const updatedSubtasks = [...(aiPreview.subtasks || [])]
+                                  updatedSubtasks[index] = { ...updatedSubtasks[index], phaseName: e.target.value }
+                                  setAiPreview(prev => prev ? { ...prev, subtasks: updatedSubtasks } : null)
+                                }}
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              >
+                                <option value="">Select Phase</option>
+                                {selectedWorkflow?.phases.map(phase => (
+                                  <option key={phase.id} value={phase.name}>{phase.name}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* User Assignment */}
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Assign To</label>
+                              <select
+                                value={subtask.suggestedUserId || ''}
+                                onChange={(e) => {
+                                  const selectedUser = users.find(u => u.id === e.target.value)
+                                  const updatedSubtasks = [...(aiPreview.subtasks || [])]
+                                  updatedSubtasks[index] = { 
+                                    ...updatedSubtasks[index], 
+                                    suggestedUserId: e.target.value,
+                                    suggestedUserName: selectedUser?.name || '',
+                                    suggestedRole: selectedUser?.position || subtask.suggestedRole
+                                  }
+                                  setAiPreview(prev => prev ? { ...prev, subtasks: updatedSubtasks } : null)
+                                }}
+                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                              >
+                                <option value="">Unassigned</option>
+                                {users.map(user => (
+                                  <option key={user.id} value={user.id}>
+                                    {user.name} ({user.position})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+
                           <div className="flex flex-wrap gap-2 text-xs">
                             {subtask.phaseName && (
                               <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
                                 📍 {subtask.phaseName}
                               </span>
                             )}
-                            {subtask.suggestedRole && (
+                            {(subtask.suggestedUserName || subtask.suggestedRole) && (
                               <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                                👤 {subtask.suggestedRole}
+                                👤 {subtask.suggestedUserName || subtask.suggestedRole}
                               </span>
                             )}
                             {subtask.estimatedHours && (
@@ -870,6 +932,28 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         </div>
                       ))}
                     </div>
+                    
+                    {/* Add Custom Subtask Button */}
+                    <button
+                      onClick={() => {
+                        const newSubtask = {
+                          title: 'New Subtask',
+                          description: '',
+                          phaseName: selectedWorkflow?.phases[0]?.name || '',
+                          suggestedRole: '',
+                          suggestedUserId: '',
+                          suggestedUserName: '',
+                          estimatedHours: 2,
+                        }
+                        setAiPreview(prev => prev ? { 
+                          ...prev, 
+                          subtasks: [...(prev.subtasks || []), newSubtask] 
+                        } : null)
+                      }}
+                      className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-primary-300 hover:text-primary-600 transition-colors"
+                    >
+                      + Add Custom Subtask
+                    </button>
                   </div>
                 )}
 
