@@ -182,22 +182,27 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
         self.last_request_time = datetime.now()
 
     async def generate_description(self, title: str) -> str:
-        """Generate a detailed task description using Gemini"""
+        """Generate a clean, concise task description - NO markdown, NO bold text"""
         try:
             await self._rate_limit()
             
-            prompt = f"""Generate a clean, professional description for this task. NO introductions, greetings, or extra text.
+            prompt = f"""Generate a clean, executive-level summary for this task.
 
 Task: {title}
-            
-            Requirements:
-- 2-3 detailed sentences describing what needs to be done
-- Include specific deliverables and requirements  
-- Mention relevant Apliman products (aïda, aïReach, CCS, SRBT) if applicable
-- Focus on business value and practical implementation
-- Professional tone, actionable content
 
-Respond with ONLY the description, no other text."""
+CRITICAL REQUIREMENTS:
+- EXACTLY 2-3 sentences ONLY
+- NO markdown formatting (no **, no #, no -, no *)
+- NO bold text, NO italic text
+- NO bullet points, NO numbered lists
+- Plain text only
+- Focus on WHAT needs to be done and WHY
+- Keep it high-level - implementation details go in subtasks
+
+EXAMPLE FORMAT:
+"This task involves creating a comprehensive social media campaign for product launch. The objective is to increase brand awareness and drive engagement across multiple platforms. Success will be measured by reach metrics and conversion rates."
+
+Respond with ONLY the plain text description, nothing else."""
 
             description = await self._make_request(prompt)
             
@@ -206,11 +211,12 @@ Respond with ONLY the description, no other text."""
                 
             description = description.strip()
             
-            # Clean up any introductory phrases
+            # Clean up any markdown and formatting
             description = self._clean_ai_response(description)
+            description = self._remove_markdown(description)
             
             # Validate the response
-            if len(description.split()) < 10:
+            if len(description.split()) < 15:
                 raise ContentGeneratorError("Generated description is too short")
                 
             return description
@@ -236,30 +242,58 @@ Respond with ONLY the description, no other text."""
                     text = text[1:].strip()
         
         return text
+    
+    def _remove_markdown(self, text: str) -> str:
+        """Remove all markdown formatting from text"""
+        import re
+        
+        # Remove bold (**text** or __text__)
+        text = re.sub(r'\*\*([^*]+)\*\*', r'\1', text)
+        text = re.sub(r'__([^_]+)__', r'\1', text)
+        
+        # Remove italic (*text* or _text_)
+        text = re.sub(r'\*([^*]+)\*', r'\1', text)
+        text = re.sub(r'_([^_]+)_', r'\1', text)
+        
+        # Remove headers (# ## ###)
+        text = re.sub(r'^#+\s+', '', text, flags=re.MULTILINE)
+        
+        # Remove bullet points (- * •)
+        text = re.sub(r'^[\-\*•]\s+', '', text, flags=re.MULTILINE)
+        
+        # Remove numbered lists (1. 2. 3.)
+        text = re.sub(r'^\d+\.\s+', '', text, flags=re.MULTILINE)
+        
+        # Clean up extra whitespace
+        text = re.sub(r'\n\s*\n', '\n', text)
+        text = text.strip()
+        
+        return text
 
     async def generate_goals(self, title: str) -> str:
         """Generate specific goals and success criteria using Gemini"""
         try:
             await self._rate_limit()
             
-            prompt = f"""Generate clean, specific goals for this task. NO introductions or extra text.
+            prompt = f"""Generate measurable goals and success criteria for this task.
 
 Task: {title}
-            
-            Requirements:
-- 3-4 specific, measurable goals
-- Include business value and outcomes
-- Use bullet points (•)
-- No greetings or explanations
-- Professional, actionable content
-            
-            Format:
-• [Specific goal with measurable outcome]
-• [Specific goal with measurable outcome]  
-• [Specific goal with measurable outcome]
-• [Specific goal with measurable outcome]
 
-Respond with ONLY the bullet points, no other text."""
+REQUIREMENTS:
+- 3-4 clear, measurable objectives
+- Use simple bullet points (•)
+- Each goal should have a clear outcome
+- Focus on business value and measurable results
+- NO introductions, NO explanations, NO extra text
+- Plain text format only
+
+EXAMPLE FORMAT:
+• Increase social media engagement by 25% within 30 days
+• Generate 50+ qualified leads through targeted campaigns
+• Achieve 90% positive sentiment in audience feedback
+• Complete all deliverables within budget and timeline
+
+Respond with ONLY the bullet points, nothing else."""
 
             goals = await self._make_request(prompt)
             
@@ -390,40 +424,49 @@ Respond with ONLY the bullet points, no other text."""
             if available_users:
                 users_list = []
                 for user in available_users:
-                    users_list.append(f"- {user.get('name', 'Unknown')} ({user.get('position', 'No position')} - {user.get('role', 'EMPLOYEE')})")
+                    user_id = user.get('id', 'unknown')
+                    name = user.get('name', 'Unknown')
+                    position = user.get('position', 'No position')
+                    role = user.get('role', 'EMPLOYEE')
+                    users_list.append(f"- ID: {user_id} | Name: {name} | Position: {position} | Role: {role}")
                 users_context = f"\n\nAVAILABLE TEAM MEMBERS:\n" + "\n".join(users_list)
             else:
                 users_context = "\n\nAVAILABLE TEAM MEMBERS:\n- Marketing Manager\n- Content Writer\n- Graphic Designer\n- Social Media Manager\n- Video Editor\n- Marketing Strategist\n- Marketing Coordinator\n- SEO Specialist"
             
-            prompt = f"""Generate clean, specific subtasks for this Apliman marketing task. NO introductions or extra text.
+            prompt = f"""Generate DETAILED subtasks with step-by-step instructions.
 
 Title: {title}
 Type: {task_type}
 Description: {description}
 Workflow Phases: {phases_str}{users_context}
 
-IMPORTANT: Use ONLY the team members listed above. Suggest specific people by name and position when possible.
+CRITICAL REQUIREMENTS:
+1. Use ONLY the team members listed above - match by exact name and position
+2. Each subtask description must be DETAILED with 3-5 specific implementation steps
+3. Main task has high-level description, subtasks have ALL the details
+4. Include specific deliverables and acceptance criteria
 
-Requirements:
-- 3-6 specific, actionable subtasks
-- Match subtasks to appropriate workflow phases
-- Suggest realistic team members based on their actual positions
-- Estimate realistic hours (1-8 hours per subtask)
-- Focus on Apliman's telecom/CPaaS solutions context
+SUBTASK DESCRIPTION FORMAT:
+"Step 1: [Specific action with details]
+Step 2: [Specific action with details]  
+Step 3: [Specific action with details]
+Deliverables: [Specific outputs expected]
+Acceptance criteria: [How to verify completion]"
 
-Format as JSON array ONLY:
+Generate 3-6 subtasks as JSON array ONLY:
 [
   {{
     "title": "Clear, actionable subtask title",
-    "description": "Specific description of deliverable",
+    "description": "DETAILED step-by-step instructions (3-5 sentences minimum)",
     "phaseName": "Phase from workflow phases above",
     "suggestedRole": "Position from available team members above",
-    "suggestedUserId": "User ID if specific person suggested (optional)",
-    "suggestedUserName": "User name if specific person suggested (optional)",
+    "suggestedUserId": "User ID if specific person found (use exact ID from list)",
+    "suggestedUserName": "User name if specific person found (use exact name from list)",
     "estimatedHours": 3
   }}
 ]
 
+Make each description actionable and detailed. The assigned person should know exactly what to do.
 Respond with ONLY the JSON array, no other text."""
 
             response = await self._make_request(prompt)
