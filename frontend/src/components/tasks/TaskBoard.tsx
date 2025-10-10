@@ -76,7 +76,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     const consolidated: ConsolidatedPhase[] = []
     
     // Create consolidated phase structure
-    Object.entries(PHASE_MAPPING).forEach(([consolidatedName, phaseNames], index) => {
+    Object.entries(PHASE_MAPPING).forEach(([consolidatedName, phaseNames]) => {
       const consolidatedPhase: ConsolidatedPhase = {
         id: `consolidated-${consolidatedName.toLowerCase()}`,
         name: consolidatedName,

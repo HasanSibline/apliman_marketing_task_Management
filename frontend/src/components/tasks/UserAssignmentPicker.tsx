@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   MagnifyingGlassIcon,
@@ -9,15 +9,6 @@ import {
   UserGroupIcon
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
-
-interface User {
-  id: string
-  name: string
-  email: string
-  position?: string
-  role: string
-  status: string
-}
 
 interface UserAssignmentPickerProps {
   selectedUsers: string[]
