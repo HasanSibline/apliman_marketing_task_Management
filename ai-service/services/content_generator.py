@@ -190,7 +190,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
 
 Task: {title}
             
-Requirements:
+            Requirements:
 - Maximum 2-3 clear sentences describing WHAT needs to be done
 - NO implementation details (those go in subtasks)
 - NO markdown formatting (**bold**, *italic*, etc.)

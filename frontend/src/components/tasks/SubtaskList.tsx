@@ -123,11 +123,11 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
           const isOverdue = subtask.dueDate && new Date(subtask.dueDate) < new Date() && !subtask.isCompleted
           
           return (
-            <motion.div
-              key={subtask.id}
+          <motion.div
+            key={subtask.id}
               initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
               className={`group relative bg-white rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${
                 subtask.isCompleted 
                   ? 'border-green-200 bg-green-50/30' 
@@ -149,7 +149,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                   {/* Main Content */}
                   <div className="flex items-start space-x-4 flex-1">
                     {/* Completion Toggle */}
-                    <button
+              <button
                       onClick={() => handleToggleComplete(subtask.id, !subtask.isCompleted)}
                       className={`mt-1 h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${
                         subtask.isCompleted
@@ -158,7 +158,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                       }`}
                     >
                       {subtask.isCompleted && <CheckIcon className="h-4 w-4" />}
-                    </button>
+              </button>
 
                     {/* Task Details */}
                     <div className="flex-1 min-w-0">
@@ -167,7 +167,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                           ? 'text-gray-500 line-through' 
                           : 'text-gray-900'
                       }`}>
-                        {subtask.title}
+                  {subtask.title}
                       </h4>
                       
                       {subtask.description && (
@@ -243,24 +243,24 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
+              </div>
+            </div>
 
                   {/* Actions */}
-                  {canManageSubtasks() && (
+            {canManageSubtasks() && (
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleDelete(subtask.id)}
+              <button
+                onClick={() => handleDelete(subtask.id)}
                         className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                         title="Delete subtask"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
                     </div>
-                  )}
+            )}
                 </div>
               </div>
-            </motion.div>
+          </motion.div>
           )
         })}
 
@@ -277,31 +277,31 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
       {/* Add Subtask Form */}
       <div className="bg-gray-50 rounded-xl p-6 border-2 border-dashed border-gray-300">
         <form onSubmit={handleSubmit} className="flex items-center space-x-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              value={newSubtask}
-              onChange={(e) => setNewSubtask(e.target.value)}
+        <div className="flex-1">
+          <input
+            type="text"
+            value={newSubtask}
+            onChange={(e) => setNewSubtask(e.target.value)}
               placeholder="Add a new subtask..."
               className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              disabled={submitting}
-            />
-          </div>
-          <button
-            type="submit"
-            disabled={!newSubtask.trim() || submitting}
+            disabled={submitting}
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={!newSubtask.trim() || submitting}
             className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            {submitting ? (
+        >
+          {submitting ? (
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-            ) : (
+          ) : (
               <>
                 <PlusIcon className="h-5 w-5 mr-2" />
                 Add Subtask
               </>
-            )}
-          </button>
-        </form>
+          )}
+        </button>
+      </form>
       </div>
     </div>
   )

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  XMarkIcon,
+  XMarkIcon, 
   PlayIcon,
   StopIcon,
   ClockIcon,
@@ -229,22 +229,22 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
           className="absolute inset-0 bg-black bg-opacity-50"
-          onClick={onClose}
-        />
-        
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+              onClick={onClose}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
           className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl h-[90vh] flex flex-col"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
                 <h2 className="text-xl font-semibold text-gray-900">{task.title}</h2>
@@ -312,7 +312,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                 >
                   <Icon className="h-4 w-4" />
                   <span>{tab.label}</span>
-                </button>
+                    </button>
               )
             })}
           </div>
@@ -394,8 +394,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         <span>Stop Timer</span>
                       </button>
                     )}
-                  </div>
                 </div>
+              </div>
 
                 {/* Time Summary */}
                 <div className="bg-blue-50 rounded-lg p-4">
@@ -403,10 +403,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                   <p className="text-2xl font-semibold text-blue-700">
                     {formatDuration(getTotalTimeLogged())}
                   </p>
-                </div>
+                        </div>
 
                 {/* Time Entries */}
-                <div>
+                        <div>
                   <h4 className="font-medium text-gray-900 mb-4">Time Entries</h4>
                   <div className="space-y-2">
                     {timeEntries.map(entry => (
@@ -431,11 +431,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     )}
                   </div>
                 </div>
-              </div>
+                        </div>
             )}
 
             {activeTab === 'comments' && (
-              <div className="space-y-6">
+                      <div className="space-y-6">
                 {/* Add Comment */}
                 <div className="bg-gray-50 rounded-lg p-4">
                   <textarea
@@ -446,15 +446,15 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     rows={3}
                   />
                   <div className="flex justify-end mt-3">
-                    <button
+                              <button
                       onClick={submitComment}
                       disabled={!newComment.trim()}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Post Comment
-                    </button>
+                              </button>
                   </div>
-                </div>
+                          </div>
 
                 {/* Comments List */}
                 <div className="space-y-4">
@@ -480,16 +480,16 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                           </div>
                           <p className="text-gray-700">{comment.comment}</p>
                         </div>
-                      </div>
-                    </div>
+                              </div>
+                            </div>
                   ))}
                   
                   {comments.length === 0 && (
                     <p className="text-gray-500 text-center py-4">No comments yet</p>
-                  )}
-                </div>
-              </div>
-            )}
+                          )}
+                        </div>
+                      </div>
+                    )}
 
             {activeTab === 'files' && (
               <div className="space-y-6">
@@ -510,7 +510,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                   >
                     Choose Files
                   </label>
-                </div>
+                  </div>
 
                 {/* Files List */}
                 <div className="space-y-2">
@@ -518,12 +518,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     <div key={file.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
                       <div className="flex items-center space-x-3">
                         <PaperClipIcon className="h-5 w-5 text-gray-400" />
-                        <div>
+                      <div>
                           <p className="text-sm font-medium text-gray-900">{file.fileName}</p>
                           <p className="text-xs text-gray-500">
                             {(file.fileSize / 1024 / 1024).toFixed(2)} MB • {new Date(file.uploadedAt).toLocaleDateString()}
                           </p>
-                        </div>
+                              </div>
                       </div>
                       <button
                         onClick={() => window.open(file.filePath, '_blank')}
@@ -538,11 +538,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     <p className="text-gray-500 text-center py-4">No files attached</p>
                   )}
                 </div>
+                  </div>
+                )}
               </div>
-            )}
+            </motion.div>
           </div>
-        </motion.div>
-      </div>
     </AnimatePresence>
   )
 }
