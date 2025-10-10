@@ -160,7 +160,7 @@ export class WorkflowsService {
       ...workflow,
       phases: workflow.phases.map(phase => ({
         ...phase,
-        allowedRoles: phase.allowedRoles, // Already an array in PostgreSQL
+        allowedUsers: phase.allowedUsers, // Already an array in PostgreSQL
       })),
     };
   }

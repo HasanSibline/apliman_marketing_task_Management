@@ -32,9 +32,9 @@ export class TimeTrackingController {
 
   @Get()
   async getTimeEntries(
+    @Request() req,
     @Query('taskId') taskId?: string,
-    @Query('subtaskId') subtaskId?: string,
-    @Request() req
+    @Query('subtaskId') subtaskId?: string
   ) {
     return this.timeTrackingService.getTimeEntries(req.user.id, taskId, subtaskId);
   }
