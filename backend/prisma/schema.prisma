@@ -200,8 +200,10 @@ model Phase {
   order       Int
   color       String   @default("#6B7280")
   
-  allowedRoles String[]  @default([]) // Native PostgreSQL array
-  autoAssignRole String?
+  allowedRoles String[]  @default([]) // DEPRECATED: Use allowedUsers instead
+  allowedUsers String[]  @default([]) // User IDs who can access this phase
+  autoAssignRole String? // DEPRECATED: Use autoAssignUserId instead
+  autoAssignUserId String? // Specific user ID to auto-assign
   
   isStartPhase Boolean  @default(false)
   isEndPhase   Boolean  @default(false)
@@ -229,7 +231,8 @@ model Transition {
   
   name        String?
   conditions  Json?
-  notifyRoles String[]  @default([]) // Native PostgreSQL array
+  notifyRoles String[]  @default([]) // DEPRECATED: Use notifyUsers instead
+  notifyUsers String[]  @default([]) // User IDs to notify on transition
   
   createdAt   DateTime @default(now())
   

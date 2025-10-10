@@ -345,5 +345,60 @@ export class WorkflowsService {
       ],
     };
   }
+
+  /**
+   * Validate if a user has permission to access a phase
+   * Checks both user-based (new) and role-based (legacy) permissions
+   */
+  async validateUserPhaseAccess(userId: string, phaseId: string): Promise<boolean> {
+    const phase = await this.prisma.phase.findUnique({
+      where: { id: phaseId },
+      select: { 
+        allowedUsers: true,
+        allowedRoles: true 
+      },
+    });
+
+    if (!phase) {
+      return false;
+    }
+
+    // Check user-based permissions first (new system)
+    if (phase.allowedUsers && phase.allowedUsers.length > 0) {
+      return phase.allowedUsers.includes(userId);
+    }
+
+    // Fallback to role-based permissions (legacy support)
+    if (phase.allowedRoles && phase.allowedRoles.length > 0) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+      return user ? phase.allowedRoles.includes(user.role) : false;
+    }
+
+    // If no permissions set, allow access
+    return true;
+  }
+
+  /**
+   * Update phase to use user-based permissions
+   */
+  async updatePhasePermissions(phaseId: string, allowedUserIds: string[]) {
+    return this.prisma.phase.update({
+      where: { id: phaseId },
+      data: { allowedUsers: allowedUserIds },
+    });
+  }
+
+  /**
+   * Update transition to use user-based notifications
+   */
+  async updateTransitionNotifications(transitionId: string, notifyUserIds: string[]) {
+    return this.prisma.transition.update({
+      where: { id: transitionId },
+      data: { notifyUsers: notifyUserIds },
+    });
+  }
 }
 
