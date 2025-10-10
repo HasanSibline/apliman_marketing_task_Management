@@ -63,7 +63,7 @@ export async function seedWorkflows(adminUserId: string) {
         fromPhaseId: smPhases[i].id,
         toPhaseId: smPhases[i + 1].id,
         name: `Move to ${smPhases[i + 1].name}`,
-        notifyRoles: '[]',
+        notifyRoles: [],
       },
     });
   }
@@ -135,7 +135,7 @@ export async function seedWorkflows(adminUserId: string) {
         fromPhaseId: vPhases[i].id,
         toPhaseId: vPhases[i + 1].id,
         name: `Move to ${vPhases[i + 1].name}`,
-        notifyRoles: '[]',
+        notifyRoles: [],
       },
     });
   }
@@ -199,7 +199,7 @@ export async function seedWorkflows(adminUserId: string) {
         fromPhaseId: gPhases[i].id,
         toPhaseId: gPhases[i + 1].id,
         name: `Move to ${gPhases[i + 1].name}`,
-        notifyRoles: '[]',
+        notifyRoles: [],
       },
     });
   }
