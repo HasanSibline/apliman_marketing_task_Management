@@ -210,12 +210,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       await dispatch(createTask(taskData)).unwrap()
       
       // Reset form
-      setFormData({
-        title: '',
-        description: '',
-        goals: '',
-        priority: 3,
-        dueDate: '',
+        setFormData({
+          title: '',
+          description: '',
+          goals: '',
+          priority: 3,
+          dueDate: '',
         assignedToId: '',
         assignedUserIds: user?.id ? [user.id] : [],
         workflowId: '',
@@ -257,40 +257,40 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
           className="absolute inset-0 bg-black bg-opacity-50"
-          onClick={onClose}
-        />
-        
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+              onClick={onClose}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
           className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <XMarkIcon className="h-6 w-6" />
-            </button>
-          </div>
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto">
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Basic Info */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Task Title *
                   </label>
-                  <input
-                    type="text"
-                    value={formData.title}
+                      <input
+                        type="text"
+                        value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Enter task title..."
@@ -317,30 +317,30 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </select>
                 </div>
 
-                <div>
+                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Priority
-                  </label>
-                  <select
-                    value={formData.priority}
+                      Priority
+                    </label>
+                    <select
+                      value={formData.priority}
                     onChange={(e) => setFormData(prev => ({ ...prev, priority: parseInt(e.target.value) }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value={1}>1 - Low</option>
-                    <option value={2}>2 - Medium</option>
+                    >
+                      <option value={1}>1 - Low</option>
+                      <option value={2}>2 - Medium</option>
                     <option value={3}>3 - High</option>
                     <option value={4}>4 - Urgent</option>
-                    <option value={5}>5 - Critical</option>
-                  </select>
-                </div>
+                      <option value={5}>5 - Critical</option>
+                    </select>
+                  </div>
 
-                <div>
+                  <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Due Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.dueDate}
+                      Due Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.dueDate}
                     onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -369,9 +369,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     rows={2}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="What are the goals and success criteria?"
-                  />
+                    />
+                  </div>
                 </div>
-              </div>
 
               {/* Team Assignment */}
               <div className="border-t border-gray-200 pt-6">
@@ -397,12 +397,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-medium text-gray-900">AI Assistance</h3>
                   <SparklesIcon className="h-5 w-5 text-blue-500" />
-                </div>
-
+                    </div>
+                    
                 <div className="space-y-4">
                   <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
+                            <input
+                              type="checkbox"
                       id="generateSubtasks"
                       checked={formData.generateSubtasks}
                       onChange={(e) => setFormData(prev => ({ ...prev, generateSubtasks: e.target.checked }))}
@@ -410,22 +410,40 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     />
                     <label htmlFor="generateSubtasks" className="text-sm text-gray-700">
                       Generate subtasks automatically
-                    </label>
+                          </label>
                   </div>
 
                   <button
                     type="button"
                     onClick={generateAIContent}
                     disabled={isGeneratingContent || !formData.title.trim()}
-                    className="w-full flex items-center justify-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all duration-300 ${
+                      isGeneratingContent 
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg transform scale-105' 
+                        : 'bg-gradient-to-r from-blue-600 to-purple-700 hover:from-blue-700 hover:to-purple-800 text-white shadow-md hover:shadow-lg hover:scale-105'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    <SparklesIcon className="h-4 w-4" />
-                    <span>
-                      {isGeneratingContent ? loadingStage || 'Generating...' : 'Generate AI Content'}
-                    </span>
+                    {isGeneratingContent ? (
+                      <>
+                        <div className="relative">
+                          <SparklesIcon className="h-5 w-5 animate-pulse" />
+                          <div className="absolute inset-0 animate-ping">
+                            <SparklesIcon className="h-5 w-5 opacity-75" />
+                      </div>
+                        </div>
+                        <span className="animate-pulse">
+                          {loadingStage || '🤔 AI is thinking...'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <SparklesIcon className="h-5 w-5" />
+                        <span>✨ Generate AI Content</span>
+                      </>
+                    )}
                   </button>
-                </div>
-              </div>
+                    </div>
+                  </div>
 
               {/* Form Actions */}
               <div className="border-t border-gray-200 pt-6 flex items-center justify-between">
@@ -448,15 +466,28 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   <button
                     type="submit"
                     disabled={isLoading || !formData.title.trim() || !formData.workflowId}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                      isLoading 
+                        ? 'bg-blue-500 text-white cursor-not-allowed' 
+                        : 'bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transform hover:scale-105'
+                    } disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none`}
                   >
-                    {isLoading ? 'Creating...' : 'Create Task'}
+                    {isLoading ? (
+                      <span className="flex items-center space-x-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Creating...</span>
+                      </span>
+                    ) : (
+                      <span className="flex items-center space-x-2">
+                        <span>➕ Create Task</span>
+                      </span>
+                    )}
                   </button>
                 </div>
-              </div>
-            </form>
+                </div>
+              </form>
           </div>
-        </motion.div>
+            </motion.div>
 
         {/* AI Preview Modal */}
         {showAiPreview && aiPreview && (
@@ -527,9 +558,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         </div>
                       </div>
                     ))}
-                  </div>
-                </div>
-              )}
+          </div>
+        </div>
+      )}
             </div>
 
             <div className="border-t border-gray-200 p-6 flex items-center justify-between">
