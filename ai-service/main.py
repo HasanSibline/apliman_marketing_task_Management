@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 import psutil
 import os
+import aiohttp
 from config import get_config
 from services.content_generator import ContentGenerator
 from typing import Optional
@@ -52,13 +53,15 @@ async def health_check():
         except Exception as e:
             error_message = str(e)
         
-        # Gemini status
+        # Gemini status with multiple keys info
+        api_keys = config.get_api_keys()
         provider_status = {
             "ai_provider": "gemini",
             "gemini_status": "connected" if test_result else "error",
             "gemini_model": config.GEMINI_MODEL,
             "gemini_error": error_message,
-            "api_key_configured": bool(config.GOOGLE_API_KEY)
+            "api_keys_configured": len(api_keys),
+            "api_keys_preview": [f"{key[:10]}...{key[-4:]}" for key in api_keys] if api_keys else []
         }
         
         return {
@@ -87,6 +90,88 @@ async def keepalive():
         "timestamp": datetime.utcnow().isoformat(),
         "message": "AI service is awake and running"
     }
+
+@app.get("/api-keys-status")
+async def api_keys_status():
+    """Check status of all configured API keys"""
+    try:
+        api_keys = config.get_api_keys()
+        if not api_keys:
+            return {
+                "status": "error",
+                "message": "No API keys configured",
+                "keys_count": 0
+            }
+        
+        keys_status = []
+        for i, key in enumerate(api_keys):
+            key_preview = f"{key[:10]}...{key[-4:]}"
+            
+            # Try a simple test request with this key
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{config.GEMINI_MODEL}:generateContent"
+            headers = {
+                'Content-Type': 'application/json',
+                'X-goog-api-key': key
+            }
+            payload = {
+                "contents": [{
+                    "parts": [{
+                        "text": "test"
+                    }]
+                }]
+            }
+            
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=5)) as response:
+                        if response.status == 200:
+                            keys_status.append({
+                                "index": i,
+                                "preview": key_preview,
+                                "status": "active",
+                                "message": "Working"
+                            })
+                        elif response.status == 429:
+                            error_text = await response.text()
+                            keys_status.append({
+                                "index": i,
+                                "preview": key_preview,
+                                "status": "quota_exceeded",
+                                "message": "Quota exceeded",
+                                "error": error_text[:200]
+                            })
+                        else:
+                            error_text = await response.text()
+                            keys_status.append({
+                                "index": i,
+                                "preview": key_preview,
+                                "status": "error",
+                                "message": f"HTTP {response.status}",
+                                "error": error_text[:200]
+                            })
+            except Exception as e:
+                keys_status.append({
+                    "index": i,
+                    "preview": key_preview,
+                    "status": "error",
+                    "message": "Request failed",
+                    "error": str(e)[:200]
+                })
+        
+        active_count = sum(1 for k in keys_status if k["status"] == "active")
+        
+        return {
+            "status": "ok" if active_count > 0 else "degraded",
+            "keys_count": len(api_keys),
+            "active_keys": active_count,
+            "keys": keys_status
+        }
+    except Exception as e:
+        logger.error(f"Error checking API keys status: {e}")
+        return {
+            "status": "error",
+            "message": str(e)
+        }
 
 @app.post("/test-ai")
 async def test_ai(test_text: Optional[str] = "This is a test task"):
