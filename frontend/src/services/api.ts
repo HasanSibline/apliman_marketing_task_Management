@@ -237,6 +237,11 @@ export const tasksApi = {
     return response.data
   },
 
+  getWorkflows: async (): Promise<any[]> => {
+    const response = await api.get('/workflows')
+    return response.data
+  },
+
   create: async (data: CreateTaskData): Promise<Task> => {
     const response = await api.post('/tasks', data)
     return response.data
@@ -335,8 +340,10 @@ export const workflowsApi = {
     phases: Array<{
       name: string
       description?: string
-      allowedRoles: string[]
-      autoAssignRole?: string
+      allowedRoles?: string[] // DEPRECATED: Use allowedUserIds instead
+      allowedUserIds?: string[] // User IDs who can access this phase
+      autoAssignRole?: string // DEPRECATED: Use autoAssignUserId instead
+      autoAssignUserId?: string // Specific user ID to auto-assign
       requiresApproval?: boolean
       color?: string
     }>

@@ -335,16 +335,69 @@ export class TasksService {
       user && self.findIndex(u => u?.id === user.id) === index && user.id !== userId
     );
 
-    for (const user of usersToNotify) {
-            await this.notificationsService.createNotification({
-        userId: user.id,
-        type: 'TASK_PHASE_CHANGED',
-        title: 'Task Phase Updated',
-        message: `Task "${task.title}" moved from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`,
-              taskId: task.id,
-        phaseId: toPhaseId,
-        actionUrl: `/tasks/${task.id}`,
+    const movedBy = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+
+    // Special handling if task is completed
+    if (toPhase.isEndPhase) {
+      // Notify task creator
+      if (task.createdById && task.createdById !== userId) {
+        await this.notificationsService.createNotification({
+          userId: task.createdById,
+          type: 'TASK_COMPLETED',
+          title: 'Task Completed',
+          message: `${movedBy?.name || 'Someone'} completed task "${task.title}"`,
+          taskId: task.id,
+          actionUrl: `/tasks/${task.id}`,
+        });
+      }
+
+      // Notify admins
+      const admins = await this.prisma.user.findMany({
+        where: {
+          role: { in: ['SUPER_ADMIN', 'ADMIN'] },
+          id: { not: userId },
+        },
+        select: { id: true },
       });
+
+      for (const admin of admins) {
+        await this.notificationsService.createNotification({
+          userId: admin.id,
+          type: 'TASK_COMPLETED',
+          title: 'Task Completed',
+          message: `Task "${task.title}" was completed by ${movedBy?.name || 'someone'}`,
+          taskId: task.id,
+          actionUrl: `/tasks/${task.id}`,
+        });
+      }
+
+      // Also notify assignees about completion
+      for (const user of usersToNotify) {
+        await this.notificationsService.createNotification({
+          userId: user.id,
+          type: 'TASK_COMPLETED',
+          title: 'Task Completed',
+          message: `Task "${task.title}" has been completed`,
+          taskId: task.id,
+          actionUrl: `/tasks/${task.id}`,
+        });
+      }
+    } else {
+      // Regular phase change notifications
+      for (const user of usersToNotify) {
+        await this.notificationsService.createNotification({
+          userId: user.id,
+          type: 'TASK_PHASE_CHANGED',
+          title: 'Task Phase Updated',
+          message: `Task "${task.title}" moved from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`,
+          taskId: task.id,
+          phaseId: toPhaseId,
+          actionUrl: `/tasks/${task.id}`,
+        });
+      }
     }
 
     return this.findOne(taskId, userId, UserRole.SUPER_ADMIN);
@@ -354,12 +407,26 @@ export class TasksService {
     // Find the subtask
     const subtask = await this.prisma.subtask.findUnique({
       where: { id: subtaskId },
-      include: { task: true },
+      include: { 
+        task: {
+          include: {
+            assignedTo: true,
+            createdBy: true,
+          }
+        },
+        linkedTask: {
+          include: {
+            assignedTo: true,
+          }
+        }
+      },
     });
 
     if (!subtask || subtask.taskId !== taskId) {
       throw new NotFoundException('Subtask not found');
     }
+
+    const wasCompleted = subtask.isCompleted;
 
     // Toggle completion status
     const updated = await this.prisma.subtask.update({
@@ -369,6 +436,60 @@ export class TasksService {
         completedAt: !subtask.isCompleted ? new Date() : null,
       },
     });
+
+    // Send notifications when subtask is completed
+    if (!wasCompleted && updated.isCompleted) {
+      const completedBy = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+
+      // Notify task creator
+      if (subtask.task.createdById && subtask.task.createdById !== userId) {
+        await this.notificationsService.createNotification({
+          userId: subtask.task.createdById,
+          type: 'TASK_COMPLETED',
+          title: 'Subtask Completed',
+          message: `${completedBy?.name || 'Someone'} completed subtask "${subtask.title}" on task "${subtask.task.title}"`,
+          taskId: subtask.task.id,
+          actionUrl: `/tasks/${subtask.task.id}`,
+        });
+      }
+
+      // Notify task assignee if different from creator and completer
+      if (subtask.task.assignedToId && 
+          subtask.task.assignedToId !== userId && 
+          subtask.task.assignedToId !== subtask.task.createdById) {
+        await this.notificationsService.createNotification({
+          userId: subtask.task.assignedToId,
+          type: 'TASK_COMPLETED',
+          title: 'Subtask Completed',
+          message: `${completedBy?.name || 'Someone'} completed subtask "${subtask.title}"`,
+          taskId: subtask.task.id,
+          actionUrl: `/tasks/${subtask.task.id}`,
+        });
+      }
+
+      // Notify all admins
+      const admins = await this.prisma.user.findMany({
+        where: {
+          role: { in: ['SUPER_ADMIN', 'ADMIN'] },
+          id: { not: userId }, // Don't notify the person who completed it
+        },
+        select: { id: true },
+      });
+
+      for (const admin of admins) {
+        await this.notificationsService.createNotification({
+          userId: admin.id,
+          type: 'TASK_COMPLETED',
+          title: 'Subtask Completed',
+          message: `Subtask "${subtask.title}" was completed by ${completedBy?.name || 'someone'}`,
+          taskId: subtask.task.id,
+          actionUrl: `/tasks/${subtask.task.id}`,
+        });
+      }
+    }
 
     // Recalculate parent task progress (for future use)
     const allSubtasks = await this.prisma.subtask.findMany({

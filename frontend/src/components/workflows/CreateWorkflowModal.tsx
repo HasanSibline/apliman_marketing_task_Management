@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { workflowsApi } from '@/services/api'
+import { XMarkIcon, PlusIcon, TrashIcon, UserGroupIcon } from '@heroicons/react/24/outline'
+import { workflowsApi, usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
 interface CreateWorkflowModalProps {
@@ -10,17 +10,26 @@ interface CreateWorkflowModalProps {
   onSuccess: () => void
 }
 
+interface User {
+  id: string
+  name: string
+  email: string
+  position?: string
+  role: string
+}
+
 interface PhaseData {
   name: string
   description: string
-  allowedRoles: string[]
-  autoAssignRole: string
+  allowedUserIds: string[]
+  autoAssignUserId: string
   requiresApproval: boolean
   color: string
 }
 
 const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [isLoading, setIsLoading] = useState(false)
+  const [users, setUsers] = useState<User[]>([])
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -33,28 +42,52 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
     {
       name: 'To Do',
       description: 'Tasks that need to be started',
-      allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
-      autoAssignRole: '',
+      allowedUserIds: [],
+      autoAssignUserId: '',
       requiresApproval: false,
       color: '#9CA3AF',
     },
     {
       name: 'In Progress',
       description: 'Tasks currently being worked on',
-      allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
-      autoAssignRole: '',
+      allowedUserIds: [],
+      autoAssignUserId: '',
       requiresApproval: false,
       color: '#3B82F6',
     },
     {
       name: 'Completed',
       description: 'Finished tasks',
-      allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
-      autoAssignRole: '',
+      allowedUserIds: [],
+      autoAssignUserId: '',
       requiresApproval: false,
       color: '#10B981',
     },
   ])
+
+  useEffect(() => {
+    if (isOpen) {
+      loadUsers()
+    }
+  }, [isOpen])
+
+  const loadUsers = async () => {
+    try {
+      const data: any = await usersApi.getAll()
+      const userList = Array.isArray(data) ? data : (data.users || [])
+      setUsers(userList)
+      
+      // Default: allow all users in each phase
+      const allUserIds = userList.map((u: User) => u.id)
+      setPhases(prev => prev.map(phase => ({
+        ...phase,
+        allowedUserIds: allUserIds
+      })))
+    } catch (error) {
+      console.error('Failed to load users:', error)
+      toast.error('Failed to load users')
+    }
+  }
 
   const taskTypes = [
     'SOCIAL_MEDIA_POST',
@@ -68,9 +101,9 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
     'INFOGRAPHIC',
     'PRESS_RELEASE',
     'GENERAL',
+    'CUSTOM',
   ]
 
-  const roleOptions = ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE']
   const colorOptions = [
     '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6',
     '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6B7280'
@@ -87,7 +120,6 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
     try {
       setIsLoading(true)
       
-      // Don't send 'order' field - backend determines order from array position
       await workflowsApi.create({
         ...formData,
         phases: phases,
@@ -104,6 +136,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
   }
 
   const resetForm = () => {
+    const allUserIds = users.map(u => u.id)
     setFormData({
       name: '',
       description: '',
@@ -115,24 +148,24 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
       {
         name: 'To Do',
         description: 'Tasks that need to be started',
-        allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
-        autoAssignRole: '',
+        allowedUserIds: allUserIds,
+        autoAssignUserId: '',
         requiresApproval: false,
         color: '#9CA3AF',
       },
       {
         name: 'In Progress',
         description: 'Tasks currently being worked on',
-        allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
-        autoAssignRole: '',
+        allowedUserIds: allUserIds,
+        autoAssignUserId: '',
         requiresApproval: false,
         color: '#3B82F6',
       },
       {
         name: 'Completed',
         description: 'Finished tasks',
-        allowedRoles: ['SUPER_ADMIN', 'ADMIN'],
-        autoAssignRole: '',
+        allowedUserIds: allUserIds,
+        autoAssignUserId: '',
         requiresApproval: false,
         color: '#10B981',
       },
@@ -145,8 +178,8 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
       {
         name: '',
         description: '',
-        allowedRoles: ['SUPER_ADMIN', 'ADMIN', 'EMPLOYEE'],
-        autoAssignRole: '',
+        allowedUserIds: users.map(u => u.id),
+        autoAssignUserId: '',
         requiresApproval: false,
         color: '#6B7280',
       },
@@ -167,13 +200,21 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
     setPhases(newPhases)
   }
 
-  const toggleRole = (phaseIndex: number, role: string) => {
+  const toggleUser = (phaseIndex: number, userId: string) => {
     const phase = phases[phaseIndex]
-    const newRoles = phase.allowedRoles.includes(role)
-      ? phase.allowedRoles.filter(r => r !== role)
-      : [...phase.allowedRoles, role]
+    const newUserIds = phase.allowedUserIds.includes(userId)
+      ? phase.allowedUserIds.filter(id => id !== userId)
+      : [...phase.allowedUserIds, userId]
     
-    updatePhase(phaseIndex, 'allowedRoles', newRoles)
+    updatePhase(phaseIndex, 'allowedUserIds', newUserIds)
+  }
+
+  const selectAllUsers = (phaseIndex: number) => {
+    updatePhase(phaseIndex, 'allowedUserIds', users.map(u => u.id))
+  }
+
+  const deselectAllUsers = (phaseIndex: number) => {
+    updatePhase(phaseIndex, 'allowedUserIds', [])
   }
 
   return (
@@ -198,8 +239,11 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
               className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Create New Workflow</h2>
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Create New Workflow</h2>
+                  <p className="text-sm text-gray-500 mt-1">Define phases and assign team members who can work on each phase</p>
+                </div>
                 <button
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -256,7 +300,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Describe when and how this workflow should be used"
+                    placeholder="Describe this workflow..."
                   />
                 </div>
 
@@ -311,7 +355,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
 
                   <div className="space-y-4">
                     {phases.map((phase, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-medium text-gray-900">Phase {index + 1}</h4>
                           {phases.length > 2 && (
@@ -374,22 +418,57 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                         </div>
 
                         <div className="mt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Allowed Roles
-                          </label>
-                          <div className="flex space-x-4">
-                            {roleOptions.map(role => (
-                              <label key={role} className="flex items-center">
-                                <input
-                                  type="checkbox"
-                                  checked={phase.allowedRoles.includes(role)}
-                                  onChange={() => toggleRole(index, role)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                />
-                                <span className="ml-2 text-sm text-gray-700">{role}</span>
-                              </label>
-                            ))}
+                          <div className="flex items-center justify-between mb-2">
+                            <label className="flex items-center text-sm font-medium text-gray-700">
+                              <UserGroupIcon className="h-4 w-4 mr-1" />
+                              Allowed Users
+                            </label>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => selectAllUsers(index)}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                              >
+                                Select All
+                              </button>
+                              <span className="text-gray-400">|</span>
+                              <button
+                                type="button"
+                                onClick={() => deselectAllUsers(index)}
+                                className="text-xs text-gray-600 hover:text-gray-800"
+                              >
+                                Clear
+                              </button>
+                            </div>
                           </div>
+                          <div className="bg-white border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto">
+                            {users.length === 0 ? (
+                              <p className="text-sm text-gray-500">Loading users...</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {users.map(user => (
+                                  <label key={user.id} className="flex items-center hover:bg-gray-50 p-1 rounded">
+                                    <input
+                                      type="checkbox"
+                                      checked={phase.allowedUserIds.includes(user.id)}
+                                      onChange={() => toggleUser(index, user.id)}
+                                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="ml-2 text-sm text-gray-700 flex-1">
+                                      {user.name}
+                                      {user.position && (
+                                        <span className="text-xs text-gray-500 ml-1">• {user.position}</span>
+                                      )}
+                                    </span>
+                                    <span className="text-xs text-gray-400">{user.role}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {phase.allowedUserIds.length} user(s) selected. Only these users can access this phase.
+                          </p>
                         </div>
 
                         <div className="mt-4 flex items-center">
@@ -401,7 +480,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                             />
                             <span className="ml-2 text-sm text-gray-700">
-                              Requires approval to move to this phase
+                              Requires admin approval to move to this phase
                             </span>
                           </label>
                         </div>
@@ -411,7 +490,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 sticky bottom-0 bg-white">
                   <button
                     type="button"
                     onClick={onClose}

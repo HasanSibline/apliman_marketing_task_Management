@@ -12,6 +12,7 @@ import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/sol
 import type { Task, Subtask } from '@/types/task'
 import { tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
+import SubtaskDetailModal from './SubtaskDetailModal'
 
 interface SubtaskSidebarProps {
   task: Task
@@ -271,138 +272,21 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
       )}
 
       {/* Subtask Detail Modal */}
-      {showDetailModal && selectedSubtask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
-                  {selectedSubtask.title}
-                </h3>
-                <div className="flex items-center gap-3 text-sm">
-                  {selectedSubtask.assignedTo && (
-                    <div className="flex items-center gap-1.5 text-gray-600">
-                      <UserCircleIcon className="h-4 w-4" />
-                      <span>{selectedSubtask.assignedTo.name}</span>
-                    </div>
-                  )}
-                  {selectedSubtask.phase && (
-                    <div 
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
-                      style={{ 
-                        backgroundColor: `${selectedSubtask.phase.color}20`,
-                        color: selectedSubtask.phase.color
-                      }}
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedSubtask.phase.color }} />
-                      {selectedSubtask.phase.name}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => setShowDetailModal(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-6">
-              {/* Description */}
-              {selectedSubtask.description && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">📝 Instructions</h4>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                      {selectedSubtask.description}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Estimated Hours */}
-              {selectedSubtask.estimatedHours && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">⏱️ Estimated Time</h4>
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <ClockIcon className="h-4 w-4" />
-                    <span>{selectedSubtask.estimatedHours} hours</span>
-                  </div>
-                </div>
-              )}
-
-              {/* Due Date */}
-              {selectedSubtask.dueDate && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">📅 Due Date</h4>
-                  <div className="text-sm text-gray-600">
-                    {new Date(selectedSubtask.dueDate).toLocaleDateString('en-US', { 
-                      weekday: 'long',
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Status */}
-              <div>
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">✅ Status</h4>
-                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
-                  selectedSubtask.isCompleted 
-                    ? 'bg-green-100 text-green-700' 
-                    : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {selectedSubtask.isCompleted ? (
-                    <>
-                      <CheckCircleIconSolid className="h-4 w-4" />
-                      Completed
-                    </>
-                  ) : (
-                    <>
-                      <ClockIcon className="h-4 w-4" />
-                      In Progress
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer Actions */}
-            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-4 flex items-center justify-between">
-              <button
-                onClick={(e) => {
-                  handleToggleSubtask(selectedSubtask, e as any)
-                  setShowDetailModal(false)
-                }}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  selectedSubtask.isCompleted
-                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    : 'bg-green-600 text-white hover:bg-green-700'
-                }`}
-              >
-                {selectedSubtask.isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
-              </button>
-              {selectedSubtask.linkedTask && (
-                <button
-                  onClick={() => {
-                    navigate(`/tasks/${selectedSubtask.linkedTask!.id}`)
-                    setShowDetailModal(false)
-                  }}
-                  className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-                >
-                  View Full Task →
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+      {selectedSubtask && (
+        <SubtaskDetailModal
+          subtask={selectedSubtask}
+          task={task}
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false)
+            setSelectedSubtask(null)
+          }}
+          onUpdate={() => {
+            if (onSubtaskUpdate) {
+              onSubtaskUpdate()
+            }
+          }}
+        />
       )}
     </div>
   )

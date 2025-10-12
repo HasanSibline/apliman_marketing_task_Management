@@ -14,13 +14,23 @@ export class CreatePhaseDto {
   @IsString()
   description?: string;
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  allowedRoles: string[];
+  allowedRoles?: string[]; // DEPRECATED: Use allowedUserIds instead
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allowedUserIds?: string[]; // User IDs who can access this phase
 
   @IsOptional()
   @IsString()
-  autoAssignRole?: string;
+  autoAssignRole?: string; // DEPRECATED: Use autoAssignUserId instead
+
+  @IsOptional()
+  @IsString()
+  autoAssignUserId?: string; // Specific user ID to auto-assign
 
   @IsOptional()
   @IsBoolean()

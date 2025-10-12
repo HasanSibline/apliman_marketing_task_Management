@@ -30,8 +30,11 @@ export class WorkflowsService {
             description: phase.description,
             order: index,
             color: phase.color || '#6B7280',
-            allowedRoles: phase.allowedRoles, // Native array for PostgreSQL
+            // Support both old (roles) and new (user IDs) approach
+            allowedRoles: phase.allowedRoles || [],
+            allowedUsers: phase.allowedUserIds || [],
             autoAssignRole: phase.autoAssignRole,
+            autoAssignUserId: phase.autoAssignUserId,
             requiresApproval: phase.requiresApproval || false,
             isStartPhase: index === 0,
             isEndPhase: index === dto.phases.length - 1,
