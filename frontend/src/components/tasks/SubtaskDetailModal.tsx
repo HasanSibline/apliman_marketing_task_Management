@@ -47,6 +47,54 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
   const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN'
   const isAssignedUser = subtask.linkedTask?.assignedToId === currentUser?.id
 
+  // Handle case where subtask is not linked to a task
+  if (!isOpen) return null
+
+  if (!subtask.linkedTask) {
+    return (
+      <AnimatePresence>
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={onClose}
+              className="fixed inset-0 bg-black bg-opacity-50"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl p-6"
+            >
+              <button
+                onClick={onClose}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="w-6 h-6" />
+              </button>
+
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-3xl">📋</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Subtask Not Linked</h3>
+                <p className="text-gray-500 mb-1">{subtask.title}</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  This subtask is not linked to an individual task yet.
+                </p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Subtasks are automatically linked when assigned to a user.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </AnimatePresence>
+    )
+  }
+
   useEffect(() => {
     if (isOpen) {
       loadUsers()

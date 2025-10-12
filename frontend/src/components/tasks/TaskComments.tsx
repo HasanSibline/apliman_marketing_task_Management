@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PaperAirplaneIcon, UserCircleIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { PaperAirplaneIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
-import { tasksApi, usersApi } from '@/services/api'
+import { tasksApi, usersApi, BACKEND_URL } from '@/services/api'
 import toast from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 
@@ -225,57 +225,87 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
   }
 
   const highlightContent = (text: string) => {
-    // Split by both @mentions and /subtask tags
-    const parts = text.split(/(@\w+(?:\s+\w+)*)|(\/subtask\[([^\]]+)\]\(([^)]+)\))/g)
+    const elements: React.ReactNode[] = []
+    let lastIndex = 0
     
-    return parts.map((part, index) => {
-      if (!part) return null
-      
-      // Check if it's an @mention
-      if (part.startsWith('@')) {
-        const name = part.slice(1)
-        const mentionedUser = users.find(u => u.name.toLowerCase() === name.toLowerCase())
-        if (mentionedUser) {
-          return (
-            <span 
-              key={index} 
-              className="bg-blue-100 text-blue-700 px-1 rounded font-medium cursor-pointer hover:bg-blue-200"
-            >
-              {part}
-            </span>
-          )
-        }
+    // First, find all @mentions
+    const mentionRegex = /@(\w+(?:\s+\w+)*)/g
+    const mentions: Array<{ start: number; end: number; name: string }> = []
+    let match
+    
+    while ((match = mentionRegex.exec(text)) !== null) {
+      mentions.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        name: match[1]
+      })
+    }
+    
+    // Then find all /subtask tags
+    const subtaskRegex = /\/subtask\[([^\]]+)\]\(([^)]+)\)/g
+    const subtaskTags: Array<{ start: number; end: number; title: string; id: string }> = []
+    
+    while ((match = subtaskRegex.exec(text)) !== null) {
+      subtaskTags.push({
+        start: match.index,
+        end: match.index + match[0].length,
+        title: match[1],
+        id: match[2]
+      })
+    }
+    
+    // Combine and sort all matches
+    const allMatches = [
+      ...mentions.map(m => ({ ...m, type: 'mention' as const })),
+      ...subtaskTags.map(s => ({ ...s, type: 'subtask' as const }))
+    ].sort((a, b) => a.start - b.start)
+    
+    // Build the result
+    allMatches.forEach((item, idx) => {
+      // Add text before this match
+      if (item.start > lastIndex) {
+        elements.push(text.substring(lastIndex, item.start))
       }
       
-      // Check if it's a /subtask tag (captured in groups 3 and 4)
-      if (index > 0 && parts[index - 2] && parts[index - 2].startsWith('/subtask')) {
-        const subtaskTitle = parts[index - 1]
-        const subtaskId = part
-        const subtask = subtasks.find(s => s.id === subtaskId)
-        
-        return (
+      if (item.type === 'mention') {
+        elements.push(
+          <span 
+            key={`mention-${idx}`}
+            className="bg-blue-100 text-blue-700 px-1 rounded font-medium"
+          >
+            @{item.name}
+          </span>
+        )
+      } else {
+        // subtask tag
+        const subtask = subtasks.find(s => s.id === item.id)
+        elements.push(
           <span
-            key={index}
+            key={`subtask-${idx}`}
             onClick={() => {
               if (subtask?.linkedTask?.id) {
                 navigate(`/tasks/${subtask.linkedTask.id}`)
+              } else {
+                toast.error('Subtask not linked to a task')
               }
             }}
             className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-medium cursor-pointer hover:bg-purple-200 transition-colors"
           >
             <span className="text-xs">📋</span>
-            {subtaskTitle}
+            {item.title}
           </span>
         )
       }
       
-      // Skip the matched groups themselves
-      if (part.startsWith('/subtask[') || subtasks.find(s => s.id === part)) {
-        return null
-      }
-      
-      return part
+      lastIndex = item.end
     })
+    
+    // Add remaining text
+    if (lastIndex < text.length) {
+      elements.push(text.substring(lastIndex))
+    }
+    
+    return elements
   }
 
   const handleSubmitComment = async (e: React.FormEvent) => {
@@ -361,19 +391,12 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                   {comment.images && comment.images.length > 0 && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
                       {comment.images.map((image: any, imgIndex: number) => (
-                        <a
-                          key={imgIndex}
-                          href={image.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
-                        >
-                          <img
-                            src={image.url}
-                            alt={`Attachment ${imgIndex + 1}`}
-                            className="w-full h-32 object-cover"
-                          />
-                        </a>
+                        <CommentImage
+                          key={image.id || imgIndex}
+                          imageId={image.id}
+                          mimeType={image.mimeType}
+                          index={imgIndex}
+                        />
                       ))}
                     </div>
                   )}
@@ -445,17 +468,23 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                         key={mentionUser.id}
                         type="button"
                         onClick={() => insertMention(mentionUser)}
-                        className={`w-full px-3 py-2 text-left hover:bg-blue-50 transition-colors flex items-center gap-2 ${
+                        className={`w-full px-3 py-2 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 ${
                           index === selectedMentionIndex ? 'bg-blue-50' : ''
                         }`}
                       >
-                        <UserCircleIcon className="h-5 w-5 text-gray-400" />
+                        {/* Avatar Circle with Initial */}
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <span className="text-white font-semibold text-sm">
+                            {mentionUser.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                        {/* User Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
                             {mentionUser.name}
                           </p>
                           {mentionUser.position && (
-                            <p className="text-xs text-gray-500 truncate">
+                            <p className="text-xs text-gray-600 truncate">
                               {mentionUser.position}
                             </p>
                           )}
@@ -534,6 +563,74 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
         </div>
       </form>
     </div>
+  )
+}
+
+// Comment Image Component
+const CommentImage: React.FC<{ imageId: string; mimeType: string; index: number }> = ({ 
+  imageId, 
+  index 
+}) => {
+  const [imageData, setImageData] = useState<string>('')
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    const fetchImage = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`${BACKEND_URL}/api/tasks/images/${imageId}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        })
+        
+        if (!response.ok) throw new Error('Failed to load image')
+        
+        const data = await response.json()
+        setImageData(data.data) // This is the base64 data URL
+        setIsLoading(false)
+      } catch (err) {
+        console.error('Error loading image:', err)
+        setError(true)
+        setIsLoading(false)
+      }
+    }
+
+    if (imageId) {
+      fetchImage()
+    }
+  }, [imageId])
+
+  if (isLoading) {
+    return (
+      <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  if (error || !imageData) {
+    return (
+      <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+        <span className="text-4xl">📷</span>
+      </div>
+    )
+  }
+
+  return (
+    <a
+      href={imageData}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
+    >
+      <img
+        src={imageData}
+        alt={`Attachment ${index + 1}`}
+        className="w-full h-32 object-cover"
+      />
+    </a>
   )
 }
 

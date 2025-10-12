@@ -11,20 +11,23 @@ import {
 import { useAppSelector } from '@/hooks/redux'
 import { tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 
 interface Notification {
   id: string
-  type: 'deadline' | 'welcome' | 'password' | 'system' | 'task_approval'
+  type: 'deadline' | 'welcome' | 'password' | 'system' | 'task_approval' | 'COMMENT_MENTION' | 'TASK_ASSIGNED' | 'TASK_COMPLETED' | 'TASK_PHASE_CHANGED'
   title: string
   message: string
   timestamp: Date
   read: boolean
   taskId?: string
   link?: string
+  commentId?: string
 }
 
 const NotificationManager: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -259,12 +262,24 @@ const NotificationManager: React.FC = () => {
                             </button>
                           </div>
                         ) : notification.link && (
-                          <a
-                            href={notification.link}
+                          <button
+                            onClick={() => {
+                              navigate(notification.link!)
+                              setShowDropdown(false)
+                              // If it's a comment mention, scroll to comments
+                              if (notification.type === 'COMMENT_MENTION' || notification.type === 'task_approval') {
+                                setTimeout(() => {
+                                  const commentsSection = document.getElementById('comments-section')
+                                  if (commentsSection) {
+                                    commentsSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+                                  }
+                                }, 500)
+                              }
+                            }}
                             className="text-sm text-primary-600 hover:text-primary-700 mt-2 inline-block"
                           >
                             View Details
-                          </a>
+                          </button>
                         )}
                       </div>
                       <button

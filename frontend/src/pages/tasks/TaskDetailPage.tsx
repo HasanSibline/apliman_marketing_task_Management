@@ -27,6 +27,7 @@ import { tasksApi } from '@/services/api'
 import FileUpload from '@/components/tasks/FileUpload'
 import TaskComments from '@/components/tasks/TaskComments'
 import SubtaskSidebar from '@/components/tasks/SubtaskSidebar'
+import EditTaskModal from '@/components/tasks/EditTaskModal'
 import toast from 'react-hot-toast'
 
 const TaskDetailPage: React.FC = () => {
@@ -37,6 +38,7 @@ const TaskDetailPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [isTimerRunning, setIsTimerRunning] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -296,6 +298,32 @@ const TaskDetailPage: React.FC = () => {
                       <span className="text-sm font-semibold">Completed</span>
                     </div>
                   )}
+
+                  {/* Compact Time Tracking */}
+                  <div className="flex items-center gap-2">
+                    {isTimerRunning ? (
+                      <button
+                        onClick={() => setIsTimerRunning(false)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                      >
+                        <PauseIcon className="w-4 h-4" />
+                        {formatTime(currentTime)}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIsTimerRunning(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                      >
+                        <PlayIcon className="w-4 h-4" />
+                        Start Timer
+                      </button>
+                    )}
+                    {currentTime > 0 && (
+                      <span className="text-sm text-gray-500">
+                        Total: {formatTime(currentTime)}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -303,7 +331,7 @@ const TaskDetailPage: React.FC = () => {
               {canEdit && (
                 <div className="flex items-center gap-2 ml-4">
                   <button
-                    onClick={() => toast('Edit functionality coming soon', { icon: 'ℹ️' })}
+                    onClick={() => setIsEditModalOpen(true)}
                     className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
                     title="Edit Task"
                   >
@@ -443,6 +471,7 @@ const TaskDetailPage: React.FC = () => {
 
           {/* Comments */}
           <motion.div
+            id="comments-section"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
@@ -471,6 +500,14 @@ const TaskDetailPage: React.FC = () => {
           onSubtaskUpdate={handleRefreshTask}
         />
       </div>
+
+      {/* Edit Task Modal */}
+      <EditTaskModal
+        task={currentTask}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onTaskUpdated={handleRefreshTask}
+      />
     </div>
   )
 }
