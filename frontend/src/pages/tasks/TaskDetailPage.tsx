@@ -18,7 +18,8 @@ import {
   ArrowUpIcon,
   BoltIcon,
   FireIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
@@ -124,6 +125,24 @@ const TaskDetailPage: React.FC = () => {
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Failed to delete task')
       }
+    }
+  }
+
+  const handlePhaseChange = async (toPhaseId: string) => {
+    if (!currentTask) return
+    
+    try {
+      await tasksApi.moveToPhase(currentTask.id, toPhaseId)
+      toast.success('Task phase updated successfully')
+      dispatch(fetchTaskById(currentTask.id))
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to update task phase')
+    }
+  }
+
+  const handleRefreshTask = () => {
+    if (id) {
+      dispatch(fetchTaskById(id))
     }
   }
 
@@ -326,6 +345,38 @@ const TaskDetailPage: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Phase Transitions */}
+            {currentTask.workflow && currentTask.currentPhase && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <ArrowRightIcon className="h-5 w-5 text-blue-600" />
+                  Change Phase
+                </h2>
+                <div className="flex flex-wrap gap-3">
+                  {currentTask.workflow.phases
+                    ?.filter((phase: any) => phase.id !== currentTask.currentPhaseId)
+                    .map((phase: any) => (
+                      <button
+                        key={phase.id}
+                        onClick={() => handlePhaseChange(phase.id)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 hover:shadow-md transition-all"
+                        style={{
+                          borderColor: phase.color,
+                          backgroundColor: `${phase.color}10`,
+                          color: phase.color
+                        }}
+                      >
+                        <ArrowRightIcon className="h-4 w-4" />
+                        <span className="font-medium">Move to {phase.name}</span>
+                      </button>
+                    ))}
+                </div>
+                {currentTask.workflow.phases && currentTask.workflow.phases.length === 1 && (
+                  <p className="text-sm text-gray-500 mt-2">No other phases available in this workflow</p>
+                )}
+              </div>
+            )}
           </motion.div>
 
           {/* Time Tracking */}
@@ -416,6 +467,7 @@ const TaskDetailPage: React.FC = () => {
         <SubtaskSidebar 
           task={currentTask}
           onAddSubtask={() => toast('Add subtask functionality coming soon', { icon: 'ℹ️' })}
+          onSubtaskUpdate={handleRefreshTask}
         />
       </div>
     </div>

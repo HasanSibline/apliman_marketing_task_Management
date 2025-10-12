@@ -168,6 +168,18 @@ export class TasksController {
     return this.tasksService.moveTaskToPhase(id, body.toPhaseId, req.user.id, body.comment);
   }
 
+  @Post(':id/subtasks/:subtaskId/toggle')
+  @ApiOperation({ summary: 'Toggle subtask completion status' })
+  @ApiResponse({ status: 200, description: 'Subtask status toggled successfully' })
+  @ApiResponse({ status: 404, description: 'Task or subtask not found' })
+  async toggleSubtaskComplete(
+    @Param('id') taskId: string,
+    @Param('subtaskId') subtaskId: string,
+    @Request() req,
+  ) {
+    return this.tasksService.toggleSubtaskComplete(taskId, subtaskId, req.user.id);
+  }
+
   @Patch(':id/assignment')
   @UseGuards(RolesGuard)
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)

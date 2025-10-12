@@ -350,6 +350,42 @@ export class TasksService {
     return this.findOne(taskId, userId, UserRole.SUPER_ADMIN);
   }
 
+  async toggleSubtaskComplete(taskId: string, subtaskId: string, userId: string) {
+    // Find the subtask
+    const subtask = await this.prisma.subtask.findUnique({
+      where: { id: subtaskId },
+      include: { task: true },
+    });
+
+    if (!subtask || subtask.taskId !== taskId) {
+      throw new NotFoundException('Subtask not found');
+    }
+
+    // Toggle completion status
+    const updated = await this.prisma.subtask.update({
+      where: { id: subtaskId },
+      data: {
+        isCompleted: !subtask.isCompleted,
+        completedAt: !subtask.isCompleted ? new Date() : null,
+      },
+    });
+
+    // Recalculate parent task progress
+    const allSubtasks = await this.prisma.subtask.findMany({
+      where: { taskId },
+    });
+    const completedCount = allSubtasks.filter(s => s.isCompleted).length;
+    const progress = allSubtasks.length > 0 ? Math.round((completedCount / allSubtasks.length) * 100) : 0;
+
+    // Update parent task progress
+    await this.prisma.task.update({
+      where: { id: taskId },
+      data: { progress },
+    });
+
+    return updated;
+  }
+
   async updateTaskAssignment(taskId: string, newAssigneeId: string, userId: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },

@@ -1,22 +1,28 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   ClockIcon,
   UserCircleIcon,
   PlusIcon,
   ArrowLeftIcon,
-  ChartBarIcon
+  ChartBarIcon,
+  InformationCircleIcon
 } from '@heroicons/react/24/outline'
 import { CheckCircleIcon as CheckCircleIconSolid } from '@heroicons/react/24/solid'
-import type { Task } from '@/types/task'
+import type { Task, Subtask } from '@/types/task'
+import { tasksApi } from '@/services/api'
+import toast from 'react-hot-toast'
 
 interface SubtaskSidebarProps {
   task: Task
   onAddSubtask?: () => void
+  onSubtaskUpdate?: () => void
 }
 
-const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask }) => {
+const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onSubtaskUpdate }) => {
   const navigate = useNavigate()
+  const [selectedSubtask, setSelectedSubtask] = useState<Subtask | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
 
   const subtasks = task.subtasks || []
   const completedCount = subtasks.filter(s => s.isCompleted).length
@@ -25,6 +31,25 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask }) =
 
   // If this is a subtask, show parent task info
   const isSubtask = task.taskType === 'SUBTASK' && task.parentTask
+
+  const handleToggleSubtask = async (subtask: Subtask, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent navigation when clicking checkbox
+    try {
+      await tasksApi.toggleSubtaskComplete(task.id, subtask.id)
+      toast.success(subtask.isCompleted ? 'Subtask marked incomplete' : 'Subtask completed!')
+      if (onSubtaskUpdate) {
+        onSubtaskUpdate()
+      }
+    } catch (error) {
+      toast.error('Failed to update subtask')
+    }
+  }
+
+  const handleShowDetails = (subtask: Subtask, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent navigation
+    setSelectedSubtask(subtask)
+    setShowDetailModal(true)
+  }
 
   return (
     <div className="bg-white border-l border-gray-200 h-full overflow-y-auto">
@@ -163,24 +188,32 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask }) =
           ) : (
             <div className="space-y-2">
               {subtasks.map((subtask) => (
-                <button
+                <div
                   key={subtask.id}
-                  onClick={() => {
-                    // Navigate to the linked task if it exists
-                    if (subtask.linkedTask) {
-                      navigate(`/tasks/${subtask.linkedTask.id}`)
-                    }
-                  }}
-                  className="w-full text-left p-3 rounded-lg hover:bg-gray-50 border border-gray-200 transition-all group"
+                  className="relative p-3 rounded-lg hover:bg-gray-50 border border-gray-200 transition-all group"
                 >
                   <div className="flex items-start gap-3">
-                    {subtask.isCompleted ? (
-                      <CheckCircleIconSolid className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
-                    ) : (
-                      <ClockIcon className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
-                    )}
+                    {/* Checkbox */}
+                    <button
+                      onClick={(e) => handleToggleSubtask(subtask, e)}
+                      className="flex-shrink-0 mt-0.5"
+                    >
+                      {subtask.isCompleted ? (
+                        <CheckCircleIconSolid className="h-5 w-5 text-green-500 hover:text-green-600 transition-colors" />
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-gray-300 hover:border-blue-500 transition-colors" />
+                      )}
+                    </button>
                     
-                    <div className="flex-1 min-w-0">
+                    {/* Content - Clickable */}
+                    <button
+                      onClick={() => {
+                        if (subtask.linkedTask) {
+                          navigate(`/tasks/${subtask.linkedTask.id}`)
+                        }
+                      }}
+                      className="flex-1 min-w-0 text-left"
+                    >
                       <p className={`text-sm font-medium mb-1 line-clamp-2 ${
                         subtask.isCompleted 
                           ? 'text-gray-500 line-through' 
@@ -217,12 +250,158 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask }) =
                           </div>
                         )}
                       </div>
-                    </div>
+                    </button>
+
+                    {/* Info Button */}
+                    {subtask.description && (
+                      <button
+                        onClick={(e) => handleShowDetails(subtask, e)}
+                        className="flex-shrink-0 p-1 rounded hover:bg-blue-50 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="View details"
+                      >
+                        <InformationCircleIcon className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Subtask Detail Modal */}
+      {showDetailModal && selectedSubtask && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            {/* Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                  {selectedSubtask.title}
+                </h3>
+                <div className="flex items-center gap-3 text-sm">
+                  {selectedSubtask.assignedTo && (
+                    <div className="flex items-center gap-1.5 text-gray-600">
+                      <UserCircleIcon className="h-4 w-4" />
+                      <span>{selectedSubtask.assignedTo.name}</span>
+                    </div>
+                  )}
+                  {selectedSubtask.phase && (
+                    <div 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                      style={{ 
+                        backgroundColor: `${selectedSubtask.phase.color}20`,
+                        color: selectedSubtask.phase.color
+                      }}
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: selectedSubtask.phase.color }} />
+                      {selectedSubtask.phase.name}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => setShowDetailModal(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <svg className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6">
+              {/* Description */}
+              {selectedSubtask.description && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">📝 Instructions</h4>
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                      {selectedSubtask.description}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {/* Estimated Hours */}
+              {selectedSubtask.estimatedHours && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">⏱️ Estimated Time</h4>
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <ClockIcon className="h-4 w-4" />
+                    <span>{selectedSubtask.estimatedHours} hours</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Due Date */}
+              {selectedSubtask.dueDate && (
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">📅 Due Date</h4>
+                  <div className="text-sm text-gray-600">
+                    {new Date(selectedSubtask.dueDate).toLocaleDateString('en-US', { 
+                      weekday: 'long',
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Status */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">✅ Status</h4>
+                <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
+                  selectedSubtask.isCompleted 
+                    ? 'bg-green-100 text-green-700' 
+                    : 'bg-amber-100 text-amber-700'
+                }`}>
+                  {selectedSubtask.isCompleted ? (
+                    <>
+                      <CheckCircleIconSolid className="h-4 w-4" />
+                      Completed
+                    </>
+                  ) : (
+                    <>
+                      <ClockIcon className="h-4 w-4" />
+                      In Progress
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-4 flex items-center justify-between">
+              <button
+                onClick={(e) => {
+                  handleToggleSubtask(selectedSubtask, e as any)
+                  setShowDetailModal(false)
+                }}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  selectedSubtask.isCompleted
+                    ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    : 'bg-green-600 text-white hover:bg-green-700'
+                }`}
+              >
+                {selectedSubtask.isCompleted ? 'Mark Incomplete' : 'Mark Complete'}
+              </button>
+              {selectedSubtask.linkedTask && (
+                <button
+                  onClick={() => {
+                    navigate(`/tasks/${selectedSubtask.linkedTask!.id}`)
+                    setShowDetailModal(false)
+                  }}
+                  className="px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+                >
+                  View Full Task →
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
