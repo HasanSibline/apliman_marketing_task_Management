@@ -22,27 +22,39 @@ class ContentGenerator:
         self._initialize_gemini()
         
     def _initialize_gemini(self):
-        """Initialize Gemini with API key validation"""
+        """Initialize Gemini with multiple API keys support"""
         try:
-            self.api_key = self.config.GOOGLE_API_KEY
-            if not self.api_key:
+            # Get all available API keys
+            self.api_keys = self.config.get_api_keys()
+            if not self.api_keys:
                 raise ContentGeneratorError(
-                    "GOOGLE_API_KEY not found in environment variables. "
-                    "Please create a .env file with your API key."
+                    "No Google API keys found in environment variables. "
+                    "Please set GOOGLE_API_KEY or GOOGLE_API_KEYS in your .env file."
                 )
             
+            self.current_key_index = 0  # Track which key we're using
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
             self.model = self.config.GEMINI_MODEL
-            self.headers = {
-                'Content-Type': 'application/json',
-                'X-goog-api-key': self.api_key
-            }
             
-            # Skip test in initialization to avoid event loop issues
-            logger.info("✅ Gemini initialized successfully")
+            logger.info(f"✅ Gemini initialized with {len(self.api_keys)} API key(s)")
+            if len(self.api_keys) > 1:
+                logger.info(f"🔄 Multiple API keys detected - automatic fallback enabled")
             
         except Exception as e:
             raise ContentGeneratorError(f"Failed to initialize Gemini: {str(e)}")
+    
+    def _get_current_api_key(self):
+        """Get the current API key"""
+        return self.api_keys[self.current_key_index]
+    
+    def _rotate_api_key(self):
+        """Rotate to the next API key"""
+        if len(self.api_keys) > 1:
+            old_index = self.current_key_index
+            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+            logger.warning(f"🔄 Rotating API key from index {old_index} to {self.current_key_index}")
+            return True
+        return False
             
     async def _make_request(self, prompt: str) -> str:
         """Make a request to Gemini API"""
@@ -118,25 +130,77 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             }]
         }
         
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=self.headers, json=payload) as response:
-                    if response.status != 200:
-                        error_text = await response.text()
-                        logger.error(f"Gemini API request failed: {error_text}")
-                        raise ContentGeneratorError(f"Gemini API request failed: {error_text}")
+        # Try all available API keys with automatic fallback
+        last_error = None
+        attempts = 0
+        max_attempts = len(self.api_keys)
+        
+        while attempts < max_attempts:
+            current_key = self._get_current_api_key()
+            headers = {
+                'Content-Type': 'application/json',
+                'X-goog-api-key': current_key
+            }
+            
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, headers=headers, json=payload) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if not data.get('candidates', []):
+                                raise ContentGeneratorError("No response from Gemini")
+                            
+                            # Success! Log which key worked
+                            if attempts > 0:
+                                logger.info(f"✅ Request succeeded with fallback API key (index {self.current_key_index})")
+                            
+                            return data['candidates'][0]['content']['parts'][0]['text']
                         
-                    data = await response.json()
-                    if not data.get('candidates', []):
-                        raise ContentGeneratorError("No response from Gemini")
+                        # Handle quota/rate limit errors (429)
+                        elif response.status == 429:
+                            error_text = await response.text()
+                            logger.warning(f"⚠️ API key {self.current_key_index} quota exceeded: {error_text}")
+                            
+                            # Try next key if available
+                            if self._rotate_api_key():
+                                attempts += 1
+                                logger.info(f"🔄 Trying fallback API key {self.current_key_index} (attempt {attempts + 1}/{max_attempts})")
+                                continue
+                            else:
+                                last_error = f"All API keys exhausted. Quota exceeded: {error_text}"
+                                break
                         
-                    return data['candidates'][0]['content']['parts'][0]['text']
-        except aiohttp.ClientError as e:
-            logger.error(f"Gemini network error: {str(e)}")
-            raise ContentGeneratorError(f"Gemini network error: {str(e)}")
-        except Exception as e:
-            logger.error(f"Error making Gemini request: {str(e)}")
-            raise ContentGeneratorError(f"Error making Gemini request: {str(e)}")
+                        # Other errors
+                        else:
+                            error_text = await response.text()
+                            logger.error(f"Gemini API request failed with status {response.status}: {error_text}")
+                            last_error = f"Gemini API request failed: {error_text}"
+                            
+                            # Try next key for server errors (5xx)
+                            if response.status >= 500 and self._rotate_api_key():
+                                attempts += 1
+                                continue
+                            else:
+                                break
+                        
+            except aiohttp.ClientError as e:
+                logger.error(f"Gemini network error with key {self.current_key_index}: {str(e)}")
+                last_error = f"Gemini network error: {str(e)}"
+                
+                # Try next key on network error
+                if self._rotate_api_key():
+                    attempts += 1
+                    continue
+                else:
+                    break
+            
+            except Exception as e:
+                logger.error(f"Error making Gemini request with key {self.current_key_index}: {str(e)}")
+                last_error = f"Error making Gemini request: {str(e)}"
+                break
+        
+        # All attempts failed
+        raise ContentGeneratorError(last_error or "All API keys failed")
             
     async def _make_legacy_request(self, prompt: str) -> str:
         """Make a request to legacy AI system"""

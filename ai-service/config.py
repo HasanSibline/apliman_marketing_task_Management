@@ -6,8 +6,27 @@ load_dotenv()
 
 class Config:
     """Base configuration"""
-    # AI Provider Configuration (Gemini only)
+    # AI Provider Configuration (Gemini with multiple API keys support)
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    
+    @classmethod
+    def get_api_keys(cls):
+        """Get list of API keys (supports multiple keys with fallback)"""
+        if not hasattr(cls, '_api_keys_cached'):
+            keys = []
+            
+            # Check for multiple keys first (GOOGLE_API_KEYS - comma separated)
+            keys_env = os.getenv("GOOGLE_API_KEYS", "")
+            if keys_env:
+                keys = [key.strip() for key in keys_env.split(",") if key.strip()]
+            
+            # Fallback to single key (GOOGLE_API_KEY)
+            if not keys and cls.GOOGLE_API_KEY:
+                keys = [cls.GOOGLE_API_KEY]
+            
+            cls._api_keys_cached = keys
+        
+        return cls._api_keys_cached
     
     # Server Configuration
     PORT = int(os.getenv("PORT", 8001))
@@ -41,11 +60,12 @@ class Config:
                 "Must be one of: development, production, testing"
             )
         
-        # Validate Gemini API key
-        if not cls.GOOGLE_API_KEY:
+        # Validate Gemini API keys (supports multiple keys)
+        api_keys = cls.get_api_keys()
+        if not api_keys:
             raise ValueError(
-                "GOOGLE_API_KEY not found in environment variables. "
-                "Please set it in your .env file or environment variables."
+                "No Google API keys found. Please set GOOGLE_API_KEY or GOOGLE_API_KEYS "
+                "in your .env file or environment variables."
             )
 
 class DevelopmentConfig(Config):
