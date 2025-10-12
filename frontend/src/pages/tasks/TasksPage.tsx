@@ -62,8 +62,12 @@ const TasksPage: React.FC = () => {
     dispatch(setFilters({}))
   }
 
-  // Group tasks by workflow type
-  const groupedTasks = tasks.reduce((acc, task) => {
+  // Separate completed and active tasks
+  const completedTasks = tasks.filter(task => task.completedAt)
+  const activeTasks = tasks.filter(task => !task.completedAt)
+
+  // Group active tasks by workflow type
+  const groupedTasks = activeTasks.reduce((acc, task) => {
     const workflowName = task.workflow?.name || 'Uncategorized'
     if (!acc[workflowName]) {
       acc[workflowName] = {
@@ -374,10 +378,64 @@ const TasksPage: React.FC = () => {
         </div>
       )}
 
+      {/* Completed Tasks Section */}
+      {!isLoading && completedTasks.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+          <button
+            onClick={() => toggleSection('Completed Tasks')}
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-l-4 border-green-500"
+          >
+            <div className="flex items-center gap-3">
+              {collapsedSections.has('Completed Tasks') ? (
+                <ChevronRightIcon className="h-5 w-5 text-gray-500" />
+              ) : (
+                <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+              )}
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded-full bg-green-500" />
+                <h2 className="text-lg font-semibold text-gray-900">Completed Tasks</h2>
+              </div>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                {completedTasks.length} {completedTasks.length === 1 ? 'task' : 'tasks'}
+              </span>
+            </div>
+            <div className="text-sm text-green-600 font-medium">
+              ✓ All Done
+            </div>
+          </button>
+
+          <AnimatePresence>
+            {!collapsedSections.has('Completed Tasks') && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="px-4 pb-4"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {completedTasks.map((task: Task) => (
+                    <motion.div
+                      key={task.id}
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <TaskListItem task={task} />
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+
       {/* Task Count */}
       {!isLoading && tasks.length > 0 && (
         <div className="text-center text-sm text-gray-500 py-4">
-          Showing {tasks.length} task{tasks.length !== 1 ? 's' : ''} across {Object.keys(groupedTasks).length} workflow{Object.keys(groupedTasks).length !== 1 ? 's' : ''}
+          Showing {activeTasks.length} active task{activeTasks.length !== 1 ? 's' : ''} across {Object.keys(groupedTasks).length} workflow{Object.keys(groupedTasks).length !== 1 ? 's' : ''}
+          {completedTasks.length > 0 && ` • ${completedTasks.length} completed task${completedTasks.length !== 1 ? 's' : ''}`}
         </div>
       )}
 

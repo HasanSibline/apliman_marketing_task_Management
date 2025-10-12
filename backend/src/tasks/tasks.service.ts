@@ -114,32 +114,38 @@ export class TasksService {
             subtask.phaseName && p.name.toLowerCase().includes(subtask.phaseName.toLowerCase())
           ) || startPhase;
 
-          // Auto-assign if requested and role/user suggested
+          // Determine assignee from subtask data
           let suggestedAssignee = null;
-          if (createTaskDto.autoAssign) {
-            if (subtask.suggestedUserId) {
-              // Use specific user ID if provided by AI
-              suggestedAssignee = await this.prisma.user.findUnique({
-                where: {
-                  id: subtask.suggestedUserId,
-                  status: 'ACTIVE',
-                },
-              });
-            } else if (subtask.suggestedRole) {
-              // Fallback to role-based assignment
-              suggestedAssignee = await this.prisma.user.findFirst({
-                where: {
-                  position: { contains: subtask.suggestedRole },
-                  status: 'ACTIVE',
-                },
-              });
-            }
+          if (subtask.suggestedUserId) {
+            // Use specific user ID if provided
+            suggestedAssignee = await this.prisma.user.findUnique({
+              where: {
+                id: subtask.suggestedUserId,
+                status: 'ACTIVE',
+              },
+            });
+          } else if (subtask.assignedToId) {
+            // Use assignedToId if provided (from manual assignment in UI)
+            suggestedAssignee = await this.prisma.user.findUnique({
+              where: {
+                id: subtask.assignedToId,
+                status: 'ACTIVE',
+              },
+            });
+          } else if (createTaskDto.autoAssign && subtask.suggestedRole) {
+            // Fallback to role-based assignment if autoAssign is enabled
+            suggestedAssignee = await this.prisma.user.findFirst({
+              where: {
+                position: { contains: subtask.suggestedRole },
+                status: 'ACTIVE',
+        },
+      });
           }
 
           // Create subtask record
           const createdSubtask = await this.prisma.subtask.create({
             data: {
-              taskId: task.id,
+          taskId: task.id,
               title: subtask.title,
               description: subtask.description,
               order: index,
@@ -307,8 +313,9 @@ export class TasksService {
       );
     }
 
-    // Check if target phase requires approval
-    if (toPhase.requiresApproval) {
+    // Check if CURRENT phase requires approval to exit (not if target phase requires approval to enter)
+    // This means: approval needed when LEAVING a phase, not when ENTERING a phase
+    if (currentPhase && currentPhase.requiresApproval) {
       // Check if there's already a pending approval
       const existingApproval = await this.prisma.phaseApproval.findFirst({
         where: {
@@ -319,7 +326,7 @@ export class TasksService {
       });
 
       if (existingApproval) {
-        throw new BadRequestException('An approval request for this phase is already pending');
+        throw new BadRequestException('An approval request for this phase transition is already pending');
       }
 
       // Create approval request
@@ -344,7 +351,7 @@ export class TasksService {
           userId: admin.id,
           type: 'TASK_PHASE_CHANGED',
           title: 'Approval Required',
-          message: `Task "${task.title}" needs approval to move to "${toPhase.name}"`,
+          message: `Task "${task.title}" needs approval to move from "${currentPhase.name}" to "${toPhase.name}"`,
           taskId: task.id,
           phaseId: toPhaseId,
           actionUrl: `/approvals`,
@@ -355,6 +362,7 @@ export class TasksService {
         ...task,
         pendingApproval: true,
         approvalPhase: toPhase.name,
+        approvalMessage: `Waiting for admin approval to move from "${currentPhase.name}" to "${toPhase.name}"`,
       };
     }
 
