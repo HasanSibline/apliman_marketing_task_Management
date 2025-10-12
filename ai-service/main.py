@@ -264,14 +264,15 @@ async def startup_event():
         logger.info("Using AI provider: Gemini")
         logger.info(f"Gemini model: {config.GEMINI_MODEL}")
         
-        # Test Gemini connection
-        test_result = await content_generator.generate_description("test")
-        if test_result:
-            logger.info("Gemini connection tested successfully")
+        # Skip startup test to save API quota
+        logger.info("⚠️ Skipping Gemini connection test to preserve API quota")
+        logger.info("✅ AI service ready (connection will be tested on first request)")
         
     except Exception as e:
         logger.error(f"Startup failed: {e}")
-        raise e
+        # Don't crash on startup - allow service to start even if config issues
+        logger.warning("⚠️ Starting service despite configuration issues - errors will be caught per-request")
+        pass
 
 # Shutdown event
 @app.on_event("shutdown")
