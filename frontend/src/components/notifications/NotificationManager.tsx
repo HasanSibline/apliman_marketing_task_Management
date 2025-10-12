@@ -264,9 +264,13 @@ const NotificationManager: React.FC = () => {
                         ) : notification.link && (
                           <button
                             onClick={() => {
-                              navigate(notification.link!)
+                              // Mark as read/clear notification
+                              clearNotification(notification.id)
+                              // Close dropdown
                               setShowDropdown(false)
-                              // If it's a comment mention, scroll to comments
+                              // Navigate to the link
+                              navigate(notification.link!)
+                              // If it's a comment mention, scroll to comments after navigation
                               if (notification.type === 'COMMENT_MENTION' || notification.type === 'task_approval') {
                                 setTimeout(() => {
                                   const commentsSection = document.getElementById('comments-section')
@@ -276,9 +280,9 @@ const NotificationManager: React.FC = () => {
                                 }, 500)
                               }
                             }}
-                            className="text-sm text-primary-600 hover:text-primary-700 mt-2 inline-block"
+                            className="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-block font-medium"
                           >
-                            View Details
+                            View Details →
                           </button>
                         )}
                       </div>

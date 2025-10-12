@@ -66,7 +66,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl p-6"
+              className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6"
             >
               <button
                 onClick={onClose}
@@ -75,18 +75,84 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 <XMarkIcon className="w-6 h-6" />
               </button>
 
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-3xl">📋</span>
+              <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-2xl">📋</span>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-xl font-bold text-gray-900 mb-1">{subtask.title}</h3>
+                    <p className="text-sm text-gray-500">Unassigned Subtask</p>
+                  </div>
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Subtask Not Linked</h3>
-                <p className="text-gray-500 mb-1">{subtask.title}</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  This subtask is not linked to an individual task yet.
-                </p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Subtasks are automatically linked when assigned to a user.
-                </p>
+
+                {/* Description */}
+                {subtask.description && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
+                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{subtask.description}</p>
+                  </div>
+                )}
+
+                {/* Details */}
+                <div className="grid grid-cols-2 gap-4">
+                  {subtask.estimatedHours && (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                        <ClockIcon className="w-4 h-4" />
+                        <span className="text-xs font-medium">Estimated Hours</span>
+                      </div>
+                      <p className="text-lg font-semibold text-gray-900">{subtask.estimatedHours}h</p>
+                    </div>
+                  )}
+                  {subtask.phase && (
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                        <span className="w-4 h-4 rounded-full" style={{ backgroundColor: subtask.phase.color }} />
+                        <span className="text-xs font-medium">Phase</span>
+                      </div>
+                      <p className="text-sm font-semibold text-gray-900">{subtask.phase.name}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Box */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="text-yellow-600 flex-shrink-0">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-yellow-800 mb-1">Not Assigned Yet</h4>
+                      <p className="text-sm text-yellow-700">
+                        This subtask hasn't been assigned to anyone. Assign it to a team member to create an individual task and enable full tracking.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <button
+                    onClick={() => {
+                      onClose()
+                      // Navigate to parent task where they can assign the subtask
+                      window.location.href = `/tasks/${task.id}`
+                    }}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    View Parent Task
+                  </button>
+                </div>
               </div>
             </motion.div>
           </div>

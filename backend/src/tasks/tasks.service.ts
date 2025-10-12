@@ -150,7 +150,7 @@ export class TasksService {
             },
           });
 
-          // Create individual task for assigned subtask
+          // ALWAYS create individual task if there's an assignee (regardless of autoAssign flag)
           if (suggestedAssignee) {
             const individualTask = await this.prisma.task.create({
               data: {
