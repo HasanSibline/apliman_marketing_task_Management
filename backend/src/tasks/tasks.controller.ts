@@ -220,4 +220,18 @@ export class TasksController {
   ) {
     return this.tasksService.updateTaskAssignment(id, body.assignedToId, req.user.id);
   }
+
+  @Get('images/:imageId')
+  @ApiOperation({ summary: 'Get comment image by ID' })
+  @ApiResponse({ status: 200, description: 'Image retrieved successfully' })
+  @ApiResponse({ status: 404, description: 'Image not found' })
+  async getCommentImage(@Param('imageId') imageId: string, @Request() _req) {
+    const image = await this.tasksService.getCommentImage(imageId);
+    
+    // Return image as base64 data URL
+    return {
+      data: `data:${image.mimeType};base64,${image.data}`,
+      mimeType: image.mimeType,
+    };
+  }
 }

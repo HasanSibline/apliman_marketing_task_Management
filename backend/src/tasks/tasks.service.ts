@@ -804,6 +804,13 @@ export class TasksService {
                 position: true,
               },
             },
+            images: {
+              select: {
+                id: true,
+                mimeType: true,
+                size: true,
+              },
+            },
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -965,39 +972,12 @@ export class TasksService {
     // Verify user has access to the task
     const task = await this.findOne(taskId, userId, userRole);
 
-    // Upload images and get URLs
-    const imageUrls: string[] = [];
-    if (images && images.length > 0) {
-      for (const image of images) {
-        // Save image to uploads folder
-        const fs = require('fs');
-        const path = require('path');
-        const uploadsDir = path.join(process.cwd(), 'uploads', 'comments');
-        
-        // Ensure directory exists
-        if (!fs.existsSync(uploadsDir)) {
-          fs.mkdirSync(uploadsDir, { recursive: true });
-        }
-
-        // Generate unique filename
-        const fileExtension = path.extname(image.originalname);
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
-        const filePath = path.join(uploadsDir, fileName);
-
-        // Write file
-        fs.writeFileSync(filePath, image.buffer);
-
-        // Store relative URL
-        imageUrls.push(`/uploads/comments/${fileName}`);
-      }
-    }
-
+    // Create comment first
     const createdComment = await this.prisma.taskComment.create({
       data: {
         taskId,
         userId,
         comment,
-        images: imageUrls,
       },
       include: {
         user: {
@@ -1010,6 +990,31 @@ export class TasksService {
         },
       },
     });
+
+    // Store images as base64 in database
+    const imageRecords = [];
+    if (images && images.length > 0) {
+      for (const image of images) {
+        // Convert buffer to base64
+        const base64Data = image.buffer.toString('base64');
+        
+        // Create image record
+        const imageRecord = await this.prisma.commentImage.create({
+          data: {
+            commentId: createdComment.id,
+            data: base64Data,
+            mimeType: image.mimetype,
+            size: image.size,
+          },
+        });
+        
+        imageRecords.push({
+          id: imageRecord.id,
+          mimeType: imageRecord.mimeType,
+          size: imageRecord.size,
+        });
+      }
+    }
 
     // Notify mentioned users
     if (mentionedUserIds && mentionedUserIds.length > 0) {
@@ -1038,8 +1043,24 @@ export class TasksService {
 
     return {
       ...createdComment,
-      images: imageUrls.map(url => ({ url })),
+      images: imageRecords,
     };
+  }
+
+  async getCommentImage(imageId: string) {
+    const image = await this.prisma.commentImage.findUnique({
+      where: { id: imageId },
+      select: {
+        data: true,
+        mimeType: true,
+      },
+    });
+
+    if (!image) {
+      throw new NotFoundException('Image not found');
+    }
+
+    return image;
   }
 
   async getTasksByPhase() {
