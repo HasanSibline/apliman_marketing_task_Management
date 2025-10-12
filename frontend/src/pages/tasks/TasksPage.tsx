@@ -1,18 +1,23 @@
 import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
-import { PlusIcon, FunnelIcon, Squares2X2Icon, ListBulletIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline'
-import ReactMarkdown from 'react-markdown'
+import { 
+  PlusIcon, 
+  FunnelIcon, 
+  MagnifyingGlassIcon,
+  XMarkIcon,
+  AdjustmentsHorizontalIcon
+} from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTasks, setFilters } from '@/store/slices/tasksSlice'
 import CreateTaskModal from '@/components/tasks/CreateTaskModal'
-import TaskDetailModal from '@/components/tasks/TaskDetailModal'
+import TaskListItem from '@/components/tasks/TaskListItem'
 import ExportButton from '@/components/tasks/ExportButton'
-import TaskBoard from '@/components/tasks/TaskBoard'
+import { workflowsApi } from '@/services/api'
 import { Task } from '@/types/task'
 
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
-  const { tasks: apiTasks, isLoading, filters, pagination } = useAppSelector((state) => state.tasks)
+  const { tasks: apiTasks, isLoading, filters } = useAppSelector((state) => state.tasks)
   const tasks = apiTasks.map(task => ({
     ...task,
     createdById: task.createdBy?.id || ''
@@ -20,42 +25,34 @@ const TasksPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [showFilters, setShowFilters] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [showTaskModal, setShowTaskModal] = useState(false)
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
-  const [viewMode, setViewMode] = useState<'list' | 'board'>('board')
+  const [workflows, setWorkflows] = useState<any[]>([])
 
   useEffect(() => {
     dispatch(fetchTasks(filters))
+    loadWorkflows()
   }, [dispatch, filters])
+
+  const loadWorkflows = async () => {
+    try {
+      const data = await workflowsApi.getAll()
+      setWorkflows(data)
+    } catch (error) {
+      console.error('Failed to load workflows:', error)
+    }
+  }
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
 
-  const handleTaskClick = (task: Task) => {
-    setSelectedTask(task)
-    setShowTaskModal(true)
-  }
+  const activeFiltersCount = [
+    filters.search,
+    filters.phase,
+    filters.assignedToId,
+    filters.workflowId,
+    filters.priority
+  ].filter(Boolean).length
 
-  const handleCloseTaskModal = () => {
-    setShowTaskModal(false)
-    setSelectedTask(null)
-  }
-
-  const phaseColors = {
-    PENDING_APPROVAL: 'bg-gray-100 text-gray-800',
-    APPROVED: 'bg-cyan-100 text-cyan-800',
-    REJECTED: 'bg-red-100 text-red-800',
-    ASSIGNED: 'bg-purple-100 text-purple-800',
-    IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    ARCHIVED: 'bg-gray-100 text-gray-600',
-  }
-
-  const priorityColors = {
-    1: 'text-gray-500',
-    2: 'text-blue-500',
-    3: 'text-yellow-500',
-    4: 'text-orange-500',
-    5: 'text-red-500',
+  const clearAllFilters = () => {
+    dispatch(setFilters({}))
   }
 
   return (
@@ -63,58 +60,23 @@ const TasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tasks</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
           <p className="text-gray-600 mt-1">
-            Manage and track your tasks
+            Manage and track your tasks and subtasks
           </p>
         </div>
-        <div className="flex items-center space-x-3">
-          {/* Search Bar */}
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={filters.search || ''}
-              onChange={(e) => dispatch(setFilters({ search: e.target.value || undefined }))}
-              className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent w-64"
-            />
-          </div>
-
-          {/* View Toggle */}
-          <div className="flex items-center bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('board')}
-              className={`p-2 rounded-md transition-colors ${
-                viewMode === 'board' 
-                  ? 'bg-white text-primary-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              title="Board View"
-            >
-              <Squares2X2Icon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`p-2 rounded-md transition-colors ${
-                viewMode === 'list' 
-                  ? 'bg-white text-primary-600 shadow-sm' 
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-              title="List View"
-            >
-              <ListBulletIcon className="h-4 w-4" />
-            </button>
-          </div>
-
+        <div className="flex items-center gap-3">
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="btn-secondary"
+            className="relative btn-secondary"
           >
-            <FunnelIcon className="h-4 w-4 mr-2" />
+            <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
             Filters
+            {activeFiltersCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                {activeFiltersCount}
+              </span>
+            )}
           </button>
           <button 
             onClick={() => setShowCreateModal(true)}
@@ -129,15 +91,84 @@ const TasksPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Filters */}
+      {/* Search Bar */}
+      <div className="relative">
+        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          placeholder="Search tasks by title, description, or assignee..."
+          value={filters.search || ''}
+          onChange={(e) => dispatch(setFilters({ search: e.target.value || undefined }))}
+          className="pl-11 pr-4 py-3 w-full border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+        />
+      </div>
+
+      {/* Filters Panel */}
       {showFilters && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
           exit={{ opacity: 0, height: 0 }}
-          className="card"
+          className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
         >
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <FunnelIcon className="h-5 w-5" />
+              Filter Tasks
+            </h3>
+            {activeFiltersCount > 0 && (
+              <button
+                onClick={clearAllFilters}
+                className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+              >
+                <XMarkIcon className="h-4 w-4" />
+                Clear All Filters
+              </button>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Workflow Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Workflow
+              </label>
+              <select
+                value={filters.workflowId || ''}
+                onChange={(e) => dispatch(setFilters({ workflowId: e.target.value || undefined }))}
+                className="input-field"
+              >
+                <option value="">All Workflows</option>
+                {workflows.map(workflow => (
+                  <option key={workflow.id} value={workflow.id}>
+                    {workflow.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Priority Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Priority
+              </label>
+              <select
+                value={filters.priority || ''}
+                onChange={(e) => dispatch(setFilters({ priority: e.target.value ? parseInt(e.target.value) : undefined }))}
+                className="input-field"
+              >
+                <option value="">All Priorities</option>
+                <option value="1">Low</option>
+                <option value="2">Medium</option>
+                <option value="3">High</option>
+                <option value="4">Urgent</option>
+                <option value="5">Critical</option>
+              </select>
+            </div>
+
+            {/* Phase Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Phase
@@ -154,12 +185,13 @@ const TasksPage: React.FC = () => {
                 <option value="ASSIGNED">Assigned</option>
                 <option value="IN_PROGRESS">In Progress</option>
                 <option value="COMPLETED">Completed</option>
-                {/* Only show ARCHIVED option for admins */}
-                {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+                {isAdmin && (
                   <option value="ARCHIVED">Archived</option>
                 )}
               </select>
             </div>
+
+            {/* Assigned To Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Assigned To
@@ -173,104 +205,92 @@ const TasksPage: React.FC = () => {
                 <option value={user?.id}>My Tasks</option>
               </select>
             </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => dispatch(setFilters({}))}
-                className="btn-secondary w-full"
-              >
-                Clear Filters
-              </button>
-            </div>
           </div>
         </motion.div>
       )}
 
-      {/* Tasks Content */}
+      {/* Active Filters Display */}
+      {activeFiltersCount > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+          {filters.search && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+              Search: "{filters.search}"
+              <button
+                onClick={() => dispatch(setFilters({ search: undefined }))}
+                className="hover:bg-blue-200 rounded-full p-0.5"
+              >
+                <XMarkIcon className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          )}
+          {filters.workflowId && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
+              Workflow: {workflows.find(w => w.id === filters.workflowId)?.name}
+              <button
+                onClick={() => dispatch(setFilters({ workflowId: undefined }))}
+                className="hover:bg-purple-200 rounded-full p-0.5"
+              >
+                <XMarkIcon className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          )}
+          {filters.priority && (
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm">
+              Priority: {['Low', 'Medium', 'High', 'Urgent', 'Critical'][filters.priority - 1]}
+              <button
+                onClick={() => dispatch(setFilters({ priority: undefined }))}
+                className="hover:bg-amber-200 rounded-full p-0.5"
+              >
+                <XMarkIcon className="h-3.5 w-3.5" />
+              </button>
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Tasks List */}
       {isLoading ? (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        <div className="flex flex-col items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+          <p className="text-gray-600">Loading tasks...</p>
         </div>
       ) : tasks.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No tasks found</p>
+        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+          <div className="text-6xl mb-4">📋</div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks found</h3>
+          <p className="text-gray-500 mb-6">
+            {activeFiltersCount > 0 
+              ? 'Try adjusting your filters or create a new task'
+              : 'Get started by creating your first task'}
+          </p>
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Create Task
+          </button>
         </div>
-      ) : viewMode === 'board' ? (
-        <TaskBoard 
-          tasks={tasks} 
-          onTaskClick={handleTaskClick}
-        />
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4">
           {tasks.map((task: Task, index: number) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.1 }}
-              className="card hover:shadow-md transition-shadow duration-200 cursor-pointer"
-              onClick={() => handleTaskClick(task)}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {task.title}
-                    </h3>
-                    <span className={`status-badge ${task.phase ? phaseColors[task.phase as keyof typeof phaseColors] : ''}`}>
-                      {task.phase?.replace('_', ' ') || 'N/A'}
-                    </span>
-                    <span className={`text-lg ${priorityColors[task.priority as keyof typeof priorityColors]}`}>
-                      {'★'.repeat(task.priority)}
-                    </span>
-                  </div>
-                  <div className="text-gray-600 mb-3 line-clamp-2 prose prose-sm max-w-none">
-                    <ReactMarkdown>{task.description}</ReactMarkdown>
-                  </div>
-                  <div className="flex items-center space-x-4 text-sm text-gray-500">
-                    {task.assignedTo && (
-                      <span>Assigned to: {task.assignedTo.name}</span>
-                    )}
-                    <span>Created by: {task.createdBy?.name || 'Unknown'}</span>
-                    <span>{task._count?.files || 0} files</span>
-                    <span>{task._count?.comments || 0} comments</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-gray-500">
-                    {new Date(task.createdAt).toLocaleDateString()}
-                  </p>
-                  {task.dueDate && (
-                    <p className="text-sm text-red-600">
-                      Due: {new Date(task.dueDate).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              </div>
+              <TaskListItem task={task} />
             </motion.div>
           ))}
         </div>
       )}
 
-      {/* Pagination */}
-      {pagination.totalPages > 1 && (
-        <div className="flex justify-center">
-          <div className="flex items-center space-x-2">
-            <button
-              disabled={pagination.page === 1}
-              className="btn-secondary disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-gray-600">
-              Page {pagination.page} of {pagination.totalPages}
-            </span>
-            <button
-              disabled={pagination.page === pagination.totalPages}
-              className="btn-secondary disabled:opacity-50"
-            >
-              Next
-            </button>
-          </div>
+      {/* Task Count */}
+      {!isLoading && tasks.length > 0 && (
+        <div className="text-center text-sm text-gray-500 py-4">
+          Showing {tasks.length} task{tasks.length !== 1 ? 's' : ''}
         </div>
       )}
 
@@ -279,15 +299,6 @@ const TasksPage: React.FC = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
       />
-
-      {/* Task Detail Modal */}
-      {selectedTask && (
-        <TaskDetailModal
-          isOpen={showTaskModal}
-          onClose={handleCloseTaskModal}
-          task={selectedTask}
-        />
-      )}
     </div>
   )
 }

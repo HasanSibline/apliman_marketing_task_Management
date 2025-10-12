@@ -54,6 +54,7 @@ export interface Subtask {
   estimatedHours?: number
   createdAt: string
   updatedAt: string
+  linkedTask?: Task // Individual task created for this subtask
 }
 
 export interface Task {
@@ -103,9 +104,16 @@ export interface Task {
   files?: any[]
   subtasks?: Subtask[]
   goals?: string
+  timeTracked?: number
   _count?: {
     files: number
     comments: number
     subtasks?: number
   }
+  // Parent-child relationships
+  parentTaskId?: string
+  parentTask?: Task
+  childTasks?: Task[]
+  subtaskId?: string
+  linkedSubtask?: Subtask
 }

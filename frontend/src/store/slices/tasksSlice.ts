@@ -20,6 +20,8 @@ interface TasksState {
     assignedToId?: string
     createdById?: string
     search?: string
+    workflowId?: string
+    priority?: number
   }
 }
 
@@ -46,6 +48,8 @@ export const fetchTasks = createAsyncThunk(
     assignedToId?: string
     createdById?: string
     search?: string
+    workflowId?: string
+    priority?: number
     page?: number
     limit?: number
   } = {}, { rejectWithValue }) => {

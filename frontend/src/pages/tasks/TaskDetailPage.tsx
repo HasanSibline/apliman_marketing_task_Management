@@ -1,21 +1,41 @@
-import React, { useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import React, { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { 
+  ArrowLeftIcon,
   PaperClipIcon, 
   ChatBubbleLeftIcon,
   CalendarIcon,
-  UserIcon 
+  UserIcon,
+  ClockIcon,
+  FlagIcon,
+  PlayIcon,
+  PauseIcon,
+  CheckCircleIcon,
+  PencilIcon,
+  TrashIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  BoltIcon,
+  FireIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
+import { tasksApi } from '@/services/api'
 import FileUpload from '@/components/tasks/FileUpload'
 import TaskComments from '@/components/tasks/TaskComments'
+import SubtaskSidebar from '@/components/tasks/SubtaskSidebar'
+import toast from 'react-hot-toast'
 
 const TaskDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { currentTask, isLoading } = useAppSelector((state) => state.tasks)
+  const { user } = useAppSelector((state) => state.auth)
+  const [isTimerRunning, setIsTimerRunning] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
 
   useEffect(() => {
     if (id) {
@@ -23,103 +43,343 @@ const TaskDetailPage: React.FC = () => {
     }
   }, [dispatch, id])
 
+  useEffect(() => {
+    let interval: NodeJS.Timeout
+    if (isTimerRunning) {
+      interval = setInterval(() => {
+        setCurrentTime(prev => prev + 1)
+      }, 1000)
+    }
+    return () => clearInterval(interval)
+  }, [isTimerRunning])
+
+  const getPriorityConfig = (priority: number) => {
+    switch (priority) {
+      case 1: 
+        return { 
+          color: '#6B7280',
+          bg: 'bg-gray-100',
+          text: 'text-gray-700',
+          icon: ArrowDownIcon,
+          label: 'Low Priority'
+        }
+      case 2: 
+        return { 
+          color: '#3B82F6',
+          bg: 'bg-blue-100',
+          text: 'text-blue-700',
+          icon: ChevronUpIcon,
+          label: 'Medium Priority'
+        }
+      case 3: 
+        return { 
+          color: '#F59E0B',
+          bg: 'bg-amber-100',
+          text: 'text-amber-700',
+          icon: ArrowUpIcon,
+          label: 'High Priority'
+        }
+      case 4: 
+        return { 
+          color: '#EF4444',
+          bg: 'bg-red-100',
+          text: 'text-red-700',
+          icon: BoltIcon,
+          label: 'Urgent'
+        }
+      case 5: 
+        return { 
+          color: '#DC2626',
+          bg: 'bg-red-200',
+          text: 'text-red-800',
+          icon: FireIcon,
+          label: 'Critical'
+        }
+      default: 
+        return { 
+          color: '#6B7280',
+          bg: 'bg-gray-100',
+          text: 'text-gray-700',
+          icon: ChevronUpIcon,
+          label: 'Normal'
+        }
+    }
+  }
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const handleDeleteTask = async () => {
+    if (!currentTask) return
+    
+    if (window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      try {
+        await tasksApi.delete(currentTask.id)
+        toast.success('Task deleted successfully')
+        navigate('/tasks')
+      } catch (error: any) {
+        toast.error(error.response?.data?.message || 'Failed to delete task')
+      }
+    }
+  }
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      <div className="flex flex-col items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+        <p className="text-gray-600">Loading task details...</p>
       </div>
     )
   }
 
   if (!currentTask) {
     return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">Task not found</p>
+      <div className="text-center py-16">
+        <div className="text-6xl mb-4">❌</div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">Task not found</h3>
+        <p className="text-gray-500 mb-6">The task you're looking for doesn't exist or has been deleted.</p>
+        <button
+          onClick={() => navigate('/tasks')}
+          className="btn-primary"
+        >
+          <ArrowLeftIcon className="h-4 w-4 mr-2" />
+          Back to Tasks
+        </button>
       </div>
     )
   }
 
-  const phaseColors = {
-    PENDING_APPROVAL: 'bg-gray-100 text-gray-800',
-    APPROVED: 'bg-blue-100 text-blue-800',
-    ASSIGNED: 'bg-purple-100 text-purple-800',
-    IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
-    COMPLETED: 'bg-green-100 text-green-800',
-    ARCHIVED: 'bg-gray-100 text-gray-600',
-  }
+  const priorityConfig = getPriorityConfig(currentTask.priority)
+  const PriorityIcon = priorityConfig.icon
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  const canEdit = isAdmin || currentTask.assignedToId === user?.id || currentTask.createdById === user?.id
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="card"
-      >
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-2">
-              <h1 className="text-2xl font-bold text-gray-900">
-                {currentTask.title}
-              </h1>
-              <span className={`status-badge ${phaseColors[currentTask.phase as keyof typeof phaseColors]}`}>
-                {currentTask.phase?.replace('_', ' ') || 'N/A'}
-              </span>
-            </div>
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <div className="flex items-center space-x-1">
-                <UserIcon className="h-4 w-4" />
-                <span>Created by {currentTask.createdBy?.name || 'Unknown'}</span>
+    <div className="flex h-[calc(100vh-8rem)] gap-6">
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl space-y-6">
+          {/* Back Button */}
+          <button
+            onClick={() => navigate('/tasks')}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+            <span className="font-medium">Back to Tasks</span>
+          </button>
+
+          {/* Header Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
+          >
+            {/* Title & Actions */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-900 mb-3">
+                  {currentTask.title}
+                </h1>
+                
+                {/* Meta Info */}
+                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
+                  <div className="flex items-center gap-1.5">
+                    <UserIcon className="h-4 w-4" />
+                    <span>Created by <strong>{currentTask.createdBy?.name || 'Unknown'}</strong></span>
+                  </div>
+                  {currentTask.assignedTo && (
+                    <div className="flex items-center gap-1.5">
+                      <UserIcon className="h-4 w-4" />
+                      <span>Assigned to <strong>{currentTask.assignedTo.name}</strong></span>
+                      {currentTask.assignedTo.position && (
+                        <span className="text-xs text-gray-500">• {currentTask.assignedTo.position}</span>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1.5">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span>Created {new Date(currentTask.createdAt).toLocaleDateString('en-US', { 
+                      month: 'long', 
+                      day: 'numeric', 
+                      year: 'numeric' 
+                    })}</span>
+                  </div>
+                </div>
+
+                {/* Tags & Badges */}
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Priority Badge */}
+                  <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${priorityConfig.bg} ${priorityConfig.text}`}>
+                    <PriorityIcon className="h-4 w-4" />
+                    <span className="text-sm font-semibold">{priorityConfig.label}</span>
+                  </div>
+
+                  {/* Workflow Phase Tag */}
+                  {currentTask.currentPhase && (
+                    <div 
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                      style={{ 
+                        backgroundColor: `${currentTask.currentPhase.color}20`,
+                        color: currentTask.currentPhase.color,
+                        border: `1px solid ${currentTask.currentPhase.color}40`
+                      }}
+                    >
+                      <span 
+                        className="w-2 h-2 rounded-full"
+                        style={{ backgroundColor: currentTask.currentPhase.color }}
+                      />
+                      {currentTask.workflow?.name && (
+                        <span className="opacity-75">{currentTask.workflow.name} •</span>
+                      )}
+                      {currentTask.currentPhase.name}
+                    </div>
+                  )}
+
+                  {/* Task Type Badge */}
+                  {currentTask.taskType && currentTask.taskType !== 'GENERAL' && (
+                    <span className={`px-3 py-1.5 text-sm font-medium rounded-lg ${
+                      currentTask.taskType === 'COORDINATION' 
+                        ? 'bg-indigo-100 text-indigo-700' 
+                        : currentTask.taskType === 'SUBTASK'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {currentTask.taskType}
+                    </span>
+                  )}
+
+                  {/* Due Date */}
+                  {currentTask.dueDate && (
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${
+                      new Date(currentTask.dueDate) < new Date() && !currentTask.completedAt
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-gray-100 text-gray-700'
+                    }`}>
+                      <CalendarIcon className="h-4 w-4" />
+                      <span className="text-sm font-medium">
+                        Due {new Date(currentTask.dueDate).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Completed Badge */}
+                  {currentTask.completedAt && (
+                    <div className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1.5 rounded-lg">
+                      <CheckCircleIcon className="h-4 w-4" />
+                      <span className="text-sm font-semibold">Completed</span>
+                    </div>
+                  )}
+                </div>
               </div>
-              {currentTask.assignedTo && (
-                <div className="flex items-center space-x-1">
-                  <UserIcon className="h-4 w-4" />
-                  <span>Assigned to {currentTask.assignedTo.name}</span>
+
+              {/* Action Buttons */}
+              {canEdit && (
+                <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => toast('Edit functionality coming soon', { icon: 'ℹ️' })}
+                    className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                    title="Edit Task"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={handleDeleteTask}
+                      className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                      title="Delete Task"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  )}
                 </div>
               )}
-              <div className="flex items-center space-x-1">
-                <CalendarIcon className="h-4 w-4" />
-                <span>Created {new Date(currentTask.createdAt).toLocaleDateString()}</span>
+            </div>
+
+            {/* Description */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <FlagIcon className="h-5 w-5 text-blue-600" />
+                Description
+              </h2>
+              <div className="prose max-w-none text-gray-700">
+                <p className="whitespace-pre-wrap">{currentTask.description}</p>
               </div>
             </div>
-          </div>
-          <div className="text-right">
-            <div className="text-2xl text-yellow-500 mb-1">
-              {'★'.repeat(currentTask.priority)}
-            </div>
-            {currentTask.dueDate && (
-              <p className="text-sm text-red-600">
-                Due: {new Date(currentTask.dueDate).toLocaleDateString()}
-              </p>
+
+            {/* Goals */}
+            {currentTask.goals && (
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                  Goals & Objectives
+                </h2>
+                <div className="prose max-w-none text-gray-700">
+                  <p className="whitespace-pre-wrap">{currentTask.goals}</p>
+                </div>
+              </div>
             )}
-          </div>
-        </div>
+          </motion.div>
 
-        <div className="prose max-w-none">
-          <h3>Description</h3>
-          <p className="text-gray-700">{currentTask.description}</p>
-          
-          {currentTask.goals && (
-            <>
-              <h3>Goals</h3>
-              <p className="text-gray-700">{currentTask.goals}</p>
-            </>
-          )}
-        </div>
-      </motion.div>
+          {/* Time Tracking */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <ClockIcon className="h-5 w-5 text-blue-600" />
+              Time Tracking
+            </h2>
+            <div className="flex items-center gap-6">
+              <div className="flex-1">
+                <div className="text-4xl font-mono font-bold text-gray-900 mb-2">
+                  {formatTime(currentTime)}
+                </div>
+                <div className="text-sm text-gray-500">
+                  Current session time
+                </div>
+              </div>
+              <button
+                onClick={() => setIsTimerRunning(!isTimerRunning)}
+                className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
+                  isTimerRunning
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                {isTimerRunning ? (
+                  <>
+                    <PauseIcon className="h-5 w-5" />
+                    Pause Timer
+                  </>
+                ) : (
+                  <>
+                    <PlayIcon className="h-5 w-5" />
+                    Start Timer
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Files */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="card"
-        >
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center mb-4">
-              <PaperClipIcon className="h-5 w-5 mr-2" />
+          {/* Files */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+              <PaperClipIcon className="h-5 w-5 text-blue-600" />
               Files ({(currentTask as any).files?.length || 0})
             </h2>
             
@@ -128,19 +388,17 @@ const TaskDetailPage: React.FC = () => {
               files={(currentTask as any).files || []}
               onFilesUpdated={() => dispatch(fetchTaskById(currentTask.id))}
             />
-          </div>
-        </motion.div>
+          </motion.div>
 
-        {/* Comments */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="card"
-        >
-          <div className="mb-4">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center mb-4">
-              <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
+          {/* Comments */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
+          >
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+              <ChatBubbleLeftIcon className="h-5 w-5 text-blue-600" />
               Comments ({(currentTask as any).comments?.length || 0})
             </h2>
             
@@ -149,8 +407,16 @@ const TaskDetailPage: React.FC = () => {
               comments={(currentTask as any).comments || []}
               onCommentsUpdated={() => dispatch(fetchTaskById(currentTask.id))}
             />
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Right Sidebar */}
+      <div className="w-96 flex-shrink-0">
+        <SubtaskSidebar 
+          task={currentTask}
+          onAddSubtask={() => toast('Add subtask functionality coming soon', { icon: 'ℹ️' })}
+        />
       </div>
     </div>
   )
