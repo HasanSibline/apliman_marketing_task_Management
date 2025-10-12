@@ -6,6 +6,7 @@ export interface CreateNotificationData {
   taskId?: string;
   subtaskId?: string;
   phaseId?: string;
+  commentId?: string;
   type: string;
   title: string;
   message: string;
