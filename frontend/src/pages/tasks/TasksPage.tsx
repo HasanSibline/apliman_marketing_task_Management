@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
   PlusIcon, 
   FunnelIcon, 
   MagnifyingGlassIcon,
   XMarkIcon,
-  AdjustmentsHorizontalIcon
+  AdjustmentsHorizontalIcon,
+  ChevronDownIcon,
+  ChevronRightIcon
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTasks, setFilters } from '@/store/slices/tasksSlice'
@@ -18,14 +20,19 @@ import { Task } from '@/types/task'
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { tasks: apiTasks, isLoading, filters } = useAppSelector((state) => state.tasks)
-  const tasks = apiTasks.map(task => ({
-    ...task,
-    createdById: task.createdBy?.id || ''
-  })) as Task[]
+  // Filter out subtasks - only show parent tasks
+  const tasks = apiTasks
+    .filter(task => task.taskType !== 'SUBTASK')
+    .map(task => ({
+      ...task,
+      createdById: task.createdBy?.id || ''
+    })) as Task[]
+  
   const { user } = useAppSelector((state) => state.auth)
   const [showFilters, setShowFilters] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [workflows, setWorkflows] = useState<any[]>([])
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     dispatch(fetchTasks(filters))
@@ -55,6 +62,31 @@ const TasksPage: React.FC = () => {
     dispatch(setFilters({}))
   }
 
+  // Group tasks by workflow type
+  const groupedTasks = tasks.reduce((acc, task) => {
+    const workflowName = task.workflow?.name || 'Uncategorized'
+    if (!acc[workflowName]) {
+      acc[workflowName] = {
+        workflow: task.workflow,
+        tasks: []
+      }
+    }
+    acc[workflowName].tasks.push(task)
+    return acc
+  }, {} as Record<string, { workflow: any; tasks: Task[] }>)
+
+  const toggleSection = (sectionName: string) => {
+    setCollapsedSections(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(sectionName)) {
+        newSet.delete(sectionName)
+      } else {
+        newSet.add(sectionName)
+      }
+      return newSet
+    })
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -62,7 +94,7 @@ const TasksPage: React.FC = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
           <p className="text-gray-600 mt-1">
-            Manage and track your tasks and subtasks
+            Manage and track your tasks by workflow type
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -249,7 +281,7 @@ const TasksPage: React.FC = () => {
         </div>
       )}
 
-      {/* Tasks List */}
+      {/* Grouped Tasks by Workflow */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -273,24 +305,79 @@ const TasksPage: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {tasks.map((task: Task, index: number) => (
-            <motion.div
-              key={task.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <TaskListItem task={task} />
-            </motion.div>
-          ))}
+        <div className="space-y-4">
+          {Object.entries(groupedTasks).map(([workflowName, { workflow, tasks: workflowTasks }]) => {
+            const isCollapsed = collapsedSections.has(workflowName)
+            
+            return (
+              <div key={workflowName} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                {/* Section Header */}
+                <button
+                  onClick={() => toggleSection(workflowName)}
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  style={{
+                    borderLeft: workflow ? `4px solid ${workflow.color}` : '4px solid #6B7280'
+                  }}
+                >
+                  <div className="flex items-center gap-3">
+                    {isCollapsed ? (
+                      <ChevronRightIcon className="h-5 w-5 text-gray-500" />
+                    ) : (
+                      <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                    )}
+                    <div className="flex items-center gap-2">
+                      {workflow && (
+                        <div
+                          className="h-3 w-3 rounded-full"
+                          style={{ backgroundColor: workflow.color }}
+                        />
+                      )}
+                      <h2 className="text-lg font-semibold text-gray-900">{workflowName}</h2>
+                    </div>
+                    <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                      {workflowTasks.length} {workflowTasks.length === 1 ? 'task' : 'tasks'}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-500">
+                    {workflow?.taskType || 'General'}
+                  </div>
+                </button>
+
+                {/* Tasks Grid */}
+                <AnimatePresence>
+                  {!isCollapsed && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="px-4 pb-4"
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {workflowTasks.map((task: Task) => (
+                          <motion.div
+                            key={task.id}
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <TaskListItem task={task} />
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          })}
         </div>
       )}
 
       {/* Task Count */}
       {!isLoading && tasks.length > 0 && (
         <div className="text-center text-sm text-gray-500 py-4">
-          Showing {tasks.length} task{tasks.length !== 1 ? 's' : ''}
+          Showing {tasks.length} task{tasks.length !== 1 ? 's' : ''} across {Object.keys(groupedTasks).length} workflow{Object.keys(groupedTasks).length !== 1 ? 's' : ''}
         </div>
       )}
 

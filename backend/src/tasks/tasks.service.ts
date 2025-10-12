@@ -370,18 +370,15 @@ export class TasksService {
       },
     });
 
-    // Recalculate parent task progress
+    // Recalculate parent task progress (for future use)
     const allSubtasks = await this.prisma.subtask.findMany({
       where: { taskId },
     });
     const completedCount = allSubtasks.filter(s => s.isCompleted).length;
-    const progress = allSubtasks.length > 0 ? Math.round((completedCount / allSubtasks.length) * 100) : 0;
+    const progressPercentage = allSubtasks.length > 0 ? Math.round((completedCount / allSubtasks.length) * 100) : 0;
 
-    // Update parent task progress
-    await this.prisma.task.update({
-      where: { id: taskId },
-      data: { progress },
-    });
+    // Note: Progress is calculated dynamically from subtasks, not stored
+    console.log(`Task ${taskId} progress: ${progressPercentage}%`);
 
     return updated;
   }

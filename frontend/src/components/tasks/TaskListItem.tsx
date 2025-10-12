@@ -2,7 +2,6 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   UserCircleIcon, 
-  ClockIcon, 
   CalendarIcon,
   FlagIcon,
   CheckCircleIcon,
@@ -107,7 +106,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
   return (
     <div
       onClick={() => navigate(`/tasks/${task.id}`)}
-      className="group bg-white rounded-xl border border-gray-200 hover:border-blue-300 hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden"
+      className="group bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden h-full flex flex-col"
     >
       {/* Priority Bar */}
       <div 
@@ -115,135 +114,107 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
         style={{ backgroundColor: priorityConfig.color }}
       />
 
-      <div className="p-5">
+      <div className="p-4 flex-1 flex flex-col">
         {/* Header */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-lg font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
-                {task.title}
-              </h3>
-              {taskTypeBadge && (
-                <span className={`px-2 py-0.5 text-xs font-medium rounded ${taskTypeBadge.bg} ${taskTypeBadge.text}`}>
-                  {taskTypeBadge.label}
-                </span>
-              )}
-            </div>
-            
-            {/* Description Preview */}
-            <p className="text-sm text-gray-600 line-clamp-2 mb-3">
-              {task.description}
-            </p>
-
-            {/* Meta Info */}
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-              {task.assignedTo && (
-                <div className="flex items-center gap-1.5">
-                  <UserCircleIcon className="h-4 w-4" />
-                  <span className="font-medium text-gray-700">{task.assignedTo.name}</span>
-                  {task.assignedTo.position && (
-                    <span className="text-xs">• {task.assignedTo.position}</span>
-                  )}
-                </div>
-              )}
-              
-              {task.createdBy && (
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs">Created by {task.createdBy.name}</span>
-                </div>
-              )}
-
-              {task.dueDate && (
-                <div className={`flex items-center gap-1.5 ${isOverdue ? 'text-red-600 font-medium' : ''}`}>
-                  <CalendarIcon className="h-4 w-4" />
-                  <span>{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
-                </div>
-              )}
-            </div>
+        <div className="flex-1 flex flex-col">
+          <div className="flex items-start justify-between mb-2">
+            <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors flex-1">
+              {task.title}
+            </h3>
+            {taskTypeBadge && (
+              <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded ${taskTypeBadge.bg} ${taskTypeBadge.text} flex-shrink-0`}>
+                {taskTypeBadge.label}
+              </span>
+            )}
           </div>
+          
+          {/* Description Preview */}
+          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+            {task.description}
+          </p>
+
+          {/* Assigned User */}
+          {task.assignedTo && (
+            <div className="flex items-center gap-1.5 mb-3 text-sm">
+              <UserCircleIcon className="h-4 w-4 text-gray-500" />
+              <span className="font-medium text-gray-700">{task.assignedTo.name}</span>
+            </div>
+          )}
         </div>
 
         {/* Tags & Badges */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
+        <div className="flex flex-wrap items-center gap-1.5 mb-3">
           {/* Priority Badge */}
-          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg ${priorityConfig.bg} ${priorityConfig.text}`}>
-            <PriorityIcon className="h-3.5 w-3.5" />
+          <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded ${priorityConfig.bg} ${priorityConfig.text}`}>
+            <PriorityIcon className="h-3 w-3" />
             <span className="text-xs font-semibold">{priorityConfig.label}</span>
           </div>
 
           {/* Workflow Phase Tag */}
           {task.currentPhase && (
             <div 
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
               style={{ 
                 backgroundColor: `${task.currentPhase.color}20`,
-                color: task.currentPhase.color,
-                border: `1px solid ${task.currentPhase.color}40`
+                color: task.currentPhase.color
               }}
             >
               <span 
-                className="w-1.5 h-1.5 rounded-full"
+                className="w-1 h-1 rounded-full"
                 style={{ backgroundColor: task.currentPhase.color }}
               />
-              {task.workflow?.name && (
-                <span className="opacity-75">{task.workflow.name} •</span>
-              )}
               {task.currentPhase.name}
             </div>
           )}
 
           {/* Subtask Progress */}
           {subtaskProgress && (
-            <div className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-2.5 py-1 rounded-lg">
-              <FlagIcon className="h-3.5 w-3.5" />
-              <span className="text-xs font-semibold">{subtaskProgress} subtasks</span>
+            <div className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+              <FlagIcon className="h-3 w-3" />
+              <span className="text-xs font-semibold">{subtaskProgress}</span>
             </div>
           )}
 
           {/* Overdue Warning */}
           {isOverdue && (
-            <div className="inline-flex items-center gap-1.5 bg-red-100 text-red-700 px-2.5 py-1 rounded-lg">
-              <ExclamationTriangleIcon className="h-3.5 w-3.5" />
+            <div className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-2 py-0.5 rounded">
+              <ExclamationTriangleIcon className="h-3 w-3" />
               <span className="text-xs font-semibold">Overdue</span>
             </div>
           )}
 
           {/* Completed Badge */}
           {task.completedAt && (
-            <div className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-2.5 py-1 rounded-lg">
-              <CheckCircleIcon className="h-3.5 w-3.5" />
-              <span className="text-xs font-semibold">Completed</span>
+            <div className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded">
+              <CheckCircleIcon className="h-3 w-3" />
+              <span className="text-xs font-semibold">Done</span>
             </div>
           )}
         </div>
 
         {/* Footer - Activity Indicators */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
+          <div className="flex items-center gap-3 text-xs text-gray-500">
             {task.comments && task.comments.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <ChatBubbleLeftIcon className="h-4 w-4" />
+              <div className="flex items-center gap-1">
+                <ChatBubbleLeftIcon className="h-3.5 w-3.5" />
                 <span>{task.comments.length}</span>
               </div>
             )}
 
             {task.files && task.files.length > 0 && (
-              <div className="flex items-center gap-1.5">
-                <PaperClipIcon className="h-4 w-4" />
+              <div className="flex items-center gap-1">
+                <PaperClipIcon className="h-3.5 w-3.5" />
                 <span>{task.files.length}</span>
               </div>
             )}
 
-            {task.timeTracked && task.timeTracked > 0 && (
-              <div className="flex items-center gap-1.5">
-                <ClockIcon className="h-4 w-4" />
-                <span>{Math.floor(task.timeTracked / 60)}h {task.timeTracked % 60}m</span>
+            {task.dueDate && !isOverdue && (
+              <div className="flex items-center gap-1">
+                <CalendarIcon className="h-3.5 w-3.5" />
+                <span>{new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
               </div>
             )}
-          </div>
-
-          <div className="text-xs text-gray-400">
-            {new Date(task.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
           </div>
         </div>
       </div>
