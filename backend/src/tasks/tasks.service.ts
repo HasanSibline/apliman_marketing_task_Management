@@ -257,7 +257,7 @@ export class TasksService {
         await this.notificationsService.createNotification({
           userId: createTaskDto.assignedToId,
           type: 'TASK_ASSIGNED',
-          title: 'New Task Assigned',
+            title: 'New Task Assigned',
           message: `You've been assigned to task: ${task.title}`,
           taskId: task.id,
           phaseId: startPhase.id,
@@ -307,7 +307,58 @@ export class TasksService {
       );
     }
 
-    // Update task phase
+    // Check if target phase requires approval
+    if (toPhase.requiresApproval) {
+      // Check if there's already a pending approval
+      const existingApproval = await this.prisma.phaseApproval.findFirst({
+        where: {
+          taskId,
+          phaseId: toPhaseId,
+          status: 'PENDING',
+        },
+      });
+
+      if (existingApproval) {
+        throw new BadRequestException('An approval request for this phase is already pending');
+      }
+
+      // Create approval request
+      await this.prisma.phaseApproval.create({
+        data: {
+          taskId,
+          phaseId: toPhaseId,
+          requestedById: userId,
+        },
+      });
+
+      // Notify admins about approval request
+      const admins = await this.prisma.user.findMany({
+        where: {
+          role: { in: ['SUPER_ADMIN', 'ADMIN'] },
+        },
+        select: { id: true },
+      });
+
+      for (const admin of admins) {
+        await this.notificationsService.createNotification({
+          userId: admin.id,
+          type: 'TASK_PHASE_CHANGED',
+          title: 'Approval Required',
+          message: `Task "${task.title}" needs approval to move to "${toPhase.name}"`,
+          taskId: task.id,
+          phaseId: toPhaseId,
+          actionUrl: `/approvals`,
+        });
+      }
+
+      return {
+        ...task,
+        pendingApproval: true,
+        approvalPhase: toPhase.name,
+      };
+    }
+
+    // No approval needed - move directly
     await this.prisma.task.update({
       where: { id: taskId },
       data: { 
@@ -369,7 +420,7 @@ export class TasksService {
           type: 'TASK_COMPLETED',
           title: 'Task Completed',
           message: `Task "${task.title}" was completed by ${movedBy?.name || 'someone'}`,
-          taskId: task.id,
+              taskId: task.id,
           actionUrl: `/tasks/${task.id}`,
         });
       }
@@ -1061,6 +1112,168 @@ export class TasksService {
     }
 
     return image;
+  }
+
+  async getPendingApprovals(userId: string, userRole: UserRole) {
+    // Only admins can see approvals
+    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only admins can view approvals');
+    }
+
+    const approvals = await this.prisma.phaseApproval.findMany({
+      where: {
+        status: 'PENDING',
+      },
+      include: {
+        task: {
+          include: {
+            workflow: true,
+            currentPhase: true,
+            assignedTo: true,
+            createdBy: true,
+          },
+        },
+        phase: true,
+        requestedBy: true,
+      },
+      orderBy: {
+        requestedAt: 'desc',
+      },
+    });
+
+    return approvals;
+  }
+
+  async approvePhaseChange(approvalId: string, userId: string, userRole: UserRole, comment?: string) {
+    // Only admins can approve
+    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only admins can approve phase changes');
+    }
+
+    const approval = await this.prisma.phaseApproval.findUnique({
+      where: { id: approvalId },
+      include: {
+        task: {
+          include: {
+            workflow: { include: { phases: true } },
+          },
+        },
+        phase: true,
+        requestedBy: true,
+      },
+    });
+
+    if (!approval) {
+      throw new NotFoundException('Approval request not found');
+    }
+
+    if (approval.status !== 'PENDING') {
+      throw new BadRequestException('This approval has already been processed');
+    }
+
+    // Update approval status
+    await this.prisma.phaseApproval.update({
+      where: { id: approvalId },
+      data: {
+        status: 'APPROVED',
+        reviewedById: userId,
+        reviewedAt: new Date(),
+        reviewComment: comment,
+      },
+    });
+
+    // Move task to the approved phase
+    await this.prisma.task.update({
+      where: { id: approval.taskId },
+      data: {
+        currentPhaseId: approval.phaseId,
+        completedAt: approval.phase.isEndPhase ? new Date() : null,
+      },
+    });
+
+    // Record phase history
+    await this.prisma.phaseHistory.create({
+      data: {
+        taskId: approval.taskId,
+        fromPhaseId: approval.task.currentPhaseId,
+        toPhaseId: approval.phaseId,
+        movedById: userId,
+        comment: comment || 'Approved by admin',
+      },
+    });
+
+    // Notify requester
+    await this.notificationsService.createNotification({
+      userId: approval.requestedById,
+      type: 'TASK_PHASE_CHANGED',
+      title: 'Phase Change Approved',
+      message: `Your request to move "${approval.task.title}" to "${approval.phase.name}" has been approved`,
+      taskId: approval.taskId,
+      phaseId: approval.phaseId,
+      actionUrl: `/tasks/${approval.taskId}`,
+    });
+
+    // Notify task assignee if different
+    if (approval.task.assignedToId && approval.task.assignedToId !== approval.requestedById) {
+      await this.notificationsService.createNotification({
+        userId: approval.task.assignedToId,
+        type: 'TASK_PHASE_CHANGED',
+        title: 'Task Phase Updated',
+        message: `Task "${approval.task.title}" has been moved to "${approval.phase.name}"`,
+        taskId: approval.taskId,
+        phaseId: approval.phaseId,
+        actionUrl: `/tasks/${approval.taskId}`,
+      });
+    }
+
+    return this.findOne(approval.taskId, userId, userRole);
+  }
+
+  async rejectPhaseChange(approvalId: string, userId: string, userRole: UserRole, comment?: string) {
+    // Only admins can reject
+    if (userRole !== UserRole.SUPER_ADMIN && userRole !== UserRole.ADMIN) {
+      throw new ForbiddenException('Only admins can reject phase changes');
+    }
+
+    const approval = await this.prisma.phaseApproval.findUnique({
+      where: { id: approvalId },
+      include: {
+        task: true,
+        phase: true,
+        requestedBy: true,
+      },
+    });
+
+    if (!approval) {
+      throw new NotFoundException('Approval request not found');
+    }
+
+    if (approval.status !== 'PENDING') {
+      throw new BadRequestException('This approval has already been processed');
+    }
+
+    // Update approval status
+    await this.prisma.phaseApproval.update({
+      where: { id: approvalId },
+      data: {
+        status: 'REJECTED',
+        reviewedById: userId,
+        reviewedAt: new Date(),
+        reviewComment: comment,
+      },
+    });
+
+    // Notify requester
+    await this.notificationsService.createNotification({
+      userId: approval.requestedById,
+      type: 'TASK_PHASE_CHANGED',
+      title: 'Phase Change Rejected',
+      message: `Your request to move "${approval.task.title}" to "${approval.phase.name}" has been rejected${comment ? `: ${comment}` : ''}`,
+      taskId: approval.taskId,
+      actionUrl: `/tasks/${approval.taskId}`,
+    });
+
+    return { message: 'Phase change rejected', approval };
   }
 
   async getTasksByPhase() {

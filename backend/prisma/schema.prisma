@@ -56,6 +56,8 @@ model User {
   createdWorkflows  Workflow[] @relation("WorkflowCreator")
   assignedSubtasks  Subtask[]
   phaseHistory      PhaseHistory[]
+  approvalsRequested PhaseApproval[] @relation("ApprovalRequester")
+  approvalsReviewed  PhaseApproval[] @relation("ApprovalReviewer")
 
   @@map("users")
 }
@@ -97,6 +99,7 @@ model Task {
   notifications   Notification[]
   subtasks        Subtask[]
   phaseHistory    PhaseHistory[]
+  approvals       PhaseApproval[]
 
   @@map("tasks")
 }
@@ -232,6 +235,7 @@ model Phase {
   transitionsFrom Transition[] @relation("FromPhase")
   transitionsTo   Transition[] @relation("ToPhase")
   notifications Notification[]
+  approvals   PhaseApproval[]
   
   @@unique([workflowId, order])
   @@map("phases")
@@ -300,6 +304,30 @@ model PhaseHistory {
   movedAt     DateTime @default(now())
   
   @@map("phase_history")
+}
+
+model PhaseApproval {
+  id          String   @id @default(uuid())
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  
+  phaseId     String
+  phase       Phase    @relation(fields: [phaseId], references: [id])
+  
+  requestedById String
+  requestedBy   User   @relation("ApprovalRequester", fields: [requestedById], references: [id])
+  
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  
+  reviewedById String?
+  reviewedBy   User?   @relation("ApprovalReviewer", fields: [reviewedById], references: [id])
+  
+  reviewComment String?
+  
+  requestedAt DateTime @default(now())
+  reviewedAt  DateTime?
+  
+  @@map("phase_approvals")
 }
 
 model SystemSettings {

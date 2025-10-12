@@ -10,11 +10,12 @@ import usersSlice from './slices/usersSlice'
 import analyticsSlice from './slices/analyticsSlice'
 import presenceSlice from './slices/presenceSlice'
 import uiSlice from './slices/uiSlice'
+import timeTrackingSlice from './slices/timeTrackingSlice'
 
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'], // Only persist auth state
+  whitelist: ['auth'], // Only persist auth state - timeTracking uses its own localStorage
 }
 
 const rootReducer = combineReducers({
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
   analytics: analyticsSlice,
   presence: presenceSlice,
   ui: uiSlice,
+  timeTracking: timeTrackingSlice,
 })
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)

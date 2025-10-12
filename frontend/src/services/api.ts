@@ -243,6 +243,24 @@ export const tasksApi = {
     return response.data
   },
 
+  // Get pending approvals (admin only)
+  getPendingApprovals: async (): Promise<any[]> => {
+    const response = await api.get('/tasks/approvals/pending')
+    return response.data
+  },
+
+  // Approve phase change
+  approvePhaseChange: async (approvalId: string, comment?: string): Promise<any> => {
+    const response = await api.post(`/tasks/approvals/${approvalId}/approve`, { comment })
+    return response.data
+  },
+
+  // Reject phase change
+  rejectPhaseChange: async (approvalId: string, comment?: string): Promise<any> => {
+    const response = await api.post(`/tasks/approvals/${approvalId}/reject`, { comment })
+    return response.data
+  },
+
   create: async (data: CreateTaskData): Promise<Task> => {
     const response = await api.post('/tasks', data)
     return response.data

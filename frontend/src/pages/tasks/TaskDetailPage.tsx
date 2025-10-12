@@ -19,10 +19,12 @@ import {
   BoltIcon,
   FireIcon,
   ChevronUpIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
+import { startTimer, pauseTimer, resumeTimer, stopTimer } from '@/store/slices/timeTrackingSlice'
 import { tasksApi } from '@/services/api'
 import FileUpload from '@/components/tasks/FileUpload'
 import TaskComments from '@/components/tasks/TaskComments'
@@ -36,9 +38,12 @@ const TaskDetailPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { currentTask, isLoading } = useAppSelector((state) => state.tasks)
   const { user } = useAppSelector((state) => state.auth)
-  const [isTimerRunning, setIsTimerRunning] = useState(false)
+  const timeTracking = useAppSelector((state) => state.timeTracking)
   const [currentTime, setCurrentTime] = useState(0)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  
+  const isThisTaskTracking = timeTracking.activeTaskId === id
+  const isTimerRunning = isThisTaskTracking && timeTracking.isRunning
 
   useEffect(() => {
     if (id) {
@@ -46,15 +51,48 @@ const TaskDetailPage: React.FC = () => {
     }
   }, [dispatch, id])
 
+  // Update current time from Redux state
+  useEffect(() => {
+    if (isThisTaskTracking) {
+      let baseTime = timeTracking.elapsedTime
+      if (timeTracking.isRunning && timeTracking.startTime) {
+        const elapsed = Math.floor((Date.now() - timeTracking.startTime) / 1000)
+        setCurrentTime(baseTime + elapsed)
+      } else {
+        setCurrentTime(baseTime)
+      }
+    } else {
+      setCurrentTime(0)
+    }
+  }, [isThisTaskTracking, timeTracking.elapsedTime, timeTracking.isRunning, timeTracking.startTime])
+
+  // Real-time timer tick
   useEffect(() => {
     let interval: NodeJS.Timeout
     if (isTimerRunning) {
       interval = setInterval(() => {
-        setCurrentTime(prev => prev + 1)
+        const elapsed = Math.floor((Date.now() - timeTracking.startTime!) / 1000)
+        setCurrentTime(timeTracking.elapsedTime + elapsed)
       }, 1000)
     }
     return () => clearInterval(interval)
-  }, [isTimerRunning])
+  }, [isTimerRunning, timeTracking.elapsedTime, timeTracking.startTime])
+
+  const handleStartTimer = () => {
+    if (id) {
+      dispatch(startTimer(id))
+    }
+  }
+
+  const handlePauseTimer = () => {
+    dispatch(pauseTimer())
+  }
+
+  const handleStopTimer = () => {
+    if (window.confirm('Stop tracking and reset time?')) {
+      dispatch(stopTimer())
+    }
+  }
 
   const getPriorityConfig = (priority: number) => {
     switch (priority) {
@@ -299,29 +337,49 @@ const TaskDetailPage: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Deadline Badge */}
+                  {currentTask.dueDate && !currentTask.completedAt && (
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
+                      new Date(currentTask.dueDate) < new Date()
+                        ? 'bg-red-100 text-red-700'
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      <CalendarIcon className="w-4 h-4" />
+                      Due {new Date(currentTask.dueDate).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: new Date(currentTask.dueDate).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                      })}
+                    </div>
+                  )}
+
                   {/* Compact Time Tracking */}
                   <div className="flex items-center gap-2">
                     {isTimerRunning ? (
-                      <button
-                        onClick={() => setIsTimerRunning(false)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
-                      >
-                        <PauseIcon className="w-4 h-4" />
-                        {formatTime(currentTime)}
-                      </button>
+                      <>
+                        <button
+                          onClick={handlePauseTimer}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                        >
+                          <PauseIcon className="w-4 h-4" />
+                          {formatTime(currentTime)}
+                        </button>
+                        <button
+                          onClick={handleStopTimer}
+                          className="p-1.5 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors"
+                          title="Stop and reset"
+                        >
+                          <XMarkIcon className="w-4 h-4" />
+                        </button>
+                      </>
                     ) : (
                       <button
-                        onClick={() => setIsTimerRunning(true)}
+                        onClick={handleStartTimer}
                         className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
                       >
                         <PlayIcon className="w-4 h-4" />
-                        Start Timer
+                        {currentTime > 0 ? formatTime(currentTime) : 'Start Timer'}
                       </button>
-                    )}
-                    {currentTime > 0 && (
-                      <span className="text-sm text-gray-500">
-                        Total: {formatTime(currentTime)}
-                      </span>
                     )}
                   </div>
                 </div>

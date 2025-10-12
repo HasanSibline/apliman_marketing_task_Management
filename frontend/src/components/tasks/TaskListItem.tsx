@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   UserCircleIcon, 
@@ -12,9 +12,11 @@ import {
   FireIcon,
   ChevronUpIcon,
   ChatBubbleLeftIcon,
-  PaperClipIcon
+  PaperClipIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline'
 import { Task } from '@/types/task'
+import { useAppSelector } from '@/hooks/redux'
 
 interface TaskListItemProps {
   task: Task
@@ -22,6 +24,43 @@ interface TaskListItemProps {
 
 const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
   const navigate = useNavigate()
+  const timeTracking = useAppSelector((state) => state.timeTracking)
+  const [currentTime, setCurrentTime] = useState(0)
+  
+  const isThisTaskTracking = timeTracking.activeTaskId === task.id
+  const isTimerRunning = isThisTaskTracking && timeTracking.isRunning
+
+  // Update time display in real-time
+  useEffect(() => {
+    if (!isThisTaskTracking) {
+      setCurrentTime(0)
+      return
+    }
+
+    const updateTime = () => {
+      let baseTime = timeTracking.elapsedTime
+      if (timeTracking.isRunning && timeTracking.startTime) {
+        const elapsed = Math.floor((Date.now() - timeTracking.startTime) / 1000)
+        setCurrentTime(baseTime + elapsed)
+      } else {
+        setCurrentTime(baseTime)
+      }
+    }
+
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    return () => clearInterval(interval)
+  }, [isThisTaskTracking, timeTracking.elapsedTime, timeTracking.isRunning, timeTracking.startTime])
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
+  }
 
   const getPriorityConfig = (priority: number) => {
     switch (priority) {
@@ -216,6 +255,18 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
               </div>
             )}
           </div>
+
+          {/* Time Tracking Display - Bottom Right */}
+          {isThisTaskTracking && currentTime > 0 && (
+            <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+              isTimerRunning 
+                ? 'bg-green-100 text-green-700 animate-pulse' 
+                : 'bg-gray-100 text-gray-700'
+            }`}>
+              <ClockIcon className="h-3.5 w-3.5" />
+              <span>{formatTime(currentTime)}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

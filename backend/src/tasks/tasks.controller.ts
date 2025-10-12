@@ -234,4 +234,44 @@ export class TasksController {
       mimeType: image.mimeType,
     };
   }
+
+  @Get('approvals/pending')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all pending phase approvals (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Pending approvals retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getPendingApprovals(@Request() req) {
+    return this.tasksService.getPendingApprovals(req.user.id, req.user.role);
+  }
+
+  @Post('approvals/:id/approve')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Approve phase change (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Phase change approved successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Approval not found' })
+  async approvePhaseChange(
+    @Param('id') approvalId: string,
+    @Body() body: { comment?: string },
+    @Request() req,
+  ) {
+    return this.tasksService.approvePhaseChange(approvalId, req.user.id, req.user.role, body.comment);
+  }
+
+  @Post('approvals/:id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Reject phase change (Admin only)' })
+  @ApiResponse({ status: 200, description: 'Phase change rejected successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  @ApiResponse({ status: 404, description: 'Approval not found' })
+  async rejectPhaseChange(
+    @Param('id') approvalId: string,
+    @Body() body: { comment?: string },
+    @Request() req,
+  ) {
+    return this.tasksService.rejectPhaseChange(approvalId, req.user.id, req.user.role, body.comment);
+  }
 }
