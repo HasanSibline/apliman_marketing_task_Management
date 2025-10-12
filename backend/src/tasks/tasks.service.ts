@@ -784,7 +784,7 @@ export class TasksService {
 
   async addComment(taskId: string, createCommentDto: CreateCommentDto, userId: string, userRole: UserRole) {
     // Verify user has access to the task
-    await this.findOne(taskId, userId, userRole);
+    const task = await this.findOne(taskId, userId, userRole);
 
     const comment = await this.prisma.taskComment.create({
       data: {
@@ -803,6 +803,29 @@ export class TasksService {
         },
       },
     });
+
+    // Notify mentioned users
+    if (createCommentDto.mentionedUserIds && createCommentDto.mentionedUserIds.length > 0) {
+      const commenter = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+
+      for (const mentionedUserId of createCommentDto.mentionedUserIds) {
+        // Don't notify the commenter if they mentioned themselves
+        if (mentionedUserId !== userId) {
+          await this.notificationsService.createNotification({
+            userId: mentionedUserId,
+            type: 'COMMENT_MENTION',
+            title: 'You were mentioned in a comment',
+            message: `${commenter?.name || 'Someone'} mentioned you in a comment on "${task.title}"`,
+            taskId: task.id,
+            commentId: comment.id,
+            actionUrl: `/tasks/${task.id}`,
+          });
+        }
+      }
+    }
 
     // Update user interactions
     await this.updateUserAnalytics(userId, 'interaction');

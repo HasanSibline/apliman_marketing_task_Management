@@ -269,8 +269,8 @@ export const tasksApi = {
     return response.data
   },
 
-  addComment: async (taskId: string, comment: string): Promise<any> => {
-    const response = await api.post(`/tasks/${taskId}/comments`, { comment })
+  addComment: async (taskId: string, comment: string, mentionedUserIds?: string[]): Promise<any> => {
+    const response = await api.post(`/tasks/${taskId}/comments`, { comment, mentionedUserIds })
     return response.data
   },
 
