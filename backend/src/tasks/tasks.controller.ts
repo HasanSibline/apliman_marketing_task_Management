@@ -10,7 +10,10 @@ import {
   Request,
   Query,
   ParseIntPipe,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import {
   ApiTags,
   ApiOperation,
@@ -152,6 +155,29 @@ export class TasksController {
     @Request() req,
   ) {
     return this.tasksService.addComment(taskId, createCommentDto, req.user.id, req.user.role);
+  }
+
+  @Post(':id/comments/with-images')
+  @UseInterceptors(FilesInterceptor('images', 10))
+  @ApiOperation({ summary: 'Add comment with images to task' })
+  @ApiResponse({ status: 201, description: 'Comment with images added successfully' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  async addCommentWithImages(
+    @Param('id') taskId: string,
+    @Body('comment') comment: string,
+    @Body('mentionedUserIds') mentionedUserIds: string,
+    @UploadedFiles() images: Express.Multer.File[],
+    @Request() req,
+  ) {
+    const mentionedIds = mentionedUserIds ? JSON.parse(mentionedUserIds) : [];
+    return this.tasksService.addCommentWithImages(
+      taskId,
+      comment,
+      mentionedIds,
+      images || [],
+      req.user.id,
+      req.user.role
+    );
   }
 
   @Post(':id/move-phase')

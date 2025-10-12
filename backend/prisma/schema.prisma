@@ -138,6 +138,7 @@ model TaskComment {
   taskId    String
   userId    String
   comment   String
+  images    String[] @default([]) // Array of image URLs
   createdAt DateTime @default(now())
 
   // Relations

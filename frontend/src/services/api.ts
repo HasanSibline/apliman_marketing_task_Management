@@ -279,6 +279,22 @@ export const tasksApi = {
     return response.data
   },
 
+  addCommentWithImages: async (taskId: string, comment: string, mentionedUserIds: string[], images: File[]): Promise<any> => {
+    const formData = new FormData()
+    formData.append('comment', comment)
+    formData.append('mentionedUserIds', JSON.stringify(mentionedUserIds))
+    images.forEach((image) => {
+      formData.append('images', image)
+    })
+
+    const response = await api.post(`/tasks/${taskId}/comments/with-images`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
   addSubtask: async (taskId: string, title: string): Promise<any> => {
     const response = await api.post(`/tasks/${taskId}/subtasks`, { title })
     return response.data

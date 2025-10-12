@@ -456,6 +456,7 @@ const TaskDetailPage: React.FC = () => {
             <TaskComments 
               taskId={currentTask.id}
               comments={(currentTask as any).comments || []}
+              subtasks={currentTask.subtasks || []}
               onCommentsUpdated={() => dispatch(fetchTaskById(currentTask.id))}
             />
           </motion.div>

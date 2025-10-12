@@ -355,17 +355,17 @@ export class TasksService {
       }
 
       // Notify admins
-      const admins = await this.prisma.user.findMany({
-        where: {
+          const admins = await this.prisma.user.findMany({
+            where: {
           role: { in: ['SUPER_ADMIN', 'ADMIN'] },
           id: { not: userId },
-        },
-        select: { id: true },
-      });
+            },
+            select: { id: true },
+          });
 
-      for (const admin of admins) {
-        await this.notificationsService.createNotification({
-          userId: admin.id,
+          for (const admin of admins) {
+            await this.notificationsService.createNotification({
+              userId: admin.id,
           type: 'TASK_COMPLETED',
           title: 'Task Completed',
           message: `Task "${task.title}" was completed by ${movedBy?.name || 'someone'}`,
@@ -393,7 +393,7 @@ export class TasksService {
           type: 'TASK_PHASE_CHANGED',
           title: 'Task Phase Updated',
           message: `Task "${task.title}" moved from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`,
-          taskId: task.id,
+              taskId: task.id,
           phaseId: toPhaseId,
           actionUrl: `/tasks/${task.id}`,
         });
@@ -952,6 +952,94 @@ export class TasksService {
     await this.updateUserAnalytics(userId, 'interaction');
 
     return comment;
+  }
+
+  async addCommentWithImages(
+    taskId: string,
+    comment: string,
+    mentionedUserIds: string[],
+    images: Express.Multer.File[],
+    userId: string,
+    userRole: UserRole
+  ) {
+    // Verify user has access to the task
+    const task = await this.findOne(taskId, userId, userRole);
+
+    // Upload images and get URLs
+    const imageUrls: string[] = [];
+    if (images && images.length > 0) {
+      for (const image of images) {
+        // Save image to uploads folder
+        const fs = require('fs');
+        const path = require('path');
+        const uploadsDir = path.join(process.cwd(), 'uploads', 'comments');
+        
+        // Ensure directory exists
+        if (!fs.existsSync(uploadsDir)) {
+          fs.mkdirSync(uploadsDir, { recursive: true });
+        }
+
+        // Generate unique filename
+        const fileExtension = path.extname(image.originalname);
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}${fileExtension}`;
+        const filePath = path.join(uploadsDir, fileName);
+
+        // Write file
+        fs.writeFileSync(filePath, image.buffer);
+
+        // Store relative URL
+        imageUrls.push(`/uploads/comments/${fileName}`);
+      }
+    }
+
+    const createdComment = await this.prisma.taskComment.create({
+      data: {
+        taskId,
+        userId,
+        comment,
+        images: imageUrls,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            position: true,
+          },
+        },
+      },
+    });
+
+    // Notify mentioned users
+    if (mentionedUserIds && mentionedUserIds.length > 0) {
+      const commenter = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+
+      for (const mentionedUserId of mentionedUserIds) {
+        if (mentionedUserId !== userId) {
+          await this.notificationsService.createNotification({
+            userId: mentionedUserId,
+            type: 'COMMENT_MENTION',
+            title: 'You were mentioned in a comment',
+            message: `${commenter?.name || 'Someone'} mentioned you in a comment on "${task.title}"`,
+            taskId: task.id,
+            commentId: createdComment.id,
+            actionUrl: `/tasks/${task.id}`,
+          });
+        }
+      }
+    }
+
+    // Update user interactions
+    await this.updateUserAnalytics(userId, 'interaction');
+
+    return {
+      ...createdComment,
+      images: imageUrls.map(url => ({ url })),
+    };
   }
 
   async getTasksByPhase() {

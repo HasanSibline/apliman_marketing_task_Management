@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { PaperAirplaneIcon, UserCircleIcon } from '@heroicons/react/24/outline'
+import { PaperAirplaneIcon, UserCircleIcon, PhotoIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 import { tasksApi, usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
 
 interface TaskCommentsProps {
   taskId: string
   comments: any[]
   onCommentsUpdated: () => void
+  subtasks?: any[] // For /subtask autocomplete
 }
 
 interface User {
@@ -16,22 +18,44 @@ interface User {
   name: string
   email: string
   position?: string
+  role: string
 }
 
-const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onCommentsUpdated }) => {
+interface Subtask {
+  id: string
+  title: string
+  linkedTask?: {
+    id: string
+  }
+}
+
+const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onCommentsUpdated, subtasks = [] }) => {
+  const navigate = useNavigate()
   const { user } = useAppSelector((state) => state.auth)
   const [newComment, setNewComment] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [showMentions, setShowMentions] = useState(false)
+  const [showSubtasks, setShowSubtasks] = useState(false)
   const [mentionSearch, setMentionSearch] = useState('')
+  const [subtaskSearch, setSubtaskSearch] = useState('')
   const [mentionPosition, setMentionPosition] = useState(0)
   const [selectedMentionIndex, setSelectedMentionIndex] = useState(0)
+  const [attachedImages, setAttachedImages] = useState<File[]>([])
+  const [previewUrls, setPreviewUrls] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     loadUsers()
   }, [])
+
+  useEffect(() => {
+    // Cleanup preview URLs on unmount
+    return () => {
+      previewUrls.forEach(url => URL.revokeObjectURL(url))
+    }
+  }, [previewUrls])
 
   const loadUsers = async () => {
     try {
@@ -48,40 +72,62 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
     
     setNewComment(value)
 
-    // Check if user is typing @ mention
     const textBeforeCursor = value.slice(0, cursorPos)
+
+    // Check for /subtask mention
+    const lastSlashIndex = textBeforeCursor.lastIndexOf('/')
+    if (lastSlashIndex !== -1) {
+      const textAfterSlash = textBeforeCursor.slice(lastSlashIndex + 1)
+      if (!textAfterSlash.includes(' ') && !textAfterSlash.includes('\n')) {
+        setSubtaskSearch(textAfterSlash.toLowerCase())
+        setMentionPosition(lastSlashIndex)
+        setShowSubtasks(true)
+        setShowMentions(false)
+        setSelectedMentionIndex(0)
+        return
+      }
+    }
+
+    // Check for @ mention
     const lastAtIndex = textBeforeCursor.lastIndexOf('@')
-    
     if (lastAtIndex !== -1) {
       const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1)
-      // Check if there's no space after @ (still typing mention)
       if (!textAfterAt.includes(' ') && !textAfterAt.includes('\n')) {
         setMentionSearch(textAfterAt.toLowerCase())
         setMentionPosition(lastAtIndex)
         setShowMentions(true)
+        setShowSubtasks(false)
         setSelectedMentionIndex(0)
         return
       }
     }
     
     setShowMentions(false)
+    setShowSubtasks(false)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (showMentions && filteredUsers.length > 0) {
+    const currentList = showMentions ? filteredUsers : showSubtasks ? filteredSubtasks : []
+    
+    if ((showMentions || showSubtasks) && currentList.length > 0) {
       if (e.key === 'ArrowDown') {
         e.preventDefault()
         setSelectedMentionIndex(prev => 
-          prev < filteredUsers.length - 1 ? prev + 1 : prev
+          prev < currentList.length - 1 ? prev + 1 : prev
         )
       } else if (e.key === 'ArrowUp') {
         e.preventDefault()
         setSelectedMentionIndex(prev => prev > 0 ? prev - 1 : 0)
       } else if (e.key === 'Enter' || e.key === 'Tab') {
         e.preventDefault()
-        insertMention(filteredUsers[selectedMentionIndex])
+        if (showMentions) {
+          insertMention(filteredUsers[selectedMentionIndex])
+        } else if (showSubtasks) {
+          insertSubtask(filteredSubtasks[selectedMentionIndex])
+        }
       } else if (e.key === 'Escape') {
         setShowMentions(false)
+        setShowSubtasks(false)
       }
     }
   }
@@ -95,10 +141,27 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
     setShowMentions(false)
     setMentionSearch('')
     
-    // Focus back on textarea
     setTimeout(() => {
       if (textareaRef.current) {
         const newCursorPos = beforeMention.length + mentionedUser.name.length + 2
+        textareaRef.current.focus()
+        textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
+  }
+
+  const insertSubtask = (subtask: Subtask) => {
+    const beforeMention = newComment.slice(0, mentionPosition)
+    const afterMention = newComment.slice(textareaRef.current?.selectionStart || mentionPosition)
+    const newText = `${beforeMention}/subtask[${subtask.title}](${subtask.id}) ${afterMention}`
+    
+    setNewComment(newText)
+    setShowSubtasks(false)
+    setSubtaskSearch('')
+    
+    setTimeout(() => {
+      if (textareaRef.current) {
+        const newCursorPos = beforeMention.length + subtask.title.length + subtask.id.length + 13
         textareaRef.current.focus()
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos)
       }
@@ -109,12 +172,45 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
     u.id !== user?.id && u.name.toLowerCase().includes(mentionSearch)
   )
 
+  const filteredSubtasks = subtasks.filter(s =>
+    s.title.toLowerCase().includes(subtaskSearch)
+  )
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    const newImages: File[] = []
+    const newPreviews: string[] = []
+
+    Array.from(files).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        if (file.size > 5 * 1024 * 1024) { // 5MB limit
+          toast.error(`${file.name} is too large. Max size is 5MB`)
+          return
+        }
+        newImages.push(file)
+        newPreviews.push(URL.createObjectURL(file))
+      } else {
+        toast.error(`${file.name} is not an image`)
+      }
+    })
+
+    setAttachedImages(prev => [...prev, ...newImages])
+    setPreviewUrls(prev => [...prev, ...newPreviews])
+  }
+
+  const removeImage = (index: number) => {
+    URL.revokeObjectURL(previewUrls[index])
+    setAttachedImages(prev => prev.filter((_, i) => i !== index))
+    setPreviewUrls(prev => prev.filter((_, i) => i !== index))
+  }
+
   const extractMentions = (text: string): string[] => {
     const mentionRegex = /@(\w+(?:\s+\w+)*)/g
     const matches = text.matchAll(mentionRegex)
     const mentionedNames = Array.from(matches).map(match => match[1])
     
-    // Find user IDs for mentioned names
     const mentionedUserIds: string[] = []
     mentionedNames.forEach(name => {
       const foundUser = users.find(u => 
@@ -128,9 +224,14 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
     return mentionedUserIds
   }
 
-  const highlightMentions = (text: string) => {
-    const parts = text.split(/(@\w+(?:\s+\w+)*)/g)
+  const highlightContent = (text: string) => {
+    // Split by both @mentions and /subtask tags
+    const parts = text.split(/(@\w+(?:\s+\w+)*)|(\/subtask\[([^\]]+)\]\(([^)]+)\))/g)
+    
     return parts.map((part, index) => {
+      if (!part) return null
+      
+      // Check if it's an @mention
       if (part.startsWith('@')) {
         const name = part.slice(1)
         const mentionedUser = users.find(u => u.name.toLowerCase() === name.toLowerCase())
@@ -138,13 +239,41 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
           return (
             <span 
               key={index} 
-              className="bg-blue-100 text-blue-700 px-1 rounded font-medium"
+              className="bg-blue-100 text-blue-700 px-1 rounded font-medium cursor-pointer hover:bg-blue-200"
             >
               {part}
             </span>
           )
         }
       }
+      
+      // Check if it's a /subtask tag (captured in groups 3 and 4)
+      if (index > 0 && parts[index - 2] && parts[index - 2].startsWith('/subtask')) {
+        const subtaskTitle = parts[index - 1]
+        const subtaskId = part
+        const subtask = subtasks.find(s => s.id === subtaskId)
+        
+        return (
+          <span
+            key={index}
+            onClick={() => {
+              if (subtask?.linkedTask?.id) {
+                navigate(`/tasks/${subtask.linkedTask.id}`)
+              }
+            }}
+            className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-medium cursor-pointer hover:bg-purple-200 transition-colors"
+          >
+            <span className="text-xs">📋</span>
+            {subtaskTitle}
+          </span>
+        )
+      }
+      
+      // Skip the matched groups themselves
+      if (part.startsWith('/subtask[') || subtasks.find(s => s.id === part)) {
+        return null
+      }
+      
       return part
     })
   }
@@ -152,13 +281,22 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (!newComment.trim()) return
+    if (!newComment.trim() && attachedImages.length === 0) {
+      toast.error('Please add a comment or image')
+      return
+    }
 
     setSubmitting(true)
     try {
       const mentionedUserIds = extractMentions(newComment)
-      await tasksApi.addComment(taskId, newComment.trim(), mentionedUserIds)
+      
+      // Upload comment with images
+      await tasksApi.addCommentWithImages(taskId, newComment.trim(), mentionedUserIds, attachedImages)
+      
       setNewComment('')
+      setAttachedImages([])
+      previewUrls.forEach(url => URL.revokeObjectURL(url))
+      setPreviewUrls([])
       toast.success('Comment added successfully!')
       onCommentsUpdated()
     } catch (error) {
@@ -215,9 +353,30 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                       {formatTimeAgo(comment.createdAt)}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                    {highlightMentions(comment.comment)}
-                  </p>
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                    {highlightContent(comment.comment)}
+                  </div>
+                  
+                  {/* Comment Images */}
+                  {comment.images && comment.images.length > 0 && (
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {comment.images.map((image: any, imgIndex: number) => (
+                        <a
+                          key={imgIndex}
+                          href={image.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
+                        >
+                          <img
+                            src={image.url}
+                            alt={`Attachment ${imgIndex + 1}`}
+                            className="w-full h-32 object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -238,19 +397,41 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
             </span>
           </div>
           <div className="flex-1 relative">
+            {/* Image Previews */}
+            {previewUrls.length > 0 && (
+              <div className="mb-2 flex flex-wrap gap-2">
+                {previewUrls.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Preview ${index + 1}`}
+                      className="h-20 w-20 object-cover rounded-lg border border-gray-300"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <XMarkIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div className="relative">
               <textarea
                 ref={textareaRef}
                 value={newComment}
                 onChange={handleTextChange}
                 onKeyDown={handleKeyDown}
-                placeholder="Add a comment... (use @ to mention users)"
+                placeholder="Add a comment... (use @ to mention users, / to reference subtasks)"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 disabled={submitting}
               />
               
-              {/* User Mention Autocomplete Dropdown */}
+              {/* User Mention Autocomplete */}
               <AnimatePresence>
                 {showMentions && filteredUsers.length > 0 && (
                   <motion.div
@@ -285,10 +466,57 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 )}
               </AnimatePresence>
 
-              <div className="absolute bottom-2 right-2">
+              {/* Subtask Autocomplete */}
+              <AnimatePresence>
+                {showSubtasks && filteredSubtasks.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute bottom-full left-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-48 overflow-y-auto z-50"
+                  >
+                    <div className="px-3 py-2 bg-purple-50 border-b border-purple-100">
+                      <p className="text-xs font-medium text-purple-700">Reference a subtask</p>
+                    </div>
+                    {filteredSubtasks.map((subtask, index) => (
+                      <button
+                        key={subtask.id}
+                        type="button"
+                        onClick={() => insertSubtask(subtask)}
+                        className={`w-full px-3 py-2 text-left hover:bg-purple-50 transition-colors ${
+                          index === selectedMentionIndex ? 'bg-purple-50' : ''
+                        }`}
+                      >
+                        <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                          📋 {subtask.title}
+                        </p>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={submitting}
+                  className="inline-flex items-center p-2 text-gray-600 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  title="Attach image"
+                >
+                  <PhotoIcon className="h-4 w-4" />
+                </button>
                 <button
                   type="submit"
-                  disabled={!newComment.trim() || submitting}
+                  disabled={(!newComment.trim() && attachedImages.length === 0) || submitting}
                   className="inline-flex items-center p-2 text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
                   {submitting ? (
@@ -300,7 +528,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
               </div>
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Tip: Type @ to mention a team member
+              Tip: Type @ to mention a team member, / to reference a subtask
             </p>
           </div>
         </div>
