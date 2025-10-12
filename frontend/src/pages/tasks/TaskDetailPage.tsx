@@ -24,7 +24,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
-import { startTimer, pauseTimer, resumeTimer, stopTimer } from '@/store/slices/timeTrackingSlice'
+import { startTimer, pauseTimer, stopTimer } from '@/store/slices/timeTrackingSlice'
 import { tasksApi } from '@/services/api'
 import FileUpload from '@/components/tasks/FileUpload'
 import TaskComments from '@/components/tasks/TaskComments'
@@ -486,7 +486,7 @@ const TaskDetailPage: React.FC = () => {
                 </div>
               </div>
               <button
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
+                onClick={() => isTimerRunning ? handlePauseTimer() : handleStartTimer()}
                 className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
                   isTimerRunning
                     ? 'bg-red-100 text-red-700 hover:bg-red-200'

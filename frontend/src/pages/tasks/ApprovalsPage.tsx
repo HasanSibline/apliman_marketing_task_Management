@@ -47,17 +47,19 @@ const ApprovalsPage: React.FC = () => {
   const loadPendingApprovals = async () => {
     try {
       setLoading(true)
-      // Fetch all tasks and filter for those requiring approval
-      const response = await tasksApi.getAll({ page: 1, limit: 1000 })
-      const allTasks = response.tasks || response
+      // Fetch actual approval requests from the database
+      const approvals = await tasksApi.getPendingApprovals()
+      
+      // Transform approvals to include task data with approval metadata
+      const tasksWithApprovals = approvals.map((approval: any) => ({
+        ...approval.task,
+        approvalId: approval.id,
+        requestedBy: approval.requestedBy,
+        approvalPhase: approval.phase,
+        requestedAt: approval.requestedAt,
+      }))
 
-      // Filter tasks that are in phases requiring approval
-      const pendingTasks = allTasks.filter((task: Task) => 
-        task.currentPhase?.requiresApproval && 
-        !task.currentPhase?.isEndPhase
-      )
-
-      setTasks(pendingTasks)
+      setTasks(tasksWithApprovals)
     } catch (error) {
       console.error('Failed to load pending approvals:', error)
       toast.error('Failed to load pending approvals')
@@ -66,44 +68,24 @@ const ApprovalsPage: React.FC = () => {
     }
   }
 
-  const handleApprovePhaseChange = async (task: Task) => {
-    if (!task.workflow?.phases || !task.currentPhase) return
-
+  const handleApprovePhaseChange = async (approvalId: string, taskTitle: string, phaseName: string) => {
     try {
-      // Find next phase in workflow
-      const currentPhaseOrder = task.currentPhase.order
-      const nextPhase = task.workflow.phases.find(p => p.order === currentPhaseOrder + 1)
-
-      if (!nextPhase) {
-        toast.error('No next phase available')
-        return
-      }
-
-      await tasksApi.moveToPhase(task.id, nextPhase.id, 'Approved by admin')
-      toast.success(`Task moved to "${nextPhase.name}"`)
+      await tasksApi.approvePhaseChange(approvalId, 'Approved by admin')
+      toast.success(`Task "${taskTitle}" approved and moved to "${phaseName}"!`)
       loadPendingApprovals()
     } catch (error) {
+      console.error('Failed to approve phase change:', error)
       toast.error('Failed to approve phase change')
     }
   }
 
-  const handleRejectPhaseChange = async (task: Task) => {
-    if (!task.workflow?.phases || !task.currentPhase) return
-
+  const handleRejectPhaseChange = async (approvalId: string, taskTitle: string) => {
     try {
-      // Find previous phase in workflow
-      const currentPhaseOrder = task.currentPhase.order
-      const prevPhase = task.workflow.phases.find(p => p.order === currentPhaseOrder - 1)
-
-      if (!prevPhase) {
-        toast.error('No previous phase available')
-        return
-      }
-
-      await tasksApi.moveToPhase(task.id, prevPhase.id, 'Rejected by admin - needs revision')
-      toast.success('Task sent back for revision')
+      await tasksApi.rejectPhaseChange(approvalId, 'Rejected by admin - needs revision')
+      toast.success(`Task "${taskTitle}" sent back for revision`)
       loadPendingApprovals()
     } catch (error) {
+      console.error('Failed to reject phase change:', error)
       toast.error('Failed to reject phase change')
     }
   }
@@ -231,6 +213,13 @@ const ApprovalsPage: React.FC = () => {
                       {task.currentPhase.name}
                     </div>
                   )}
+                  {(task as any).approvalPhase && (
+                    <div 
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-300"
+                    >
+                      → {(task as any).approvalPhase.name}
+                    </div>
+                  )}
                   {task.assignedTo && (
                     <div className="flex items-center gap-1.5">
                       <UserCircleIcon className="h-4 w-4" />
@@ -248,21 +237,26 @@ const ApprovalsPage: React.FC = () => {
                 {/* Approval Message */}
                 <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                   <p className="text-sm text-amber-800">
-                    <strong>{task.assignedTo?.name || 'Someone'}</strong> has completed work on this task and is requesting approval to move forward.
+                    <strong>{(task as any).requestedBy?.name || task.assignedTo?.name || 'Someone'}</strong> is requesting approval to move task <strong>"{task.title}"</strong> to <strong>"{(task as any).approvalPhase?.name}"</strong>.
                   </p>
+                  {(task as any).requestedAt && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      Requested {new Date((task as any).requestedAt).toLocaleDateString()} at {new Date((task as any).requestedAt).toLocaleTimeString()}
+                    </p>
+                  )}
                 </div>
 
                 {/* Action Buttons */}
                 <div className="flex items-center gap-3">
                   <button
-                    onClick={() => handleApprovePhaseChange(task)}
+                    onClick={() => handleApprovePhaseChange((task as any).approvalId, task.title, (task as any).approvalPhase?.name || 'next phase')}
                     className="flex-1 btn-primary flex items-center justify-center gap-2"
                   >
                     <CheckCircleIcon className="h-5 w-5" />
                     Approve & Move Forward
                   </button>
                   <button
-                    onClick={() => handleRejectPhaseChange(task)}
+                    onClick={() => handleRejectPhaseChange((task as any).approvalId, task.title)}
                     className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium"
                   >
                     <XCircleIcon className="h-5 w-5" />
