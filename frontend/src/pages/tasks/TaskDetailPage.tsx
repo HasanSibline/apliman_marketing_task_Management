@@ -7,7 +7,6 @@ import {
   ChatBubbleLeftIcon,
   CalendarIcon,
   UserIcon,
-  ClockIcon,
   FlagIcon,
   PlayIcon,
   PauseIcon,
@@ -19,7 +18,7 @@ import {
   BoltIcon,
   FireIcon,
   ChevronUpIcon,
-  ArrowRightIcon,
+  ChevronDownIcon,
   XMarkIcon
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -94,6 +93,23 @@ const TaskDetailPage: React.FC = () => {
     }
   }
 
+  const handlePhaseChange = async (newPhaseId: string) => {
+    if (!id) return
+    
+    try {
+      await tasksApi.moveToPhase(id, newPhaseId, 'Phase changed by user')
+      dispatch(fetchTaskById(id))
+      toast.success('Phase updated successfully!')
+    } catch (error: any) {
+      console.error('Failed to change phase:', error)
+      if (error.response?.data?.pendingApproval) {
+        toast('Approval request sent to admin', { icon: 'ℹ️' })
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to change phase')
+      }
+    }
+  }
+
   const getPriorityConfig = (priority: number) => {
     switch (priority) {
       case 1: 
@@ -165,18 +181,6 @@ const TaskDetailPage: React.FC = () => {
       } catch (error: any) {
         toast.error(error.response?.data?.message || 'Failed to delete task')
       }
-    }
-  }
-
-  const handlePhaseChange = async (toPhaseId: string) => {
-    if (!currentTask) return
-    
-    try {
-      await tasksApi.moveToPhase(currentTask.id, toPhaseId)
-      toast.success('Task phase updated successfully')
-      dispatch(fetchTaskById(currentTask.id))
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to update task phase')
     }
   }
 
@@ -382,6 +386,36 @@ const TaskDetailPage: React.FC = () => {
                       </button>
                     )}
                   </div>
+
+                  {/* Phase Dropdown */}
+                  {currentTask.workflow?.phases && currentTask.workflow.phases.length > 0 && (
+                    <div className="relative">
+                      <select
+                        value={currentTask.currentPhase?.id || ''}
+                        onChange={(e) => {
+                          const newPhaseId = e.target.value
+                          if (newPhaseId && newPhaseId !== currentTask.currentPhase?.id) {
+                            handlePhaseChange(newPhaseId)
+                          }
+                        }}
+                        className="appearance-none px-3 py-1.5 pr-8 rounded-lg text-sm font-medium border-2 cursor-pointer transition-colors"
+                        style={{
+                          backgroundColor: `${currentTask.currentPhase?.color}20`,
+                          color: currentTask.currentPhase?.color,
+                          borderColor: `${currentTask.currentPhase?.color}40`
+                        }}
+                      >
+                        {currentTask.workflow.phases.map((phase) => (
+                          <option key={phase.id} value={phase.id}>
+                            {phase.name}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <ChevronDownIcon className="w-4 h-4" style={{ color: currentTask.currentPhase?.color }} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -432,80 +466,6 @@ const TaskDetailPage: React.FC = () => {
               </div>
             )}
 
-            {/* Phase Transitions */}
-            {currentTask.workflow && currentTask.currentPhase && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <ArrowRightIcon className="h-5 w-5 text-blue-600" />
-                  Change Phase
-                </h2>
-                <div className="flex flex-wrap gap-3">
-                  {currentTask.workflow.phases
-                    ?.filter((phase: any) => phase.id !== currentTask.currentPhaseId)
-                    .map((phase: any) => (
-                      <button
-                        key={phase.id}
-                        onClick={() => handlePhaseChange(phase.id)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 hover:shadow-md transition-all"
-                        style={{
-                          borderColor: phase.color,
-                          backgroundColor: `${phase.color}10`,
-                          color: phase.color
-                        }}
-                      >
-                        <ArrowRightIcon className="h-4 w-4" />
-                        <span className="font-medium">Move to {phase.name}</span>
-                      </button>
-                    ))}
-                </div>
-                {currentTask.workflow.phases && currentTask.workflow.phases.length === 1 && (
-                  <p className="text-sm text-gray-500 mt-2">No other phases available in this workflow</p>
-                )}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Time Tracking */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
-          >
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <ClockIcon className="h-5 w-5 text-blue-600" />
-              Time Tracking
-            </h2>
-            <div className="flex items-center gap-6">
-              <div className="flex-1">
-                <div className="text-4xl font-mono font-bold text-gray-900 mb-2">
-                  {formatTime(currentTime)}
-                </div>
-                <div className="text-sm text-gray-500">
-                  Current session time
-                </div>
-              </div>
-              <button
-                onClick={() => isTimerRunning ? handlePauseTimer() : handleStartTimer()}
-                className={`px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors ${
-                  isTimerRunning
-                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                }`}
-              >
-                {isTimerRunning ? (
-                  <>
-                    <PauseIcon className="h-5 w-5" />
-                    Pause Timer
-                  </>
-                ) : (
-                  <>
-                    <PlayIcon className="h-5 w-5" />
-                    Start Timer
-                  </>
-                )}
-              </button>
-            </div>
           </motion.div>
 
           {/* Files */}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { BellIcon } from '@heroicons/react/24/outline'
 import { motion, AnimatePresence } from 'framer-motion'
 import { notificationsApi } from '@/services/api'
@@ -12,6 +13,9 @@ interface Notification {
   message: string
   read: boolean
   createdAt: string
+  taskId?: string
+  subtaskId?: string
+  actionUrl?: string
   task?: {
     id: string
     title: string
@@ -20,6 +24,7 @@ interface Notification {
 }
 
 const NotificationBell: React.FC = () => {
+  const navigate = useNavigate()
   const { user } = useAppSelector((state) => state.auth)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -209,8 +214,21 @@ const NotificationBell: React.FC = () => {
                         !notification.read ? 'bg-blue-50' : ''
                       }`}
                       onClick={() => {
+                        // Mark as read
                         if (!notification.read) {
                           markAsRead(notification.id)
+                        }
+                        
+                        // Navigate to the appropriate page
+                        if (notification.actionUrl) {
+                          navigate(notification.actionUrl)
+                          setIsOpen(false)
+                        } else if (notification.taskId) {
+                          navigate(`/tasks/${notification.taskId}`)
+                          setIsOpen(false)
+                        } else if (notification.subtaskId) {
+                          navigate(`/tasks/subtask/${notification.subtaskId}`)
+                          setIsOpen(false)
                         }
                       }}
                     >

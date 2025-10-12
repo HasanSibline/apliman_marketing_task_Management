@@ -880,12 +880,8 @@ export class TasksService {
       throw new NotFoundException('Task not found');
     }
 
-    // Role-based access control
-    if (userRole === UserRole.EMPLOYEE) {
-      if (task.assignedToId !== userId && task.createdById !== userId) {
-        throw new ForbiddenException('You do not have access to this task');
-      }
-    }
+    // Everyone can VIEW tasks - no access restrictions for viewing
+    // Edit restrictions are handled in the update() method
 
     return task;
   }
@@ -893,9 +889,16 @@ export class TasksService {
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string, userRole: UserRole) {
     const existingTask = await this.findOne(id, userId, userRole);
 
-    // TODO: Implement workflow-based update restrictions
-    // Phase-based restrictions have been moved to workflow phase permissions
-    // Use moveTaskToPhase() method for phase transitions with proper validation
+    // Only assigned users, creator, or admins can edit tasks
+    if (userRole === UserRole.EMPLOYEE) {
+      const isAssigned = existingTask.assignedToId === userId;
+      const isCreator = existingTask.createdById === userId;
+      const isInAssignments = existingTask.assignments?.some(a => a.userId === userId);
+      
+      if (!isAssigned && !isCreator && !isInAssignments) {
+        throw new ForbiddenException('You do not have permission to edit this task. Only assigned users can edit.');
+      }
+    }
 
     try {
       const updatedTask = await this.prisma.task.update({
