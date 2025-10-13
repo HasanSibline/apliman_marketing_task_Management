@@ -26,31 +26,54 @@ function runCommand(command, description, required = true) {
   }
 }
 
-// Step 1: Database migration strategy
-// First deployment: Use db push (database already exists from previous deployments)
-// This will sync the schema without requiring migration history
-console.log('🔄 Syncing database schema...');
-const dbPushSuccess = runCommand('npx prisma db push --accept-data-loss', '🔄 Syncing database schema', false);
+// Step 1: Sync database schema first (handles existing databases)
+console.log('🔄 Step 1: Syncing database schema...\n');
+runCommand(
+  'npx prisma db push --accept-data-loss --skip-generate', 
+  '🗄️  Applying schema changes to database', 
+  true
+);
 
-if (!dbPushSuccess) {
-  // Fallback: Try migrate deploy (for future deployments with proper migration history)
-  console.log('⚠️  DB push failed, trying migrate deploy...');
-  runCommand('npx prisma migrate deploy', '🔄 Running database migrations', true);
+// Step 2: Generate Prisma Client AFTER database is updated
+console.log('\n📦 Step 2: Generating Prisma Client with latest schema...\n');
+runCommand(
+  'npx prisma generate', 
+  '⚙️  Building Prisma Client', 
+  true
+);
+
+// Step 3: Verify Prisma Client was generated correctly
+console.log('\n🔍 Step 3: Verifying Prisma Client...\n');
+try {
+  const { PrismaClient } = require('@prisma/client');
+  const prisma = new PrismaClient();
+  
+  if (prisma.knowledgeSource) {
+    console.log('✅ KnowledgeSource model verified in Prisma Client\n');
+  } else {
+    console.error('❌ KnowledgeSource model NOT found in Prisma Client');
+    console.error('🔄 Regenerating Prisma Client...');
+    execSync('npx prisma generate', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+  }
+  
+  prisma.$disconnect();
+} catch (error) {
+  console.error('⚠️  Could not verify Prisma Client:', error.message);
+  console.log('🔄 Attempting to regenerate...');
+  execSync('npx prisma generate', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
 }
 
-// Step 2: Generate Prisma Client AFTER schema sync
-// This ensures the client includes all the latest models
-runCommand('npx prisma generate', '📦 Generating Prisma Client with latest schema', true);
-
-// Step 3: Seed database (optional - will skip if already seeded)
+// Step 4: Seed database (optional - will skip if already seeded)
+console.log('\n🌱 Step 4: Seeding database (optional)...\n');
 runCommand('npx prisma db seed', '🌱 Seeding database', false);
 
-// Step 4: Start the application
-console.log('✅ Starting NestJS application...\n');
+// Step 5: Start the application
+console.log('\n✅ All pre-flight checks passed!');
+console.log('🚀 Starting NestJS application...\n');
+
 try {
   require('../dist/main');
 } catch (error) {
   console.error('❌ Failed to start application:', error);
   process.exit(1);
 }
-
