@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, CalendarIcon, FlagIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, CalendarIcon, FlagIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { tasksApi, usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
@@ -18,20 +18,23 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
     goals: '',
     priority: 1,
     dueDate: '',
-    assignedToId: '',
+    assignedUserIds: [] as string[],
   })
   const [users, setUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (task) {
+      // Collect all assigned user IDs from assignments array
+      const assignedIds = task.assignments?.map((a: any) => a.userId) || []
+      
       setFormData({
         title: task.title || '',
         description: task.description || '',
         goals: task.goals || '',
         priority: task.priority || 1,
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-        assignedToId: task.assignedToId || '',
+        assignedUserIds: assignedIds,
       })
     }
   }, [task])
@@ -175,23 +178,46 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 </div>
               </div>
 
-              {/* Assigned To */}
+              {/* Assigned Users (Multiple Selection) */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Assigned To
+                  <UserGroupIcon className="w-4 h-4 inline mr-1" />
+                  Assigned Users (Select Multiple)
                 </label>
-                <select
-                  value={formData.assignedToId}
-                  onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="">Unassigned</option>
-                  {users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.name} - {user.position}
-                    </option>
-                  ))}
-                </select>
+                <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
+                  {users.length === 0 ? (
+                    <p className="text-sm text-gray-500">Loading users...</p>
+                  ) : (
+                    users.map((user) => (
+                      <label key={user.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.assignedUserIds.includes(user.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setFormData({
+                                ...formData,
+                                assignedUserIds: [...formData.assignedUserIds, user.id],
+                              })
+                            } else {
+                              setFormData({
+                                ...formData,
+                                assignedUserIds: formData.assignedUserIds.filter(id => id !== user.id),
+                              })
+                            }
+                          }}
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">{user.name} - {user.position}</span>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {formData.assignedUserIds.length > 0 && (
+                  <p className="text-sm text-gray-500 mt-2">
+                    {formData.assignedUserIds.length} user(s) selected
+                  </p>
+                )}
               </div>
 
               {/* Actions */}

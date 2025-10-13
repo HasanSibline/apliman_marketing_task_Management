@@ -238,41 +238,50 @@ const AnalyticsDashboard: React.FC = () => {
         >
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasks by Phase</h3>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={Object.entries(dashboardData?.tasksByPhase || {}).map(([phase, count]) => ({
-                  phase: phase.replace(/_/g, ' '),
-                  count,
-                  fill: PHASE_COLORS[phase as keyof typeof PHASE_COLORS] || '#8884d8'
-                }))}
-                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="phase" 
-                  tick={{ fontSize: 12 }}
-                  tickLine={{ stroke: '#e0e0e0' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 12 }}
-                  tickLine={{ stroke: '#e0e0e0' }}
-                  axisLine={{ stroke: '#e0e0e0' }}
-                />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                />
-                <Bar 
-                  dataKey="count" 
-                  fill="#8884d8"
-                  radius={[4, 4, 0, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
+            {!dashboardData?.tasksByPhase || dashboardData.tasksByPhase.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                No tasks data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={dashboardData.tasksByPhase.map((item: any) => ({
+                    phase: item.phase,
+                    count: item.count,
+                    fill: item.color || '#3B82F6'
+                  }))}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis 
+                    dataKey="phase" 
+                    tick={{ fontSize: 11 }}
+                    tickLine={{ stroke: '#e0e0e0' }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={80}
+                  />
+                  <YAxis 
+                    tick={{ fontSize: 12 }}
+                    tickLine={{ stroke: '#e0e0e0' }}
+                    axisLine={{ stroke: '#e0e0e0' }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="count" 
+                    fill="#3B82F6"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </motion.div>
 

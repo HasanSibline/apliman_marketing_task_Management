@@ -294,6 +294,18 @@ export class TasksService {
       throw new NotFoundException('Task not found');
     }
 
+    // Check if user has permission to move the task
+    // Allow: admins, task creator, or assigned users
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+    const isCreator = task.createdById === userId;
+    const isAssigned = task.assignedToId === userId;
+    const isInAssignments = task.assignments?.some(a => a.userId === userId);
+
+    if (!isAdmin && !isCreator && !isAssigned && !isInAssignments) {
+      throw new ForbiddenException('You do not have permission to change the phase of this task. Only assigned users can move tasks between phases.');
+    }
+
     const toPhase = await this.prisma.phase.findUnique({ where: { id: toPhaseId } });
     if (!toPhase) {
       throw new NotFoundException('Target phase not found');
@@ -1006,6 +1018,33 @@ export class TasksService {
     }
 
     try {
+      // Handle multiple user assignments
+      if (updateTaskDto['assignedUserIds'] && Array.isArray(updateTaskDto['assignedUserIds'])) {
+        const assignedUserIds = updateTaskDto['assignedUserIds'];
+        delete updateTaskDto['assignedUserIds'];
+
+        // Delete existing assignments
+        await this.prisma.taskAssignment.deleteMany({
+          where: { taskId: id },
+        });
+
+        // Create new assignments
+        if (assignedUserIds.length > 0) {
+          await this.prisma.taskAssignment.createMany({
+            data: assignedUserIds.map((userId) => ({
+              taskId: id,
+              userId,
+              assignedById: userId,
+            })),
+          });
+
+          // Set primary assignee to first user
+          updateTaskDto['assignedToId'] = assignedUserIds[0];
+        } else {
+          updateTaskDto['assignedToId'] = null;
+        }
+      }
+
       const updatedTask = await this.prisma.task.update({
         where: { id },
         data: {
@@ -1030,6 +1069,18 @@ export class TasksService {
               position: true,
             },
           },
+          assignments: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  position: true,
+                },
+              },
+            },
+          },
           _count: {
             select: {
               files: true,
@@ -1038,9 +1089,6 @@ export class TasksService {
           },
         },
       });
-
-      // TODO: Update analytics based on workflow phase changes
-      // Phase change analytics will be handled by moveTaskToPhase() method
 
       return updatedTask;
     } catch (error) {
