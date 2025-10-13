@@ -287,6 +287,17 @@ export const tasksApi = {
     return response.data
   },
 
+  addSubtask: async (taskId: string, subtask: {
+    title: string
+    description?: string
+    assignedToId?: string
+    estimatedHours?: number
+    phaseId?: string
+  }): Promise<any> => {
+    const response = await api.post(`/tasks/${taskId}/subtasks`, subtask)
+    return response.data
+  },
+
   // NEW: Update task assignment
   updateAssignment: async (taskId: string, assignedToId: string): Promise<Task> => {
     const response = await api.patch(`/tasks/${taskId}/assignment`, { assignedToId })
