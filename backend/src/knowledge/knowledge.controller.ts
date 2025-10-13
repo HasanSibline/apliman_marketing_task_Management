@@ -26,6 +26,30 @@ export class KnowledgeController {
 
   constructor(private readonly knowledgeService: KnowledgeService) {}
 
+  @Get('debug')
+  async debugPrismaClient() {
+    try {
+      const { PrismaClient } = require('@prisma/client');
+      const prisma = new PrismaClient();
+      
+      const hasModel = !!prisma.knowledgeSource;
+      const models = Object.keys(prisma).filter(k => !k.startsWith('$') && !k.startsWith('_'));
+      
+      await prisma.$disconnect();
+      
+      return {
+        hasKnowledgeSourceModel: hasModel,
+        availableModels: models,
+        prismaVersion: require('@prisma/client/package.json').version,
+      };
+    } catch (error) {
+      return {
+        error: error.message,
+        stack: error.stack,
+      };
+    }
+  }
+
   @Get()
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   async getAllKnowledgeSources(@Request() req) {
@@ -33,6 +57,7 @@ export class KnowledgeController {
       return await this.knowledgeService.findAll();
     } catch (error) {
       this.logger.error('Error fetching knowledge sources:', error);
+      this.logger.error('Error stack:', error.stack);
       throw new HttpException(
         'Failed to fetch knowledge sources',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -46,6 +71,7 @@ export class KnowledgeController {
       return await this.knowledgeService.findActive();
     } catch (error) {
       this.logger.error('Error fetching active knowledge sources:', error);
+      this.logger.error('Error stack:', error.stack);
       throw new HttpException(
         'Failed to fetch active knowledge sources',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -67,6 +93,7 @@ export class KnowledgeController {
         throw error;
       }
       this.logger.error(`Error fetching knowledge source ${id}:`, error);
+      this.logger.error('Error stack:', error.stack);
       throw new HttpException(
         'Failed to fetch knowledge source',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -81,12 +108,28 @@ export class KnowledgeController {
     @Request() req,
   ) {
     try {
+      this.logger.log('Creating knowledge source...');
+      this.logger.log('Request body:', JSON.stringify(createDto));
+      this.logger.log('User ID:', req.user.userId);
+      
       const userId = req.user.userId;
-      return await this.knowledgeService.create(createDto, userId);
+      const result = await this.knowledgeService.create(createDto, userId);
+      
+      this.logger.log('Knowledge source created successfully');
+      return result;
     } catch (error) {
-      this.logger.error('Error creating knowledge source:', error);
+      this.logger.error('Error creating knowledge source:', error.message);
+      this.logger.error('Error stack:', error.stack);
+      this.logger.error('Error name:', error.name);
+      this.logger.error('Error code:', error.code);
+      
       throw new HttpException(
-        error.message || 'Failed to create knowledge source',
+        {
+          message: error.message || 'Failed to create knowledge source',
+          errorName: error.name,
+          errorCode: error.code,
+          details: error.meta || {},
+        },
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -102,6 +145,7 @@ export class KnowledgeController {
       return await this.knowledgeService.update(id, updateDto);
     } catch (error) {
       this.logger.error(`Error updating knowledge source ${id}:`, error);
+      this.logger.error('Error stack:', error.stack);
       throw new HttpException(
         error.message || 'Failed to update knowledge source',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -117,6 +161,7 @@ export class KnowledgeController {
       return { message: 'Knowledge source deleted successfully' };
     } catch (error) {
       this.logger.error(`Error deleting knowledge source ${id}:`, error);
+      this.logger.error('Error stack:', error.stack);
       throw new HttpException(
         'Failed to delete knowledge source',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -131,6 +176,7 @@ export class KnowledgeController {
       return await this.knowledgeService.scrapeSource(id);
     } catch (error) {
       this.logger.error(`Error scraping knowledge source ${id}:`, error);
+      this.logger.error('Error stack:', error.stack);
       throw new HttpException(
         error.message || 'Failed to scrape knowledge source',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -145,6 +191,7 @@ export class KnowledgeController {
       return await this.knowledgeService.scrapeAll();
     } catch (error) {
       this.logger.error('Error scraping all knowledge sources:', error);
+      this.logger.error('Error stack:', error.stack);
       throw new HttpException(
         'Failed to scrape knowledge sources',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -152,4 +199,3 @@ export class KnowledgeController {
     }
   }
 }
-
