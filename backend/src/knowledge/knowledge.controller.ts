@@ -110,9 +110,10 @@ export class KnowledgeController {
     try {
       this.logger.log('Creating knowledge source...');
       this.logger.log('Request body:', JSON.stringify(createDto));
-      this.logger.log('User ID:', req.user.userId);
+      this.logger.log('User from request:', JSON.stringify(req.user));
+      this.logger.log('User ID:', req.user.id);
       
-      const userId = req.user.userId;
+      const userId = req.user.id;
       const result = await this.knowledgeService.create(createDto, userId);
       
       this.logger.log('Knowledge source created successfully');
