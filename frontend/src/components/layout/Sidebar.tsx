@@ -8,6 +8,7 @@ import {
   UsersIcon,
   ChartBarIcon,
   UserCircleIcon,
+  GlobeAltIcon,
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -21,6 +22,7 @@ const Sidebar: React.FC = () => {
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
     { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
+    { name: 'Knowledge Sources', href: '/admin/knowledge-sources', icon: GlobeAltIcon, adminOnly: true },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
     { name: 'Profile', href: '/profile', icon: UserCircleIcon },
   ]

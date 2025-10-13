@@ -19,6 +19,7 @@ class ContentGenerator:
         self.config = get_config()
         self.last_request_time = None
         self.request_interval = 1.0  # Minimum time between requests in seconds
+        self.knowledge_sources = None  # Store knowledge sources for enhanced prompts
         self._initialize_gemini()
         
     def _initialize_gemini(self):
@@ -55,23 +56,73 @@ class ContentGenerator:
             logger.warning(f"🔄 Rotating API key from index {old_index} to {self.current_key_index}")
             return True
         return False
+    
+    def set_knowledge_sources(self, knowledge_sources: list):
+        """Set knowledge sources for enhanced content generation"""
+        self.knowledge_sources = knowledge_sources
+        logger.info(f"✅ Set {len(knowledge_sources)} knowledge sources for content generation")
             
     async def _make_request(self, prompt: str) -> str:
         """Make a request to Gemini API"""
         return await self._make_gemini_request(prompt)
             
     async def _make_gemini_request(self, prompt: str) -> str:
-        """Make a request to Gemini API with Apliman system prompt"""
+        """Make a request to Gemini API with Apliman system prompt and knowledge sources"""
         url = f"{self.base_url}/models/{self.model}:generateContent"
         
         # Check if this is a social media post
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
         is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
         
-        # Apliman system prompt with comprehensive business context
+        # Base Apliman system prompt
         system_prompt = """You are the AI assistant for Apliman Technologies' internal marketing task management system.
 
-ABOUT APLIMAN:
+CONTENT GENERATION RULES:
+1. Always reference specific Apliman products and services based on the knowledge provided below
+2. Highlight industry-specific applications
+3. Emphasize key differentiators: AI-driven, multi-channel, scalable, secure
+4. Include technical depth for B2B/Enterprise audience
+5. Focus on business outcomes: revenue growth, customer engagement, efficiency
+6. Use telecom/tech terminology accurately
+
+OUTPUT FORMAT:
+Section 1 (Context): Explain WHY this task matters for Apliman's business, which products/solutions it promotes, target audience, strategic value.
+Section 2 (Strategy & Deliverables): Specific execution steps, deliverables, success metrics, ready-to-use content.
+
+For social media: Include caption, hashtags, posting recommendations.
+For technical content: Include key talking points about Apliman's technology."""
+        
+        # Add knowledge sources if available
+        if self.knowledge_sources:
+            apliman_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'APLIMAN' and ks.get('isActive')]
+            competitor_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPETITOR' and ks.get('isActive')]
+            
+            if apliman_sources:
+                system_prompt += "\n\n=== APLIMAN KNOWLEDGE BASE ===\n"
+                system_prompt += "Use the following information about Apliman to inform your content generation:\n\n"
+                for idx, source in enumerate(apliman_sources, 1):
+                    system_prompt += f"\n[Source {idx}: {source.get('name', 'Unknown')}]\n"
+                    if source.get('content'):
+                        # Truncate content to avoid exceeding token limits
+                        content = source['content'][:3000] + "..." if len(source['content']) > 3000 else source['content']
+                        system_prompt += f"{content}\n"
+            
+            if competitor_sources:
+                system_prompt += "\n\n=== COMPETITIVE ANALYSIS ===\n"
+                system_prompt += "Consider the following competitor information for positioning Apliman's advantages:\n\n"
+                for idx, source in enumerate(competitor_sources, 1):
+                    system_prompt += f"\n[Competitor {idx}: {source.get('name', 'Unknown')}]\n"
+                    if source.get('content'):
+                        # Truncate content to avoid exceeding token limits
+                        content = source['content'][:2000] + "..." if len(source['content']) > 2000 else source['content']
+                        system_prompt += f"{content}\n"
+                
+                system_prompt += "\n\nWhen generating content, subtly highlight Apliman's advantages without directly attacking competitors. Focus on Apliman's unique value propositions and strengths."
+        else:
+            # Fallback to basic Apliman information if no knowledge sources
+            system_prompt += """
+
+ABOUT APLIMAN (Default Knowledge):
 Apliman is a leading provider of integrated communication solutions with presence in 50+ countries, serving 75+ governmental and private enterprises globally.
 
 CORE PRODUCTS & SERVICES:
@@ -84,22 +135,7 @@ CORE PRODUCTS & SERVICES:
 
 TARGET INDUSTRIES:
 - Telecom Mobile Network Operators (MNOs)
-- Fintech, Education, Travel & Hospitality, E-Commerce, Government
-
-CONTENT GENERATION RULES:
-1. Always reference specific Apliman products (aïda, aïReach, CCS, SRBT, etc.)
-2. Highlight industry-specific applications
-3. Emphasize key differentiators: AI-driven, multi-channel, scalable, secure
-4. Include technical depth for B2B/Enterprise audience
-5. Focus on business outcomes: revenue growth, customer engagement, efficiency
-6. Use telecom/tech terminology accurately (CPaaS, MNO, customer journey, omnichannel)
-
-OUTPUT FORMAT:
-Section 1 (Context): Explain WHY this task matters for Apliman's business, which products/solutions it promotes, target audience, strategic value.
-Section 2 (Strategy & Deliverables): Specific execution steps, deliverables, success metrics, ready-to-use content.
-
-For social media: Include caption, hashtags, posting recommendations.
-For technical content: Include key talking points about Apliman's technology."""
+- Fintech, Education, Travel & Hospitality, E-Commerce, Government"""
         
         # Add social media specific instructions
         if is_social_media:

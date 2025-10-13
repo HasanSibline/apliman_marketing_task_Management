@@ -20,6 +20,7 @@ import AnalyticsPage from '@/pages/analytics/AnalyticsPage'
 import ProfilePage from '@/pages/ProfilePage'
 import ActivityPage from '@/pages/ActivityPage'
 import NotFoundPage from '@/pages/NotFoundPage'
+import KnowledgeSourcesPage from '@/pages/admin/KnowledgeSourcesPage'
 
 function App() {
   const dispatch = useAppDispatch()
@@ -87,6 +88,7 @@ function App() {
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="admin/knowledge-sources" element={<KnowledgeSourcesPage />} />
       </Route>
 
       {/* 404 Route */}

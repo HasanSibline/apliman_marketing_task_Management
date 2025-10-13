@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -13,6 +13,7 @@ export class AiService {
   constructor(
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
@@ -212,10 +213,15 @@ export class AiService {
       this.logger.log(`Calling AI service at: ${this.aiServiceUrl}/generate-content`);
       this.logger.log(`Request data: ${JSON.stringify({ title, type })}`);
       
+      // Fetch active knowledge sources
+      const knowledgeSources = await this.getActiveKnowledgeSources();
+      this.logger.log(`Using ${knowledgeSources.length} knowledge sources for content generation`);
+      
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
-          type
+          type,
+          knowledge_sources: knowledgeSources
         }, {
           timeout: 30000, // Increased timeout for better AI generation
         }),
@@ -240,6 +246,38 @@ export class AiService {
       
       // Don't provide fallback - let the frontend handle the error
       throw new Error(`AI content generation failed: ${error.message}`);
+    }
+  }
+
+  private async getActiveKnowledgeSources() {
+    try {
+      const sources = await this.prisma.knowledgeSource.findMany({
+        where: {
+          isActive: true,
+        },
+        orderBy: [
+          { priority: 'desc' },
+        ],
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          content: true,
+          priority: true,
+        },
+      });
+      
+      return sources.map(source => ({
+        id: source.id,
+        name: source.name,
+        type: source.type,
+        content: source.content,
+        isActive: true,
+        priority: source.priority,
+      }));
+    } catch (error) {
+      this.logger.error('Error fetching knowledge sources:', error);
+      return []; // Return empty array on error
     }
   }
 
@@ -276,8 +314,15 @@ export class AiService {
     try {
       this.logger.log(`Generating subtasks for: ${data.title}`);
       
+      // Fetch active knowledge sources
+      const knowledgeSources = await this.getActiveKnowledgeSources();
+      this.logger.log(`Using ${knowledgeSources.length} knowledge sources for subtask generation`);
+      
       const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, data, {
+        this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, {
+          ...data,
+          knowledgeSources
+        }, {
           timeout: 15000,
         }),
       );

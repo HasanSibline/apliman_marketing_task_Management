@@ -34,86 +34,87 @@ enum TaskPhase {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String
-  role      UserRole @default(EMPLOYEE)
-  position  String?
-  department String?
-  status    UserStatus @default(OFFLINE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String     @id @default(uuid())
+  email        String     @unique
+  name         String
+  password     String
+  role         UserRole   @default(EMPLOYEE)
+  position     String?
+  department   String?
+  status       UserStatus @default(OFFLINE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
   lastActiveAt DateTime?
 
   // Relations
-  createdTasks      Task[] @relation("TaskCreator")
-  assignedTasks     Task[] @relation("TaskAssignee")
-  taskAssignments   TaskAssignment[] @relation("TaskAssignments")
-  assignedByMe      TaskAssignment[] @relation("TaskAssigner")
-  taskComments      TaskComment[]
-  notifications     Notification[]
-  createdWorkflows  Workflow[] @relation("WorkflowCreator")
-  assignedSubtasks  Subtask[]
-  phaseHistory      PhaseHistory[]
-  approvalsRequested PhaseApproval[] @relation("ApprovalRequester")
-  approvalsReviewed  PhaseApproval[] @relation("ApprovalReviewer")
+  createdTasks       Task[]            @relation("TaskCreator")
+  assignedTasks      Task[]            @relation("TaskAssignee")
+  taskAssignments    TaskAssignment[]  @relation("TaskAssignments")
+  assignedByMe       TaskAssignment[]  @relation("TaskAssigner")
+  taskComments       TaskComment[]
+  notifications      Notification[]
+  createdWorkflows   Workflow[]        @relation("WorkflowCreator")
+  assignedSubtasks   Subtask[]
+  phaseHistory       PhaseHistory[]
+  approvalsRequested PhaseApproval[]   @relation("ApprovalRequester")
+  approvalsReviewed  PhaseApproval[]   @relation("ApprovalReviewer")
+  knowledgeSources   KnowledgeSource[] @relation("KnowledgeSourceCreator")
 
   @@map("users")
 }
 
 model Task {
-  id            String    @id @default(uuid())
-  title         String
-  description   String
-  taskType      String?
-  workflowId    String?
+  id             String    @id @default(uuid())
+  title          String
+  description    String
+  taskType       String?
+  workflowId     String?
   currentPhaseId String?
-  phase         TaskPhase @default(PENDING_APPROVAL) // Keep for backward compatibility
-  goals         String?
-  priority      Int       @default(1) // 1-5 scale
-  dueDate       DateTime?
-  completedAt   DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  phase          TaskPhase @default(PENDING_APPROVAL) // Keep for backward compatibility
+  goals          String?
+  priority       Int       @default(1) // 1-5 scale
+  dueDate        DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   // Foreign Keys
   assignedToId String? // Keep for backward compatibility
   createdById  String
-  
+
   // Parent-child task relationships
   parentTaskId String?
   subtaskId    String? @unique
 
   // Relations
-  assignedTo      User?         @relation("TaskAssignee", fields: [assignedToId], references: [id])
-  createdBy       User          @relation("TaskCreator", fields: [createdById], references: [id])
-  workflow        Workflow?     @relation(fields: [workflowId], references: [id])
-  currentPhase    Phase?        @relation(fields: [currentPhaseId], references: [id])
-  parentTask      Task?         @relation("ParentChildTasks", fields: [parentTaskId], references: [id])
-  childTasks      Task[]        @relation("ParentChildTasks")
-  linkedSubtask   Subtask?      @relation("TaskSubtaskLink", fields: [subtaskId], references: [id])
-  assignments     TaskAssignment[]
-  files           TaskFile[]
-  comments        TaskComment[]
-  notifications   Notification[]
-  subtasks        Subtask[]
-  phaseHistory    PhaseHistory[]
-  approvals       PhaseApproval[]
+  assignedTo    User?            @relation("TaskAssignee", fields: [assignedToId], references: [id])
+  createdBy     User             @relation("TaskCreator", fields: [createdById], references: [id])
+  workflow      Workflow?        @relation(fields: [workflowId], references: [id])
+  currentPhase  Phase?           @relation(fields: [currentPhaseId], references: [id])
+  parentTask    Task?            @relation("ParentChildTasks", fields: [parentTaskId], references: [id])
+  childTasks    Task[]           @relation("ParentChildTasks")
+  linkedSubtask Subtask?         @relation("TaskSubtaskLink", fields: [subtaskId], references: [id])
+  assignments   TaskAssignment[]
+  files         TaskFile[]
+  comments      TaskComment[]
+  notifications Notification[]
+  subtasks      Subtask[]
+  phaseHistory  PhaseHistory[]
+  approvals     PhaseApproval[]
 
   @@map("tasks")
 }
 
 model TaskAssignment {
-  id        String   @id @default(uuid())
-  taskId    String
-  userId    String
-  assignedAt DateTime @default(now())
+  id           String   @id @default(uuid())
+  taskId       String
+  userId       String
+  assignedAt   DateTime @default(now())
   assignedById String? // Who assigned this user to the task
 
   // Relations
-  task       Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user       User @relation("TaskAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  task       Task  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user       User  @relation("TaskAssignments", fields: [userId], references: [id], onDelete: Cascade)
   assignedBy User? @relation("TaskAssigner", fields: [assignedById], references: [id])
 
   @@unique([taskId, userId])
@@ -126,7 +127,7 @@ model TaskFile {
   fileName   String
   filePath   String
   fileType   String
-  fileSize   Int      // Size in bytes after compression
+  fileSize   Int // Size in bytes after compression
   mimeType   String
   uploadedAt DateTime @default(now())
 
@@ -144,8 +145,8 @@ model TaskComment {
   createdAt DateTime @default(now())
 
   // Relations
-  task   Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user   User            @relation(fields: [userId], references: [id])
+  task   Task           @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user   User           @relation(fields: [userId], references: [id])
   images CommentImage[]
 
   @@map("task_comments")
@@ -154,9 +155,9 @@ model TaskComment {
 model CommentImage {
   id        String   @id @default(uuid())
   commentId String
-  data      String   // Base64 encoded image data
-  mimeType  String   // e.g., "image/jpeg", "image/png"
-  size      Int      // Size in bytes
+  data      String // Base64 encoded image data
+  mimeType  String // e.g., "image/jpeg", "image/png"
+  size      Int // Size in bytes
   createdAt DateTime @default(now())
 
   // Relations
@@ -166,18 +167,18 @@ model CommentImage {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   userId    String
   taskId    String?
   subtaskId String?
   phaseId   String?
-  type      String   // 'task_created', 'task_assigned', 'task_updated', 'task_approved', 'task_rejected', 'task_completed', 'phase_changed', 'subtask_assigned'
+  type      String // 'task_created', 'task_assigned', 'task_updated', 'task_approved', 'task_rejected', 'task_completed', 'phase_changed', 'subtask_assigned'
   title     String
   message   String
   actionUrl String?
-  isRead    Boolean  @default(false)
+  isRead    Boolean   @default(false)
   readAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   // Relations
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -201,142 +202,167 @@ model Workflow {
   createdBy   User     @relation("WorkflowCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  phases      Phase[]
-  tasks       Task[]
-  
+
+  phases Phase[]
+  tasks  Task[]
+
   @@map("workflows")
 }
 
 model Phase {
-  id          String   @id @default(uuid())
-  workflowId  String
-  workflow    Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
-  
+  id         String   @id @default(uuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
   name        String
   description String?
   order       Int
-  color       String   @default("#6B7280")
-  
-  allowedRoles String[]  @default([]) // DEPRECATED: Use allowedUsers instead
-  allowedUsers String[]  @default([]) // User IDs who can access this phase
-  autoAssignRole String? // DEPRECATED: Use autoAssignUserId instead
+  color       String  @default("#6B7280")
+
+  allowedRoles     String[] @default([]) // DEPRECATED: Use allowedUsers instead
+  allowedUsers     String[] @default([]) // User IDs who can access this phase
+  autoAssignRole   String? // DEPRECATED: Use autoAssignUserId instead
   autoAssignUserId String? // Specific user ID to auto-assign
-  
-  isStartPhase Boolean  @default(false)
-  isEndPhase   Boolean  @default(false)
+
+  isStartPhase     Boolean @default(false)
+  isEndPhase       Boolean @default(false)
   requiresApproval Boolean @default(false)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  tasks       Task[]
-  subtasks    Subtask[]
-  transitionsFrom Transition[] @relation("FromPhase")
-  transitionsTo   Transition[] @relation("ToPhase")
-  notifications Notification[]
-  approvals   PhaseApproval[]
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks           Task[]
+  subtasks        Subtask[]
+  transitionsFrom Transition[]    @relation("FromPhase")
+  transitionsTo   Transition[]    @relation("ToPhase")
+  notifications   Notification[]
+  approvals       PhaseApproval[]
+
   @@unique([workflowId, order])
   @@map("phases")
 }
 
 model Transition {
-  id          String   @id @default(uuid())
+  id          String @id @default(uuid())
   fromPhaseId String
-  fromPhase   Phase    @relation("FromPhase", fields: [fromPhaseId], references: [id], onDelete: Cascade)
+  fromPhase   Phase  @relation("FromPhase", fields: [fromPhaseId], references: [id], onDelete: Cascade)
   toPhaseId   String
-  toPhase     Phase    @relation("ToPhase", fields: [toPhaseId], references: [id], onDelete: Cascade)
-  
+  toPhase     Phase  @relation("ToPhase", fields: [toPhaseId], references: [id], onDelete: Cascade)
+
   name        String?
   conditions  Json?
-  notifyRoles String[]  @default([]) // DEPRECATED: Use notifyUsers instead
-  notifyUsers String[]  @default([]) // User IDs to notify on transition
-  
-  createdAt   DateTime @default(now())
-  
+  notifyRoles String[] @default([]) // DEPRECATED: Use notifyUsers instead
+  notifyUsers String[] @default([]) // User IDs to notify on transition
+
+  createdAt DateTime @default(now())
+
   @@unique([fromPhaseId, toPhaseId])
   @@map("transitions")
 }
 
 model Subtask {
-  id              String   @id @default(uuid())
-  taskId          String
-  task            Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  
-  title           String
-  description     String?
-  order           Int
-  
-  phaseId         String?
-  phase           Phase?   @relation(fields: [phaseId], references: [id])
-  
-  assignedToId    String?
-  assignedTo      User?    @relation(fields: [assignedToId], references: [id])
-  suggestedRole   String?
-  
-  isCompleted     Boolean  @default(false)
-  completedAt     DateTime?
-  dueDate         DateTime?
-  estimatedHours  Float?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  notifications   Notification[]
-  linkedTask      Task?    @relation("TaskSubtaskLink") // Individual task created for this subtask
-  
+  id     String @id @default(uuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  order       Int
+
+  phaseId String?
+  phase   Phase?  @relation(fields: [phaseId], references: [id])
+
+  assignedToId  String?
+  assignedTo    User?   @relation(fields: [assignedToId], references: [id])
+  suggestedRole String?
+
+  isCompleted    Boolean   @default(false)
+  completedAt    DateTime?
+  dueDate        DateTime?
+  estimatedHours Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notifications Notification[]
+  linkedTask    Task?          @relation("TaskSubtaskLink") // Individual task created for this subtask
+
   @@map("subtasks")
 }
 
 model PhaseHistory {
-  id          String   @id @default(uuid())
-  taskId      String
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(uuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
   fromPhaseId String?
   toPhaseId   String
-  
-  movedById   String
-  movedBy     User     @relation(fields: [movedById], references: [id])
-  
-  comment     String?
-  movedAt     DateTime @default(now())
-  
+
+  movedById String
+  movedBy   User   @relation(fields: [movedById], references: [id])
+
+  comment String?
+  movedAt DateTime @default(now())
+
   @@map("phase_history")
 }
 
 model PhaseApproval {
-  id          String   @id @default(uuid())
-  taskId      String
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  
-  phaseId     String
-  phase       Phase    @relation(fields: [phaseId], references: [id])
-  
+  id     String @id @default(uuid())
+  taskId String
+  task   Task   @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  phaseId String
+  phase   Phase  @relation(fields: [phaseId], references: [id])
+
   requestedById String
   requestedBy   User   @relation("ApprovalRequester", fields: [requestedById], references: [id])
-  
-  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
-  
+
+  status String @default("PENDING") // PENDING, APPROVED, REJECTED
+
   reviewedById String?
   reviewedBy   User?   @relation("ApprovalReviewer", fields: [reviewedById], references: [id])
-  
+
   reviewComment String?
-  
-  requestedAt DateTime @default(now())
+
+  requestedAt DateTime  @default(now())
   reviewedAt  DateTime?
-  
+
   @@map("phase_approvals")
 }
 
 model SystemSettings {
-  id                String   @id @default(uuid())
-  maxFileSize       Int      @default(5242880) // 5MB in bytes
-  allowedFileTypes  String   @default("image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document")
-  sessionTimeout    Int      @default(480) // 8 hours in minutes
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id               String   @id @default(uuid())
+  maxFileSize      Int      @default(5242880) // 5MB in bytes
+  allowedFileTypes String   @default("image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+  sessionTimeout   Int      @default(480) // 8 hours in minutes
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+enum KnowledgeSourceType {
+  APLIMAN
+  COMPETITOR
+}
+
+model KnowledgeSource {
+  id            String              @id @default(uuid())
+  name          String // Display name (e.g., "Apliman Main Site", "Competitor X")
+  url           String // URL to scrape
+  type          KnowledgeSourceType // APLIMAN or COMPETITOR
+  description   String? // Optional description
+  isActive      Boolean             @default(true) // Can be disabled without deletion
+  content       String?             @db.Text // Extracted content from URL
+  lastScraped   DateTime? // Last time content was fetched
+  scrapingError String?             @db.Text // Last error if scraping failed
+  metadata      Json? // Additional metadata (title, keywords, etc.)
+  priority      Int                 @default(1) // For ordering sources (1-5)
+  createdById   String
+  createdBy     User                @relation("KnowledgeSourceCreator", fields: [createdById], references: [id])
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  @@map("knowledge_sources")
 }

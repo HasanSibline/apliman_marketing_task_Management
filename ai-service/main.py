@@ -8,7 +8,8 @@ import os
 import aiohttp
 from config import get_config
 from services.content_generator import ContentGenerator
-from typing import Optional
+from services.web_scraper import WebScraper
+from typing import Optional, List
 from pydantic import BaseModel
 
 # Configure logging
@@ -35,6 +36,7 @@ app.add_middleware(
 
 # Initialize services
 content_generator = ContentGenerator()
+web_scraper = WebScraper()
 
 @app.get("/health")
 async def health_check():
@@ -210,11 +212,19 @@ async def test_ai(test_text: Optional[str] = "This is a test task"):
 class GenerateContentRequest(BaseModel):
     title: str
     type: str = "task"
+    knowledge_sources: Optional[List[dict]] = None  # Optional knowledge sources
+
+class ScrapeUrlRequest(BaseModel):
+    url: str
 
 @app.post("/generate-content")
 async def generate_content(request: GenerateContentRequest):
-    """Generate content using configured AI provider"""
+    """Generate content using configured AI provider with optional knowledge sources"""
     try:
+        # Set knowledge sources in content generator if provided
+        if request.knowledge_sources:
+            content_generator.set_knowledge_sources(request.knowledge_sources)
+        
         # Generate content
         description = await content_generator.generate_description(request.title)
         goals = await content_generator.generate_goals(request.title)
@@ -234,6 +244,22 @@ async def generate_content(request: GenerateContentRequest):
                 "status": "error",
                 "message": f"Content generation failed: {str(e)}",
                 "ai_provider": "gemini"
+            }
+        )
+
+@app.post("/scrape-url")
+async def scrape_url(request: ScrapeUrlRequest):
+    """Scrape content from a URL"""
+    try:
+        result = await web_scraper.scrape_url(request.url)
+        return result
+    except Exception as e:
+        logger.error(f"URL scraping failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "message": f"URL scraping failed: {str(e)}"
             }
         )
 
@@ -264,9 +290,14 @@ async def generate_subtasks(request: dict):
         task_type = request.get("taskType", "GENERAL")
         workflow_phases = request.get("workflowPhases", [])
         available_users = request.get("availableUsers", [])
+        knowledge_sources = request.get("knowledgeSources", None)
         
         if not title:
             raise HTTPException(status_code=400, detail="Title required")
+        
+        # Set knowledge sources if provided
+        if knowledge_sources:
+            content_generator.set_knowledge_sources(knowledge_sources)
         
         subtasks = await content_generator.generate_subtasks(
             title, task_type, description, workflow_phases, available_users

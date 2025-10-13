@@ -11,6 +11,7 @@ import { PresenceModule } from './presence/presence.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { WorkflowsModule } from './workflows/workflows.module';
+import { KnowledgeModule } from './knowledge/knowledge.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -31,6 +32,7 @@ import { AppService } from './app.service';
     NotificationsModule,
     AiModule,
     WorkflowsModule,
+    KnowledgeModule,
   ],
   controllers: [AppController],
   providers: [AppService],
