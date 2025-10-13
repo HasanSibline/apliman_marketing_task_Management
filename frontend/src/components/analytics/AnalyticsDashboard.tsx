@@ -12,15 +12,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import toast from 'react-hot-toast'
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
-const PHASE_COLORS = {
-  'PENDING_APPROVAL': '#6B7280',
-  'APPROVED': '#06B6D4',
-  'REJECTED': '#EF4444',
-  'ASSIGNED': '#3B82F6', 
-  'IN_PROGRESS': '#F59E0B',
-  'COMPLETED': '#10B981',
-  'ARCHIVED': '#9CA3AF'
-}
 
 const AnalyticsDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
@@ -292,39 +283,50 @@ const AnalyticsDashboard: React.FC = () => {
           transition={{ delay: 0.5 }}
           className="bg-white rounded-lg shadow-sm p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Priority Distribution</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Status Distribution</h3>
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={taskAnalytics?.tasksByPriority?.map((item: any) => ({
-                    name: `Priority ${item.priority}`,
-                    value: item.count,
-                  })) || []}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                  stroke="#fff"
-                  strokeWidth={2}
-                >
-                  {(taskAnalytics?.tasksByPriority || []).map((_: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
-                    border: '1px solid #e0e0e0',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                  }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            {!dashboardData ? (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                No data available
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Completed', value: dashboardData.completedTasks || 0 },
+                      { name: 'In Progress', value: dashboardData.inProgressTasks || 0 },
+                      { name: 'Pending', value: dashboardData.pendingTasks || 0 },
+                    ].filter(item => item.value > 0)}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    outerRadius={100}
+                    fill="#8884d8"
+                    dataKey="value"
+                    stroke="#fff"
+                    strokeWidth={2}
+                  >
+                    {[
+                      { name: 'Completed', value: dashboardData.completedTasks || 0 },
+                      { name: 'In Progress', value: dashboardData.inProgressTasks || 0 },
+                      { name: 'Pending', value: dashboardData.pendingTasks || 0 },
+                    ].filter(item => item.value > 0).map((_: any, index: number) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e0e0e0',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </motion.div>
       </div>
@@ -348,7 +350,7 @@ const AnalyticsDashboard: React.FC = () => {
                   Phase
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Priority
+                  Workflow
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Assigned To
@@ -370,28 +372,18 @@ const AnalyticsDashboard: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      task.phase === 'COMPLETED' ? 'bg-green-100 text-green-800' :
-                      task.phase === 'IN_PROGRESS' ? 'bg-yellow-100 text-yellow-800' :
-                      task.phase === 'PENDING_APPROVAL' ? 'bg-gray-100 text-gray-800' :
-                      task.phase === 'ASSIGNED' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {task.phase?.replace('_', ' ')}
+                    <span 
+                      className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+                      style={{ backgroundColor: task.phaseColor ? `${task.phaseColor}20` : '#F3F4F6', color: task.phaseColor || '#374151' }}
+                    >
+                      {task.phase}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className={`h-2 w-2 rounded-full mr-2 ${
-                        task.priority >= 4 ? 'bg-red-500' :
-                        task.priority >= 3 ? 'bg-yellow-500' :
-                        'bg-green-500'
-                      }`}></div>
-                      <span className="text-sm text-gray-900">Priority {task.priority}</span>
-                    </div>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {task.workflow || 'Unknown'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {task.assignedTo?.name || 'Unassigned'}
+                    {task.assignedTo || 'Unassigned'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(task.createdAt).toLocaleDateString()}
