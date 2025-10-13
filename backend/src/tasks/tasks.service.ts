@@ -54,6 +54,10 @@ export class TasksService {
 
       // 3. Create the task in the starting phase
       const startPhase = workflow.phases[0];
+      
+      // Check if starting phase requires approval
+      const needsInitialApproval = startPhase.requiresApproval;
+      
       const task = await this.prisma.task.create({
         data: {
           title: createTaskDto.title,
@@ -74,6 +78,35 @@ export class TasksService {
           assignedTo: { select: { id: true, name: true, email: true, position: true } },
         },
       });
+      
+      // If starting phase requires approval, create approval request
+      if (needsInitialApproval) {
+        await this.prisma.phaseApproval.create({
+          data: {
+            taskId: task.id,
+            phaseId: startPhase.id,
+            requestedById: creatorId,
+          },
+        });
+        
+        // Notify admins
+        const admins = await this.prisma.user.findMany({
+          where: { role: { in: ['SUPER_ADMIN', 'ADMIN'] } },
+          select: { id: true },
+        });
+        
+        for (const admin of admins) {
+          await this.notificationsService.createNotification({
+            userId: admin.id,
+            type: 'task_phase_changed',
+            title: 'New Task Needs Approval',
+            message: `New task "${task.title}" needs approval before it can be started`,
+            taskId: task.id,
+            phaseId: startPhase.id,
+            actionUrl: `/approvals`,
+          });
+        }
+      }
 
       // 4. Create subtasks (either pre-generated from frontend or generate via AI)
       let subtasksToCreate: Array<any> = [];
