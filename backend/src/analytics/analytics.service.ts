@@ -265,11 +265,11 @@ export class AnalyticsService {
     const teamStats = await Promise.all(
       users.map(async (user) => {
         const [assignedTasks, completedTasks] = await Promise.all([
-          this.prisma.task.count({ where: { assignedToId: user.id } }),
-          this.getCompletedTasksCount({ assignedToId: user.id }),
-    ]);
+          this.prisma.task.count({ where: { assignedToId: user.id, taskType: 'MAIN' } }),
+          this.getCompletedTasksCount({ assignedToId: user.id, taskType: 'MAIN' }),
+        ]);
 
-    return {
+        return {
           ...user,
           assignedTasks,
           completedTasks,
@@ -278,10 +278,41 @@ export class AnalyticsService {
       })
     );
 
+    // Calculate summary stats
+    const totalTasks = teamStats.reduce((sum, member) => sum + member.assignedTasks, 0);
+    const totalCompleted = teamStats.reduce((sum, member) => sum + member.completedTasks, 0);
+    const averageCompletionRate = teamStats.length > 0 
+      ? Math.round(teamStats.reduce((sum, member) => sum + member.completionRate, 0) / teamStats.length)
+      : 0;
+
+    // Get tasks completed this week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const completedPhaseIds = await this.prisma.phase.findMany({
+      where: { isEndPhase: true },
+      select: { id: true },
+    }).then(phases => phases.map(p => p.id));
+
+    const tasksCompletedThisWeek = await this.prisma.task.count({
+      where: {
+        taskType: 'MAIN',
+        currentPhaseId: { in: completedPhaseIds },
+        updatedAt: { gte: oneWeekAgo },
+      },
+    });
+
     return {
       teamMembers: teamStats,
       totalMembers: users.length,
       activeMembers: users.filter(u => u.status === 'ACTIVE').length,
+      summary: {
+        totalTeamMembers: users.length,
+        totalTasks,
+        averageCompletionRate,
+        teamPerformance: averageCompletionRate,
+        tasksCompletedThisWeek,
+      },
+      totalTimeSpent: 0, // TODO: Implement time tracking
     };
   }
 

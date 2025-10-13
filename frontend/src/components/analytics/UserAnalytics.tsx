@@ -56,7 +56,7 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
             <div>
               <p className="text-sm font-medium text-gray-600">Tasks Completed</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                {analytics?.tasksCompleted || 0}
+                {analytics?.stats?.completedTasks || 0}
               </h3>
             </div>
             <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center">
@@ -65,10 +65,10 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500">
-              {analytics?.totalAssigned || 0} assigned
+              {analytics?.stats?.totalAssignedTasks || 0} assigned
             </span>
             <span className="text-primary-600 font-medium">
-              {analytics?.productivityScore || 0}%
+              {analytics?.stats?.completionRate || 0}%
             </span>
           </div>
         </motion.div>
@@ -81,9 +81,9 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
+              <p className="text-sm font-medium text-gray-600">Total Assigned</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                {analytics?.inProgressTasks || 0}
+                {analytics?.stats?.totalAssignedTasks || 0}
               </h3>
             </div>
             <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -92,7 +92,7 @@ const UserAnalytics: React.FC<UserAnalyticsProps> = ({ userId }) => {
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500">
-              {analytics?.pendingTasks || 0} pending
+              {analytics?.stats?.totalCreatedTasks || 0} created
             </span>
             <span className="text-yellow-600 font-medium">
               Active tasks

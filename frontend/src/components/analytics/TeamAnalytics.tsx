@@ -55,7 +55,7 @@ const TeamAnalytics: React.FC = () => {
             <div>
               <p className="text-sm font-medium text-gray-600">Team Members</p>
               <h3 className="text-2xl font-bold text-gray-900 mt-1">
-                {analytics?.summary?.totalTeamMembers || 0}
+                {analytics?.totalMembers || 0}
               </h3>
             </div>
             <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center">
