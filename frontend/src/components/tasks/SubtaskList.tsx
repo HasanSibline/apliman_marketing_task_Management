@@ -58,7 +58,9 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
 
     setSubmitting(true)
     try {
-      await tasksApi.addSubtask(taskId, newSubtask.trim())
+      await tasksApi.addSubtask(taskId, {
+        title: newSubtask.trim()
+      })
       setNewSubtask('')
       onSubtasksUpdated()
       toast.success('Subtask added successfully')
