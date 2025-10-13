@@ -226,9 +226,6 @@ const NotificationBell: React.FC = () => {
                         } else if (notification.taskId) {
                           navigate(`/tasks/${notification.taskId}`)
                           setIsOpen(false)
-                        } else if (notification.subtaskId) {
-                          navigate(`/tasks/subtask/${notification.subtaskId}`)
-                          setIsOpen(false)
                         }
                       }}
                     >

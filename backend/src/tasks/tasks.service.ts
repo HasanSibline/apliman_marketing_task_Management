@@ -191,7 +191,7 @@ export class TasksService {
             // Notify assigned user about individual task
             await this.notificationsService.createNotification({
               userId: suggestedAssignee.id,
-              type: 'TASK_ASSIGNED',
+              type: 'task_assigned',
               title: 'New Task Assigned',
               message: `You've been assigned a new task: "${individualTask.title}"`,
               taskId: individualTask.id,
@@ -243,7 +243,7 @@ export class TasksService {
 
           await this.notificationsService.createNotification({
             userId,
-            type: 'TASK_ASSIGNED',
+            type: 'task_assigned',
             title: 'New Task Assigned',
             message: `You've been assigned to task: ${task.title}`,
             taskId: task.id,
@@ -262,8 +262,8 @@ export class TasksService {
         
         await this.notificationsService.createNotification({
           userId: createTaskDto.assignedToId,
-          type: 'TASK_ASSIGNED',
-            title: 'New Task Assigned',
+          type: 'task_assigned',
+          title: 'New Task Assigned',
           message: `You've been assigned to task: ${task.title}`,
           taskId: task.id,
           phaseId: startPhase.id,
@@ -339,20 +339,20 @@ export class TasksService {
       });
 
       // Notify admins about approval request
-      const admins = await this.prisma.user.findMany({
-        where: {
+          const admins = await this.prisma.user.findMany({
+            where: {
           role: { in: ['SUPER_ADMIN', 'ADMIN'] },
-        },
-        select: { id: true },
-      });
+            },
+            select: { id: true },
+          });
 
-      for (const admin of admins) {
-        await this.notificationsService.createNotification({
-          userId: admin.id,
-          type: 'TASK_PHASE_CHANGED',
+          for (const admin of admins) {
+            await this.notificationsService.createNotification({
+              userId: admin.id,
+          type: 'task_phase_changed',
           title: 'Approval Required',
           message: `Task "${task.title}" needs approval to move from "${currentPhase.name}" to "${toPhase.name}"`,
-          taskId: task.id,
+              taskId: task.id,
           phaseId: toPhaseId,
           actionUrl: `/approvals`,
         });
@@ -405,7 +405,7 @@ export class TasksService {
       if (task.createdById && task.createdById !== userId) {
         await this.notificationsService.createNotification({
           userId: task.createdById,
-          type: 'TASK_COMPLETED',
+          type: 'task_completed',
           title: 'Task Completed',
           message: `${movedBy?.name || 'Someone'} completed task "${task.title}"`,
           taskId: task.id,
@@ -425,7 +425,7 @@ export class TasksService {
           for (const admin of admins) {
             await this.notificationsService.createNotification({
               userId: admin.id,
-          type: 'TASK_COMPLETED',
+          type: 'task_completed',
           title: 'Task Completed',
           message: `Task "${task.title}" was completed by ${movedBy?.name || 'someone'}`,
               taskId: task.id,
@@ -437,7 +437,7 @@ export class TasksService {
       for (const user of usersToNotify) {
         await this.notificationsService.createNotification({
           userId: user.id,
-          type: 'TASK_COMPLETED',
+          type: 'task_completed',
           title: 'Task Completed',
           message: `Task "${task.title}" has been completed`,
           taskId: task.id,
@@ -449,7 +449,7 @@ export class TasksService {
       for (const user of usersToNotify) {
         await this.notificationsService.createNotification({
           userId: user.id,
-          type: 'TASK_PHASE_CHANGED',
+          type: 'task_phase_changed',
           title: 'Task Phase Updated',
           message: `Task "${task.title}" moved from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`,
               taskId: task.id,
@@ -507,7 +507,7 @@ export class TasksService {
       if (subtask.task.createdById && subtask.task.createdById !== userId) {
         await this.notificationsService.createNotification({
           userId: subtask.task.createdById,
-          type: 'TASK_COMPLETED',
+          type: 'task_completed',
           title: 'Subtask Completed',
           message: `${completedBy?.name || 'Someone'} completed subtask "${subtask.title}" on task "${subtask.task.title}"`,
           taskId: subtask.task.id,
@@ -521,7 +521,7 @@ export class TasksService {
           subtask.task.assignedToId !== subtask.task.createdById) {
         await this.notificationsService.createNotification({
           userId: subtask.task.assignedToId,
-          type: 'TASK_COMPLETED',
+          type: 'task_completed',
           title: 'Subtask Completed',
           message: `${completedBy?.name || 'Someone'} completed subtask "${subtask.title}"`,
           taskId: subtask.task.id,
@@ -541,7 +541,7 @@ export class TasksService {
       for (const admin of admins) {
         await this.notificationsService.createNotification({
           userId: admin.id,
-          type: 'TASK_COMPLETED',
+          type: 'task_completed',
           title: 'Subtask Completed',
           message: `Subtask "${subtask.title}" was completed by ${completedBy?.name || 'someone'}`,
           taskId: subtask.task.id,
@@ -1216,7 +1216,7 @@ export class TasksService {
     // Notify requester
     await this.notificationsService.createNotification({
       userId: approval.requestedById,
-      type: 'TASK_PHASE_CHANGED',
+      type: 'task_phase_changed',
       title: 'Phase Change Approved',
       message: `Your request to move "${approval.task.title}" to "${approval.phase.name}" has been approved`,
       taskId: approval.taskId,
@@ -1228,7 +1228,7 @@ export class TasksService {
     if (approval.task.assignedToId && approval.task.assignedToId !== approval.requestedById) {
       await this.notificationsService.createNotification({
         userId: approval.task.assignedToId,
-        type: 'TASK_PHASE_CHANGED',
+        type: 'task_phase_changed',
         title: 'Task Phase Updated',
         message: `Task "${approval.task.title}" has been moved to "${approval.phase.name}"`,
         taskId: approval.taskId,
@@ -1277,7 +1277,7 @@ export class TasksService {
     // Notify requester
     await this.notificationsService.createNotification({
       userId: approval.requestedById,
-      type: 'TASK_PHASE_CHANGED',
+      type: 'task_phase_changed',
       title: 'Phase Change Rejected',
       message: `Your request to move "${approval.task.title}" to "${approval.phase.name}" has been rejected${comment ? `: ${comment}` : ''}`,
       taskId: approval.taskId,
@@ -1352,7 +1352,7 @@ export class TasksService {
       await this.notificationsService.createNotification({
         userId: task.assignedToId,
         taskId: task.id,
-        type: 'TASK_PHASE_CHANGED',
+        type: 'task_phase_changed',
       title,
       message,
         actionUrl: `/tasks/${task.id}`,
