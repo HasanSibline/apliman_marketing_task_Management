@@ -29,9 +29,17 @@ function runCommand(command, description, required = true) {
 // Step 1: Generate Prisma Client
 runCommand('npx prisma generate', '📦 Generating Prisma Client', true);
 
-// Step 2: Run migrations (for production)
-// This applies all migration files in the migrations folder
-runCommand('npx prisma migrate deploy', '🔄 Running database migrations', true);
+// Step 2: Database migration strategy
+// First deployment: Use db push (database already exists from previous deployments)
+// This will sync the schema without requiring migration history
+console.log('🔄 Syncing database schema...');
+const dbPushSuccess = runCommand('npx prisma db push --skip-generate', '🔄 Syncing database schema', false);
+
+if (!dbPushSuccess) {
+  // Fallback: Try migrate deploy (for future deployments with proper migration history)
+  console.log('⚠️  DB push failed, trying migrate deploy...');
+  runCommand('npx prisma migrate deploy', '🔄 Running database migrations', true);
+}
 
 // Step 3: Seed database (optional - will skip if already seeded)
 runCommand('npx prisma db seed', '🌱 Seeding database', false);
