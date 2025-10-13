@@ -7,7 +7,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 
-console.log('🚀 Starting production deployment...\n');
+console.log('🚀 Starting production deployment v2.0...\n');
 
 // Helper function to run commands
 function runCommand(command, description, required = true) {
