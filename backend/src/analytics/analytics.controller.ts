@@ -109,9 +109,8 @@ export class AnalyticsController {
   @ApiOperation({ summary: 'Get task analytics (Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'Task analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  getTaskAnalytics() {
-    // TODO: Implement task analytics with workflow phases
-    return { message: 'Task analytics temporarily unavailable during workflow integration' };
+  async getTaskAnalytics() {
+    return this.analyticsService.getDashboardStats();
   }
 
   @Get('tasks/me')

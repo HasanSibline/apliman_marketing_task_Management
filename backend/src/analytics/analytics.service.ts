@@ -78,7 +78,6 @@ export class AnalyticsService {
   }
 
   async getDashboardStats() {
-    // Simplified version - TODO: Update to use workflow phases
     const [
       totalUsers,
       activeUsers,
@@ -90,13 +89,88 @@ export class AnalyticsService {
       this.prisma.user.count({
         where: { status: 'ACTIVE' },
       }),
-      this.prisma.task.count(),
+      this.prisma.task.count({ where: { taskType: 'MAIN' } }),
     ]);
 
     // Get completed tasks using workflow phases
-    const completedTasks = await this.getCompletedTasksCount();
-    const inProgressTasks = await this.getInProgressTasksCount();
-    const pendingTasks = await this.getPendingTasksCount();
+    const completedTasks = await this.getCompletedTasksCount({ taskType: 'MAIN' });
+    const inProgressTasks = await this.getInProgressTasksCount({ taskType: 'MAIN' });
+    const pendingTasks = await this.getPendingTasksCount({ taskType: 'MAIN' });
+
+    // Get overdue tasks
+    const now = new Date();
+    const overdueTasks = await this.prisma.task.count({
+        where: {
+        taskType: 'MAIN',
+        dueDate: { lt: now },
+        currentPhaseId: { 
+          notIn: await this.prisma.phase.findMany({
+            where: { isEndPhase: true },
+            select: { id: true },
+          }).then(phases => phases.map(p => p.id))
+        },
+      },
+    });
+
+    // Get tasks by phase
+    const tasksByPhase = await this.prisma.phase.findMany({
+      include: {
+        _count: {
+          select: { tasks: { where: { taskType: 'MAIN' } } },
+        },
+        workflow: { select: { name: true, color: true } },
+      },
+      orderBy: { order: 'asc' },
+    });
+
+    const tasksByPhaseFormatted = tasksByPhase.map(phase => ({
+      phase: phase.name,
+      count: phase._count.tasks,
+      workflow: phase.workflow.name,
+      color: phase.color || phase.workflow.color,
+    }));
+
+    // Get recent tasks
+    const recentTasks = await this.prisma.task.findMany({
+      where: { taskType: 'MAIN' },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: {
+        assignedTo: { select: { name: true, email: true } },
+        currentPhase: { select: { name: true, color: true } },
+        workflow: { select: { name: true } },
+      },
+    });
+
+    // Get top performers (users with most completed tasks)
+    const topPerformers = await this.prisma.user.findMany({
+      where: { status: 'ACTIVE' },
+      take: 5,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        position: true,
+        _count: { select: { assignedTasks: true } },
+      },
+      orderBy: { assignedTasks: { _count: 'desc' } },
+    });
+
+    // Get tasks completed this week
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const completedPhaseIds = await this.prisma.phase.findMany({
+      where: { isEndPhase: true },
+      select: { id: true },
+    }).then(phases => phases.map(p => p.id));
+
+    const tasksCompletedThisWeek = await this.prisma.task.count({
+      where: {
+        taskType: 'MAIN',
+        currentPhaseId: { in: completedPhaseIds },
+        updatedAt: { gte: oneWeekAgo },
+      },
+    });
 
     const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
@@ -107,13 +181,26 @@ export class AnalyticsService {
       completedTasks,
       inProgressTasks,
       pendingTasks,
-      overdueTasks: 0, // TODO: Calculate with workflow phases
+      overdueTasks,
       completionRate,
-      tasksByPhase: [], // TODO: Implement with workflow phases
-      recentTasks: [], // TODO: Implement with workflow data
-      topPerformers: [], // TODO: Implement with workflow data
-      tasksCompletedThisWeek: 0, // TODO: Implement with workflow phases
-      weekOverWeekChange: 0, // TODO: Implement with workflow phases
+      tasksByPhase: tasksByPhaseFormatted,
+      recentTasks: recentTasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        assignedTo: task.assignedTo?.name || 'Unassigned',
+        phase: task.currentPhase?.name || 'Unknown',
+        phaseColor: task.currentPhase?.color,
+        workflow: task.workflow?.name || 'Unknown',
+        createdAt: task.createdAt,
+      })),
+      topPerformers: topPerformers.map(user => ({
+        name: user.name,
+        email: user.email,
+        position: user.position,
+        tasksCompleted: user._count.assignedTasks,
+      })),
+      tasksCompletedThisWeek,
+      weekOverWeekChange: 0,
     };
   }
 
