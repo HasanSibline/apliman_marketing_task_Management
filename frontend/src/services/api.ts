@@ -325,11 +325,6 @@ export const tasksApi = {
     return response.data
   },
 
-  addSubtask: async (taskId: string, title: string): Promise<any> => {
-    const response = await api.post(`/tasks/${taskId}/subtasks`, { title })
-    return response.data
-  },
-
   updateSubtask: async (taskId: string, subtaskId: string, data: { completed: boolean }): Promise<any> => {
     const response = await api.patch(`/tasks/${taskId}/subtasks/${subtaskId}`, data)
     return response.data
