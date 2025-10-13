@@ -194,6 +194,18 @@ export class TasksController {
     return this.tasksService.moveTaskToPhase(id, body.toPhaseId, req.user.id, body.comment);
   }
 
+  @Post(':id/subtasks')
+  @ApiOperation({ summary: 'Add a subtask manually to a task' })
+  @ApiResponse({ status: 201, description: 'Subtask created successfully' })
+  @ApiResponse({ status: 404, description: 'Task not found' })
+  async addSubtask(
+    @Param('id') taskId: string,
+    @Body() addSubtaskDto: any,
+    @Request() req,
+  ) {
+    return this.tasksService.addSubtask(taskId, addSubtaskDto, req.user.id);
+  }
+
   @Post(':id/subtasks/:subtaskId/toggle')
   @ApiOperation({ summary: 'Toggle subtask completion status' })
   @ApiResponse({ status: 200, description: 'Subtask status toggled successfully' })

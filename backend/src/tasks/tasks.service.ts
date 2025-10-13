@@ -596,6 +596,117 @@ export class TasksService {
     return updated;
   }
 
+  async addSubtask(
+    taskId: string,
+    subtaskData: {
+      title: string;
+      description?: string;
+      assignedToId?: string;
+      estimatedHours?: number;
+      phaseId?: string;
+    },
+    userId: string
+  ) {
+    // Verify task exists
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      include: {
+        workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
+      },
+    });
+
+    if (!task) {
+      throw new NotFoundException('Task not found');
+    }
+
+    // Determine which phase to use
+    let phaseId = subtaskData.phaseId;
+    if (!phaseId) {
+      // Default to task's current phase or first phase
+      phaseId = task.currentPhaseId || task.workflow.phases[0]?.id;
+    }
+
+    // Get the next order number for subtasks
+    const existingSubtasks = await this.prisma.subtask.findMany({
+      where: { taskId },
+      orderBy: { order: 'desc' },
+      take: 1,
+    });
+    const nextOrder = existingSubtasks.length > 0 ? existingSubtasks[0].order + 1 : 0;
+
+    // Create the subtask
+    const subtask = await this.prisma.subtask.create({
+      data: {
+        taskId,
+        title: subtaskData.title,
+        description: subtaskData.description,
+        assignedToId: subtaskData.assignedToId,
+        estimatedHours: subtaskData.estimatedHours,
+        phaseId,
+        order: nextOrder,
+      },
+      include: {
+        assignedTo: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            position: true,
+          },
+        },
+        phase: true,
+      },
+    });
+
+    // If assigned to someone, create an individual task for them
+    if (subtaskData.assignedToId) {
+      const assignee = await this.prisma.user.findUnique({
+        where: { id: subtaskData.assignedToId },
+      });
+
+      if (assignee) {
+        const individualTask = await this.prisma.task.create({
+          data: {
+            title: `${subtaskData.title} (from: ${task.title})`,
+            description: subtaskData.description || `Subtask from main task: ${task.title}`,
+            goals: `Complete subtask: ${subtaskData.title}`,
+            priority: task.priority,
+            taskType: 'SUBTASK',
+            workflowId: task.workflowId,
+            currentPhaseId: phaseId,
+            assignedToId: assignee.id,
+            createdById: userId,
+            dueDate: task.dueDate,
+            parentTaskId: task.id,
+            subtaskId: subtask.id, // This creates the linkedTask relation
+          },
+        });
+
+        // Create task assignment
+        await this.prisma.taskAssignment.create({
+          data: {
+            taskId: individualTask.id,
+            userId: assignee.id,
+            assignedById: userId,
+          },
+        });
+
+        // Notify the assignee
+        await this.notificationsService.createNotification({
+          userId: assignee.id,
+          type: 'task_assigned',
+          title: 'New Subtask Assigned',
+          message: `You've been assigned a new subtask: "${individualTask.title}"`,
+          taskId: individualTask.id,
+          actionUrl: `/tasks/${individualTask.id}`,
+        });
+      }
+    }
+
+    // Refresh and return the task with updated subtasks
+    return this.findOne(taskId, userId, UserRole.SUPER_ADMIN);
+  }
+
   async updateTaskAssignment(taskId: string, newAssigneeId: string, userId: string) {
     const task = await this.prisma.task.findUnique({
       where: { id: taskId },

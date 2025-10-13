@@ -1,28 +1,27 @@
 import { PrismaClient, UserRole, UserStatus } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { seedWorkflows } from './seeds/workflows.seed';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seed...');
 
-  // Clear all tables first (in correct order due to foreign keys)
-  console.log('  Clearing existing data...');
-  await prisma.phaseHistory.deleteMany();
-  await prisma.subtask.deleteMany();
-  await prisma.notification.deleteMany();
-  await prisma.taskComment.deleteMany();
-  await prisma.taskFile.deleteMany();
-  await prisma.taskAssignment.deleteMany();
-  await prisma.task.deleteMany();
-  await prisma.transition.deleteMany();
-  await prisma.phase.deleteMany();
-  await prisma.workflow.deleteMany();
-  await prisma.user.deleteMany();
-  await prisma.systemSettings.deleteMany();
+  // // Clear all tables first (in correct order due to foreign keys)
+  // console.log('  Clearing existing data...');
+  // await prisma.phaseHistory.deleteMany();
+  // await prisma.subtask.deleteMany();
+  // await prisma.notification.deleteMany();
+  // await prisma.taskComment.deleteMany();
+  // await prisma.taskFile.deleteMany();
+  // await prisma.taskAssignment.deleteMany();
+  // await prisma.task.deleteMany();
+  // await prisma.transition.deleteMany();
+  // await prisma.phase.deleteMany();
+  // await prisma.workflow.deleteMany();
+  // await prisma.user.deleteMany();
+  // await prisma.systemSettings.deleteMany();
 
-  console.log('✅ All tables cleared');
+  // console.log('✅ All tables cleared');
 
   // Create system settings
   const systemSettings = await prisma.systemSettings.upsert({
@@ -58,16 +57,14 @@ async function main() {
 
   console.log('✅ Super Admin created:', superAdmin.email);
 
-  // Seed default workflows
-  await seedWorkflows(superAdmin.id);
+  // NO MORE DEFAULT WORKFLOWS - Users create their own!
+  console.log('✅ No default workflows seeded - users can create their own');
 
-  console.log('🎉 Database seeded successfully!');
-  console.log('\n📋 Default Users:');
+  console.log('\n🎉 Database seeded successfully!');
+  console.log('\n📋 Default User:');
   console.log('Super Admin: admin@system.com / Admin123!');
-  console.log('\n📋 Default Workflows:');
-  console.log('  - Social Media Workflow (SOCIAL_MEDIA_POST)');
-  console.log('  - Video Production Workflow (VIDEO_CONTENT)');
-  console.log('  - General Marketing Workflow (GENERAL)');
+  console.log('\n📋 Workflows:');
+  console.log('Users can create custom workflows from the Workflows page');
 }
 
 main()

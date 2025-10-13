@@ -29,6 +29,7 @@ import FileUpload from '@/components/tasks/FileUpload'
 import TaskComments from '@/components/tasks/TaskComments'
 import SubtaskSidebar from '@/components/tasks/SubtaskSidebar'
 import EditTaskModal from '@/components/tasks/EditTaskModal'
+import AddSubtaskModal from '@/components/tasks/AddSubtaskModal'
 import toast from 'react-hot-toast'
 
 const TaskDetailPage: React.FC = () => {
@@ -40,6 +41,7 @@ const TaskDetailPage: React.FC = () => {
   const timeTracking = useAppSelector((state) => state.timeTracking)
   const [currentTime, setCurrentTime] = useState(0)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isAddSubtaskModalOpen, setIsAddSubtaskModalOpen] = useState(false)
   
   const isThisTaskTracking = timeTracking.activeTaskId === id
   const isTimerRunning = isThisTaskTracking && timeTracking.isRunning
@@ -187,6 +189,20 @@ const TaskDetailPage: React.FC = () => {
   const handleRefreshTask = () => {
     if (id) {
       dispatch(fetchTaskById(id))
+    }
+  }
+
+  const handleAddSubtask = async (subtaskData: any) => {
+    if (!id) return
+    
+    try {
+      await tasksApi.addSubtask(id, subtaskData)
+      toast.success('Subtask added successfully!')
+      handleRefreshTask()
+      setIsAddSubtaskModalOpen(false)
+    } catch (error: any) {
+      console.error('Failed to add subtask:', error)
+      toast.error(error.response?.data?.message || 'Failed to add subtask')
     }
   }
 
@@ -514,7 +530,7 @@ const TaskDetailPage: React.FC = () => {
       <div className="w-96 flex-shrink-0">
         <SubtaskSidebar 
           task={currentTask}
-          onAddSubtask={() => toast('Add subtask functionality coming soon', { icon: 'ℹ️' })}
+          onAddSubtask={() => setIsAddSubtaskModalOpen(true)}
           onSubtaskUpdate={handleRefreshTask}
         />
       </div>
@@ -525,6 +541,14 @@ const TaskDetailPage: React.FC = () => {
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
         onTaskUpdated={handleRefreshTask}
+      />
+
+      {/* Add Subtask Modal */}
+      <AddSubtaskModal
+        isOpen={isAddSubtaskModalOpen}
+        onClose={() => setIsAddSubtaskModalOpen(false)}
+        onAdd={handleAddSubtask}
+        availablePhases={currentTask.workflow?.phases || []}
       />
     </div>
   )
