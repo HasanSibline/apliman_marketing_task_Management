@@ -732,6 +732,29 @@ export class TasksService {
                   color: true,
                 },
               },
+              linkedTask: {
+                select: {
+                  id: true,
+                  title: true,
+                  assignedToId: true,
+                  currentPhaseId: true,
+                  assignedTo: {
+                    select: {
+                      id: true,
+                      name: true,
+                      email: true,
+                      position: true,
+                    },
+                  },
+                  currentPhase: {
+                    select: {
+                      id: true,
+                      name: true,
+                      color: true,
+                    },
+                  },
+                },
+              },
             },
             orderBy: {
               order: 'asc',
@@ -831,6 +854,29 @@ export class TasksService {
                 id: true,
                 name: true,
                 color: true,
+              },
+            },
+            linkedTask: {
+              select: {
+                id: true,
+                title: true,
+                assignedToId: true,
+                currentPhaseId: true,
+                assignedTo: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    position: true,
+                  },
+                },
+                currentPhase: {
+                  select: {
+                    id: true,
+                    name: true,
+                    color: true,
+                  },
+                },
               },
             },
           },
