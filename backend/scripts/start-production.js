@@ -29,9 +29,9 @@ function runCommand(command, description, required = true) {
 // Step 1: Generate Prisma Client
 runCommand('npx prisma generate', '📦 Generating Prisma Client', true);
 
-// Step 2: Push database schema (for initial setup or schema changes)
-// Using db push since we're migrating from SQLite to PostgreSQL
-runCommand('npx prisma db push --accept-data-loss', '🔄 Pushing database schema', true);
+// Step 2: Run migrations (for production)
+// This applies all migration files in the migrations folder
+runCommand('npx prisma migrate deploy', '🔄 Running database migrations', true);
 
 // Step 3: Seed database (optional - will skip if already seeded)
 runCommand('npx prisma db seed', '🌱 Seeding database', false);
