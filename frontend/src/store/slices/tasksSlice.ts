@@ -230,7 +230,7 @@ const tasksSlice = createSlice({
         state.isLoading = true
         state.error = null
       })
-      .addCase(createTask.fulfilled, (state, action) => {
+      .addCase(createTask.fulfilled, (state) => {
         state.isLoading = false
         // Don't add to tasks array here - fetchTasks will be called immediately after
         // to get the latest data from the server
