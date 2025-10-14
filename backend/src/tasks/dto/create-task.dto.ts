@@ -111,6 +111,8 @@ export class CreateTaskDto {
       description: 'Research and gather content for the post',
       phaseName: 'Research',
       suggestedRole: 'Content Writer',
+      suggestedUserId: 'uuid-string',
+      assignedToId: 'uuid-string',
       estimatedHours: 2
     }],
     required: false,
@@ -121,6 +123,9 @@ export class CreateTaskDto {
     description: string;
     phaseName?: string;
     suggestedRole?: string;
+    suggestedUserId?: string;
+    suggestedUserName?: string;
+    assignedToId?: string;
     estimatedHours?: number;
   }>;
 }
