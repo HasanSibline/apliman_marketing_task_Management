@@ -241,27 +241,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     try {
       const result = await dispatch(createTask(taskData))
       if (createTask.fulfilled.match(result)) {
-        // Refresh the tasks list
-        dispatch(fetchTasks(filters))
-
-        // TODO: Implement notifications system
-        // Notify admins about the new task
-        // const admins = await tasksApi.getAdmins()
-        // admins.forEach(admin => {
-        //   tasksApi.createNotification({
-        //     userId: admin.id,
-        //     type: 'task_approval',
-        //     title: 'New Task Requires Approval',
-        //     message: `A new task "${formData.title}" requires your approval.`,
-        //     taskId: result.payload.id
-        //   })
-        // })
-
         toast.success('Task created successfully! Waiting for admin approval.')
         
         // Dispatch custom event to notify NotificationBell
         window.dispatchEvent(new CustomEvent('taskUpdated'))
         
+        // Close modal and reset form
         onClose()
         setFormData({
           title: '',
@@ -276,6 +261,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           autoAssign: false,
         })
         setAiGeneratedSubtasks([]) // Clear AI subtasks
+
+        // Refresh the tasks list after a small delay to ensure backend has processed
+        setTimeout(() => {
+          dispatch(fetchTasks(filters))
+        }, 300)
       }
     } catch (error: any) {
       console.error('Error creating task:', error)

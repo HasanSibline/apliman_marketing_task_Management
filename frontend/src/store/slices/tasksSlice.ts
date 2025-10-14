@@ -232,11 +232,8 @@ const tasksSlice = createSlice({
       })
       .addCase(createTask.fulfilled, (state, action) => {
         state.isLoading = false
-        const task = {
-          ...action.payload,
-          createdById: action.payload.createdBy?.id || ''
-        } as unknown as Task
-        state.tasks.unshift(task)
+        // Don't add to tasks array here - fetchTasks will be called immediately after
+        // to get the latest data from the server
         state.error = null
       })
       .addCase(createTask.rejected, (state, action) => {
