@@ -25,6 +25,11 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [showConfirmClose, setShowConfirmClose] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [suggestionType, setSuggestionType] = useState<'user' | 'task' | null>(null)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const [allUsers, setAllUsers] = useState<any[]>([])
+  const [allTasks, setAllTasks] = useState<any[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { user } = useSelector((state: RootState) => state.auth)
@@ -38,15 +43,30 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     scrollToBottom()
   }, [messages, isTyping])
 
-  // Focus input when chat opens
+  // Focus input when chat opens and load data
   useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus()
       if (!sessionId) {
         loadChatHistory()
       }
+      fetchUsersAndTasks()
     }
   }, [isOpen])
+
+  // Fetch users and tasks for autocomplete
+  const fetchUsersAndTasks = async () => {
+    try {
+      const [usersRes, tasksRes] = await Promise.all([
+        api.get('/users'),
+        api.get('/tasks')
+      ])
+      setAllUsers(usersRes.data || [])
+      setAllTasks(tasksRes.data || [])
+    } catch (error) {
+      console.error('Error fetching users and tasks:', error)
+    }
+  }
 
   const loadChatHistory = async () => {
     try {
@@ -143,7 +163,96 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     setShowConfirmClose(false)
   }
 
+  // Handle input changes and trigger autocomplete
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setInputValue(value)
+
+    // Get cursor position
+    const cursorPosition = e.target.selectionStart || 0
+    const textBeforeCursor = value.substring(0, cursorPosition)
+    
+    // Check for @ mention
+    const atMatch = textBeforeCursor.match(/@(\w*)$/)
+    if (atMatch) {
+      const query = atMatch[1].toLowerCase()
+      const filtered = allUsers.filter(u => 
+        u.name.toLowerCase().includes(query)
+      ).slice(0, 5)
+      setSuggestions(filtered)
+      setSuggestionType('user')
+      setSelectedSuggestionIndex(0)
+      return
+    }
+
+    // Check for / task reference
+    const slashMatch = textBeforeCursor.match(/\/(\w*)$/)
+    if (slashMatch) {
+      const query = slashMatch[1].toLowerCase()
+      const filtered = allTasks.filter((t: any) => 
+        t.title.toLowerCase().includes(query)
+      ).slice(0, 5)
+      setSuggestions(filtered)
+      setSuggestionType('task')
+      setSelectedSuggestionIndex(0)
+      return
+    }
+
+    // No match, hide suggestions
+    setSuggestions([])
+    setSuggestionType(null)
+  }
+
+  // Insert selected suggestion
+  const insertSuggestion = (suggestion: any) => {
+    const cursorPosition = inputRef.current?.selectionStart || 0
+    const textBeforeCursor = inputValue.substring(0, cursorPosition)
+    const textAfterCursor = inputValue.substring(cursorPosition)
+    
+    let newText = ''
+    if (suggestionType === 'user') {
+      // Replace @query with @username
+      newText = textBeforeCursor.replace(/@\w*$/, `@${suggestion.name} `) + textAfterCursor
+    } else if (suggestionType === 'task') {
+      // Replace /query with /task-title
+      const taskRef = suggestion.title.replace(/\s+/g, '-')
+      newText = textBeforeCursor.replace(/\/\w*$/, `/${taskRef} `) + textAfterCursor
+    }
+    
+    setInputValue(newText)
+    setSuggestions([])
+    setSuggestionType(null)
+    inputRef.current?.focus()
+  }
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
+    // Handle arrow keys for suggestion navigation
+    if (suggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => 
+          prev < suggestions.length - 1 ? prev + 1 : prev
+        )
+        return
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedSuggestionIndex((prev) => prev > 0 ? prev - 1 : 0)
+        return
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        insertSuggestion(suggestions[selectedSuggestionIndex])
+        return
+      }
+      if (e.key === 'Escape') {
+        setSuggestions([])
+        setSuggestionType(null)
+        return
+      }
+    }
+
+    // Regular enter to send
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
@@ -320,14 +429,55 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         </div>
 
         {/* Input */}
-        <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
+        <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg relative">
+          {/* Autocomplete suggestions */}
+          {suggestions.length > 0 && (
+            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+              {suggestions.map((suggestion, index) => (
+                <div
+                  key={suggestion.id}
+                  onClick={() => insertSuggestion(suggestion)}
+                  className={`px-4 py-2 cursor-pointer flex items-center space-x-2 ${
+                    index === selectedSuggestionIndex
+                      ? 'bg-indigo-50 border-l-4 border-indigo-600'
+                      : 'hover:bg-gray-50'
+                  }`}
+                >
+                  {suggestionType === 'user' ? (
+                    <>
+                      <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-white">
+                          {suggestion.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{suggestion.name}</p>
+                        <p className="text-xs text-gray-500">{suggestion.role}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-8 h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs text-purple-600">📋</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{suggestion.title}</p>
+                        <p className="text-xs text-gray-500">Priority: {suggestion.priority || 'N/A'}</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center space-x-2">
             <input
               ref={inputRef}
               type="text"
               value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyPress}
               placeholder="Type a message... (@user or /task)"
               className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               disabled={isTyping}
