@@ -311,19 +311,30 @@ export class TasksService {
       throw new NotFoundException('Target phase not found');
     }
 
-    // Validate transition
-    const isValidTransition = await this.workflowsService.validatePhaseTransition(
-      task.currentPhaseId,
-      toPhaseId
-    );
-
-    // Get current phase details
+    // Get current phase details (needed for notifications)
     const currentPhase = task.workflow.phases.find(p => p.id === task.currentPhaseId);
-    
-    if (!isValidTransition) {
-      throw new BadRequestException(
-        `Cannot move task from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`
+
+    // For SUBTASK type tasks, allow flexible phase transitions within the same workflow
+    // For regular tasks, validate transitions strictly
+    if (task.taskType !== 'SUBTASK') {
+      // Validate transition for regular tasks
+      const isValidTransition = await this.workflowsService.validatePhaseTransition(
+        task.currentPhaseId,
+        toPhaseId
       );
+      
+      if (!isValidTransition) {
+        throw new BadRequestException(
+          `Cannot move task from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`
+        );
+      }
+    } else {
+      // For subtasks, just verify the target phase belongs to the same workflow
+      if (toPhase.workflowId !== task.workflowId) {
+        throw new BadRequestException(
+          'Cannot move subtask to a phase from a different workflow'
+        );
+      }
     }
 
     // Move directly without approval
