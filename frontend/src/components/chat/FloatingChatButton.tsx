@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/solid'
 import ApliChat from './ApliChat'
 
