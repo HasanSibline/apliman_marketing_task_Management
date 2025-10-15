@@ -38,7 +38,9 @@ app.add_middleware(
 # Initialize services
 content_generator = ContentGenerator()
 web_scraper = WebScraper()
-chat_service = ChatService(config['gemini_api_key'])
+# Get the first API key for chat service
+api_keys = config.get_api_keys()
+chat_service = ChatService(api_keys[0] if api_keys else config.GOOGLE_API_KEY)
 
 @app.get("/health")
 async def health_check():
