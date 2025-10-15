@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
 import api from '../../services/api'
@@ -23,6 +23,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   const [isTyping, setIsTyping] = useState(false)
   const [sessionId, setSessionId] = useState<string | null>(null)
   const [showConfirmClose, setShowConfirmClose] = useState(false)
+  const [isMinimized, setIsMinimized] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const { user } = useSelector((state: RootState) => state.auth)
@@ -166,6 +167,51 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
   if (!isOpen) return null
 
+  // Minimized view
+  if (isMinimized) {
+    return (
+      <div className="fixed bottom-4 right-4 w-80 bg-white rounded-lg shadow-2xl z-50 border border-gray-200">
+        <div 
+          className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-lg flex items-center justify-between cursor-pointer hover:from-indigo-700 hover:to-purple-700 transition"
+          onClick={() => setIsMinimized(false)}
+        >
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+              <span className="text-indigo-600 font-bold text-sm">AC</span>
+            </div>
+            <div>
+              <h3 className="font-semibold">ApliChat</h3>
+              <p className="text-xs opacity-90">{messages.length} messages</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setIsMinimized(false)
+              }}
+              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              title="Expand"
+            >
+              <ChevronUpIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                handleClose()
+              }}
+              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              title="Close"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Full view
   return (
     <>
       <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200">
@@ -180,12 +226,22 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               <p className="text-xs opacity-90">Your AI Assistant</p>
             </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="text-white hover:bg-white/20 rounded-full p-2 transition"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => setIsMinimized(true)}
+              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              title="Minimize"
+            >
+              <MinusIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={handleClose}
+              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              title="Close"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
