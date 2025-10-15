@@ -47,7 +47,7 @@ class Config:
     CACHE_TTL = int(os.getenv("CACHE_TTL", 3600))  # seconds
     
     # AI Model Configuration
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
     LEGACY_MODEL = os.getenv("LEGACY_MODEL", "gpt-3.5-turbo")  # For legacy system
 
     @classmethod

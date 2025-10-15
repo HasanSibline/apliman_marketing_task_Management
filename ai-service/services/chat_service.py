@@ -13,7 +13,7 @@ class ChatService:
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
         # Use the same model as content generation (from config)
-        model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash-latest")
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
         self.model = genai.GenerativeModel(model_name)
         logger.info(f"✅ ChatService initialized with {model_name}")
 
