@@ -11,8 +11,8 @@ class ChatService:
 
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
-        logger.info("✅ ChatService initialized with Gemini 1.5 Flash")
+        self.model = genai.GenerativeModel('gemini-pro')
+        logger.info("✅ ChatService initialized with Gemini Pro")
 
     def process_chat_message(
         self,
