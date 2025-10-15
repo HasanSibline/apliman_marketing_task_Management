@@ -3,6 +3,7 @@ from typing import Dict, List, Any, Optional
 import google.generativeai as genai
 from datetime import datetime
 import json
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -11,8 +12,10 @@ class ChatService:
 
     def __init__(self, api_key: str):
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
-        logger.info("✅ ChatService initialized with Gemini Pro")
+        # Use the same model as content generation (from config)
+        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-exp")
+        self.model = genai.GenerativeModel(model_name)
+        logger.info(f"✅ ChatService initialized with {model_name}")
 
     def process_chat_message(
         self,
