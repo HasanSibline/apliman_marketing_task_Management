@@ -106,6 +106,9 @@ For technical content: Include key talking points about Apliman's technology."""
                         # Truncate content to avoid exceeding token limits
                         content = source['content'][:3000] + "..." if len(source['content']) > 3000 else source['content']
                         system_prompt += f"{content}\n"
+                    elif source.get('description'):
+                        # Fallback to description if content scraping failed (e.g., social media URLs)
+                        system_prompt += f"Description: {source['description']}\n"
             
             if competitor_sources:
                 system_prompt += "\n\n=== COMPETITIVE ANALYSIS ===\n"
@@ -116,6 +119,9 @@ For technical content: Include key talking points about Apliman's technology."""
                         # Truncate content to avoid exceeding token limits
                         content = source['content'][:2000] + "..." if len(source['content']) > 2000 else source['content']
                         system_prompt += f"{content}\n"
+                    elif source.get('description'):
+                        # Fallback to description if content scraping failed (e.g., social media URLs)
+                        system_prompt += f"Description: {source['description']}\n"
                 
                 system_prompt += "\n\nWhen generating content, subtly highlight Apliman's advantages without directly attacking competitors. Focus on Apliman's unique value propositions and strengths."
         else:
