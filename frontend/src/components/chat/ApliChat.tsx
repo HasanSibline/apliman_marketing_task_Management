@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { CpuChipIcon } from '@heroicons/react/24/solid'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
 import api from '../../services/api'
@@ -177,7 +178,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         >
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-              <SparklesIcon className="w-6 h-6 text-white" />
+              <CpuChipIcon className="w-6 h-6 text-white" />
             </div>
             <div>
               <h3 className="font-semibold">ApliChat</h3>
@@ -219,7 +220,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-t-lg flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
-              <SparklesIcon className="w-6 h-6 text-white" />
+              <CpuChipIcon className="w-6 h-6 text-white" />
             </div>
             <div>
               <h3 className="font-semibold">ApliChat</h3>
@@ -274,7 +275,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                 {message.role === 'user' ? (
                   <span className="text-xs font-medium">{getInitials(user?.name)}</span>
                 ) : (
-                  <SparklesIcon className="w-5 h-5" />
+                  <CpuChipIcon className="w-5 h-5" />
                 )}
               </div>
 
@@ -302,7 +303,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
           {isTyping && (
             <div className="flex items-start space-x-2">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-md">
-                <SparklesIcon className="w-5 h-5 text-white" />
+                <CpuChipIcon className="w-5 h-5 text-white" />
               </div>
               <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
                 <div className="flex space-x-1">
