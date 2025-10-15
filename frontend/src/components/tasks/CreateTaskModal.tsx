@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
-import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
+import { createTask, fetchTasks, setFilters } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
 import { workflowsApi } from '@/services/api'
 import { Workflow } from '@/types/task'
@@ -241,10 +241,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     try {
       const result = await dispatch(createTask(taskData))
       if (createTask.fulfilled.match(result)) {
-        toast.success('Task created successfully! Waiting for admin approval.')
+        toast.success('Task created successfully!')
         
         // Dispatch custom event to notify NotificationBell
         window.dispatchEvent(new CustomEvent('taskUpdated'))
+        
+        // Clear any active filters so the new task is visible
+        const hadFilters = Object.keys(filters).length > 0
+        if (hadFilters) {
+          dispatch(setFilters({}))
+          toast('Filters cleared to show your new task', { duration: 4000, icon: '🔍' })
+        }
         
         // Close modal and reset form
         onClose()
@@ -264,7 +271,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
         // Refresh the tasks list after a small delay to ensure backend has processed
         setTimeout(() => {
-          dispatch(fetchTasks(filters))
+          dispatch(fetchTasks({})) // Fetch all tasks without filters
         }, 300)
       }
     } catch (error: any) {
