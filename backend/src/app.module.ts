@@ -12,6 +12,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { AiModule } from './ai/ai.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
+import { ChatModule } from './chat/chat.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -33,6 +34,7 @@ import { AppService } from './app.service';
     AiModule,
     WorkflowsModule,
     KnowledgeModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],

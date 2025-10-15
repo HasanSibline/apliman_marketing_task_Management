@@ -3,6 +3,7 @@ import { Outlet } from 'react-router-dom'
 import { useAppSelector } from '@/hooks/redux'
 import Header from './Header'
 import Sidebar from './Sidebar'
+import FloatingChatButton from '../chat/FloatingChatButton'
 
 const Layout: React.FC = () => {
   const { sidebarOpen } = useAppSelector((state) => state.ui)
@@ -26,6 +27,9 @@ const Layout: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Floating ApliChat button */}
+      <FloatingChatButton />
     </div>
   )
 }

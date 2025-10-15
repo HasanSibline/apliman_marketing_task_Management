@@ -59,6 +59,8 @@ model User {
   approvalsRequested PhaseApproval[]   @relation("ApprovalRequester")
   approvalsReviewed  PhaseApproval[]   @relation("ApprovalReviewer")
   knowledgeSources   KnowledgeSource[] @relation("KnowledgeSourceCreator")
+  chatSessions       ChatSession[]
+  chatContext        UserChatContext?
 
   @@map("users")
 }
@@ -365,4 +367,41 @@ model KnowledgeSource {
   updatedAt     DateTime            @updatedAt
 
   @@map("knowledge_sources")
+}
+
+model ChatSession {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String        @default("New Chat") // Auto-generated or custom
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  endedAt   DateTime?
+  messages  ChatMessage[]
+
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String      @id @default(uuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String // "user" or "assistant"
+  content   String      @db.Text
+  metadata  Json? // For storing mentions, task references, etc.
+  createdAt DateTime    @default(now())
+
+  @@map("chat_messages")
+}
+
+model UserChatContext {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  context   Json // Stores learned information about the user (name, preferences, etc.)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("user_chat_contexts")
 }

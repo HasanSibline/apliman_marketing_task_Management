@@ -9,7 +9,8 @@ import aiohttp
 from config import get_config
 from services.content_generator import ContentGenerator
 from services.web_scraper import WebScraper
-from typing import Optional, List
+from services.chat_service import ChatService
+from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 
 # Configure logging
@@ -37,6 +38,7 @@ app.add_middleware(
 # Initialize services
 content_generator = ContentGenerator()
 web_scraper = WebScraper()
+chat_service = ChatService(config['gemini_api_key'])
 
 @app.get("/health")
 async def health_check():
@@ -260,6 +262,39 @@ async def scrape_url(request: ScrapeUrlRequest):
             detail={
                 "status": "error",
                 "message": f"URL scraping failed: {str(e)}"
+            }
+        )
+
+class ChatRequest(BaseModel):
+    message: str
+    userContext: Dict[str, Any]
+    user: Dict[str, Any]
+    conversationHistory: List[Dict[str, Any]]
+    knowledgeSources: List[Dict[str, Any]]
+    additionalContext: Dict[str, Any]
+    isDeepAnalysis: bool = False
+
+@app.post("/chat")
+async def chat(request: ChatRequest):
+    """Process chat message with ApliChat"""
+    try:
+        result = chat_service.process_chat_message(
+            message=request.message,
+            user_context=request.userContext,
+            user=request.user,
+            conversation_history=request.conversationHistory,
+            knowledge_sources=request.knowledgeSources,
+            additional_context=request.additionalContext,
+            is_deep_analysis=request.isDeepAnalysis
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Chat processing failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "message": f"Chat processing failed: {str(e)}"
             }
         )
 
