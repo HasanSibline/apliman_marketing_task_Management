@@ -6,6 +6,11 @@ ApliChat is an advanced AI-powered chatbot integrated into the Apliman Task Mana
 
 ## Features
 
+### 🌐 **Versatile AI Assistant**
+- **General Knowledge**: Answer ANY question on any topic (technology, science, business, etc.)
+- **Domain Expert**: Specialized knowledge about Apliman's task management system
+- **Dual Purpose**: Seamlessly handles both general queries and system-specific questions
+
 ### 🧠 **Memory & Context**
 - **Persistent Memory**: ApliChat remembers information across sessions
 - **User Context**: Learns user preferences, name, role, and work patterns
@@ -176,6 +181,18 @@ Process chat messages with Gemini AI
 
 ## Usage Examples
 
+### General Knowledge Questions
+```
+User: What is artificial intelligence?
+ApliChat: AI is technology that enables machines to simulate human intelligence, including learning, reasoning, and problem-solving.
+
+User: How do I improve team productivity?
+ApliChat: Here are key strategies: Set clear goals, use collaboration tools, minimize meetings, provide feedback, and ensure work-life balance.
+
+User: What's the weather like? (or any real-time info)
+ApliChat: I don't have access to real-time data, but I can help you with general knowledge or your tasks!
+```
+
 ### Basic Conversation
 ```
 User: Hello
@@ -215,6 +232,15 @@ User: Explain in detail how the workflow system works
 ApliChat: [Provides comprehensive explanation with all details]
 ```
 
+### Mixed Conversations
+```
+User: What is Scrum?
+ApliChat: Scrum is an agile framework for project management using sprints, daily standups, and iterative development.
+
+User: Can we implement Scrum in Apliman?
+ApliChat: Absolutely! Apliman's workflow system is perfect for Scrum. You can create workflows for sprints, use phases for backlog/in-progress/done, and track tasks through the cycle.
+```
+
 ## Deployment
 
 ### Database Migration
@@ -245,6 +271,8 @@ No additional environment variables needed - ApliChat uses existing:
 ## Key Features Summary
 
 ### 🎯 Core Capabilities
+- ✅ **General knowledge AI** - Answer ANY question on any topic
+- ✅ **Domain expertise** - Specialized knowledge about task management
 - ✅ Persistent chat sessions
 - ✅ User context memory (remembers name, preferences, etc.)
 - ✅ Real-time typing indicators
