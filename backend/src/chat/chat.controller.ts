@@ -65,5 +65,20 @@ export class ChatController {
   async getUserContext(@Request() req) {
     return this.chatService.getUserContext(req.user.id);
   }
+
+  /**
+   * Manually trigger learning from task history
+   */
+  @Post('learn-from-tasks')
+  async learnFromTasks(@Request() req) {
+    const learnedContext = await this.chatService.learnFromTaskHistory(req.user.id);
+    return {
+      success: true,
+      learnedContext,
+      message: learnedContext 
+        ? 'Successfully learned from your task history!' 
+        : 'No new insights to learn at this time.',
+    };
+  }
 }
 

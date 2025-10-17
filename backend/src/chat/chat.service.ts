@@ -71,20 +71,62 @@ export class ChatService {
 
   /**
    * Update user's chat context with learned information
+   * Intelligently merges new context with existing context
    */
   async updateUserContext(userId: string, newContext: any) {
     const existing = await this.getUserContext(userId);
     
-    const updatedContext = {
-      ...existing.context as any,
-      ...newContext,
-      lastUpdated: new Date().toISOString(),
-    };
+    // Intelligently merge contexts - new values override old ones (for corrections)
+    const updatedContext = this.mergeContextIntelligently(
+      existing.context as any,
+      newContext
+    );
+
+    updatedContext.lastUpdated = new Date().toISOString();
 
     return this.prisma.userChatContext.update({
       where: { userId },
       data: { context: updatedContext },
     });
+  }
+
+  /**
+   * Intelligently merge new context with existing context
+   * Handles corrections, updates, and array merging
+   */
+  private mergeContextIntelligently(existing: any, newContext: any): any {
+    const merged = { ...existing };
+
+    for (const [key, value] of Object.entries(newContext)) {
+      if (key === 'lastUpdated') continue;
+
+      // If the key doesn't exist, just add it
+      if (!(key in merged)) {
+        merged[key] = value;
+        continue;
+      }
+
+      // If both are arrays, merge and deduplicate
+      if (Array.isArray(value) && Array.isArray(merged[key])) {
+        merged[key] = [...new Set([...merged[key], ...value])];
+      }
+      // If both are objects, merge recursively
+      else if (
+        typeof value === 'object' &&
+        value !== null &&
+        typeof merged[key] === 'object' &&
+        merged[key] !== null &&
+        !Array.isArray(value)
+      ) {
+        merged[key] = this.mergeContextIntelligently(merged[key], value);
+      }
+      // For primitive values, new value replaces old (handles corrections)
+      else {
+        merged[key] = value;
+      }
+    }
+
+    return merged;
   }
 
   /**
@@ -180,7 +222,11 @@ export class ChatService {
       // Update user context if AI learned something new
       if (aiResponse.learnedContext) {
         await this.updateUserContext(userId, aiResponse.learnedContext);
+        this.logger.log(`✅ Updated context for user ${userId}: ${JSON.stringify(aiResponse.learnedContext)}`);
       }
+
+      // Track domain questions for learning
+      await this.trackDomainQuestion(userId, dto.message);
 
       // Update session title if it's the first real conversation
       if (conversationHistory.length <= 2 && session.title === 'New Chat') {
@@ -414,6 +460,162 @@ export class ChatService {
       title = title.substring(0, 47) + '...';
     }
     return title || 'New Chat';
+  }
+
+  /**
+   * Learn from user's task history
+   * Analyzes completed and active tasks to extract insights
+   */
+  async learnFromTaskHistory(userId: string) {
+    try {
+      // Get user context
+      const userContext = await this.getUserContext(userId);
+
+      // Get completed tasks (last 10)
+      const completedTasks = await this.prisma.task.findMany({
+        where: {
+          OR: [
+            { createdById: userId },
+            { assignedToId: userId },
+            { assignments: { some: { userId } } },
+          ],
+          completedAt: { not: null },
+        },
+        orderBy: { completedAt: 'desc' },
+        take: 10,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          taskType: true,
+          priority: true,
+          completedAt: true,
+          goals: true,
+        },
+      });
+
+      // Get active tasks (up to 5)
+      const activeTasks = await this.prisma.task.findMany({
+        where: {
+          OR: [
+            { createdById: userId },
+            { assignedToId: userId },
+            { assignments: { some: { userId } } },
+          ],
+          completedAt: null,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          taskType: true,
+          priority: true,
+          dueDate: true,
+          goals: true,
+        },
+      });
+
+      // Call AI service to learn from tasks
+      const aiResponse = await this.httpService.axiosRef.post(
+        `${this.aiServiceUrl}/learn-from-tasks`,
+        {
+          userContext: userContext.context,
+          completedTasks,
+          activeTasks,
+        },
+        { timeout: 30000 }
+      );
+
+      // Update user context with learned insights
+      if (aiResponse.data?.learnedContext) {
+        await this.updateUserContext(userId, aiResponse.data.learnedContext);
+        this.logger.log(`✅ Learned from task history for user ${userId}`);
+        return aiResponse.data.learnedContext;
+      }
+
+      return null;
+    } catch (error) {
+      this.logger.error(`Error learning from task history: ${error.message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Track domain-specific questions to learn user interests
+   */
+  async trackDomainQuestion(userId: string, message: string) {
+    try {
+      const userContext = await this.getUserContext(userId);
+      const context = userContext.context as any;
+
+      // Detect domain topics
+      const domains = ['apliman', 'competitor', 'service', 'product', 'feature'];
+      const messageLower = message.toLowerCase();
+
+      for (const domain of domains) {
+        if (messageLower.includes(domain)) {
+          // Track question
+          const questionsKey = `${domain}_questions`;
+          const questions = context[questionsKey] || [];
+          questions.push({
+            question: message,
+            timestamp: new Date().toISOString(),
+          });
+
+          // Keep only last 10 questions per domain
+          const recentQuestions = questions.slice(-10);
+
+          await this.updateUserContext(userId, {
+            [questionsKey]: recentQuestions,
+          });
+
+          // If enough questions accumulated, trigger learning
+          if (recentQuestions.length >= 3) {
+            await this.learnDomainInterests(
+              userId,
+              domain,
+              recentQuestions.map(q => q.question)
+            );
+          }
+
+          break; // Only track for first matched domain
+        }
+      }
+    } catch (error) {
+      this.logger.error(`Error tracking domain question: ${error.message}`);
+    }
+  }
+
+  /**
+   * Learn what user is interested in regarding specific domains
+   */
+  private async learnDomainInterests(
+    userId: string,
+    domain: string,
+    questions: string[]
+  ) {
+    try {
+      const userContext = await this.getUserContext(userId);
+
+      const aiResponse = await this.httpService.axiosRef.post(
+        `${this.aiServiceUrl}/learn-domain-interests`,
+        {
+          domainTopic: domain,
+          userQuestions: questions,
+          existingKnowledge: userContext.context,
+        },
+        { timeout: 30000 }
+      );
+
+      if (aiResponse.data?.learnedInterests) {
+        await this.updateUserContext(userId, aiResponse.data.learnedInterests);
+        this.logger.log(`✅ Learned ${domain} interests for user ${userId}`);
+      }
+    } catch (error) {
+      this.logger.error(`Error learning domain interests: ${error.message}`);
+    }
   }
 }
 

@@ -4,6 +4,7 @@ import google.generativeai as genai
 from datetime import datetime
 import json
 import os
+from .context_learning import ContextLearningService
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ class ChatService:
         # Use the same model as content generation (from config)
         model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
         self.model = genai.GenerativeModel(model_name)
+        self.learning_service = ContextLearningService(api_key, model_name)
         logger.info(f"✅ ChatService initialized with {model_name}")
 
     def process_chat_message(
@@ -69,10 +71,17 @@ ApliChat:"""
             response = self.model.generate_content(full_prompt)
             response_text = response.text.strip()
 
-            # Extract learned context from the message
-            learned_context = self._extract_learned_context(message, user_context)
+            # Use AI to intelligently extract and update context
+            learned_context = self.learning_service.extract_and_update_context(
+                message=message,
+                existing_context=user_context,
+                conversation_history=conversation_history,
+                user_info=user
+            )
 
             logger.info(f"✅ Generated chat response: {response_text[:100]}...")
+            if learned_context:
+                logger.info(f"✅ Learned new context: {learned_context}")
 
             return {
                 "message": response_text,
@@ -201,29 +210,57 @@ Instructions:
 
         return history_text
 
-    def _extract_learned_context(self, message: str, existing_context: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-        """Extract learned information from user message"""
-        learned = {}
-        message_lower = message.lower()
-
-        # Extract name
-        if "my name is" in message_lower or "i'm" in message_lower or "i am" in message_lower:
-            # Simple name extraction (can be enhanced)
-            words = message.split()
-            for i, word in enumerate(words):
-                if word.lower() in ['is', "i'm", 'am'] and i + 1 < len(words):
-                    potential_name = words[i + 1].strip('.,!?')
-                    if potential_name and len(potential_name) > 1 and potential_name[0].isupper():
-                        learned['name'] = potential_name
-                        break
-
-        # Extract preferences
-        if "i prefer" in message_lower or "i like" in message_lower:
-            learned['preferences'] = message[:200]
-
-        # Extract role/position info
-        if "i work as" in message_lower or "i'm a" in message_lower:
-            learned['work_info'] = message[:200]
-
-        return learned if learned else None
+    def learn_from_task_history(
+        self,
+        user_context: Dict[str, Any],
+        completed_tasks: List[Dict[str, Any]],
+        active_tasks: List[Dict[str, Any]]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Learn from user's task history to understand their work patterns
+        
+        Args:
+            user_context: Existing user context
+            completed_tasks: Recently completed tasks
+            active_tasks: Currently active tasks
+            
+        Returns:
+            Learned context from tasks
+        """
+        try:
+            return self.learning_service.learn_from_tasks(
+                completed_tasks=completed_tasks,
+                active_tasks=active_tasks,
+                existing_context=user_context
+            )
+        except Exception as e:
+            logger.error(f"Error learning from task history: {e}")
+            return None
+    
+    def learn_about_domain_interests(
+        self,
+        domain_topic: str,
+        user_questions: List[str],
+        existing_knowledge: Dict[str, Any]
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Learn what user wants to know about specific domains
+        
+        Args:
+            domain_topic: Domain name (e.g., "apliman", "competitors")
+            user_questions: Questions user asked about this domain
+            existing_knowledge: Current knowledge about user's interests
+            
+        Returns:
+            Updated knowledge about user's domain interests
+        """
+        try:
+            return self.learning_service.learn_about_domain(
+                domain_topic=domain_topic,
+                user_questions=user_questions,
+                existing_knowledge=existing_knowledge
+            )
+        except Exception as e:
+            logger.error(f"Error learning domain interests: {e}")
+            return None
 

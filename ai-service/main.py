@@ -403,6 +403,66 @@ async def generate_performance_insights(request: dict):
             "error": str(e)
         }
 
+class LearnFromTasksRequest(BaseModel):
+    userContext: Dict[str, Any]
+    completedTasks: List[Dict[str, Any]]
+    activeTasks: List[Dict[str, Any]]
+
+@app.post("/learn-from-tasks")
+async def learn_from_tasks(request: LearnFromTasksRequest):
+    """Learn from user's task history to extract insights and patterns"""
+    try:
+        learned_context = chat_service.learn_from_task_history(
+            user_context=request.userContext,
+            completed_tasks=request.completedTasks,
+            active_tasks=request.activeTasks
+        )
+        
+        return {
+            "success": True,
+            "learnedContext": learned_context,
+            "ai_provider": "gemini"
+        }
+    except Exception as e:
+        logger.error(f"Learning from tasks failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "message": f"Learning from tasks failed: {str(e)}"
+            }
+        )
+
+class LearnDomainInterestsRequest(BaseModel):
+    domainTopic: str
+    userQuestions: List[str]
+    existingKnowledge: Dict[str, Any]
+
+@app.post("/learn-domain-interests")
+async def learn_domain_interests(request: LearnDomainInterestsRequest):
+    """Learn what the user is interested in regarding specific domains"""
+    try:
+        learned_interests = chat_service.learn_about_domain_interests(
+            domain_topic=request.domainTopic,
+            user_questions=request.userQuestions,
+            existing_knowledge=request.existingKnowledge
+        )
+        
+        return {
+            "success": True,
+            "learnedInterests": learned_interests,
+            "ai_provider": "gemini"
+        }
+    except Exception as e:
+        logger.error(f"Learning domain interests failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "status": "error",
+                "message": f"Learning domain interests failed: {str(e)}"
+            }
+        )
+
 # Startup event
 @app.on_event("startup")
 async def startup_event():
