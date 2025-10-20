@@ -35,7 +35,8 @@ const TasksPage: React.FC = () => {
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
   useEffect(() => {
-    dispatch(fetchTasks(filters))
+    // Fetch all tasks without pagination limit
+    dispatch(fetchTasks({ ...filters, limit: 10000 }))
     loadWorkflows()
   }, [dispatch, filters])
 

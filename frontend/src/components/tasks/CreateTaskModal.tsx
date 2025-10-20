@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
-import { createTask } from '@/store/slices/tasksSlice'
+import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
 import { workflowsApi } from '@/services/api'
 import { Workflow } from '@/types/task'
@@ -18,7 +18,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const dispatch = useAppDispatch()
   const { users } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
-  const { isLoading, filters } = useAppSelector((state) => state.tasks)
+  const { isLoading } = useAppSelector((state) => state.tasks)
   
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null)
@@ -256,13 +256,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         // Dispatch custom event to notify NotificationBell
         window.dispatchEvent(new CustomEvent('taskUpdated'))
         
-        // Clear any active filters so the new task is visible
-        const hadFilters = Object.keys(filters).length > 0
-        if (hadFilters) {
-          // Don't actually clear filters - this causes a refetch that might not include the new task
-          // The new task is already in Redux state, so it will be visible
-          toast('New task created!', { duration: 3000, icon: '✓' })
-        }
+        // Fetch all tasks to sync with server (no pagination limit)
+        await dispatch(fetchTasks({ limit: 10000 }))
         
         // Close modal and reset form
         onClose()

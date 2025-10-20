@@ -239,6 +239,10 @@ const tasksSlice = createSlice({
         } as unknown as Task
         // Add to the beginning of the tasks array so it appears at the top
         state.tasks = [newTask, ...state.tasks]
+        // Reset to page 1 so the new task is visible
+        state.pagination.page = 1
+        // Update total count
+        state.pagination.total = state.pagination.total + 1
         state.error = null
       })
       .addCase(createTask.rejected, (state, action) => {
