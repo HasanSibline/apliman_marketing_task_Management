@@ -249,8 +249,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         // Clear any active filters so the new task is visible
         const hadFilters = Object.keys(filters).length > 0
         if (hadFilters) {
-          dispatch(setFilters({}))
-          toast('Filters cleared to show your new task', { duration: 4000, icon: '🔍' })
+          // Don't actually clear filters - this causes a refetch that might not include the new task
+          // The new task is already in Redux state, so it will be visible
+          toast('New task created!', { duration: 3000, icon: '✓' })
         }
         
         // Close modal and reset form
