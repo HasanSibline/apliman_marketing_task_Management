@@ -43,11 +43,5 @@ export class WorkflowsController {
   async deleteWorkflow(@Param('id') id: string) {
     return this.workflowsService.deleteWorkflow(id);
   }
-
-  @Post('seed/default')
-  @Roles(UserRole.SUPER_ADMIN)
-  async seedDefaultWorkflows(@Request() req) {
-    return this.workflowsService.seedDefaultWorkflows(req.user.id);
-  }
 }
 

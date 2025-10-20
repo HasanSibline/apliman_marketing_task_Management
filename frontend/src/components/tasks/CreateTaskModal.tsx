@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
-import { createTask, fetchTasks, setFilters } from '@/store/slices/tasksSlice'
+import { createTask, setFilters } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
 import { workflowsApi } from '@/services/api'
 import { Workflow } from '@/types/task'
@@ -269,10 +269,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         })
         setAiGeneratedSubtasks([]) // Clear AI subtasks
 
-        // Refresh the tasks list after a small delay to ensure backend has processed
-        setTimeout(() => {
-          dispatch(fetchTasks({})) // Fetch all tasks without filters
-        }, 300)
+        // No need to fetch all tasks - the new task is already added to Redux state
+        // This prevents duplicate tasks from appearing
       }
     } catch (error: any) {
       console.error('Error creating task:', error)

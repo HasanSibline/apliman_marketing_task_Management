@@ -103,7 +103,7 @@ export const createTask = createAsyncThunk(
   async (data: CreateTaskData, { rejectWithValue }) => {
     try {
       const response = await tasksApi.create(data)
-      toast.success('Task created successfully!')
+      // Don't show toast here - it's handled in the component
       return response
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to create task'
@@ -230,10 +230,15 @@ const tasksSlice = createSlice({
         state.isLoading = true
         state.error = null
       })
-      .addCase(createTask.fulfilled, (state) => {
+      .addCase(createTask.fulfilled, (state, action) => {
         state.isLoading = false
-        // Don't add to tasks array here - fetchTasks will be called immediately after
-        // to get the latest data from the server
+        // Add the newly created task to the tasks array immediately
+        const newTask = {
+          ...action.payload,
+          createdById: action.payload.createdBy?.id || ''
+        } as unknown as Task
+        // Add to the beginning of the tasks array so it appears at the top
+        state.tasks = [newTask, ...state.tasks]
         state.error = null
       })
       .addCase(createTask.rejected, (state, action) => {
