@@ -229,11 +229,21 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Ensure the creator is always assigned to the task (especially for employees)
+    const assignedUserIds = formData.assignedUserIds.length > 0 
+      ? formData.assignedUserIds 
+      : (user?.id ? [user.id] : []);
+    
+    // Make sure creator is always included if they're an employee
+    if (user?.id && !assignedUserIds.includes(user.id)) {
+      assignedUserIds.push(user.id);
+    }
+    
     const taskData = {
       ...formData,
       dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
-      assignedToId: formData.assignedToId || undefined,
-      assignedUserIds: formData.assignedUserIds.length > 0 ? formData.assignedUserIds : undefined,
+      assignedToId: formData.assignedToId || user?.id || undefined,
+      assignedUserIds: assignedUserIds.length > 0 ? assignedUserIds : undefined,
       // Include AI-generated subtasks if any
       aiSubtasks: aiGeneratedSubtasks.length > 0 ? aiGeneratedSubtasks : undefined,
     }

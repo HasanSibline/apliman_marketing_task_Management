@@ -726,6 +726,8 @@ export class TasksService {
       where.OR = [
         { assignedToId: userId },
         { createdById: userId },
+        // Also check TaskAssignment relationship for new multi-user assignments
+        { assignments: { some: { userId: userId } } },
       ];
     }
     // Super Admins and Admins can see all tasks (no additional filtering needed)
