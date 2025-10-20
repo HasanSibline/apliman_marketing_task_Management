@@ -34,10 +34,42 @@ export class TasksService {
         taskType = workflow.taskType;
       } else {
         // AI task type detection
-        const aiDetection = await this.aiService.detectTaskType(createTaskDto.title);
-        taskType = aiDetection.task_type;
+        try {
+          const aiDetection = await this.aiService.detectTaskType(createTaskDto.title);
+          taskType = aiDetection.task_type;
+        } catch (error) {
+          console.log('AI task type detection failed, using GENERAL:', error);
+          taskType = 'GENERAL';
+        }
         
-        workflow = await this.workflowsService.getDefaultWorkflow(taskType);
+        // Try to get default workflow, but fallback to ANY workflow if not found
+        try {
+          workflow = await this.workflowsService.getDefaultWorkflow(taskType);
+        } catch (error) {
+          console.log(`No default workflow for ${taskType}, trying to find any workflow...`);
+          
+          // Fallback 1: Try to find ANY workflow of this task type
+          workflow = await this.prisma.workflow.findFirst({
+            where: { taskType, isActive: true },
+            include: { phases: { orderBy: { order: 'asc' } } },
+          });
+          
+          // Fallback 2: If still no workflow, get ANY active workflow
+          if (!workflow) {
+            console.log('No workflow found for task type, using first available workflow...');
+            workflow = await this.prisma.workflow.findFirst({
+              where: { isActive: true },
+              include: { phases: { orderBy: { order: 'asc' } } },
+            });
+          }
+          
+          // Fallback 3: If STILL no workflow, throw error
+          if (!workflow) {
+            throw new BadRequestException(
+              'No workflows available. Please create at least one workflow before creating tasks.'
+            );
+          }
+        }
       }
 
       // 2. Generate AI content if missing
@@ -273,9 +305,11 @@ export class TasksService {
       }
 
       // Return complete task data
+      console.log(`Task created successfully: ${task.id}, workflow: ${workflow.id}, taskType: ${taskType}`);
       return this.findOne(task.id, creatorId, UserRole.SUPER_ADMIN);
     } catch (error) {
       console.error('Error creating task:', error);
+      console.error('Error details:', error.message);
       throw error;
     }
   }
@@ -729,6 +763,9 @@ export class TasksService {
         // Also check TaskAssignment relationship for new multi-user assignments
         { assignments: { some: { userId: userId } } },
       ];
+      console.log(`EMPLOYEE filtering for userId: ${userId}`);
+    } else {
+      console.log(`ADMIN/SUPER_ADMIN - no role filtering for userId: ${userId}, role: ${userRole}`);
     }
     // Super Admins and Admins can see all tasks (no additional filtering needed)
 
@@ -873,6 +910,10 @@ export class TasksService {
       }),
       this.prisma.task.count({ where }),
     ]);
+
+    console.log(`Found ${total} tasks matching query for user ${userId} (role: ${userRole})`);
+    console.log(`Returning ${tasks.length} tasks after pagination`);
+    console.log(`Where clause:`, JSON.stringify(where, null, 2));
 
     return {
       tasks,
