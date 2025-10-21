@@ -65,7 +65,10 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         api.get('/tasks')
       ])
       setAllUsers(usersRes.data || [])
-      setAllTasks(tasksRes.data || [])
+      // Handle both direct array and paginated response
+      const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : (tasksRes.data?.tasks || [])
+      setAllTasks(tasks)
+      console.log('Fetched tasks for autocomplete:', tasks.length)
     } catch (error) {
       console.error('Error fetching users and tasks:', error)
     }
@@ -192,26 +195,44 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     setCursorPosition(cursorPos)
     const textBeforeCursor = value.substring(0, cursorPos)
     
-    // Check for @ mention
-    const atMatch = textBeforeCursor.match(/@(\w*)$/)
+    // Check for @ mention (show immediately after @)
+    const atMatch = textBeforeCursor.match(/@([\w\s]*)$/)
     if (atMatch) {
-      const query = atMatch[1].toLowerCase()
-      const filtered = allUsers.filter(u => 
-        u.name.toLowerCase().includes(query)
-      ).slice(0, 5)
+      const query = atMatch[1].toLowerCase().trim()
+      let filtered
+      
+      if (query === '') {
+        // Show all users if nothing typed after @
+        filtered = allUsers.slice(0, 5)
+      } else {
+        // Filter as user types
+        filtered = allUsers.filter(u => 
+          u.name.toLowerCase().includes(query)
+        ).slice(0, 5)
+      }
+      
       setSuggestions(filtered)
       setSuggestionType('user')
       setSelectedSuggestionIndex(0)
       return
     }
 
-    // Check for / task reference
-    const slashMatch = textBeforeCursor.match(/\/(\w*)$/)
+    // Check for / task reference (show immediately after /)
+    const slashMatch = textBeforeCursor.match(/\/([\w\s-]*)$/)
     if (slashMatch) {
-      const query = slashMatch[1].toLowerCase()
-      const filtered = allTasks.filter((t: any) => 
-        t.title.toLowerCase().includes(query)
-      ).slice(0, 5)
+      const query = slashMatch[1].toLowerCase().trim()
+      let filtered
+      
+      if (query === '') {
+        // Show all tasks if nothing typed after /
+        filtered = allTasks.slice(0, 5)
+      } else {
+        // Filter as user types
+        filtered = allTasks.filter((t: any) => 
+          t.title.toLowerCase().includes(query)
+        ).slice(0, 5)
+      }
+      
       setSuggestions(filtered)
       setSuggestionType('task')
       setSelectedSuggestionIndex(0)
@@ -233,12 +254,12 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     
     if (suggestionType === 'user') {
       // Replace @query with @username
-      const beforeMention = textBeforeCursor.replace(/@\w*$/, '')
+      const beforeMention = textBeforeCursor.replace(/@[\w\s]*$/, '')
       newText = beforeMention + `@${suggestion.name} ` + textAfterCursor
       newCursorPos = beforeMention.length + suggestion.name.length + 2 // @ + name + space
     } else if (suggestionType === 'task') {
-      // Replace /query with task title
-      const beforeTask = textBeforeCursor.replace(/\/\w*$/, '')
+      // Replace /query with /task-title
+      const beforeTask = textBeforeCursor.replace(/\/[\w\s-]*$/, '')
       newText = beforeTask + `/${suggestion.title} ` + textAfterCursor
       newCursorPos = beforeTask.length + suggestion.title.length + 2 // / + title + space
     }
