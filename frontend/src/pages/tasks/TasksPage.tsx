@@ -128,54 +128,69 @@ const TasksPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
+      {/* Search Bar - Enhanced */}
+      <div className="relative group">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
         </div>
         <input
           type="text"
-          placeholder="Search tasks by title, description, or assignee..."
+          placeholder="Search tasks by title, description, assignee, or goals..."
           value={filters.search || ''}
           onChange={(e) => dispatch(setFilters({ search: e.target.value || undefined }))}
-          className="pl-11 pr-4 py-3 w-full border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+          className="pl-11 pr-4 py-3.5 w-full border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
         />
+        {filters.search && (
+          <button
+            onClick={() => dispatch(setFilters({ search: undefined }))}
+            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
-      {/* Filters Panel */}
+      {/* Filters Panel - Professional */}
       {showFilters && (
         <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: 'auto' }}
-          exit={{ opacity: 0, height: 0 }}
-          className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.2 }}
+          className="bg-white rounded-xl border border-gray-200 shadow-md p-6"
         >
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <FunnelIcon className="h-5 w-5" />
-              Filter Tasks
-            </h3>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <FunnelIcon className="h-5 w-5 text-primary-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Filter Tasks</h3>
+                <p className="text-sm text-gray-500">Refine your search criteria</p>
+              </div>
+            </div>
             {activeFiltersCount > 0 && (
               <button
                 onClick={clearAllFilters}
-                className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1"
+                className="px-4 py-2 text-sm text-white bg-error-600 hover:bg-error-700 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
               >
                 <XMarkIcon className="h-4 w-4" />
-                Clear All Filters
+                Clear All ({activeFiltersCount})
               </button>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Workflow Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <div className="h-2 w-2 rounded-full bg-primary-500"></div>
                 Workflow
               </label>
               <select
                 value={filters.workflowId || ''}
                 onChange={(e) => dispatch(setFilters({ workflowId: e.target.value || undefined }))}
-                className="input-field"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white hover:border-primary-400"
               >
                 <option value="">All Workflows</option>
                 {workflows.map(workflow => (
@@ -187,14 +202,15 @@ const TasksPage: React.FC = () => {
             </div>
 
             {/* Priority Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <div className="h-2 w-2 rounded-full bg-warning-500"></div>
                 Priority
               </label>
               <select
                 value={filters.priority || ''}
                 onChange={(e) => dispatch(setFilters({ priority: e.target.value ? parseInt(e.target.value) : undefined }))}
-                className="input-field"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500 transition-all bg-white hover:border-warning-400"
               >
                 <option value="">All Priorities</option>
                 <option value="1">Low</option>
@@ -206,14 +222,15 @@ const TasksPage: React.FC = () => {
             </div>
 
             {/* Phase Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <div className="h-2 w-2 rounded-full bg-secondary-500"></div>
                 Phase
               </label>
               <select
                 value={filters.phase || ''}
                 onChange={(e) => dispatch(setFilters({ phase: e.target.value || undefined }))}
-                className="input-field"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white hover:border-secondary-400"
               >
                 <option value="">All Phases</option>
                 <option value="PENDING_APPROVAL">Pending Approval</option>
@@ -229,14 +246,15 @@ const TasksPage: React.FC = () => {
             </div>
 
             {/* Assigned To Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <div className="h-2 w-2 rounded-full bg-success-500"></div>
                 Assigned To
               </label>
               <select
                 value={filters.assignedToId || ''}
                 onChange={(e) => dispatch(setFilters({ assignedToId: e.target.value || undefined }))}
-                className="input-field"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-all bg-white hover:border-success-400"
               >
                 <option value="">All Users</option>
                 <option value={user?.id}>My Tasks</option>
@@ -246,44 +264,95 @@ const TasksPage: React.FC = () => {
         </motion.div>
       )}
 
-      {/* Active Filters Display */}
+      {/* Active Filters Display - Professional */}
       {activeFiltersCount > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex items-center gap-3 flex-wrap p-4 bg-primary-50 rounded-lg border border-primary-200"
+        >
+          <div className="flex items-center gap-2">
+            <FunnelIcon className="h-4 w-4 text-primary-600" />
+            <span className="text-sm font-bold text-gray-900">Active Filters:</span>
+          </div>
           {filters.search && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-              Search: "{filters.search}"
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-primary-300 text-primary-700 rounded-lg text-sm font-medium shadow-sm"
+            >
+              <MagnifyingGlassIcon className="h-4 w-4" />
+              "{filters.search}"
               <button
                 onClick={() => dispatch(setFilters({ search: undefined }))}
-                className="hover:bg-blue-200 rounded-full p-0.5"
+                className="hover:bg-primary-100 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
-            </span>
+            </motion.span>
           )}
           {filters.workflowId && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-              Workflow: {workflows.find(w => w.id === filters.workflowId)?.name}
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-primary-300 text-primary-700 rounded-lg text-sm font-medium shadow-sm"
+            >
+              <div className="h-2 w-2 rounded-full bg-primary-500"></div>
+              {workflows.find(w => w.id === filters.workflowId)?.name}
               <button
                 onClick={() => dispatch(setFilters({ workflowId: undefined }))}
-                className="hover:bg-purple-200 rounded-full p-0.5"
+                className="hover:bg-primary-100 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
-            </span>
+            </motion.span>
           )}
           {filters.priority && (
-            <span className="inline-flex items-center gap-1 px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-sm">
-              Priority: {['Low', 'Medium', 'High', 'Urgent', 'Critical'][filters.priority - 1]}
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-warning-300 text-warning-700 rounded-lg text-sm font-medium shadow-sm"
+            >
+              {['Low', 'Medium', 'High', 'Urgent', 'Critical'][filters.priority - 1]}
               <button
                 onClick={() => dispatch(setFilters({ priority: undefined }))}
-                className="hover:bg-amber-200 rounded-full p-0.5"
+                className="hover:bg-warning-100 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
-            </span>
+            </motion.span>
           )}
-        </div>
+          {filters.phase && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-secondary-300 text-secondary-700 rounded-lg text-sm font-medium shadow-sm"
+            >
+              Phase: {filters.phase.replace('_', ' ')}
+              <button
+                onClick={() => dispatch(setFilters({ phase: undefined }))}
+                className="hover:bg-secondary-100 rounded-full p-0.5 transition-colors"
+              >
+                <XMarkIcon className="h-3.5 w-3.5" />
+              </button>
+            </motion.span>
+          )}
+          {filters.assignedToId && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-success-300 text-success-700 rounded-lg text-sm font-medium shadow-sm"
+            >
+              {filters.assignedToId === user?.id ? 'My Tasks' : 'Assigned'}
+              <button
+                onClick={() => dispatch(setFilters({ assignedToId: undefined }))}
+                className="hover:bg-success-100 rounded-full p-0.5 transition-colors"
+              >
+                <XMarkIcon className="h-3.5 w-3.5" />
+              </button>
+            </motion.span>
+          )}
+        </motion.div>
       )}
 
       {/* Grouped Tasks by Workflow */}

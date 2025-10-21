@@ -277,21 +277,25 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
   if (!isOpen) return null
 
-  // Minimized view
+  // Minimized view - Professional
   if (isMinimized) {
     return (
-      <div className="fixed bottom-4 right-4 w-80 bg-white rounded-lg shadow-2xl z-50 border border-gray-200">
+      <div className="fixed bottom-6 right-6 w-80 bg-white rounded-xl shadow-xl z-50 border border-gray-200 overflow-hidden">
         <div 
-          className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-lg flex items-center justify-between cursor-pointer hover:from-indigo-700 hover:to-purple-700 transition"
+          className="bg-primary-600 text-white p-4 flex items-center justify-between cursor-pointer hover:bg-primary-700 transition-all duration-300"
           onClick={() => setIsMinimized(false)}
         >
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+            <div className="relative w-11 h-11 bg-white/20 rounded-lg flex items-center justify-center shadow-md">
               <CpuChipIcon className="w-6 h-6 text-white" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full border-2 border-white"></div>
             </div>
             <div>
-              <h3 className="font-semibold">ApliChat</h3>
-              <p className="text-xs opacity-90">{messages.length} messages</p>
+              <h3 className="font-bold text-base">ApliChat AI</h3>
+              <p className="text-xs text-white/90 flex items-center gap-1">
+                <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
+                {messages.length} messages
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-1">
@@ -300,7 +304,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                 e.stopPropagation()
                 setIsMinimized(false)
               }}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
               title="Expand"
             >
               <ChevronUpIcon className="w-5 h-5" />
@@ -310,7 +314,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                 e.stopPropagation()
                 handleClose()
               }}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
               title="Close"
             >
               <XMarkIcon className="w-5 h-5" />
@@ -321,32 +325,36 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     )
   }
 
-  // Full view
+  // Full view - Professional & Modern
   return (
     <>
-      <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-200">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-4 rounded-t-lg flex items-center justify-between">
+      <div className="fixed bottom-6 right-6 w-[420px] h-[650px] bg-white rounded-xl shadow-2xl flex flex-col z-50 border border-gray-200 overflow-hidden">
+        {/* Header - Professional */}
+        <div className="bg-primary-600 text-white p-5 flex items-center justify-between relative">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-400 to-pink-500 rounded-full flex items-center justify-center shadow-lg">
+            <div className="relative w-11 h-11 bg-white/20 rounded-lg flex items-center justify-center shadow-md">
               <CpuChipIcon className="w-6 h-6 text-white" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full border-2 border-white animate-pulse"></div>
             </div>
             <div>
-              <h3 className="font-semibold">ApliChat</h3>
-              <p className="text-xs opacity-90">Your AI Assistant</p>
+              <h3 className="font-bold text-base">ApliChat AI</h3>
+              <p className="text-xs text-white/90 flex items-center gap-1">
+                <span className="w-2 h-2 bg-success-400 rounded-full"></span>
+                Always here to help
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-1">
             <button
               onClick={() => setIsMinimized(true)}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
               title="Minimize"
             >
               <MinusIcon className="w-5 h-5" />
             </button>
             <button
               onClick={handleClose}
-              className="text-white hover:bg-white/20 rounded-full p-2 transition"
+              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
               title="Close"
             >
               <XMarkIcon className="w-5 h-5" />
@@ -354,73 +362,82 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
           </div>
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        {/* Messages - Clean Design */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-gray-50">
           {messages.length === 0 && (
-            <div className="text-center text-gray-500 mt-20">
-              <ChatBubbleLeftRightIcon className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <p className="text-sm">Start a conversation with ApliChat!</p>
-              <p className="text-xs mt-2">
-                Try: "List my tasks" or "Tell me about Apliman"
-              </p>
+            <div className="text-center text-gray-500 mt-24">
+              <div className="mb-6 inline-block p-6 bg-primary-50 rounded-2xl">
+                <ChatBubbleLeftRightIcon className="w-16 h-16 mx-auto text-primary-600" />
+              </div>
+              <h4 className="text-lg font-bold text-gray-900 mb-2">Welcome to ApliChat AI!</h4>
+              <p className="text-sm text-gray-600 mb-4">Your intelligent assistant for task management</p>
+              <div className="space-y-2 text-xs text-gray-500">
+                <p className="px-4 py-2 bg-white rounded-lg shadow-sm inline-block">"List my tasks"</p>
+                <p className="px-4 py-2 bg-white rounded-lg shadow-sm inline-block ml-2">"Tell me about Apliman"</p>
+              </div>
             </div>
           )}
 
-          {messages.map((message) => (
+          {messages.map((message, index) => (
             <div
               key={message.id}
-              className={`flex items-start space-x-2 ${
+              className={`flex items-start space-x-3 ${
                 message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
-              }`}
+              } animate-fade-in`}
             >
-              {/* Avatar */}
+              {/* Avatar - Professional Style */}
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 shadow-md ${
                   message.role === 'user'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gradient-to-br from-purple-500 to-pink-500 text-white shadow-md'
+                    ? 'bg-primary-600 text-white'
+                    : 'bg-secondary-100 text-secondary-700 border border-secondary-200'
                 }`}
               >
                 {message.role === 'user' ? (
-                  <span className="text-xs font-medium">{getInitials(user?.name)}</span>
+                  <span className="text-xs font-bold">{getInitials(user?.name)}</span>
                 ) : (
                   <CpuChipIcon className="w-5 h-5" />
                 )}
               </div>
 
-              {/* Message bubble */}
+              {/* Message bubble - Professional */}
               <div
-                className={`max-w-[75%] rounded-lg px-4 py-2 ${
+                className={`max-w-[75%] rounded-xl px-4 py-3 shadow-sm ${
                   message.role === 'user'
-                    ? 'bg-indigo-600 text-white'
+                    ? 'bg-primary-600 text-white'
                     : 'bg-white text-gray-900 border border-gray-200'
                 }`}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                <p
-                  className={`text-xs mt-1 ${
-                    message.role === 'user' ? 'text-indigo-200' : 'text-gray-400'
-                  }`}
-                >
-                  {formatTime(message.createdAt)}
-                </p>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                <div className="flex items-center justify-between mt-2">
+                  <p
+                    className={`text-xs ${
+                      message.role === 'user' ? 'text-primary-100' : 'text-gray-400'
+                    }`}
+                  >
+                    {formatTime(message.createdAt)}
+                  </p>
+                  {message.role === 'assistant' && index === messages.length - 1 && (
+                    <span className="text-xs text-gray-400">✓</span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
 
-          {/* Typing indicator */}
+          {/* Typing indicator - Professional */}
           {isTyping && (
-            <div className="flex items-start space-x-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0 shadow-md">
-                <CpuChipIcon className="w-5 h-5 text-white" />
+            <div className="flex items-start space-x-3 animate-fade-in">
+              <div className="w-9 h-9 rounded-lg bg-secondary-100 text-secondary-700 border border-secondary-200 flex items-center justify-center flex-shrink-0 shadow-md">
+                <CpuChipIcon className="w-5 h-5" />
               </div>
-              <div className="bg-white border border-gray-200 rounded-lg px-4 py-3">
-                <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+              <div className="bg-white border border-gray-200 rounded-xl px-4 py-3 shadow-sm">
+                <div className="flex space-x-1.5">
+                  <div className="w-2 h-2 bg-primary-600 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-primary-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                  <div className="w-2 h-2 bg-primary-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">ApliChat is writing...</p>
+                <p className="text-xs text-gray-500 mt-2 font-medium">ApliChat AI is thinking...</p>
               </div>
             </div>
           )}
@@ -428,40 +445,45 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
-        <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg relative">
-          {/* Autocomplete suggestions */}
+        {/* Input - Professional Design */}
+        <div className="p-5 border-t border-gray-200 bg-white relative">
+          {/* Autocomplete suggestions - Professional */}
           {suggestions.length > 0 && (
-            <div className="absolute bottom-full left-4 right-4 mb-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto z-10">
+            <div className="absolute bottom-full left-5 right-5 mb-3 bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto z-10">
+              <div className="p-2 bg-primary-50 rounded-t-xl border-b border-gray-200">
+                <p className="text-xs font-semibold text-gray-700 px-2">
+                  {suggestionType === 'user' ? 'Mention User' : 'Reference Task'}
+                </p>
+              </div>
               {suggestions.map((suggestion, index) => (
                 <div
                   key={suggestion.id}
                   onClick={() => insertSuggestion(suggestion)}
-                  className={`px-4 py-2 cursor-pointer flex items-center space-x-2 ${
+                  className={`px-4 py-3 cursor-pointer flex items-center space-x-3 transition-all ${
                     index === selectedSuggestionIndex
-                      ? 'bg-indigo-50 border-l-4 border-indigo-600'
+                      ? 'bg-primary-50 border-l-4 border-primary-600'
                       : 'hover:bg-gray-50'
                   }`}
                 >
                   {suggestionType === 'user' ? (
                     <>
-                      <div className="w-8 h-8 bg-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-white">
+                      <div className="w-9 h-9 bg-primary-600 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <span className="text-xs font-bold text-white">
                           {suggestion.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2)}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{suggestion.name}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{suggestion.name}</p>
                         <p className="text-xs text-gray-500">{suggestion.role}</p>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="w-8 h-8 bg-purple-100 rounded flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs text-purple-600">📋</span>
+                      <div className="w-9 h-9 bg-primary-50 rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm border border-primary-200">
+                        <span className="text-base">📋</span>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{suggestion.title}</p>
+                        <p className="text-sm font-semibold text-gray-900 truncate">{suggestion.title}</p>
                         <p className="text-xs text-gray-500">Priority: {suggestion.priority || 'N/A'}</p>
                       </div>
                     </>
@@ -471,49 +493,54 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
             </div>
           )}
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-3">
             <input
               ref={inputRef}
               type="text"
               value={inputValue}
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
-              placeholder="Type a message... (@user or /task)"
-              className="flex-1 border border-gray-300 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              placeholder="Type your message... (@user or /task)"
+              className="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400"
               disabled={isTyping}
             />
             <button
               onClick={sendMessage}
               disabled={!inputValue.trim() || isTyping}
-              className="bg-indigo-600 text-white rounded-full p-2 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="bg-primary-600 text-white rounded-lg p-2.5 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
             >
               <PaperAirplaneIcon className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-xs text-gray-400 mt-2 text-center">
-            Tip: Use @ to mention users or / to reference tasks
+          <p className="text-xs text-gray-400 mt-3 text-center">
+            Use <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">@</kbd> for users or <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">/</kbd> for tasks
           </p>
         </div>
       </div>
 
-      {/* Confirm close modal */}
+      {/* Confirm close modal - Professional */}
       {showConfirmClose && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
-            <h3 className="text-lg font-semibold mb-2">End Chat?</h3>
-            <p className="text-gray-600 mb-6">
-              Are you sure you want to end this chat? Your conversation will be saved.
-            </p>
-            <div className="flex space-x-3">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-fade-in">
+          <div className="bg-white rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200">
+            <div className="mb-6 text-center">
+              <div className="w-14 h-14 bg-error-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <XMarkIcon className="w-8 h-8 text-error-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">End Chat Session?</h3>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Your conversation history will be saved and you can continue it later.
+              </p>
+            </div>
+            <div className="flex gap-3">
               <button
                 onClick={cancelClose}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                className="flex-1 px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmClose}
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                className="flex-1 px-5 py-2.5 bg-error-600 text-white rounded-lg hover:bg-error-700 transition-all font-medium shadow-sm"
               >
                 End Chat
               </button>

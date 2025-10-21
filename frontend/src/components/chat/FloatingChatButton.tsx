@@ -7,23 +7,26 @@ export default function FloatingChatButton() {
 
   return (
     <>
-      {/* Floating chat button */}
+      {/* Floating chat button - Professional */}
       {!isChatOpen && (
         <button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-full shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-200 flex items-center justify-center z-40 group"
-          title="Open ApliChat"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 text-white rounded-xl shadow-xl hover:shadow-2xl hover:bg-primary-700 transform hover:scale-105 transition-all duration-300 flex items-center justify-center z-40 group"
+          title="Open ApliChat AI"
         >
-          <ChatBubbleLeftRightIcon className="w-8 h-8" />
+          <ChatBubbleLeftRightIcon className="w-7 h-7 relative z-10" />
           
           {/* Pulse animation */}
-          <span className="absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75 animate-ping"></span>
+          <span className="absolute inline-flex h-full w-full rounded-xl bg-primary-400 opacity-75 animate-ping"></span>
           
-          {/* Tooltip */}
-          <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
-            <div className="bg-gray-900 text-white text-sm rounded-lg py-2 px-3 whitespace-nowrap">
-              Chat with ApliChat
-              <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+          {/* Tooltip - Professional */}
+          <div className="absolute bottom-full right-0 mb-3 hidden group-hover:block animate-fade-in">
+            <div className="bg-gray-900 text-white text-sm rounded-lg py-2 px-4 whitespace-nowrap shadow-xl">
+              <span className="flex items-center gap-2">
+                <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
+                Chat with ApliChat AI
+              </span>
+              <div className="absolute top-full right-4 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-gray-900"></div>
             </div>
           </div>
         </button>
