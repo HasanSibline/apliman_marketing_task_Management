@@ -12,9 +12,11 @@ function classNames(...classes: string[]) {
 
 const AnalyticsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
-  const [selectedTab, setSelectedTab] = useState(0)
-
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  
+  // For non-admin users, start at "My Analytics" (which is tab 0 for them)
+  // For admin users, start at "Overview" (which is tab 0)
+  const [selectedTab, setSelectedTab] = useState(0)
 
   const tabs = isAdmin
     ? [
@@ -60,17 +62,21 @@ const AnalyticsPage: React.FC = () => {
           ))}
         </Tab.List>
         <Tab.Panels className="mt-6">
-          {isAdmin && (
+          {isAdmin ? (
+            <>
+              <Tab.Panel>
+                <AdminAnalyticsDashboard />
+              </Tab.Panel>
+              <Tab.Panel>
+                <UserAnalytics />
+              </Tab.Panel>
+              <Tab.Panel>
+                <TeamAnalytics />
+              </Tab.Panel>
+            </>
+          ) : (
             <Tab.Panel>
-              <AdminAnalyticsDashboard />
-            </Tab.Panel>
-          )}
-          <Tab.Panel>
-            <UserAnalytics />
-          </Tab.Panel>
-          {isAdmin && (
-            <Tab.Panel>
-              <TeamAnalytics />
+              <UserAnalytics />
             </Tab.Panel>
           )}
         </Tab.Panels>
