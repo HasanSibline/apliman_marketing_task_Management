@@ -38,9 +38,21 @@ const UserAnalytics: React.FC = () => {
   const loadUserAnalytics = async () => {
     setIsLoading(true)
     try {
+      console.log('=== Loading User Analytics ===')
+      console.log('Time range:', timeRange)
+      
       const data = await analyticsApi.getUserAnalytics()
+      
+      console.log('=== Received Analytics Data ===')
+      console.log('Full response:', data)
+      console.log('Stats:', data.stats)
+      console.log('Performance Trend:', data.performanceTrend)
+      console.log('Tasks by Status:', data.tasksByStatus)
+      console.log('Recent Activity:', data.recentActivity)
+      
       setUserAnalytics(data)
     } catch (error: any) {
+      console.error('Error loading analytics:', error)
       toast.error(error.response?.data?.message || 'Failed to load user analytics')
     } finally {
       setIsLoading(false)

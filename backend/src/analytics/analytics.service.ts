@@ -205,6 +205,9 @@ export class AnalyticsService {
   }
 
   async getUserAnalytics(userId: string) {
+    console.log('=== getUserAnalytics called ===');
+    console.log('User ID:', userId);
+    
     // Get user details
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -221,6 +224,8 @@ export class AnalyticsService {
     if (!user) {
       throw new Error('User not found');
     }
+
+    console.log('User found:', user.name);
 
     const [
       totalAssignedTasks,
@@ -240,18 +245,27 @@ export class AnalyticsService {
       }),
     ]);
 
+    console.log('Total assigned tasks:', totalAssignedTasks);
+    console.log('Total created tasks:', totalCreatedTasks);
+
     const completedTasks = await this.getCompletedTasksCount({ 
       assignedToId: userId,
       taskType: 'MAIN',
     });
+
+    console.log('Completed tasks:', completedTasks);
 
     const inProgressTasks = await this.getInProgressTasksCount({
       assignedToId: userId,
       taskType: 'MAIN',
     });
 
+    console.log('In progress tasks:', inProgressTasks);
+
     // Get performance trend for the last 4 weeks
     const performanceTrend = [];
+    console.log('Calculating performance trend...');
+    
     for (let i = 3; i >= 0; i--) {
       const weekStart = new Date();
       weekStart.setDate(weekStart.getDate() - (i * 7 + 7));
@@ -260,6 +274,8 @@ export class AnalyticsService {
       const weekEnd = new Date();
       weekEnd.setDate(weekEnd.getDate() - (i * 7));
       weekEnd.setHours(23, 59, 59, 999);
+
+      console.log(`Week ${4-i}: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
 
       // Get tasks assigned in this week
       const assignedInWeek = await this.prisma.task.count({
@@ -291,6 +307,8 @@ export class AnalyticsService {
         },
       });
 
+      console.log(`  - Assigned: ${assignedInWeek}, Completed: ${completedInWeek}`);
+
       performanceTrend.push({
         date: `Week ${4 - i}`,
         completed: completedInWeek,
@@ -304,6 +322,8 @@ export class AnalyticsService {
       { name: 'In Progress', value: inProgressTasks },
       { name: 'Pending', value: totalAssignedTasks - completedTasks - inProgressTasks },
     ].filter(item => item.value > 0);
+
+    console.log('Tasks by status:', tasksByStatus);
 
     // Get recent activity
     const recentTasks = await this.prisma.task.findMany({
@@ -321,7 +341,9 @@ export class AnalyticsService {
       },
     });
 
-    return {
+    console.log('Recent tasks count:', recentTasks.length);
+
+    const result = {
       user,
       stats: {
         totalAssignedTasks,
@@ -340,6 +362,11 @@ export class AnalyticsService {
         updatedAt: task.updatedAt,
       })),
     };
+
+    console.log('=== Returning analytics data ===');
+    console.log(JSON.stringify(result, null, 2));
+    
+    return result;
   }
 
   async getTeamAnalytics() {
