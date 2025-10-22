@@ -2,19 +2,14 @@ import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChartBarIcon,
-  ClockIcon,
   CheckCircleIcon,
   TrophyIcon,
   ArrowDownTrayIcon,
   CalendarIcon,
 } from '@heroicons/react/24/outline'
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   PieChart,
   Pie,
   Cell,
@@ -26,7 +21,6 @@ import {
   Legend,
 } from 'recharts'
 import { analyticsApi } from '@/services/api'
-import { useAppSelector } from '@/hooks/redux'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 
@@ -36,7 +30,6 @@ const UserAnalytics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [userAnalytics, setUserAnalytics] = useState<any>(null)
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
-  const { user } = useAppSelector((state) => state.auth)
 
   useEffect(() => {
     loadUserAnalytics()

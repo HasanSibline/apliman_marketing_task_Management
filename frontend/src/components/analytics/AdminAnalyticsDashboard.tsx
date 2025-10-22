@@ -7,15 +7,12 @@ import {
   DocumentChartBarIcon,
   ArrowDownTrayIcon,
   ArrowTrendingUpIcon,
-  ArrowTrendingDownIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
 } from '@heroicons/react/24/outline'
 import {
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -23,10 +20,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
-  Area,
-  AreaChart,
 } from 'recharts'
 import { analyticsApi } from '@/services/api'
 import toast from 'react-hot-toast'
@@ -145,8 +139,98 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
     }
   }
 
-  const handleExportPDF = () => {
-    toast.info('PDF export coming soon!')
+  const handleExportPDF = async () => {
+    try {
+      toast.loading('Generating PDF report...')
+      
+      // Create a printable version of the page
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        toast.dismiss()
+        toast.error('Please allow pop-ups to export PDF')
+        return
+      }
+
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Analytics Report - ${new Date().toLocaleDateString()}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 20px; }
+            h1 { color: #3B82F6; }
+            table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #3B82F6; color: white; }
+            .metric { display: inline-block; margin: 10px; padding: 15px; border: 1px solid #ddd; }
+            .metric h3 { margin: 0; color: #3B82F6; }
+          </style>
+        </head>
+        <body>
+          <h1>Analytics Report</h1>
+          <p>Generated: ${new Date().toLocaleString()}</p>
+          
+          <h2>Overview Metrics</h2>
+          <div class="metric">
+            <h3>${dashboardData.totalTasks || 0}</h3>
+            <p>Total Tasks</p>
+          </div>
+          <div class="metric">
+            <h3>${dashboardData.completedTasks || 0}</h3>
+            <p>Completed</p>
+          </div>
+          <div class="metric">
+            <h3>${dashboardData.inProgressTasks || 0}</h3>
+            <p>In Progress</p>
+          </div>
+          <div class="metric">
+            <h3>${dashboardData.overdueTasks || 0}</h3>
+            <p>Overdue</p>
+          </div>
+          
+          <h2>Recent Tasks</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Phase</th>
+                <th>Workflow</th>
+                <th>Assigned To</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(dashboardData.recentTasks || []).map((task: any) => `
+                <tr>
+                  <td>${task.title}</td>
+                  <td>${task.phase}</td>
+                  <td>${task.workflow || 'Unknown'}</td>
+                  <td>${task.assignedTo || 'Unassigned'}</td>
+                  <td>${new Date(task.createdAt).toLocaleDateString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(() => window.close(), 500);
+            }
+          </script>
+        </body>
+        </html>
+      `
+
+      printWindow.document.write(htmlContent)
+      printWindow.document.close()
+      
+      toast.dismiss()
+      toast.success('Print dialog opened!')
+    } catch (error) {
+      toast.dismiss()
+      toast.error('Failed to export PDF')
+    }
   }
 
   const clearFilters = () => {
