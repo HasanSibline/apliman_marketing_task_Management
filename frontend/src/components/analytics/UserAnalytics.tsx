@@ -123,18 +123,15 @@ const UserAnalytics: React.FC = () => {
 
   const stats = userAnalytics.stats || {}
 
-  // Mock performance trend data (replace with actual data from backend)
-  const performanceTrend = [
-    { date: 'Week 1', completed: 3, assigned: 5 },
-    { date: 'Week 2', completed: 5, assigned: 6 },
-    { date: 'Week 3', completed: 4, assigned: 5 },
-    { date: 'Week 4', completed: 6, assigned: 7 },
-  ]
-
-  const taskStatusData = [
+  // Use real data from backend
+  const performanceTrend = userAnalytics.performanceTrend || []
+  
+  // Use real task status data from backend
+  const taskStatusData = userAnalytics.tasksByStatus || [
     { name: 'Completed', value: stats.completedTasks || 0 },
-    { name: 'In Progress', value: (stats.totalAssignedTasks || 0) - (stats.completedTasks || 0) },
-  ].filter(item => item.value > 0)
+    { name: 'In Progress', value: stats.inProgressTasks || 0 },
+    { name: 'Pending', value: stats.pendingTasks || 0 },
+  ].filter((item: any) => item.value > 0)
 
   return (
     <div className="space-y-6">
@@ -184,7 +181,7 @@ const UserAnalytics: React.FC = () => {
                 {stats.totalAssignedTasks || 0}
               </h3>
               <p className="text-sm text-primary-600 mt-2 font-medium">
-                Assigned to me
+                {stats.inProgressTasks || 0} in progress
               </p>
             </div>
             <div className="h-14 w-14 bg-primary-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -316,7 +313,7 @@ const UserAnalytics: React.FC = () => {
                   stroke="#fff"
                   strokeWidth={2}
                 >
-                  {taskStatusData.map((_, index) => (
+                  {taskStatusData.map((_: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -380,25 +377,82 @@ const UserAnalytics: React.FC = () => {
       >
         <h3 className="text-lg font-bold text-gray-900 mb-4">Personal Insights</h3>
         <div className="space-y-3">
+          {/* Excellent Performance */}
           {stats.completionRate >= 80 && (
             <div className="p-4 bg-success-50 rounded-lg border border-success-200">
               <p className="text-sm text-success-800">
-                <strong>Great work!</strong> Your completion rate is above 80%. Keep up the excellent performance!
+                <strong>🌟 Excellent Work!</strong> Your completion rate is {stats.completionRate}%. 
+                You've completed {stats.completedTasks} out of {stats.totalAssignedTasks} tasks. 
+                Keep up the outstanding performance!
               </p>
             </div>
           )}
-          {stats.completionRate < 50 && stats.totalAssignedTasks > 0 && (
+          
+          {/* Good Performance */}
+          {stats.completionRate >= 60 && stats.completionRate < 80 && (
+            <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
+              <p className="text-sm text-primary-800">
+                <strong>👍 Good Job!</strong> Your completion rate is {stats.completionRate}%. 
+                You've completed {stats.completedTasks} tasks. Keep pushing forward!
+              </p>
+            </div>
+          )}
+          
+          {/* Needs Improvement */}
+          {stats.completionRate < 60 && stats.totalAssignedTasks > 0 && (
             <div className="p-4 bg-warning-50 rounded-lg border border-warning-200">
               <p className="text-sm text-warning-800">
-                <strong>Tip:</strong> Your completion rate could be improved. Focus on completing pending tasks.
+                <strong>💪 Room for Growth!</strong> Your completion rate is {stats.completionRate}%. 
+                You have {stats.inProgressTasks} tasks in progress and {stats.pendingTasks} pending. 
+                Focus on completing your current tasks to improve your rate.
               </p>
             </div>
           )}
+          
+          {/* High Initiative */}
           {stats.totalCreatedTasks > stats.totalAssignedTasks && (
             <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
               <p className="text-sm text-primary-800">
-                <strong>Initiative!</strong> You're creating more tasks than assigned. Great leadership!
+                <strong>🚀 Great Initiative!</strong> You've created {stats.totalCreatedTasks} tasks 
+                compared to {stats.totalAssignedTasks} assigned to you. Excellent leadership and proactivity!
               </p>
+            </div>
+          )}
+          
+          {/* Active Tasks Info */}
+          {stats.inProgressTasks > 0 && (
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-800">
+                <strong>⚡ Currently Active:</strong> You have {stats.inProgressTasks} task{stats.inProgressTasks !== 1 ? 's' : ''} in progress. 
+                {stats.pendingTasks > 0 && ` ${stats.pendingTasks} task${stats.pendingTasks !== 1 ? 's are' : ' is'} still pending.`}
+              </p>
+            </div>
+          )}
+          
+          {/* No Tasks */}
+          {stats.totalAssignedTasks === 0 && (
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm text-gray-800">
+                <strong>📋 Getting Started:</strong> You don't have any tasks assigned yet. 
+                {stats.totalCreatedTasks > 0 
+                  ? ` However, you've created ${stats.totalCreatedTasks} task${stats.totalCreatedTasks !== 1 ? 's' : ''}!`
+                  : ' Check with your team lead for upcoming assignments.'}
+              </p>
+            </div>
+          )}
+          
+          {/* Recent Activity */}
+          {userAnalytics.recentActivity && userAnalytics.recentActivity.length > 0 && (
+            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+              <p className="text-sm font-semibold text-gray-900 mb-2">📊 Recent Activity:</p>
+              <ul className="space-y-1 text-sm text-gray-700">
+                {userAnalytics.recentActivity.slice(0, 3).map((activity: any) => (
+                  <li key={activity.id} className="flex items-center justify-between">
+                    <span className="truncate flex-1">{activity.title}</span>
+                    <span className="text-xs text-gray-500 ml-2">{activity.phase}</span>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>

@@ -205,7 +205,7 @@ export class AnalyticsService {
   }
 
   async getUserAnalytics(userId: string) {
-    // Simplified user analytics
+    // Get user details
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -227,25 +227,118 @@ export class AnalyticsService {
       totalCreatedTasks,
     ] = await Promise.all([
       this.prisma.task.count({
-        where: { assignedToId: userId },
+        where: { 
+          assignedToId: userId,
+          taskType: 'MAIN',
+        },
       }),
       this.prisma.task.count({
-        where: { createdById: userId },
+        where: { 
+          createdById: userId,
+          taskType: 'MAIN',
+        },
       }),
     ]);
 
-    const completedTasks = await this.getCompletedTasksCount({ assignedToId: userId });
+    const completedTasks = await this.getCompletedTasksCount({ 
+      assignedToId: userId,
+      taskType: 'MAIN',
+    });
+
+    const inProgressTasks = await this.getInProgressTasksCount({
+      assignedToId: userId,
+      taskType: 'MAIN',
+    });
+
+    // Get performance trend for the last 4 weeks
+    const performanceTrend = [];
+    for (let i = 3; i >= 0; i--) {
+      const weekStart = new Date();
+      weekStart.setDate(weekStart.getDate() - (i * 7 + 7));
+      weekStart.setHours(0, 0, 0, 0);
+      
+      const weekEnd = new Date();
+      weekEnd.setDate(weekEnd.getDate() - (i * 7));
+      weekEnd.setHours(23, 59, 59, 999);
+
+      // Get tasks assigned in this week
+      const assignedInWeek = await this.prisma.task.count({
+        where: {
+          assignedToId: userId,
+          taskType: 'MAIN',
+          createdAt: {
+            gte: weekStart,
+            lte: weekEnd,
+          },
+        },
+      });
+
+      // Get tasks completed in this week
+      const completedPhaseIds = await this.prisma.phase.findMany({
+        where: { isEndPhase: true },
+        select: { id: true },
+      }).then(phases => phases.map(p => p.id));
+
+      const completedInWeek = await this.prisma.task.count({
+        where: {
+          assignedToId: userId,
+          taskType: 'MAIN',
+          currentPhaseId: { in: completedPhaseIds },
+          updatedAt: {
+            gte: weekStart,
+            lte: weekEnd,
+          },
+        },
+      });
+
+      performanceTrend.push({
+        date: `Week ${4 - i}`,
+        completed: completedInWeek,
+        assigned: assignedInWeek,
+      });
+    }
+
+    // Get tasks by status
+    const tasksByStatus = [
+      { name: 'Completed', value: completedTasks },
+      { name: 'In Progress', value: inProgressTasks },
+      { name: 'Pending', value: totalAssignedTasks - completedTasks - inProgressTasks },
+    ].filter(item => item.value > 0);
+
+    // Get recent activity
+    const recentTasks = await this.prisma.task.findMany({
+      where: {
+        assignedToId: userId,
+        taskType: 'MAIN',
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        title: true,
+        currentPhase: { select: { name: true } },
+        updatedAt: true,
+      },
+    });
 
     return {
       user,
       stats: {
         totalAssignedTasks,
         totalCreatedTasks,
-      completedTasks,
+        completedTasks,
+        inProgressTasks,
+        pendingTasks: totalAssignedTasks - completedTasks - inProgressTasks,
         completionRate: totalAssignedTasks > 0 ? Math.round((completedTasks / totalAssignedTasks) * 100) : 0,
       },
-      recentActivity: [], // TODO: Implement with workflow data
-      performanceMetrics: {}, // TODO: Implement with workflow data
+      performanceTrend,
+      tasksByStatus,
+      recentActivity: recentTasks.map(task => ({
+        id: task.id,
+        title: task.title,
+        phase: task.currentPhase?.name || 'Unknown',
+        updatedAt: task.updatedAt,
+      })),
     };
   }
 
