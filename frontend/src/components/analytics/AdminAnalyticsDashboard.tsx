@@ -22,7 +22,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import { analyticsApi } from '@/services/api'
+import { analyticsApi, workflowsApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import AnalyticsFilters from './AnalyticsFilters'
@@ -49,12 +49,11 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
 
   const loadFiltersData = async () => {
     try {
-      const [workflowsRes] = await Promise.all([
-        fetch('/api/workflows').then(res => res.json()),
-      ])
+      const workflowsRes = await workflowsApi.list()
       setWorkflows(workflowsRes || [])
     } catch (error) {
       console.error('Error loading filter data:', error)
+      toast.error('Failed to load filter data')
     }
   }
 

@@ -303,15 +303,15 @@ const UserAnalytics: React.FC = () => {
         </motion.div>
 
         {/* Task Status Breakdown */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
           className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
-        >
+      >
           <h3 className="text-lg font-bold text-gray-900 mb-4">My Task Status</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={taskStatusData}
@@ -329,17 +329,17 @@ const UserAnalytics: React.FC = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
                   }}
                 />
               </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
       </div>
 
       {/* Performance Summary */}
@@ -372,7 +372,7 @@ const UserAnalytics: React.FC = () => {
             <div className="text-sm text-primary-100 mb-1">Status</div>
             <div className="text-4xl font-bold">
               {stats.completionRate >= 80 ? '🌟' : stats.completionRate >= 60 ? '👍' : '💪'}
-            </div>
+              </div>
             <div className="mt-2 text-sm text-primary-200">
               {stats.completionRate >= 80 ? 'Excellent!' : stats.completionRate >= 60 ? 'Good job!' : 'Keep going!'}
             </div>
@@ -381,9 +381,9 @@ const UserAnalytics: React.FC = () => {
       </motion.div>
 
       {/* Personal Insights */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
         className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
       >
@@ -450,7 +450,7 @@ const UserAnalytics: React.FC = () => {
                   ? ` However, you've created ${stats.totalCreatedTasks} task${stats.totalCreatedTasks !== 1 ? 's' : ''}!`
                   : ' Check with your team lead for upcoming assignments.'}
               </p>
-            </div>
+          </div>
           )}
           
           {/* Recent Activity */}
@@ -463,12 +463,12 @@ const UserAnalytics: React.FC = () => {
                     <span className="truncate flex-1">{activity.title}</span>
                     <span className="text-xs text-gray-500 ml-2">{activity.phase}</span>
                   </li>
-                ))}
-              </ul>
+              ))}
+            </ul>
             </div>
           )}
-        </div>
-      </motion.div>
+          </div>
+        </motion.div>
     </div>
   )
 }

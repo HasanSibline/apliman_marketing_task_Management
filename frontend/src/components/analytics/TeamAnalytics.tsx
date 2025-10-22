@@ -292,42 +292,42 @@ const TeamAnalytics: React.FC = () => {
         </motion.div>
 
         {/* Completion Rate by Member */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
           className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
         >
           <h3 className="text-lg font-bold text-gray-900 mb-4">Completion Rate by Member</h3>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+        <div className="h-80">
+          <ResponsiveContainer width="100%" height="100%">
               <BarChart data={performanceComparisonData} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis type="number" tick={{ fontSize: 12 }} />
                 <YAxis 
                   type="category" 
-                  dataKey="name" 
+                dataKey="name" 
                   tick={{ fontSize: 11 }}
                   width={80}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#fff', 
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
-                  }}
+                }}
                   formatter={(value: any) => `${value}%`}
-                />
-                <Bar 
+              />
+              <Bar 
                   dataKey="rate" 
-                  fill="#3B82F6" 
+                fill="#3B82F6"
                   name="Completion Rate (%)"
                   radius={[0, 8, 8, 0]}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </motion.div>
       </div>
 
       {/* Team Leaderboard */}
@@ -410,7 +410,7 @@ const TeamAnalytics: React.FC = () => {
                       {index < 3 && sortBy === 'completion' && (
                         <span className="text-2xl mr-2">
                           {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                        </span>
+                          </span>
                       )}
                       <span className="text-sm font-medium text-gray-900">#{index + 1}</span>
                     </div>
@@ -433,7 +433,7 @@ const TeamAnalytics: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
-                        <div
+                        <div 
                           className="bg-primary-600 h-2 rounded-full"
                           style={{ width: `${member.completionRate}%` }}
                         ></div>
@@ -467,10 +467,10 @@ const TeamAnalytics: React.FC = () => {
       </motion.div>
 
       {/* Team Performance Summary */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
         className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-xl shadow-lg p-8 text-white"
       >
         <h3 className="text-2xl font-bold mb-6">Team Performance Summary</h3>
@@ -491,8 +491,8 @@ const TeamAnalytics: React.FC = () => {
             <div className="text-4xl font-bold">{summary.tasksCompletedThisWeek || 0}</div>
             <div className="text-primary-100 mt-2">This Week</div>
           </div>
-        </div>
-      </motion.div>
+          </div>
+        </motion.div>
     </div>
   )
 }
