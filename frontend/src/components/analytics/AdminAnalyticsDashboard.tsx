@@ -49,7 +49,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
 
   const loadFiltersData = async () => {
     try {
-      const workflowsRes = await workflowsApi.list()
+      // Fetch workflows using the correct API method
+      const workflowsRes = await workflowsApi.getAll()
       setWorkflows(workflowsRes || [])
     } catch (error) {
       console.error('Error loading filter data:', error)
