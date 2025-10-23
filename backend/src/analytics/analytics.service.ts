@@ -116,7 +116,7 @@ export class AnalyticsService {
     const tasksByPhase = await this.prisma.phase.findMany({
       include: {
         _count: {
-          select: { tasks: { where: { taskType: 'MAIN' } } },
+          select: { tasks: true }, // Count all tasks, not just MAIN
         },
         workflow: { select: { name: true, color: true } },
       },
@@ -166,7 +166,7 @@ export class AnalyticsService {
 
     const tasksCompletedThisWeek = await this.prisma.task.count({
       where: {
-        taskType: 'MAIN',
+        // taskType: 'MAIN',  // Count all tasks
         currentPhaseId: { in: completedPhaseIds },
         updatedAt: { gte: oneWeekAgo },
       },
@@ -401,8 +401,8 @@ export class AnalyticsService {
     const teamStats = await Promise.all(
       users.map(async (user) => {
         const [assignedTasks, completedTasks] = await Promise.all([
-          this.prisma.task.count({ where: { assignedToId: user.id, taskType: 'MAIN' } }),
-          this.getCompletedTasksCount({ assignedToId: user.id, taskType: 'MAIN' }),
+          this.prisma.task.count({ where: { assignedToId: user.id /* taskType: 'MAIN' */ } }), // Count all tasks
+          this.getCompletedTasksCount({ assignedToId: user.id /* taskType: 'MAIN' */ }), // Count all tasks
         ]);
 
         return {
@@ -431,7 +431,7 @@ export class AnalyticsService {
 
     const tasksCompletedThisWeek = await this.prisma.task.count({
       where: {
-        taskType: 'MAIN',
+        // taskType: 'MAIN',  // Count all tasks
         currentPhaseId: { in: completedPhaseIds },
         updatedAt: { gte: oneWeekAgo },
       },
