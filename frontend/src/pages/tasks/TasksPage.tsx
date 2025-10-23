@@ -20,18 +20,17 @@ import { Task } from '@/types/task'
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { tasks: apiTasks, isLoading, filters } = useAppSelector((state) => state.tasks)
-  // Filter out subtasks - only show parent tasks
-  const tasks = apiTasks
-    .filter(task => task.taskType !== 'SUBTASK')
-    .map(task => ({
-      ...task,
-      createdById: task.createdBy?.id || ''
-    })) as Task[]
+  // Map tasks - show all task types (MAIN, SUBTASK, COORDINATION, etc.)
+  const tasks = apiTasks.map(task => ({
+    ...task,
+    createdById: task.createdBy?.id || ''
+  })) as Task[]
   
   const { user } = useAppSelector((state) => state.auth)
   const [showFilters, setShowFilters] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [workflows, setWorkflows] = useState<any[]>([])
+  const [phases, setPhases] = useState<any[]>([])
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -42,8 +41,27 @@ const TasksPage: React.FC = () => {
 
   const loadWorkflows = async () => {
     try {
-      const data = await workflowsApi.getAll()
-      setWorkflows(data)
+      const workflowsData = await workflowsApi.getAll()
+      setWorkflows(workflowsData)
+      
+      // Extract all unique phases from all workflows
+      const allPhases: any[] = []
+      workflowsData.forEach((workflow: any) => {
+        if (workflow.phases) {
+          workflow.phases.forEach((phase: any) => {
+            // Avoid duplicates by checking if phase with same ID already exists
+            if (!allPhases.find(p => p.id === phase.id)) {
+              allPhases.push({
+                id: phase.id,
+                name: phase.name,
+                workflowName: workflow.name,
+                color: phase.color
+              })
+            }
+          })
+        }
+      })
+      setPhases(allPhases)
     } catch (error) {
       console.error('Failed to load workflows:', error)
     }
@@ -233,15 +251,11 @@ const TasksPage: React.FC = () => {
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white hover:border-secondary-400"
               >
                 <option value="">All Phases</option>
-                <option value="PENDING_APPROVAL">Pending Approval</option>
-                <option value="APPROVED">Approved</option>
-                <option value="REJECTED">Rejected</option>
-                <option value="ASSIGNED">Assigned</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-                {isAdmin && (
-                  <option value="ARCHIVED">Archived</option>
-                )}
+                {phases.map(phase => (
+                  <option key={phase.id} value={phase.id}>
+                    {phase.name} ({phase.workflowName})
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -328,7 +342,7 @@ const TasksPage: React.FC = () => {
               animate={{ scale: 1 }}
               className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-secondary-300 text-secondary-700 rounded-lg text-sm font-medium shadow-sm"
             >
-              Phase: {filters.phase.replace('_', ' ')}
+              {phases.find(p => p.id === filters.phase)?.name || filters.phase}
               <button
                 onClick={() => dispatch(setFilters({ phase: undefined }))}
                 className="hover:bg-secondary-100 rounded-full p-0.5 transition-colors"
