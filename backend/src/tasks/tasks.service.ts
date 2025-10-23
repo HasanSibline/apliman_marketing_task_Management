@@ -744,12 +744,14 @@ export class TasksService {
   async findAll(
     userId?: string,
     userRole?: UserRole,
-    phase?: any, // TODO: Replace with phase filtering by workflow phases
+    phase?: string, // Phase ID for filtering
     assignedToId?: string,
     createdById?: string,
     search?: string,
     page: number = 1,
     limit: number = 10,
+    workflowId?: string,
+    priority?: number,
   ) {
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -771,7 +773,13 @@ export class TasksService {
 
     // Additional filters
     if (phase) {
-      where.phase = phase;
+      where.currentPhaseId = phase; // Use currentPhaseId to filter by workflow phase
+    }
+    if (workflowId) {
+      where.workflowId = workflowId; // Filter by workflow
+    }
+    if (priority) {
+      where.priority = priority; // Filter by priority
     }
     if (assignedToId) {
       where.assignedToId = assignedToId;

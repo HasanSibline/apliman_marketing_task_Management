@@ -52,6 +52,9 @@ export class TasksController {
   @ApiQuery({ name: 'assignedToId', type: 'string', required: false })
   @ApiQuery({ name: 'createdById', type: 'string', required: false })
   @ApiQuery({ name: 'search', type: 'string', required: false })
+  @ApiQuery({ name: 'phase', type: 'string', required: false, description: 'Filter by phase ID' })
+  @ApiQuery({ name: 'workflowId', type: 'string', required: false, description: 'Filter by workflow ID' })
+  @ApiQuery({ name: 'priority', type: 'number', required: false, description: 'Filter by priority (1-5)' })
   @ApiQuery({ name: 'page', type: 'number', required: false, example: 1 })
   @ApiQuery({ name: 'limit', type: 'number', required: false, example: 10 })
   @ApiResponse({ status: 200, description: 'Tasks retrieved successfully' })
@@ -60,20 +63,26 @@ export class TasksController {
     @Query('assignedToId') assignedToId?: string,
     @Query('createdById') createdById?: string,
     @Query('search') search?: string,
+    @Query('phase') phase?: string,
+    @Query('workflowId') workflowId?: string,
+    @Query('priority') priority?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1;
     const limitNum = limit ? parseInt(limit, 10) : 10;
+    const priorityNum = priority ? parseInt(priority, 10) : undefined;
     return this.tasksService.findAll(
       req.user.id,
       req.user.role,
-      undefined, // phase - removed old enum
+      phase, // Pass phase ID for filtering
       assignedToId,
       createdById,
       search,
       pageNum,
       limitNum,
+      workflowId,
+      priorityNum,
     );
   }
 
