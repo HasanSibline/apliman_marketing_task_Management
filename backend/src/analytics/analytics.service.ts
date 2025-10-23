@@ -89,19 +89,19 @@ export class AnalyticsService {
       this.prisma.user.count({
         where: { status: 'ACTIVE' },
       }),
-      this.prisma.task.count({ where: { taskType: 'MAIN' } }),
+      this.prisma.task.count({ /* where: { taskType: 'MAIN' } */ }), // Count all tasks
     ]);
 
-    // Get completed tasks using workflow phases
-    const completedTasks = await this.getCompletedTasksCount({ taskType: 'MAIN' });
-    const inProgressTasks = await this.getInProgressTasksCount({ taskType: 'MAIN' });
-    const pendingTasks = await this.getPendingTasksCount({ taskType: 'MAIN' });
+    // Get completed tasks using workflow phases  
+    const completedTasks = await this.getCompletedTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
+    const inProgressTasks = await this.getInProgressTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
+    const pendingTasks = await this.getPendingTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
 
     // Get overdue tasks
     const now = new Date();
     const overdueTasks = await this.prisma.task.count({
         where: {
-        taskType: 'MAIN',
+        // taskType: 'MAIN',  // Count all tasks
         dueDate: { lt: now },
         currentPhaseId: { 
           notIn: await this.prisma.phase.findMany({
@@ -132,7 +132,7 @@ export class AnalyticsService {
 
     // Get recent tasks
     const recentTasks = await this.prisma.task.findMany({
-      where: { taskType: 'MAIN' },
+      where: { /* taskType: 'MAIN' */ }, // Show all tasks
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
@@ -248,13 +248,15 @@ export class AnalyticsService {
       this.prisma.task.count({
         where: { 
           assignedToId: userId,
-          taskType: 'MAIN',
+          // Count both MAIN tasks and SUBTASK if they exist
+          // taskType: 'MAIN',
         },
       }),
       this.prisma.task.count({
         where: { 
           createdById: userId,
-          taskType: 'MAIN',
+          // Count both MAIN tasks and SUBTASK if they exist
+          // taskType: 'MAIN',
         },
       }),
     ]);
@@ -264,14 +266,14 @@ export class AnalyticsService {
 
     const completedTasks = await this.getCompletedTasksCount({ 
       assignedToId: userId,
-      taskType: 'MAIN',
+      // taskType: 'MAIN',  // Remove filter to count all tasks
     });
 
     console.log('Completed tasks:', completedTasks);
 
     const inProgressTasks = await this.getInProgressTasksCount({
       assignedToId: userId,
-      taskType: 'MAIN',
+      // taskType: 'MAIN',  // Remove filter to count all tasks
     });
 
     console.log('In progress tasks:', inProgressTasks);
@@ -295,7 +297,7 @@ export class AnalyticsService {
       const assignedInWeek = await this.prisma.task.count({
         where: {
           assignedToId: userId,
-          taskType: 'MAIN',
+          // taskType: 'MAIN',  // Remove filter to count all tasks
           createdAt: {
             gte: weekStart,
             lte: weekEnd,
@@ -312,7 +314,7 @@ export class AnalyticsService {
       const completedInWeek = await this.prisma.task.count({
         where: {
           assignedToId: userId,
-          taskType: 'MAIN',
+          // taskType: 'MAIN',  // Remove filter to count all tasks
           currentPhaseId: { in: completedPhaseIds },
           updatedAt: {
             gte: weekStart,
@@ -343,7 +345,7 @@ export class AnalyticsService {
     const recentTasks = await this.prisma.task.findMany({
       where: {
         assignedToId: userId,
-        taskType: 'MAIN',
+        // taskType: 'MAIN',  // Remove filter to show all tasks
       },
       orderBy: { updatedAt: 'desc' },
       take: 5,
