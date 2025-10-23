@@ -227,6 +227,20 @@ export class AnalyticsService {
 
     console.log('User found:', user.name);
 
+    // First, check ALL tasks assigned to this user (any type)
+    const allAssignedTasks = await this.prisma.task.count({
+      where: { assignedToId: userId },
+    });
+    console.log('Total tasks assigned (any type):', allAssignedTasks);
+
+    // Check task types distribution
+    const tasksByType = await this.prisma.task.groupBy({
+      by: ['taskType'],
+      where: { assignedToId: userId },
+      _count: true,
+    });
+    console.log('Tasks by type:', JSON.stringify(tasksByType));
+
     const [
       totalAssignedTasks,
       totalCreatedTasks,
@@ -245,8 +259,8 @@ export class AnalyticsService {
       }),
     ]);
 
-    console.log('Total assigned tasks:', totalAssignedTasks);
-    console.log('Total created tasks:', totalCreatedTasks);
+    console.log('Total assigned MAIN tasks:', totalAssignedTasks);
+    console.log('Total created MAIN tasks:', totalCreatedTasks);
 
     const completedTasks = await this.getCompletedTasksCount({ 
       assignedToId: userId,
