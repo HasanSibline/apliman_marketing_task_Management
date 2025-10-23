@@ -468,9 +468,11 @@ export const analyticsApi = {
     return response.data
   },
 
-  getUserAnalytics: async (userId?: string): Promise<any> => {
+  getUserAnalytics: async (timeRange?: string, userId?: string): Promise<any> => {
     const url = userId ? `/analytics/user/${userId}` : '/analytics/user/me'
-    const response = await api.get(url)
+    const response = await api.get(url, {
+      params: timeRange ? { timeRange } : {}
+    })
     return response.data
   },
 

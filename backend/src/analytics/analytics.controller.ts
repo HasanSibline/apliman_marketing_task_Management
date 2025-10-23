@@ -59,18 +59,20 @@ export class AnalyticsController {
 
   @Get('user/me')
   @ApiOperation({ summary: 'Get current user analytics' })
+  @ApiQuery({ name: 'timeRange', required: false, enum: ['week', 'month', 'year'], description: 'Time range for analytics' })
   @ApiResponse({ status: 200, description: 'User analytics retrieved successfully' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getMyAnalytics(@Request() req) {
+  async getMyAnalytics(@Request() req, @Query('timeRange') timeRange?: string) {
     try {
       console.log('Request user object:', req.user);
       console.log('User ID from request:', req.user?.id);
+      console.log('Time range:', timeRange);
       
       if (!req.user || !req.user.id) {
         throw new Error('User not authenticated or user ID not found');
       }
       
-      return await this.analyticsService.getUserAnalytics(req.user.id);
+      return await this.analyticsService.getUserAnalytics(req.user.id, timeRange);
     } catch (error) {
       console.error('Error getting user analytics:', error);
       throw error;

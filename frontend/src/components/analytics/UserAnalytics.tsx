@@ -41,7 +41,7 @@ const UserAnalytics: React.FC = () => {
       console.log('=== Loading User Analytics ===')
       console.log('Time range:', timeRange)
       
-      const data = await analyticsApi.getUserAnalytics()
+      const data = await analyticsApi.getUserAnalytics(timeRange)
       
       console.log('=== Received Analytics Data ===')
       console.log('Full response:', data)

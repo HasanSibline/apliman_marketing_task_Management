@@ -92,7 +92,7 @@ export class AnalyticsService {
       this.prisma.task.count({ /* where: { taskType: 'MAIN' } */ }), // Count all tasks
     ]);
 
-    // Get completed tasks using workflow phases  
+    // Get completed tasks using workflow phases
     const completedTasks = await this.getCompletedTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
     const inProgressTasks = await this.getInProgressTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
     const pendingTasks = await this.getPendingTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
@@ -204,9 +204,35 @@ export class AnalyticsService {
     };
   }
 
-  async getUserAnalytics(userId: string) {
+  async getUserAnalytics(userId: string, timeRange?: string) {
     console.log('=== getUserAnalytics called ===');
     console.log('User ID:', userId);
+    console.log('Time range:', timeRange);
+    
+    // Calculate date range based on timeRange parameter
+    let dateFrom = new Date();
+    let weeks = 4; // Default for chart
+    
+    switch (timeRange) {
+      case 'week':
+        dateFrom.setDate(dateFrom.getDate() - 7);
+        weeks = 1;
+        break;
+      case 'month':
+        dateFrom.setMonth(dateFrom.getMonth() - 1);
+        weeks = 4;
+        break;
+      case 'year':
+        dateFrom.setFullYear(dateFrom.getFullYear() - 1);
+        weeks = 12; // Show last 12 months
+        break;
+      default:
+        dateFrom.setMonth(dateFrom.getMonth() - 1); // Default to month
+        weeks = 4;
+    }
+    
+    console.log('Date from:', dateFrom);
+    console.log('Weeks to calculate:', weeks);
     
     // Get user details
     const user = await this.prisma.user.findUnique({
@@ -278,57 +304,75 @@ export class AnalyticsService {
 
     console.log('In progress tasks:', inProgressTasks);
 
-    // Get performance trend for the last 4 weeks
+    // Get performance trend based on time range
     const performanceTrend = [];
     console.log('Calculating performance trend...');
     
-    for (let i = 3; i >= 0; i--) {
-      const weekStart = new Date();
-      weekStart.setDate(weekStart.getDate() - (i * 7 + 7));
-      weekStart.setHours(0, 0, 0, 0);
+    for (let i = weeks - 1; i >= 0; i--) {
+      const periodStart = new Date();
+      const periodEnd = new Date();
+      let label = '';
       
-      const weekEnd = new Date();
-      weekEnd.setDate(weekEnd.getDate() - (i * 7));
-      weekEnd.setHours(23, 59, 59, 999);
+      if (timeRange === 'year') {
+        // For year view, show months
+        periodStart.setMonth(periodStart.getMonth() - i - 1);
+        periodStart.setDate(1);
+        periodStart.setHours(0, 0, 0, 0);
+        
+        periodEnd.setMonth(periodEnd.getMonth() - i);
+        periodEnd.setDate(0); // Last day of previous month
+        periodEnd.setHours(23, 59, 59, 999);
+        
+        label = periodStart.toLocaleString('default', { month: 'short', year: 'numeric' });
+      } else {
+        // For week/month view, show weeks
+        periodStart.setDate(periodStart.getDate() - (i * 7 + 7));
+        periodStart.setHours(0, 0, 0, 0);
+        
+        periodEnd.setDate(periodEnd.getDate() - (i * 7));
+        periodEnd.setHours(23, 59, 59, 999);
+        
+        label = `Week ${weeks - i}`;
+      }
 
-      console.log(`Week ${4-i}: ${weekStart.toISOString()} to ${weekEnd.toISOString()}`);
+      console.log(`Period ${weeks - i}: ${periodStart.toISOString()} to ${periodEnd.toISOString()}`);
 
-      // Get tasks assigned in this week
-      const assignedInWeek = await this.prisma.task.count({
+      // Get tasks assigned in this period
+      const assignedInPeriod = await this.prisma.task.count({
         where: {
           assignedToId: userId,
           // taskType: 'MAIN',  // Remove filter to count all tasks
           createdAt: {
-            gte: weekStart,
-            lte: weekEnd,
+            gte: periodStart,
+            lte: periodEnd,
           },
         },
       });
 
-      // Get tasks completed in this week
+      // Get tasks completed in this period
       const completedPhaseIds = await this.prisma.phase.findMany({
         where: { isEndPhase: true },
         select: { id: true },
       }).then(phases => phases.map(p => p.id));
 
-      const completedInWeek = await this.prisma.task.count({
+      const completedInPeriod = await this.prisma.task.count({
         where: {
           assignedToId: userId,
           // taskType: 'MAIN',  // Remove filter to count all tasks
           currentPhaseId: { in: completedPhaseIds },
           updatedAt: {
-            gte: weekStart,
-            lte: weekEnd,
+            gte: periodStart,
+            lte: periodEnd,
           },
         },
       });
 
-      console.log(`  - Assigned: ${assignedInWeek}, Completed: ${completedInWeek}`);
+      console.log(`  - Assigned: ${assignedInPeriod}, Completed: ${completedInPeriod}`);
 
       performanceTrend.push({
-        date: `Week ${4 - i}`,
-        completed: completedInWeek,
-        assigned: assignedInWeek,
+        date: label,
+        completed: completedInPeriod,
+        assigned: assignedInPeriod,
       });
     }
 
@@ -364,7 +408,7 @@ export class AnalyticsService {
       stats: {
         totalAssignedTasks,
         totalCreatedTasks,
-        completedTasks,
+      completedTasks,
         inProgressTasks,
         pendingTasks: totalAssignedTasks - completedTasks - inProgressTasks,
         completionRate: totalAssignedTasks > 0 ? Math.round((completedTasks / totalAssignedTasks) * 100) : 0,
