@@ -62,6 +62,11 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
     setIsLoading(true)
     try {
       const data = await analyticsApi.getDashboard()
+      console.log('=== Admin Dashboard Data ===')
+      console.log('Full response:', data)
+      console.log('tasksByPhase:', data.tasksByPhase)
+      console.log('topPerformers:', data.topPerformers)
+      
       setDashboardData(data)
       
       // Extract unique phases from tasks
@@ -73,6 +78,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         setPhases(uniquePhases)
       }
     } catch (error: any) {
+      console.error('Error loading dashboard:', error)
       toast.error(error.response?.data?.message || 'Failed to load analytics')
     } finally {
       setIsLoading(false)
