@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   Bars3Icon,
   UserCircleIcon,
@@ -11,17 +11,44 @@ import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { toggleSidebar } from '@/store/slices/uiSlice'
 import { logout } from '@/store/slices/authSlice'
 import { Fragment } from 'react'
+import { usersApi } from '@/services/api'
 
 const Header: React.FC = () => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
-  const { teamMembers } = useAppSelector((state) => state.presence)
+  const [onlineCount, setOnlineCount] = useState(0)
+
+  // Fetch online users count
+  useEffect(() => {
+    const fetchOnlineUsers = async () => {
+      try {
+        const users = await usersApi.getAll({ status: 'ACTIVE' })
+        
+        // Consider users online if they were active in the last 5 minutes
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+        const onlineUsers = users.filter((u: any) => {
+          if (!u.lastActiveAt) return false
+          const lastActive = new Date(u.lastActiveAt)
+          return lastActive > fiveMinutesAgo
+        })
+        
+        setOnlineCount(onlineUsers.length)
+      } catch (error) {
+        console.error('Failed to fetch online users:', error)
+      }
+    }
+
+    fetchOnlineUsers()
+    
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchOnlineUsers, 30000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
   const handleLogout = () => {
     dispatch(logout())
   }
-
-  // Get online team members count
-  const onlineMembers = teamMembers.filter((member: any) => member.isOnline).length
 
   return (
     <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
@@ -45,8 +72,8 @@ const Header: React.FC = () => {
           {/* Team presence indicator */}
           <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600">
             <div className="flex items-center space-x-1">
-              <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-              <span>{onlineMembers} online</span>
+              <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span>{onlineCount} online</span>
             </div>
           </div>
 
