@@ -31,6 +31,24 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
     return null
   }
 
+  const CustomLegend = ({ payload }: any) => {
+    return (
+      <div className="flex flex-wrap justify-center gap-3 mt-4">
+        {payload.map((entry: any, index: number) => (
+          <div key={`legend-${index}`} className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-sm" 
+              style={{ backgroundColor: entry.color }}
+            />
+            <span className="text-sm text-gray-700">
+              {entry.value} ({chartData[index]?.value || 0})
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
@@ -40,17 +58,18 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasks by Workflow</h3>
       
       {data.length > 0 ? (
-        <div className="h-64">
+        <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
-                cy="50%"
-                innerRadius={40}
-                outerRadius={80}
+                cy="45%"
+                innerRadius={60}
+                outerRadius={100}
                 paddingAngle={2}
                 dataKey="value"
+                label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
               >
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
@@ -58,17 +77,14 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
               </Pie>
               <Tooltip content={<CustomTooltip />} />
               <Legend 
-                verticalAlign="bottom" 
-                height={36}
-                formatter={(value) => (
-                  <span className="text-sm text-gray-600">{value}</span>
-                )}
+                content={<CustomLegend />}
+                wrapperStyle={{ position: 'relative', marginTop: '10px' }}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-64 flex items-center justify-center">
+        <div className="h-80 flex items-center justify-center">
           <p className="text-gray-500">No task data available</p>
         </div>
       )}
