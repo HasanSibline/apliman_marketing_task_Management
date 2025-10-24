@@ -6,6 +6,7 @@ interface TaskPhaseChartProps {
   data: Array<{
     phase: string
     count: number
+    subtasksCount?: number
     color: string
   }>
 }
@@ -37,19 +38,24 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
       animate={{ opacity: 1, scale: 1 }}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
     >
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">Tasks by Workflow</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-3">Tasks by Workflow</h3>
       
-      {/* Legend under title */}
+      {/* Legend under title - VERTICAL layout */}
       {data.length > 0 && (
-        <div className="flex flex-wrap gap-3 mb-6">
+        <div className="flex flex-col gap-2 mb-6">
           {data.map((item, index) => (
             <div key={`legend-top-${index}`} className="flex items-center gap-2">
               <div 
-                className="w-3 h-3 rounded-sm" 
+                className="w-3 h-3 rounded-sm flex-shrink-0" 
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-sm text-gray-700 font-medium">
-                {item.phase} ({item.count})
+              <span className="text-xs text-gray-600">
+                <span className="font-semibold text-gray-800">{item.phase}</span>
+                {' - '}
+                <span className="font-medium">Tasks: {item.count}</span>
+                {item.subtasksCount !== undefined && item.subtasksCount > 0 && (
+                  <span> - Subtasks: {item.subtasksCount}</span>
+                )}
               </span>
             </div>
           ))}

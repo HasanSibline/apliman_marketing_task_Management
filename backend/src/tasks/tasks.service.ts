@@ -1503,11 +1503,13 @@ export class TasksService {
   }
 
   async getTasksByPhase() {
-    // Get all workflows with their total task counts
+    // Get all workflows with their task counts (MAIN tasks only and subtasks separately)
     const workflows = await this.prisma.workflow.findMany({
       include: {
-        _count: {
-          select: { tasks: true },
+        tasks: {
+          select: {
+            taskType: true,
+          },
         },
       },
     });
@@ -1517,9 +1519,16 @@ export class TasksService {
 
     // Transform to workflow counts with colors
     const workflowData = workflows.reduce((acc, workflow) => {
-      console.log(`Workflow: ${workflow.name}, Tasks: ${workflow._count.tasks}, Color: ${workflow.color}`);
+      // Count only MAIN tasks (parent tasks)
+      const mainTasksCount = workflow.tasks.filter(t => t.taskType === 'MAIN').length;
+      // Count SUBTASK types
+      const subtasksCount = workflow.tasks.filter(t => t.taskType === 'SUBTASK').length;
+      
+      console.log(`Workflow: ${workflow.name}, Main Tasks: ${mainTasksCount}, Subtasks: ${subtasksCount}, Color: ${workflow.color}`);
+      
       acc[workflow.name] = {
-        count: workflow._count.tasks,
+        count: mainTasksCount,
+        subtasksCount: subtasksCount,
         color: workflow.color || '#3B82F6',
         id: workflow.id,
       };

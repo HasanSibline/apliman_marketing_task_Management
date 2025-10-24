@@ -119,6 +119,7 @@ const DashboardPage: React.FC = () => {
           data={Object.entries(phaseCount || {}).map(([phase, data]: [string, any]) => ({
             phase,
             count: typeof data === 'number' ? data : data.count || 0,
+            subtasksCount: typeof data === 'object' ? data.subtasksCount : undefined,
             color: typeof data === 'object' ? data.color : '#3B82F6'
           }))}
         />
