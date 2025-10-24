@@ -1512,8 +1512,12 @@ export class TasksService {
       },
     });
 
+    console.log('=== getTasksByPhase called ===');
+    console.log('Found workflows:', workflows.length);
+
     // Transform to workflow counts with colors
     const workflowData = workflows.reduce((acc, workflow) => {
+      console.log(`Workflow: ${workflow.name}, Tasks: ${workflow._count.tasks}, Color: ${workflow.color}`);
       acc[workflow.name] = {
         count: workflow._count.tasks,
         color: workflow.color || '#3B82F6',
@@ -1522,6 +1526,7 @@ export class TasksService {
       return acc;
     }, {} as Record<string, any>);
 
+    console.log('Returning workflow data:', JSON.stringify(workflowData, null, 2));
     return workflowData;
   }
 
