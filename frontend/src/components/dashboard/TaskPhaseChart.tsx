@@ -1,6 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
 
 interface TaskPhaseChartProps {
   data: Array<{
@@ -31,42 +31,41 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
     return null
   }
 
-  const CustomLegend = ({ payload }: any) => {
-    return (
-      <div className="flex flex-wrap justify-center gap-3 mt-4">
-        {payload.map((entry: any, index: number) => (
-          <div key={`legend-${index}`} className="flex items-center gap-2">
-            <div 
-              className="w-3 h-3 rounded-sm" 
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-sm text-gray-700">
-              {entry.value} ({chartData[index]?.value || 0})
-            </span>
-          </div>
-        ))}
-      </div>
-    )
-  }
-
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
     >
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasks by Workflow</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">Tasks by Workflow</h3>
+      
+      {/* Legend under title */}
+      {data.length > 0 && (
+        <div className="flex flex-wrap gap-3 mb-6">
+          {data.map((item, index) => (
+            <div key={`legend-top-${index}`} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-sm" 
+                style={{ backgroundColor: item.color }}
+              />
+              <span className="text-sm text-gray-700 font-medium">
+                {item.phase} ({item.count})
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
       
       {data.length > 0 ? (
-        <div className="h-80">
+        <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
                 data={chartData}
                 cx="50%"
-                cy="45%"
-                innerRadius={60}
-                outerRadius={100}
+                cy="50%"
+                innerRadius={50}
+                outerRadius={90}
                 paddingAngle={2}
                 dataKey="value"
                 label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
@@ -76,15 +75,11 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
                 ))}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend 
-                content={<CustomLegend />}
-                wrapperStyle={{ position: 'relative', marginTop: '10px' }}
-              />
             </PieChart>
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-80 flex items-center justify-center">
+        <div className="h-64 flex items-center justify-center">
           <p className="text-gray-500">No task data available</p>
         </div>
       )}

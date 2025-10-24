@@ -512,22 +512,22 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
                     placeholder="Type your message... (@user or /task)"
-                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400 bg-transparent relative z-10"
+                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400 bg-transparent relative z-10 pr-20"
               disabled={isTyping}
                     style={{ caretColor: 'auto' }}
                   />
                   {/* Inline completion overlay */}
                   {inlineCompletion && (
-                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm text-gray-400 right-3.5 overflow-hidden">
-                      <span className="invisible">{inputValue}</span>
-                      <span className="text-gray-400 truncate inline-block max-w-full">{inlineCompletion}</span>
+                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm overflow-hidden whitespace-nowrap" style={{ maxWidth: 'calc(100% - 100px)' }}>
+                      <span className="text-transparent select-none">{inputValue}</span>
+                      <span className="text-gray-400">{inlineCompletion}</span>
                     </div>
                   )}
                 </div>
             <button
               onClick={sendMessage}
               disabled={!inputValue.trim() || isTyping}
-                  className="bg-primary-600 text-white rounded-lg p-2 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+                  className="bg-primary-600 text-white rounded-lg p-2 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
             >
               <PaperAirplaneIcon className="w-5 h-5" />
             </button>
