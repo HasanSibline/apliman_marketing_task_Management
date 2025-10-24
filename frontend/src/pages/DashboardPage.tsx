@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChartBarIcon,
@@ -11,18 +11,30 @@ import { fetchDashboardAnalytics } from '@/store/slices/analyticsSlice'
 import { fetchPhaseCount } from '@/store/slices/tasksSlice'
 import StatsCard from '@/components/dashboard/StatsCard'
 import TaskPhaseChart from '@/components/dashboard/TaskPhaseChart'
+import { usersApi } from '@/services/api'
 
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
   const { dashboard, isLoading } = useAppSelector((state) => state.analytics)
   const { phaseCount } = useAppSelector((state) => state.tasks)
-  const { teamMembers } = useAppSelector((state) => state.presence)
+  const { teamMembers: presenceTeamMembers } = useAppSelector((state) => state.presence)
+  const [allTeamMembers, setAllTeamMembers] = useState<any[]>([])
 
   useEffect(() => {
     dispatch(fetchDashboardAnalytics())
     dispatch(fetchPhaseCount())
+    loadTeamMembers()
   }, [dispatch])
+
+  const loadTeamMembers = async () => {
+    try {
+      const members = await usersApi.getAll({ status: 'ACTIVE' })
+      setAllTeamMembers(members)
+    } catch (error) {
+      console.error('Failed to load team members:', error)
+    }
+  }
 
   const stats = [
     {
@@ -51,11 +63,15 @@ const DashboardPage: React.FC = () => {
       value: dashboard?.activeUsers || 0,
       icon: UsersIcon,
       color: 'bg-purple-500',
-      subtitle: `${teamMembers?.filter((m: any) => m.isOnline).length || 0} online`
+      subtitle: `${presenceTeamMembers?.filter((m: any) => m.isOnline).length || 0} online`
     },
   ]
 
-  const onlineMembers = teamMembers?.filter((member: any) => member.isOnline) || []
+  // Combine presence data with all team members
+  const onlineMembers = presenceTeamMembers?.filter((member: any) => member.isOnline) || []
+  
+  // If no online members from presence, show all team members from the database
+  const displayMembers = onlineMembers.length > 0 ? onlineMembers : allTeamMembers.slice(0, 6)
 
   if (isLoading) {
     return (
@@ -100,10 +116,10 @@ const DashboardPage: React.FC = () => {
       {/* Task Phase Chart */}
       <div className="grid grid-cols-1 gap-6">
         <TaskPhaseChart 
-          data={Object.entries(phaseCount || {}).map(([phase, count]) => ({
+          data={Object.entries(phaseCount || {}).map(([phase, data]: [string, any]) => ({
             phase,
-            count: count as number,
-            color: '#3B82F6'
+            count: typeof data === 'number' ? data : data.count || 0,
+            color: typeof data === 'object' ? data.color : '#3B82F6'
           }))}
         />
       </div>
@@ -118,38 +134,45 @@ const DashboardPage: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">Team Status</h2>
           <span className="text-sm text-gray-500">
-            {onlineMembers.length} of {teamMembers?.length || 0} online
+            {onlineMembers.length > 0 
+              ? `${onlineMembers.length} of ${allTeamMembers.length} online`
+              : `${allTeamMembers.length} team members`}
           </span>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {onlineMembers.slice(0, 6).map((member: any, index: number) => (
-            <motion.div
-              key={member.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
-              className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
-            >
-              <div className="relative">
-                <div className="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">
-                    {member.name?.charAt(0).toUpperCase() || 'U'}
-                  </span>
+          {displayMembers.slice(0, 6).map((member: any, index: number) => {
+            const isOnline = onlineMembers.some((om: any) => om.id === member.id)
+            return (
+              <motion.div
+                key={member.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: index * 0.1 }}
+                className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="relative">
+                  <div className="h-10 w-10 rounded-full bg-primary-600 flex items-center justify-center">
+                    <span className="text-sm font-medium text-white">
+                      {member.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  {isOnline && (
+                    <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-green-400" />
+                  )}
                 </div>
-                <div className="absolute -bottom-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-green-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{member.name}</p>
-                <p className="text-xs text-gray-500 truncate">{member.position || 'Team Member'}</p>
-              </div>
-            </motion.div>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{member.name}</p>
+                  <p className="text-xs text-gray-500 truncate">{member.position || 'Team Member'}</p>
+                </div>
+              </motion.div>
+            )
+          })}
           
-          {onlineMembers.length === 0 && (
+          {displayMembers.length === 0 && (
             <div className="col-span-full text-center py-8">
               <UsersIcon className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <p className="text-gray-500">No team members online</p>
+              <p className="text-gray-500">No team members found</p>
             </div>
           )}
         </div>

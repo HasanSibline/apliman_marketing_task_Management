@@ -1503,9 +1503,29 @@ export class TasksService {
   }
 
   async getTasksByPhase() {
-    // TODO: Update to use workflow phases instead of TaskPhase enum
-    // Return empty data for now until workflow integration is complete
-    return {};
+    // Get all phases with their tasks count
+    const phases = await this.prisma.phase.findMany({
+      include: {
+        _count: {
+          select: { tasks: true },
+        },
+        workflow: { select: { name: true, color: true } },
+      },
+    });
+
+    // Transform to phase counts with additional metadata
+    const phaseData = phases.reduce((acc, phase) => {
+      const key = `${phase.workflow.name} - ${phase.name}`;
+      acc[key] = {
+        count: phase._count.tasks,
+        color: phase.color || phase.workflow.color || '#3B82F6',
+        workflow: phase.workflow.name,
+        phaseName: phase.name,
+      };
+      return acc;
+    }, {} as Record<string, any>);
+
+    return phaseData;
   }
 
   private async updateUserAnalytics(userId: string, action: 'assigned' | 'completed' | 'interaction') {
