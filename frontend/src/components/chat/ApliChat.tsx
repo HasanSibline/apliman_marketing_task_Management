@@ -516,11 +516,13 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               disabled={isTyping}
                     style={{ caretColor: 'auto' }}
                   />
-                  {/* Inline completion overlay */}
+                  {/* Inline completion overlay - Cut-edge styled */}
                   {inlineCompletion && (
-                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm overflow-hidden whitespace-nowrap" style={{ maxWidth: 'calc(100% - 100px)' }}>
-                      <span className="text-transparent select-none">{inputValue}</span>
-                      <span className="text-gray-400">{inlineCompletion}</span>
+                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm overflow-hidden whitespace-nowrap right-24">
+                      <span className="invisible">{inputValue}</span>
+                      <span className="text-gray-400 bg-gray-50/80 px-1.5 py-0.5 rounded-md border border-gray-200/50 backdrop-blur-sm font-medium">
+                        {inlineCompletion}
+                      </span>
                     </div>
                   )}
                 </div>

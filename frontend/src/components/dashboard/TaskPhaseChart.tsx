@@ -12,7 +12,10 @@ interface TaskPhaseChartProps {
 }
 
 const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
-  const chartData = data.map(item => ({
+  // Filter out workflows with 0 tasks
+  const filteredData = data.filter(item => item.count > 0)
+  
+  const chartData = filteredData.map(item => ({
     name: item.phase,
     value: item.count,
     color: item.color
@@ -41,9 +44,9 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
       <h3 className="text-lg font-semibold text-gray-900 mb-3">Tasks by Workflow</h3>
       
       {/* Legend under title - VERTICAL layout */}
-      {data.length > 0 && (
+      {filteredData.length > 0 && (
         <div className="flex flex-col gap-2 mb-6">
-          {data.map((item, index) => (
+          {filteredData.map((item, index) => (
             <div key={`legend-top-${index}`} className="flex items-center gap-2">
               <div 
                 className="w-3 h-3 rounded-sm flex-shrink-0" 
@@ -62,7 +65,7 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
         </div>
       )}
       
-      {data.length > 0 ? (
+      {filteredData.length > 0 ? (
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
@@ -86,7 +89,11 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
         </div>
       ) : (
         <div className="h-64 flex items-center justify-center">
-          <p className="text-gray-500">No task data available</p>
+          <div className="text-center">
+            <div className="text-4xl mb-3">📊</div>
+            <p className="text-gray-500 font-medium">No tasks yet</p>
+            <p className="text-gray-400 text-sm mt-1">Create tasks to see workflow distribution</p>
+          </div>
         </div>
       )}
     </motion.div>
