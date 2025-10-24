@@ -1503,29 +1503,26 @@ export class TasksService {
   }
 
   async getTasksByPhase() {
-    // Get all phases with their tasks count
-    const phases = await this.prisma.phase.findMany({
+    // Get all workflows with their total task counts
+    const workflows = await this.prisma.workflow.findMany({
       include: {
         _count: {
           select: { tasks: true },
         },
-        workflow: { select: { name: true, color: true } },
       },
     });
 
-    // Transform to phase counts with additional metadata
-    const phaseData = phases.reduce((acc, phase) => {
-      const key = `${phase.workflow.name} - ${phase.name}`;
-      acc[key] = {
-        count: phase._count.tasks,
-        color: phase.color || phase.workflow.color || '#3B82F6',
-        workflow: phase.workflow.name,
-        phaseName: phase.name,
+    // Transform to workflow counts with colors
+    const workflowData = workflows.reduce((acc, workflow) => {
+      acc[workflow.name] = {
+        count: workflow._count.tasks,
+        color: workflow.color || '#3B82F6',
+        id: workflow.id,
       };
       return acc;
     }, {} as Record<string, any>);
 
-    return phaseData;
+    return workflowData;
   }
 
   private async updateUserAnalytics(userId: string, action: 'assigned' | 'completed' | 'interaction') {

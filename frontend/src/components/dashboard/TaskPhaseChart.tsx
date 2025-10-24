@@ -11,19 +11,10 @@ interface TaskPhaseChartProps {
 }
 
 const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
-  const COLORS = {
-    'PENDING_APPROVAL': '#6B7280',
-    'APPROVED': '#3B82F6', 
-    'ASSIGNED': '#8B5CF6',
-    'IN_PROGRESS': '#F59E0B',
-    'COMPLETED': '#10B981',
-    'ARCHIVED': '#6B7280'
-  }
-
   const chartData = data.map(item => ({
-    name: item.phase.replace('_', ' '),
+    name: item.phase,
     value: item.count,
-    color: COLORS[item.phase as keyof typeof COLORS] || '#6B7280'
+    color: item.color
   }))
 
   const CustomTooltip = ({ active, payload }: any) => {
@@ -46,7 +37,7 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
       animate={{ opacity: 1, scale: 1 }}
       className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
     >
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasks by Phase</h3>
+      <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasks by Workflow</h3>
       
       {data.length > 0 ? (
         <div className="h-64">
