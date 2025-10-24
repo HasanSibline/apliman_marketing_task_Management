@@ -20,11 +20,13 @@ import { Task } from '@/types/task'
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { tasks: apiTasks, isLoading, filters } = useAppSelector((state) => state.tasks)
-  // Map tasks - show all task types (MAIN, SUBTASK, COORDINATION, etc.)
-  const tasks = apiTasks.map(task => ({
-    ...task,
-    createdById: task.createdBy?.id || ''
-  })) as Task[]
+  // Filter to show only MAIN tasks (parent tasks), exclude SUBTASK and other types
+  const tasks = apiTasks
+    .filter(task => task.taskType === 'MAIN')
+    .map(task => ({
+      ...task,
+      createdById: task.createdBy?.id || ''
+    })) as Task[]
   
   const { user } = useAppSelector((state) => state.auth)
   const [showFilters, setShowFilters] = useState(false)

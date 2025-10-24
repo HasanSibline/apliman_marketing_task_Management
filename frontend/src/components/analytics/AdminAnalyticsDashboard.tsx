@@ -61,7 +61,17 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
   const loadData = async () => {
     setIsLoading(true)
     try {
-      const data = await analyticsApi.getDashboard()
+      // Build query params for filtering
+      const params: any = {}
+      if (dateRange.from) params.from = dateRange.from
+      if (dateRange.to) params.to = dateRange.to
+      if (workflowFilter) params.workflowId = workflowFilter
+      if (phaseFilter) params.phaseId = phaseFilter
+      
+      console.log('=== Fetching Admin Dashboard with params ===')
+      console.log('Params:', params)
+      
+      const data = await analyticsApi.getDashboard(params)
       console.log('=== Admin Dashboard Data ===')
       console.log('Full response:', data)
       console.log('tasksByPhase:', data.tasksByPhase)

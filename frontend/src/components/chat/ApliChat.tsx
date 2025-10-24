@@ -518,9 +518,9 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   />
                   {/* Inline completion overlay */}
                   {inlineCompletion && (
-                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm text-gray-400">
+                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm text-gray-400 right-3.5 overflow-hidden">
                       <span className="invisible">{inputValue}</span>
-                      <span className="text-gray-400">{inlineCompletion}</span>
+                      <span className="text-gray-400 truncate inline-block max-w-full">{inlineCompletion}</span>
                     </div>
                   )}
                 </div>

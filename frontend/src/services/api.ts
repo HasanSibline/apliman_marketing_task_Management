@@ -458,8 +458,8 @@ export const analyticsApi = {
     })
     return response.data
   },
-  getDashboard: async (): Promise<any> => {
-    const response = await api.get('/analytics/dashboard')
+  getDashboard: async (params?: any): Promise<any> => {
+    const response = await api.get('/analytics/dashboard', { params })
     return response.data
   },
 
