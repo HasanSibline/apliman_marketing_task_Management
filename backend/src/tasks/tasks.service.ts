@@ -756,6 +756,10 @@ export class TasksService {
     const skip = (page - 1) * limit;
     const where: any = {};
 
+    // ALWAYS filter to show only MAIN tasks (not subtasks) by default
+    // Subtasks are displayed within their parent task
+    where.taskType = 'MAIN';
+
     // Role-based filtering
     if (userRole === UserRole.EMPLOYEE) {
       // Employees can only see tasks assigned to them or created by them
