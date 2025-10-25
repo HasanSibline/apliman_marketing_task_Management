@@ -244,6 +244,8 @@ const tasksSlice = createSlice({
         // Update total count
         state.pagination.total = state.pagination.total + 1
         state.error = null
+        
+        // Note: Phase count will be refreshed on next dashboard visit or via interval
       })
       .addCase(createTask.rejected, (state, action) => {
         state.isLoading = false
@@ -263,6 +265,7 @@ const tasksSlice = createSlice({
         if (state.currentTask?.id === task.id) {
           state.currentTask = task
         }
+        // Note: If workflow changed, phase count will update on next refresh
       })
 
       // Delete Task
@@ -271,6 +274,9 @@ const tasksSlice = createSlice({
         if (state.currentTask?.id === action.payload) {
           state.currentTask = null
         }
+        // Update pagination total
+        state.pagination.total = Math.max(0, state.pagination.total - 1)
+        // Note: Phase count will be refreshed on next dashboard visit or via interval
       })
   },
 })

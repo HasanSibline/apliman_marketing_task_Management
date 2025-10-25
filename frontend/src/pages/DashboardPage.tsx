@@ -25,6 +25,13 @@ const DashboardPage: React.FC = () => {
     dispatch(fetchDashboardAnalytics())
     dispatch(fetchPhaseCount())
     loadTeamMembers()
+    
+    // Refresh workflow counts periodically to catch new/deleted workflows
+    const intervalId = setInterval(() => {
+      dispatch(fetchPhaseCount())
+    }, 60000) // Refresh every 60 seconds
+    
+    return () => clearInterval(intervalId)
   }, [dispatch])
 
   const loadTeamMembers = async () => {

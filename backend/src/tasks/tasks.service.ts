@@ -1515,13 +1515,20 @@ export class TasksService {
 
   async getTasksByPhase() {
     // Get all workflows with their task counts (exclude SUBTASK type, count all others)
+    // This dynamically fetches ALL workflows, so new/deleted workflows are automatically handled
     const workflows = await this.prisma.workflow.findMany({
+      where: {
+        isActive: true, // Only show active workflows
+      },
       include: {
         tasks: {
           select: {
             taskType: true,
           },
         },
+      },
+      orderBy: {
+        name: 'asc', // Consistent ordering
       },
     });
 
@@ -1537,11 +1544,14 @@ export class TasksService {
       
       console.log(`Workflow: ${workflow.name}, Main Tasks: ${mainTasksCount}, Subtasks: ${subtasksCount}, Color: ${workflow.color}`);
       
+      // ALWAYS include workflow in result, even if count is 0
+      // Frontend will filter out 0-count workflows for display
       acc[workflow.name] = {
         count: mainTasksCount,
         subtasksCount: subtasksCount,
-        color: workflow.color || '#3B82F6',
+        color: workflow.color || '#3B82F6', // Fallback color if not set
         id: workflow.id,
+        name: workflow.name, // Include name for reference
       };
       return acc;
     }, {} as Record<string, any>);

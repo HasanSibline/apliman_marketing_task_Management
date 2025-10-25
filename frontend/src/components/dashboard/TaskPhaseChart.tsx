@@ -14,10 +14,16 @@ interface TaskPhaseChartProps {
 const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
   console.log('TaskPhaseChart received data:', data)
   
-  // Filter out workflows with 0 tasks
+  // Filter out workflows with 0 tasks for display
+  // This ensures deleted workflows or empty workflows don't show in chart
   const filteredData = data.filter(item => item.count > 0)
   
   console.log('Filtered data (count > 0):', filteredData)
+  
+  // If no data, show empty state
+  if (filteredData.length === 0) {
+    console.log('No workflow data with tasks > 0, showing empty state')
+  }
   
   const chartData = filteredData.map(item => ({
     name: item.phase,
