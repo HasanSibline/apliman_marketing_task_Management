@@ -12,8 +12,12 @@ interface TaskPhaseChartProps {
 }
 
 const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
+  console.log('TaskPhaseChart received data:', data)
+  
   // Filter out workflows with 0 tasks
   const filteredData = data.filter(item => item.count > 0)
+  
+  console.log('Filtered data (count > 0):', filteredData)
   
   const chartData = filteredData.map(item => ({
     name: item.phase,
