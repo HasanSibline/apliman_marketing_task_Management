@@ -756,9 +756,9 @@ export class TasksService {
     const skip = (page - 1) * limit;
     const where: any = {};
 
-    // ALWAYS filter to show only MAIN tasks (not subtasks) by default
-    // Subtasks are displayed within their parent task
-    where.taskType = 'MAIN';
+    // Filter OUT subtask-type tasks (show all regular task types like GENERAL, SOCIAL_MEDIA, etc.)
+    // Subtasks are displayed within their parent task details
+    where.taskType = { not: 'SUBTASK' };
 
     // Role-based filtering
     if (userRole === UserRole.EMPLOYEE) {
@@ -1514,7 +1514,7 @@ export class TasksService {
   }
 
   async getTasksByPhase() {
-    // Get all workflows with their task counts (MAIN tasks only and subtasks separately)
+    // Get all workflows with their task counts (exclude SUBTASK type, count all others)
     const workflows = await this.prisma.workflow.findMany({
       include: {
         tasks: {
@@ -1530,9 +1530,9 @@ export class TasksService {
 
     // Transform to workflow counts with colors
     const workflowData = workflows.reduce((acc, workflow) => {
-      // Count only MAIN tasks (parent tasks)
-      const mainTasksCount = workflow.tasks.filter(t => t.taskType === 'MAIN').length;
-      // Count SUBTASK types
+      // Count all tasks EXCEPT SUBTASK type (includes GENERAL, SOCIAL_MEDIA, VIDEO_PRODUCTION, COORDINATION, etc.)
+      const mainTasksCount = workflow.tasks.filter(t => t.taskType !== 'SUBTASK').length;
+      // Count SUBTASK types separately
       const subtasksCount = workflow.tasks.filter(t => t.taskType === 'SUBTASK').length;
       
       console.log(`Workflow: ${workflow.name}, Main Tasks: ${mainTasksCount}, Subtasks: ${subtasksCount}, Color: ${workflow.color}`);
