@@ -926,6 +926,13 @@ export class TasksService {
     console.log(`Found ${total} tasks matching query for user ${userId} (role: ${userRole})`);
     console.log(`Returning ${tasks.length} tasks after pagination`);
     console.log(`Where clause:`, JSON.stringify(where, null, 2));
+    
+    // Debug: Check if any SUBTASK tasks are in results (should be none)
+    const subtaskCount = tasks.filter((t: any) => t.taskType === 'SUBTASK').length;
+    if (subtaskCount > 0) {
+      console.error(`WARNING: Found ${subtaskCount} SUBTASK type tasks in results! These should be filtered.`);
+      console.error('Sample SUBTASK task:', tasks.find((t: any) => t.taskType === 'SUBTASK'));
+    }
 
     return {
       tasks,

@@ -111,11 +111,8 @@ export class TasksController {
   }
 
   @Get('phases/count')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get task count by phase (Admin/Super Admin only)' })
+  @ApiOperation({ summary: 'Get task count by workflow (all users)' })
   @ApiResponse({ status: 200, description: 'Task counts retrieved successfully' })
-  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   getTasksByPhase() {
     return this.tasksService.getTasksByPhase();
   }
