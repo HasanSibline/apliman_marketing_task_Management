@@ -48,52 +48,41 @@ async function migrateToMultiTenant() {
 
     console.log('✅ Created company settings\n');
 
-    // Step 4: Find the first SUPER_ADMIN to keep as system admin
-    const firstSuperAdmin = await prisma.user.findFirst({
-      where: { role: 'SUPER_ADMIN' },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    if (!firstSuperAdmin) {
-      console.log('⚠️  No SUPER_ADMIN found. Creating one...');
-      
-      // Prompt for super admin creation
-      const hashedPassword = await bcrypt.hash('AdminPassword123!', 10);
-      
-      await prisma.user.create({
-        data: {
-          email: 'admin@system.com',
-          name: 'System Administrator',
-          password: hashedPassword,
-          role: 'SUPER_ADMIN',
-          companyId: null, // System admin has no company
-        },
-      });
-
-      console.log('✅ Created system admin: admin@system.com / AdminPassword123!');
-      console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!\n');
-    } else {
-      // Update first super admin to have no companyId (system admin)
-      await prisma.user.update({
-        where: { id: firstSuperAdmin.id },
-        data: { companyId: null },
-      });
-
-      console.log(`✅ Set ${firstSuperAdmin.email} as system admin (no company)\n`);
-    }
-
-    // Step 5: Assign all other users to Apliman company
-    const usersToUpdate = await prisma.user.findMany({
-      where: {
-        id: firstSuperAdmin ? { not: firstSuperAdmin.id } : undefined,
+    // Step 4: Create System Super Admin (OUTSIDE all companies)
+    console.log('👤 Creating System Super Admin...');
+    
+    const hashedPassword = await bcrypt.hash('SuperAdmin123!', 10);
+    
+    const superAdmin = await prisma.user.create({
+      data: {
+        email: 'superadmin@apliman.com',
+        name: 'System Administrator',
+        password: hashedPassword,
+        role: 'SUPER_ADMIN',
+        position: 'System Administrator',
+        companyId: null, // Super admin has NO company
       },
     });
 
-    console.log(`👥 Migrating ${usersToUpdate.length} users to Apliman...`);
+    console.log(`✅ Created System Super Admin: ${superAdmin.email} / SuperAdmin123!`);
+    console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!\n');
 
-    for (const user of usersToUpdate) {
-      // Convert SUPER_ADMIN to COMPANY_ADMIN for Apliman
-      const newRole = user.role === 'SUPER_ADMIN' ? 'COMPANY_ADMIN' : user.role;
+    // Step 5: Convert all existing users to belong to Apliman company
+    const existingUsers = await prisma.user.findMany({
+      where: {
+        id: { not: superAdmin.id }, // Exclude the super admin we just created
+      },
+    });
+
+    console.log(`👥 Migrating ${existingUsers.length} existing users to Apliman company...`);
+
+    for (const user of existingUsers) {
+      // Convert any existing SUPER_ADMIN to COMPANY_ADMIN for Apliman
+      let newRole = user.role;
+      if (user.role === 'SUPER_ADMIN') {
+        newRole = 'COMPANY_ADMIN';
+        console.log(`   Converting ${user.email} from SUPER_ADMIN to COMPANY_ADMIN`);
+      }
 
       await prisma.user.update({
         where: { id: user.id },
@@ -104,7 +93,7 @@ async function migrateToMultiTenant() {
       });
     }
 
-    console.log(`✅ Migrated ${usersToUpdate.length} users\n`);
+    console.log(`✅ Migrated ${existingUsers.length} users to Apliman company\n`);
 
     // Step 6: Assign all tasks to Apliman
     const tasksCount = await prisma.task.count();
@@ -165,7 +154,7 @@ async function migrateToMultiTenant() {
         action: 'CREATED',
         toPlan: 'ENTERPRISE',
         amount: 0,
-        performedBy: firstSuperAdmin?.id || 'system',
+        performedBy: superAdmin.id,
       },
     });
 
@@ -174,18 +163,22 @@ async function migrateToMultiTenant() {
     // Summary
     console.log('🎉 Migration completed successfully!\n');
     console.log('📊 Summary:');
+    console.log(`   - System Super Admin: ${superAdmin.email} (NO company)`);
     console.log(`   - Company: Apliman (${aplimanCompany.id})`);
-    console.log(`   - Users: ${usersToUpdate.length + 1}`);
+    console.log(`   - Apliman Users: ${existingUsers.length}`);
     console.log(`   - Tasks: ${tasksCount}`);
     console.log(`   - Workflows: ${workflowsCount}`);
     console.log(`   - Knowledge Sources: ${knowledgeCount}`);
     console.log(`   - Chat Sessions: ${chatSessionsCount}`);
-    console.log('\n✅ All existing data has been assigned to Apliman company');
+    console.log('\n✅ Apliman is now a regular company in the system');
+    console.log('✅ All existing data has been assigned to Apliman');
+    console.log('✅ System Administrator exists OUTSIDE all companies');
     console.log('✅ Data isolation is now active');
     console.log('\n🚀 Next steps:');
-    console.log('   1. Test login as system admin');
-    console.log('   2. Access /companies endpoint');
-    console.log('   3. Create new companies via Super Admin CMS');
+    console.log('   1. Login as System Admin: superadmin@apliman.com / SuperAdmin123!');
+    console.log('   2. CHANGE THE PASSWORD IMMEDIATELY');
+    console.log('   3. Access /super-admin/companies to manage all companies');
+    console.log('   4. Create new companies via Super Admin CMS');
 
   } catch (error) {
     console.error('❌ Migration failed:', error);

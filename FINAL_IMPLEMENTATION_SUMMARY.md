@@ -196,12 +196,14 @@ npx prisma studio
 ```
 
 ### **After Migration:**
-- [ ] Verify "Apliman" company created
-- [ ] Verify all users assigned to company
+- [ ] Verify "Apliman" company created (regular company)
+- [ ] Verify System Administrator created (companyId = NULL)
+- [ ] Verify all existing users assigned to Apliman company
 - [ ] Verify all tasks have companyId
-- [ ] Test login with existing users
+- [ ] Test login with System Admin: `superadmin@apliman.com` / `SuperAdmin123!`
 - [ ] Test Super Admin dashboard
 - [ ] Test creating new company
+- [ ] **CHANGE SYSTEM ADMIN PASSWORD IMMEDIATELY**
 
 ### **Production Deployment:**
 ```bash
@@ -222,7 +224,7 @@ npm run build
 
 ### **1. Test Existing Users (Apliman Company)**
 ```bash
-# Login should still work
+# Login should still work (but existing SUPER_ADMIN becomes COMPANY_ADMIN)
 POST /auth/login
 {
   "email": "existing@user.com",
@@ -234,17 +236,19 @@ GET /tasks
 GET /users
 ```
 
-### **2. Test Super Admin**
+### **2. Test System Administrator**
 ```bash
-# Login as super admin
+# Login as System Administrator (OUTSIDE all companies)
 POST /auth/login
 {
   "email": "superadmin@apliman.com",
-  "password": "admin123"
+  "password": "SuperAdmin123!"
 }
 
 # Access Super Admin dashboard
 GET /companies
+
+# Should see ALL companies (including Apliman)
 ```
 
 ### **3. Test Company Creation**

@@ -20,25 +20,28 @@ npx ts-node prisma/migrate-to-multi-tenant.ts
 **What this does:**
 - ✅ Creates Company, CompanySettings, SubscriptionHistory tables
 - ✅ Adds companyId to all existing tables
-- ✅ Creates default "Apliman" company
-- ✅ Assigns all existing data to Apliman
-- ✅ Creates or designates a Super Admin
+- ✅ Creates "Apliman" as a **regular company** (not special)
+- ✅ Assigns all existing data to Apliman company
+- ✅ Creates System Administrator **OUTSIDE all companies**
 
 ---
 
 ### **Step 2: Get Your Super Admin Credentials**
 
-After migration, you'll have one of these scenarios:
+After migration, a new System Administrator is created:
 
-#### **Scenario A: New Super Admin Created**
-If no SUPER_ADMIN existed, the script creates:
-- **Email:** `admin@system.com`
-- **Password:** `AdminPassword123!`
+**System Administrator (Manages All Companies):**
+- **Email:** `superadmin@apliman.com`
+- **Password:** `SuperAdmin123!`
+- **Company:** NONE (exists outside all companies)
+- **Role:** SUPER_ADMIN
 - ⚠️ **CHANGE THIS PASSWORD IMMEDIATELY!**
 
-#### **Scenario B: Existing Admin Promoted**
-If you already had a SUPER_ADMIN user, that user is now the system admin.
-Use your existing credentials.
+**Important Notes:**
+- ✅ Apliman is now just a **regular company** in the system
+- ✅ All your existing users are assigned to Apliman company
+- ✅ Any existing SUPER_ADMIN users become COMPANY_ADMIN of Apliman
+- ✅ The new System Administrator exists **outside** all companies
 
 ---
 
@@ -62,9 +65,10 @@ python start.py
 2. **Access the login page:**
    - Go to: `http://localhost:5173/login` (or your frontend URL)
 
-3. **Login with Super Admin credentials:**
-   - Email: `admin@system.com` (or your existing admin email)
-   - Password: `AdminPassword123!` (or your existing password)
+3. **Login with System Administrator credentials:**
+   - Email: `superadmin@apliman.com`
+   - Password: `SuperAdmin123!`
+   - **You are NOT part of any company!**
 
 ---
 
@@ -393,16 +397,21 @@ Headers: Authorization: Bearer YOUR_JWT_TOKEN
 
 ### **Issue 1: "No Companies" menu item**
 
-**Cause:** User is not Super Admin
+**Cause:** User is not Super Admin or is assigned to a company
 
 **Solution:**
 ```sql
--- Check user role
+-- Check user role and company
 SELECT id, email, role, companyId FROM User WHERE email = 'your@email.com';
 
--- Update to Super Admin
-UPDATE User SET role = 'SUPER_ADMIN', companyId = NULL WHERE email = 'your@email.com';
+-- The System Administrator should have:
+-- role = 'SUPER_ADMIN' AND companyId = NULL
+
+-- If wrong, update:
+UPDATE User SET role = 'SUPER_ADMIN', companyId = NULL WHERE email = 'superadmin@apliman.com';
 ```
+
+**Important:** Super Admin MUST have `companyId = NULL` to exist outside all companies!
 
 ---
 
@@ -427,14 +436,23 @@ UPDATE Company SET isActive = true, subscriptionStatus = 'ACTIVE' WHERE name = '
 
 **Solution:**
 1. Check that migration ran successfully
-2. Verify all users have `companyId`
-3. Verify all tasks have `companyId`
-4. Check backend service filters
+2. Verify System Admin has NO company (companyId = NULL)
+3. Verify all regular users have `companyId`
+4. Verify all tasks have `companyId`
+5. Check backend service filters
 
 ```sql
--- Verify data has companyId
+-- Verify System Admin is outside companies
+SELECT id, email, role, companyId FROM User WHERE role = 'SUPER_ADMIN';
+-- Should have companyId = NULL
+
+-- Verify regular users have companyId
 SELECT COUNT(*) FROM User WHERE companyId IS NULL AND role != 'SUPER_ADMIN';
+-- Should be 0
+
+-- Verify tasks have companyId
 SELECT COUNT(*) FROM Task WHERE companyId IS NULL;
+-- Should be 0
 ```
 
 ---
@@ -502,19 +520,19 @@ After starting your servers:
 ## 🔑 Test Credentials Summary
 
 ### **Super Admin (System):**
-- Email: `admin@system.com`
-- Password: `AdminPassword123!`
-- Company: None (can see all)
+- Email: `superadmin@apliman.com`
+- Password: `SuperAdmin123!`
+- Company: **NONE** (outside all companies)
 
 ### **Apliman Company Admin:**
-- Email: Your existing admin email
+- Email: Your existing admin email (auto-converted to COMPANY_ADMIN)
 - Password: Your existing password
-- Company: Apliman
+- Company: Apliman (regular company)
 
 ### **Test Company Admin:**
 - Email: `admin@testcompany.com`
 - Password: `TestPassword123!`
-- Company: Test Company
+- Company: Test Company (regular company)
 
 ---
 
