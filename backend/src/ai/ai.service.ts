@@ -18,14 +18,54 @@ export class AiService {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
 
-  async summarizeText(text: string, maxLength: number = 150): Promise<string> {
+  /**
+   * Get company's AI API key by user ID
+   */
+  private async getCompanyAiApiKey(userId?: string): Promise<string | null> {
+    if (!userId) {
+      // Fallback to system default API key
+      return this.configService.get<string>('AI_API_KEY');
+    }
+
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+
+      if (!user?.companyId) {
+        // Super admin or no company - use system default
+        return this.configService.get<string>('AI_API_KEY');
+      }
+
+      const company = await this.prisma.company.findUnique({
+        where: { id: user.companyId },
+        select: { aiApiKey: true, aiEnabled: true },
+      });
+
+      if (!company?.aiEnabled || !company?.aiApiKey) {
+        // Company AI not enabled - use system default
+        return this.configService.get<string>('AI_API_KEY');
+      }
+
+      return company.aiApiKey;
+    } catch (error) {
+      this.logger.error('Error fetching company AI key:', error);
+      return this.configService.get<string>('AI_API_KEY');
+    }
+  }
+
+  async summarizeText(text: string, maxLength: number = 150, userId?: string): Promise<string> {
     try {
       this.logger.log(`Summarizing text: ${text.length} characters`);
+      
+      const apiKey = await this.getCompanyAiApiKey(userId);
       
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/summarize`, {
           text,
           max_length: maxLength,
+          api_key: apiKey, // Pass company-specific API key
         }, {
           timeout: 10000, // 10 second timeout
         }),
@@ -43,17 +83,20 @@ export class AiService {
     }
   }
 
-  async analyzePriority(taskTitle: string, taskDescription: string): Promise<{
+  async analyzePriority(taskTitle: string, taskDescription: string, userId?: string): Promise<{
     suggestedPriority: number;
     reasoning: string;
   }> {
     try {
       this.logger.log(`Analyzing priority for: ${taskTitle}`);
       
+      const apiKey = await this.getCompanyAiApiKey(userId);
+      
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/analyze-priority`, {
           title: taskTitle,
           description: taskDescription,
+          api_key: apiKey, // Pass company-specific API key
         }, {
           timeout: 10000, // 10 second timeout
         }),
@@ -78,6 +121,7 @@ export class AiService {
     taskDescription: string,
     goals: string,
     currentPhase: string,
+    userId?: string,
   ): Promise<{
     completenessScore: number;
     suggestions: string[];
