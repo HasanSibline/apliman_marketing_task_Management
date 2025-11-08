@@ -43,10 +43,19 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
     
+    // Check if company is active (if user has a company)
+    if (user.companyId) {
+      const company = await this.usersService.findCompanyById(user.companyId);
+      if (!company || !company.isActive || company.subscriptionStatus === 'SUSPENDED') {
+        throw new UnauthorizedException('Company account is suspended or inactive');
+      }
+    }
+    
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      companyId: user.companyId, // Add companyId to JWT
     };
 
     const accessToken = this.jwtService.sign(payload);
@@ -59,6 +68,7 @@ export class AuthService {
         role: user.role,
         position: user.position,
         status: user.status,
+        companyId: user.companyId, // Include in response
       },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),

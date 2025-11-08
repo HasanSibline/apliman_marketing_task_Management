@@ -34,8 +34,8 @@ export class UsersController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all users (Admin/Super Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all users (Admin only - filtered by company)' })
   @ApiQuery({ name: 'role', enum: UserRole, required: false })
   @ApiQuery({ name: 'status', enum: UserStatus, required: false })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })
@@ -43,16 +43,20 @@ export class UsersController {
   findAll(
     @Query('role') role?: UserRole,
     @Query('status') status?: UserStatus,
+    @Request() req?,
   ) {
-    return this.usersService.findAll(role, status);
+    // Super admins can see all users, others only see their company
+    const companyId = req.user.role === UserRole.SUPER_ADMIN ? undefined : req.user.companyId;
+    return this.usersService.findAll(role, status, companyId);
   }
 
   @Get('assignable')
-  @ApiOperation({ summary: 'Get assignable users for task creation (All authenticated users)' })
+  @ApiOperation({ summary: 'Get assignable users for task creation (Company users only)' })
   @ApiResponse({ status: 200, description: 'Assignable users retrieved successfully' })
-  getAssignableUsers() {
-    // Return all active users for task assignment
-    return this.usersService.findAll(undefined, UserStatus.ACTIVE);
+  getAssignableUsers(@Request() req) {
+    // Return only active users from the same company
+    const companyId = req.user.role === UserRole.SUPER_ADMIN ? undefined : req.user.companyId;
+    return this.usersService.findAll(undefined, UserStatus.ACTIVE, companyId);
   }
 
   @Get('me')

@@ -43,7 +43,7 @@ export class UsersService {
     }
   }
 
-  async findAll(role?: UserRole, status?: UserStatus) {
+  async findAll(role?: UserRole, status?: UserStatus, companyId?: string) {
     const where: Prisma.UserWhereInput = {};
     
     if (role) {
@@ -52,6 +52,11 @@ export class UsersService {
     
     if (status) {
       where.status = status;
+    }
+
+    // Filter by company if provided (skip for SUPER_ADMIN queries)
+    if (companyId !== undefined) {
+      where.companyId = companyId;
     }
 
     return this.prisma.user.findMany({
@@ -63,6 +68,7 @@ export class UsersService {
         role: true,
         position: true,
         status: true,
+        companyId: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
@@ -113,10 +119,27 @@ export class UsersService {
         role: true,
         position: true,
         status: true,
+        companyId: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
         password: true, // Include password for authentication
+      },
+    });
+  }
+
+  /**
+   * Find company by ID (for login validation)
+   */
+  async findCompanyById(companyId: string) {
+    return this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        id: true,
+        name: true,
+        isActive: true,
+        subscriptionStatus: true,
+        subscriptionEnd: true,
       },
     });
   }
