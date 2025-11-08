@@ -11,9 +11,10 @@ datasource db {
 }
 
 enum UserRole {
-  SUPER_ADMIN
-  ADMIN
-  EMPLOYEE
+  SUPER_ADMIN    // System administrator - manages all companies
+  COMPANY_ADMIN  // Company administrator - manages their company
+  ADMIN          // Department admin
+  EMPLOYEE       // Regular user
 }
 
 enum UserStatus {
@@ -33,9 +34,122 @@ enum TaskPhase {
   ARCHIVED
 }
 
+// Multi-Tenancy: Company/Tenant model
+model Company {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  slug          String   @unique // URL-friendly name
+  logo          String? // Base64 or URL
+  primaryColor  String   @default("#3B82F6")
+  isActive      Boolean  @default(true)
+  
+  // Subscription
+  subscriptionPlan     String   @default("FREE") // FREE, PRO, ENTERPRISE
+  subscriptionStatus   String   @default("ACTIVE") // ACTIVE, TRIAL, EXPIRED, SUSPENDED
+  subscriptionStart    DateTime @default(now())
+  subscriptionEnd      DateTime?
+  monthlyPrice         Float    @default(0)
+  
+  // AI Configuration - Each company has their own AI key
+  aiApiKey             String? // Encrypted API key for AI services
+  aiProvider           String   @default("gemini") // gemini, openai, etc.
+  aiEnabled            Boolean  @default(false) // Controlled by having API key
+  
+  // Resource Limits
+  maxUsers      Int      @default(10)
+  maxTasks      Int      @default(1000)
+  maxStorage    Int      @default(5) // GB
+  
+  // Billing
+  billingEmail  String?
+  billingAddress String?
+  
+  // Metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String? // Super admin ID who created it
+  
+  // Relations
+  users         User[]
+  tasks         Task[]
+  workflows     Workflow[]
+  settings      CompanySettings?
+  subscriptionHistory SubscriptionHistory[]
+  chatSessions  ChatSession[]
+  knowledgeSources KnowledgeSource[]
+  aiUsageStats  CompanyAIUsage[]
+  
+  @@map("companies")
+}
+
+// Company-specific settings
+model CompanySettings {
+  id                String  @id @default(uuid())
+  companyId         String  @unique
+  company           Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  // Branding
+  secondaryColor    String  @default("#6B7280")
+  accentColor       String  @default("#10B981")
+  customDomain      String?
+  favicon           String?
+  
+  // Features
+  analyticsEnabled  Boolean @default(true)
+  chatEnabled       Boolean @default(true)
+  apiAccess         Boolean @default(false)
+  
+  // Localization
+  timezone          String  @default("UTC")
+  dateFormat        String  @default("MM/DD/YYYY")
+  language          String  @default("en")
+  
+  // Notifications
+  emailNotifications Boolean @default(true)
+  webhookUrl         String?
+  
+  @@map("company_settings")
+}
+
+// Track subscription changes and history
+model SubscriptionHistory {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  action      String // CREATED, UPGRADED, DOWNGRADED, RENEWED, SUSPENDED, EXPIRED, REACTIVATED
+  fromPlan    String?
+  toPlan      String
+  amount      Float?
+  reason      String?
+  performedBy String // Super admin ID
+  
+  createdAt   DateTime @default(now())
+  
+  @@map("subscription_history")
+}
+
+// Track AI usage per company for billing/analytics
+model CompanyAIUsage {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  date        DateTime @default(now()) // Daily tracking
+  messageCount Int     @default(0) // Number of AI messages
+  tokensUsed  Int      @default(0) // API tokens consumed
+  cost        Float    @default(0) // Estimated cost
+  
+  @@unique([companyId, date])
+  @@map("company_ai_usage")
+}
+
 model User {
   id           String     @id @default(uuid())
-  email        String     @unique
+  companyId    String?    // NULL for SUPER_ADMIN, required for others
+  company      Company?   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  email        String
   name         String
   password     String
   role         UserRole   @default(EMPLOYEE)
@@ -62,11 +176,16 @@ model User {
   chatSessions       ChatSession[]
   chatContext        UserChatContext?
 
+  // Email must be unique within a company (allow same email across companies)
+  @@unique([email, companyId])
   @@map("users")
 }
 
 model Task {
   id             String    @id @default(uuid())
+  companyId      String
+  company        Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
   title          String
   description    String
   taskType       String?
@@ -193,7 +312,10 @@ model Notification {
 
 model Workflow {
   id          String   @id @default(uuid())
-  name        String   @unique
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
+  name        String
   description String?
   taskType    String
   isActive    Boolean  @default(true)
@@ -208,6 +330,8 @@ model Workflow {
   phases Phase[]
   tasks  Task[]
 
+  // Unique name per company
+  @@unique([name, companyId])
   @@map("workflows")
 }
 
@@ -351,6 +475,9 @@ enum KnowledgeSourceType {
 
 model KnowledgeSource {
   id            String              @id @default(uuid())
+  companyId     String
+  company       Company             @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
   name          String // Display name (e.g., "Apliman Main Site", "Competitor X")
   url           String // URL to scrape
   type          KnowledgeSourceType // APLIMAN or COMPETITOR
@@ -371,6 +498,9 @@ model KnowledgeSource {
 
 model ChatSession {
   id        String        @id @default(uuid())
+  companyId String
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  
   userId    String
   user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String        @default("New Chat") // Auto-generated or custom
