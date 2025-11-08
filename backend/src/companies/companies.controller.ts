@@ -5,12 +5,11 @@ import {
   Body,
   Patch,
   Param,
-  Delete,
   UseGuards,
   Req,
   HttpCode,
   HttpStatus,
-} from '@nestjs/swagger';
+} from '@nestjs/common';
 import { CompaniesService } from './companies.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -19,7 +18,7 @@ import { ResetCompanyAdminPasswordDto } from './dto/reset-admin-password.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
-import { UserRole } from '@prisma/client';
+import { UserRole } from '../types/prisma';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Companies (Super Admin Only)')

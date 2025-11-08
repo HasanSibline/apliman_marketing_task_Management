@@ -110,7 +110,9 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return this.prisma.user.findUnique({
+    // Email is not unique alone (compound unique with companyId)
+    // Use findFirst to get any user with this email
+    return this.prisma.user.findFirst({
       where: { email },
       select: {
         id: true,
