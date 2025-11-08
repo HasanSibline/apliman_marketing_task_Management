@@ -18,8 +18,8 @@ export class WorkflowsController {
   }
 
   @Get()
-  async getWorkflows(@Query('taskType') taskType?: string) {
-    return this.workflowsService.getWorkflows(taskType);
+  async getWorkflows(@Query('taskType') taskType?: string, @Request() req?) {
+    return this.workflowsService.getWorkflows(taskType, req?.user?.id);
   }
 
   @Get(':id')

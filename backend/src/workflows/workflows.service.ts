@@ -6,11 +6,41 @@ import { CreateWorkflowDto } from './dto/create-workflow.dto';
 export class WorkflowsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Get user's companyId for filtering
+   */
+  private async getUserCompanyId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true },
+    });
+    
+    if (user?.role === 'SUPER_ADMIN') {
+      return null; // Super admin sees all workflows
+    }
+    
+    return user?.companyId || null;
+  }
+
   async createWorkflow(dto: CreateWorkflowDto, userId: string) {
-    // If setting as default, unset other defaults for this task type
+    // Get user's company
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true },
+    });
+
+    if (!user?.companyId && user?.role !== 'SUPER_ADMIN') {
+      throw new BadRequestException('User must belong to a company to create workflows');
+    }
+
+    // If setting as default, unset other defaults for this task type IN THE SAME COMPANY
     if (dto.isDefault) {
       await this.prisma.workflow.updateMany({
-        where: { taskType: dto.taskType, isDefault: true },
+        where: { 
+          taskType: dto.taskType, 
+          isDefault: true,
+          companyId: user.companyId, // Only within the company
+        },
         data: { isDefault: false },
       });
     }
@@ -24,6 +54,7 @@ export class WorkflowsService {
         isDefault: dto.isDefault || false,
         color: dto.color || '#3B82F6',
         createdById: userId,
+        companyId: user.companyId, // Add company isolation
         phases: {
           create: dto.phases.map((phase, index) => ({
             name: phase.name,
@@ -63,9 +94,19 @@ export class WorkflowsService {
     return this.getWorkflowById(workflow.id);
   }
 
-  async getWorkflows(taskType?: string) {
+  async getWorkflows(taskType?: string, userId?: string) {
+    // Get company filter
+    let companyId: string | null = null;
+    if (userId) {
+      companyId = await this.getUserCompanyId(userId);
+    }
+
     const workflows = await this.prisma.workflow.findMany({
-      where: taskType ? { taskType, isActive: true } : { isActive: true },
+      where: { 
+        ...(taskType && { taskType }),
+        isActive: true,
+        ...(companyId && { companyId }), // Filter by company
+      },
       include: {
         phases: { orderBy: { order: 'asc' } },
         _count: { select: { tasks: true } },
@@ -103,9 +144,20 @@ export class WorkflowsService {
     return workflow;
   }
 
-  async getDefaultWorkflow(taskType: string) {
+  async getDefaultWorkflow(taskType: string, userId?: string) {
+    // Get company filter
+    let companyId: string | null = null;
+    if (userId) {
+      companyId = await this.getUserCompanyId(userId);
+    }
+
     const workflow = await this.prisma.workflow.findFirst({
-      where: { taskType, isDefault: true, isActive: true },
+      where: { 
+        taskType, 
+        isDefault: true, 
+        isActive: true,
+        ...(companyId && { companyId }), // Filter by company
+      },
       include: { phases: { orderBy: { order: 'asc' } } },
     });
 

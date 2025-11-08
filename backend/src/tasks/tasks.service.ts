@@ -87,21 +87,28 @@ export class TasksService {
         
         // Try to get default workflow, but fallback to ANY workflow if not found
         try {
-          workflow = await this.workflowsService.getDefaultWorkflow(taskType);
+          workflow = await this.workflowsService.getDefaultWorkflow(taskType, creatorId);
         } catch (error) {
           console.log(`No default workflow for ${taskType}, trying to find any workflow...`);
           
-          // Fallback 1: Try to find ANY workflow of this task type
+          // Fallback 1: Try to find ANY workflow of this task type within company
           workflow = await this.prisma.workflow.findFirst({
-            where: { taskType, isActive: true },
+            where: { 
+              taskType, 
+              isActive: true,
+              companyId: creator.companyId,
+            },
             include: { phases: { orderBy: { order: 'asc' } } },
           });
           
-          // Fallback 2: If still no workflow, get ANY active workflow
+          // Fallback 2: If still no workflow, get ANY active workflow in company
           if (!workflow) {
             console.log('No workflow found for task type, using first available workflow...');
             workflow = await this.prisma.workflow.findFirst({
-              where: { isActive: true },
+              where: { 
+                isActive: true,
+                companyId: creator.companyId,
+              },
               include: { phases: { orderBy: { order: 'asc' } } },
             });
           }
