@@ -36,10 +36,17 @@ export class ChatService {
       if (session) return session;
     }
 
+    // Get user's companyId
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
     // Create new session
     return this.prisma.chatSession.create({
       data: {
         userId,
+        companyId: user?.companyId,
         title: 'New Chat',
         isActive: true,
       },

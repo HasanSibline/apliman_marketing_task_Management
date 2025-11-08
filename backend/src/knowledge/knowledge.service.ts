@@ -18,8 +18,30 @@ export class KnowledgeService {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
 
-  async findAll() {
+  /**
+   * Get user's companyId for filtering
+   */
+  private async getUserCompanyId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true },
+    });
+    
+    if (user?.role === 'SUPER_ADMIN') {
+      return null;
+    }
+    
+    return user?.companyId || null;
+  }
+
+  async findAll(userId?: string) {
+    let companyId: string | null = null;
+    if (userId) {
+      companyId = await this.getUserCompanyId(userId);
+    }
+
     return this.prisma.knowledgeSource.findMany({
+      where: companyId ? { companyId } : {},
       include: {
         createdBy: {
           select: {
@@ -36,10 +58,16 @@ export class KnowledgeService {
     });
   }
 
-  async findActive() {
+  async findActive(userId?: string) {
+    let companyId: string | null = null;
+    if (userId) {
+      companyId = await this.getUserCompanyId(userId);
+    }
+
     return this.prisma.knowledgeSource.findMany({
       where: {
         isActive: true,
+        ...(companyId && { companyId }),
       },
       orderBy: [
         { priority: 'desc' },
@@ -64,10 +92,17 @@ export class KnowledgeService {
   }
 
   async create(createDto: CreateKnowledgeSourceDto, userId: string) {
+    // Get user's company
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
     const source = await this.prisma.knowledgeSource.create({
       data: {
         ...createDto,
         createdById: userId,
+        companyId: user?.companyId,
       },
       include: {
         createdBy: {
