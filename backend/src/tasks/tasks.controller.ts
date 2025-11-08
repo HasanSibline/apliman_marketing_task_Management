@@ -113,8 +113,8 @@ export class TasksController {
   @Get('phases/count')
   @ApiOperation({ summary: 'Get task count by workflow (all users)' })
   @ApiResponse({ status: 200, description: 'Task counts retrieved successfully' })
-  getTasksByPhase() {
-    return this.tasksService.getTasksByPhase();
+  getTasksByPhase(@Request() req) {
+    return this.tasksService.getTasksByPhase(req.user?.id);
   }
 
   @Get(':id')

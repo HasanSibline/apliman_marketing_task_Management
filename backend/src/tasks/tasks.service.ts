@@ -17,13 +17,42 @@ export class TasksService {
     private readonly aiService: AiService,
   ) {}
 
+  /**
+   * Get user's companyId for filtering
+   * Returns null for SUPER_ADMIN (can see all companies)
+   */
+  private async getUserCompanyId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true },
+    });
+    
+    // Super admin has no company filter
+    if (user?.role === 'SUPER_ADMIN') {
+      return null;
+    }
+    
+    return user?.companyId || null;
+  }
+
   async create(createTaskDto: CreateTaskDto, creatorId: string) {
     try {
-      // Check for duplicate task names
+      // Get creator's company
+      const creator = await this.prisma.user.findUnique({
+        where: { id: creatorId },
+        select: { companyId: true, role: true },
+      });
+
+      if (!creator?.companyId && creator?.role !== 'SUPER_ADMIN') {
+        throw new BadRequestException('User must belong to a company to create tasks');
+      }
+
+      // Check for duplicate task names within the company
       const existingTask = await this.prisma.task.findFirst({
         where: {
           title: createTaskDto.title,
-          taskType: { not: 'SUBTASK' }, // Only check parent tasks
+          taskType: { not: 'SUBTASK' },
+          companyId: creator.companyId, // Check within company only
         },
       });
 
@@ -113,6 +142,7 @@ export class TasksService {
           dueDate: createTaskDto.dueDate ? new Date(createTaskDto.dueDate) : null,
           createdById: creatorId,
           assignedToId: createTaskDto.assignedToId,
+          companyId: creator.companyId, // Add company isolation
         },
         include: {
           workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
@@ -219,6 +249,7 @@ export class TasksService {
                 dueDate: task.dueDate, // Inherit due date from parent
                 parentTaskId: task.id, // Link to parent task
                 subtaskId: createdSubtask.id, // Link to subtask record
+                companyId: task.companyId, // Inherit from parent task
               },
               include: {
                 assignedTo: { select: { id: true, name: true, email: true, position: true } },
@@ -665,6 +696,7 @@ export class TasksService {
             dueDate: task.dueDate,
             parentTaskId: task.id,
             subtaskId: subtask.id, // This creates the linkedTask relation
+            companyId: task.companyId, // Inherit from parent task
           },
         });
 
@@ -769,6 +801,15 @@ export class TasksService {
   ) {
     const skip = (page - 1) * limit;
     const where: any = {};
+
+    // Filter by company (critical for data isolation)
+    if (userId) {
+      const companyId = await this.getUserCompanyId(userId);
+      if (companyId) {
+        where.companyId = companyId;
+      }
+      // Super admins (companyId = null) see all tasks
+    }
 
     // Filter OUT subtask-type tasks (show all regular task types like GENERAL, SOCIAL_MEDIA, etc.)
     // Subtasks are displayed within their parent task details
@@ -1527,15 +1568,25 @@ export class TasksService {
     return { message: 'Phase change rejected', approval };
   }
 
-  async getTasksByPhase() {
+  async getTasksByPhase(userId?: string) {
+    // Get user's company for filtering
+    let companyId: string | null = null;
+    if (userId) {
+      companyId = await this.getUserCompanyId(userId);
+    }
+
     // Get all workflows with their task counts (exclude SUBTASK type, count all others)
     // This dynamically fetches ALL workflows, so new/deleted workflows are automatically handled
     const workflows = await this.prisma.workflow.findMany({
       where: {
         isActive: true, // Only show active workflows
+        ...(companyId && { companyId }), // Filter by company
       },
       include: {
         tasks: {
+          where: {
+            ...(companyId && { companyId }), // Filter tasks by company
+          },
           select: {
             taskType: true,
           },
@@ -1548,6 +1599,7 @@ export class TasksService {
 
     console.log('=== getTasksByPhase called ===');
     console.log('Found workflows:', workflows.length);
+    console.log('Company filter:', companyId || 'ALL (Super Admin)');
 
     // Transform to workflow counts with colors
     const workflowData = workflows.reduce((acc, workflow) => {
