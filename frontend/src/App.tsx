@@ -22,6 +22,11 @@ import ActivityPage from '@/pages/ActivityPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import KnowledgeSourcesPage from '@/pages/admin/KnowledgeSourcesPage'
 
+// Super Admin Pages
+import SuperAdminDashboard from '@/pages/SuperAdminDashboard'
+import CreateCompany from '@/pages/CreateCompany'
+import CompanyDetails from '@/pages/CompanyDetails'
+
 function App() {
   const dispatch = useAppDispatch()
   const { isAuthenticated, isLoading, user } = useAppSelector((state) => state.auth)
@@ -89,6 +94,12 @@ function App() {
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="admin/knowledge-sources" element={<KnowledgeSourcesPage />} />
+        
+        {/* Super Admin Routes */}
+        <Route path="super-admin/companies" element={<SuperAdminDashboard />} />
+        <Route path="super-admin/companies/create" element={<CreateCompany />} />
+        <Route path="super-admin/companies/:id" element={<CompanyDetails />} />
+        <Route path="super-admin/companies/:id/edit" element={<CreateCompany />} />
       </Route>
 
       {/* 404 Route */}
