@@ -19,6 +19,20 @@ export class TasksService {
 
   async create(createTaskDto: CreateTaskDto, creatorId: string) {
     try {
+      // Check for duplicate task names
+      const existingTask = await this.prisma.task.findFirst({
+        where: {
+          title: createTaskDto.title,
+          taskType: { not: 'SUBTASK' }, // Only check parent tasks
+        },
+      });
+
+      if (existingTask) {
+        throw new BadRequestException(
+          `A task with the title "${createTaskDto.title}" already exists. Please use a unique title.`
+        );
+      }
+
       let taskType = 'GENERAL';
       let workflow;
       

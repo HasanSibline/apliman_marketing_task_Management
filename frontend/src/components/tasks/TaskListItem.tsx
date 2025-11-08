@@ -119,6 +119,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
   const PriorityIcon = priorityConfig.icon
   
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completedAt
+  const isLate = task.dueDate && new Date(task.dueDate) < new Date() && !task.completedAt
   const subtaskProgress = task.subtasks ? 
     `${task.subtasks.filter(s => s.isCompleted).length}/${task.subtasks.length}` : null
 
@@ -214,11 +215,11 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
             </div>
           )}
 
-          {/* Overdue Warning */}
-          {isOverdue && (
-            <div className="inline-flex items-center gap-1 bg-red-100 text-red-700 px-2 py-0.5 rounded">
+          {/* Late Tag - Prominent Display */}
+          {isLate && (
+            <div className="inline-flex items-center gap-1 bg-red-600 text-white px-2 py-0.5 rounded">
               <ExclamationTriangleIcon className="h-3 w-3" />
-              <span className="text-xs font-semibold">Overdue</span>
+              <span className="text-xs font-semibold">Late</span>
             </div>
           )}
 

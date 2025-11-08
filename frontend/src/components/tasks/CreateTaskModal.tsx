@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
-import { createTask, fetchTasks } from '@/store/slices/tasksSlice'
+import { createTask } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
 import { workflowsApi } from '@/services/api'
 import { Workflow } from '@/types/task'
@@ -253,12 +253,6 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       if (createTask.fulfilled.match(result)) {
         toast.success('Task created successfully!')
         
-        // Dispatch custom event to notify NotificationBell
-        window.dispatchEvent(new CustomEvent('taskUpdated'))
-        
-        // Fetch all tasks to sync with server (no pagination limit)
-        await dispatch(fetchTasks({ limit: 10000 }))
-        
         // Close modal and reset form
         onClose()
         setFormData({
@@ -275,8 +269,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
         })
         setAiGeneratedSubtasks([]) // Clear AI subtasks
 
-        // No need to fetch all tasks - the new task is already added to Redux state
-        // This prevents duplicate tasks from appearing
+        // Dispatch custom event to notify NotificationBell
+        window.dispatchEvent(new CustomEvent('taskUpdated'))
+        
+        // The Redux state already has the new task, no need to fetch again
       }
     } catch (error: any) {
       console.error('Error creating task:', error)

@@ -37,6 +37,38 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const { user } = useSelector((state: RootState) => state.auth)
 
+  // Humanize AI responses by removing markdown formatting
+  const humanizeText = (text: string): string => {
+    return text
+      // Remove bold markers (**text** or __text__)
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/__(.+?)__/g, '$1')
+      // Remove italic markers (*text* or _text_)
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/_(.+?)_/g, '$1')
+      // Remove strikethrough (~~text~~)
+      .replace(/~~(.+?)~~/g, '$1')
+      // Remove code blocks (```code```)
+      .replace(/```[\s\S]*?```/g, (match) => {
+        return match.replace(/```/g, '').trim()
+      })
+      // Remove inline code (`code`)
+      .replace(/`(.+?)`/g, '$1')
+      // Remove headers (# Header)
+      .replace(/^#{1,6}\s+(.+)$/gm, '$1')
+      // Remove list markers (- item or * item)
+      .replace(/^[\*\-]\s+(.+)$/gm, '$1')
+      // Remove numbered lists (1. item)
+      .replace(/^\d+\.\s+(.+)$/gm, '$1')
+      // Remove blockquotes (> quote)
+      .replace(/^>\s+(.+)$/gm, '$1')
+      // Remove links [text](url)
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+      // Clean up extra newlines
+      .replace(/\n{3,}/g, '\n\n')
+      .trim()
+  }
+
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -450,7 +482,9 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     : 'bg-white text-gray-900 border border-gray-200'
                 }`}
               >
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {message.role === 'assistant' ? humanizeText(message.content) : message.content}
+                    </p>
                 <p
                       className={`text-xs mt-1.5 ${
                         message.role === 'user' ? 'text-primary-100' : 'text-gray-400'
@@ -473,7 +507,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <CpuChipIcon className="w-5 h-5" />
                   </div>
                   <div className="max-w-[75%] bg-white text-gray-900 border border-gray-200 rounded-xl px-3.5 py-2.5 shadow-sm">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{streamingMessage}</p>
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{humanizeText(streamingMessage)}</p>
                   </div>
                 </motion.div>
               )}

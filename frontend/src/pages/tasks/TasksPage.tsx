@@ -182,7 +182,7 @@ const TasksPage: React.FC = () => {
               <div className="p-2 bg-primary-100 rounded-lg">
                 <FunnelIcon className="h-5 w-5 text-primary-600" />
               </div>
-              <div>
+            <div>
                 <h3 className="text-lg font-bold text-gray-900">Filter Tasks</h3>
                 <p className="text-sm text-gray-500">Refine your search criteria</p>
               </div>
@@ -452,7 +452,7 @@ const TasksPage: React.FC = () => {
                             <TaskListItem task={task} />
                           </motion.div>
                         ))}
-                      </div>
+                  </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -465,7 +465,7 @@ const TasksPage: React.FC = () => {
       {/* Completed Tasks Section */}
       {!isLoading && completedTasks.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <button
+            <button
             onClick={() => toggleSection('Completed Tasks')}
             className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-l-4 border-green-500"
           >
@@ -486,7 +486,7 @@ const TasksPage: React.FC = () => {
             <div className="text-sm text-green-600 font-medium">
               ✓ All Done
             </div>
-          </button>
+            </button>
 
           <AnimatePresence>
             {!collapsedSections.has('Completed Tasks') && (
@@ -512,7 +512,7 @@ const TasksPage: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+          </div>
       )}
 
       {/* Task Count */}

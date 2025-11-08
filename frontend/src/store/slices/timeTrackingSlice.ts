@@ -43,6 +43,11 @@ const timeTrackingSlice = createSlice({
   initialState: loadFromStorage(),
   reducers: {
     startTimer: (state, action: PayloadAction<string>) => {
+      // If starting a different task, reset elapsed time
+      // If resuming same task, keep elapsed time
+      if (state.activeTaskId !== action.payload) {
+        state.elapsedTime = 0
+      }
       state.activeTaskId = action.payload
       state.startTime = Date.now()
       state.isRunning = true
@@ -63,14 +68,26 @@ const timeTrackingSlice = createSlice({
       saveToStorage(state)
     },
     stopTimer: (state) => {
-      state.activeTaskId = null
+      // Save elapsed time before stopping (don't reset it)
+      if (state.startTime && state.isRunning) {
+        const elapsed = Math.floor((Date.now() - state.startTime) / 1000)
+        state.elapsedTime += elapsed
+      }
+      // Keep the activeTaskId and elapsedTime, only stop the timer
       state.startTime = null
-      state.elapsedTime = 0
       state.isRunning = false
       saveToStorage(state)
     },
     updateElapsedTime: (state, action: PayloadAction<number>) => {
       state.elapsedTime = action.payload
+      saveToStorage(state)
+    },
+    resetTimer: (state) => {
+      // New action to completely reset timer (when needed)
+      state.activeTaskId = null
+      state.startTime = null
+      state.elapsedTime = 0
+      state.isRunning = false
       saveToStorage(state)
     },
   },
@@ -84,6 +101,6 @@ const saveToStorage = (state: TimeTrackingState) => {
   }
 }
 
-export const { startTimer, pauseTimer, resumeTimer, stopTimer, updateElapsedTime } = timeTrackingSlice.actions
+export const { startTimer, pauseTimer, resumeTimer, stopTimer, updateElapsedTime, resetTimer } = timeTrackingSlice.actions
 export default timeTrackingSlice.reducer
 

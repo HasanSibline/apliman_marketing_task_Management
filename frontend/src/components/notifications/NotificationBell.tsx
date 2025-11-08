@@ -109,6 +109,18 @@ const NotificationBell: React.FC = () => {
     }
   }
 
+  const clearAllNotifications = async () => {
+    try {
+      // Delete all notifications
+      await Promise.all(notifications.map(notif => notificationsApi.deleteNotification(notif.id)))
+      setNotifications([])
+      setUnreadCount(0)
+      toast.success('All notifications cleared')
+    } catch (error) {
+      toast.error('Failed to clear notifications')
+    }
+  }
+
   const deleteNotification = async (notificationId: string) => {
     try {
       await notificationsApi.deleteNotification(notificationId)
@@ -183,7 +195,7 @@ const NotificationBell: React.FC = () => {
             className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
           >
             <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
                 {unreadCount > 0 && (
                   <button
@@ -194,6 +206,14 @@ const NotificationBell: React.FC = () => {
                   </button>
                 )}
               </div>
+              {notifications.length > 0 && (
+                <button
+                  onClick={clearAllNotifications}
+                  className="text-sm text-red-600 hover:text-red-700 w-full text-left"
+                >
+                  Clear all notifications
+                </button>
+              )}
             </div>
 
             <div className="max-h-96 overflow-y-auto">
