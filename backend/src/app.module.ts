@@ -13,6 +13,7 @@ import { AiModule } from './ai/ai.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 import { KnowledgeModule } from './knowledge/knowledge.module';
 import { ChatModule } from './chat/chat.module';
+import { CompaniesModule } from './companies/companies.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -35,6 +36,7 @@ import { AppService } from './app.service';
     WorkflowsModule,
     KnowledgeModule,
     ChatModule,
+    CompaniesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
