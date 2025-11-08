@@ -36,8 +36,8 @@ export class AnalyticsController {
   @ApiOperation({ summary: 'Get dashboard statistics (Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'Dashboard statistics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  getDashboardStats() {
-    return this.analyticsService.getDashboardStats();
+  getDashboardStats(@Request() req) {
+    return this.analyticsService.getDashboardStats(req.user?.id);
   }
 
   @Get('dashboard/me')
@@ -101,8 +101,8 @@ export class AnalyticsController {
   @ApiOperation({ summary: 'Get team analytics (Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'Team analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  getTeamAnalytics() {
-    return this.analyticsService.getTeamAnalytics();
+  getTeamAnalytics(@Request() req) {
+    return this.analyticsService.getTeamAnalytics(req.user?.id);
   }
 
   @Get('tasks')
@@ -111,8 +111,8 @@ export class AnalyticsController {
   @ApiOperation({ summary: 'Get task analytics (Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'Task analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  async getTaskAnalytics() {
-    return this.analyticsService.getDashboardStats();
+  async getTaskAnalytics(@Request() req) {
+    return this.analyticsService.getDashboardStats(req.user?.id);
   }
 
   @Get('tasks/me')

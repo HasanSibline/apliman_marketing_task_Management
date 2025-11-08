@@ -13,6 +13,22 @@ export class AnalyticsService {
     private readonly configService: ConfigService,
   ) {}
 
+  /**
+   * Get user's companyId for filtering
+   */
+  private async getUserCompanyId(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true },
+    });
+    
+    if (user?.role === UserRole.SUPER_ADMIN) {
+      return null; // Super admin sees all companies
+    }
+    
+    return user?.companyId || null;
+  }
+
   // Helper method to get completed tasks (temporary workaround)
   private async getCompletedTasksCount(whereClause: any = {}) {
     // Get tasks in "Completed" or "Published" phases
@@ -77,31 +93,47 @@ export class AnalyticsService {
     });
   }
 
-  async getDashboardStats() {
+  async getDashboardStats(userId?: string) {
+    // Get company filter
+    let companyId: string | null = null;
+    if (userId) {
+      companyId = await this.getUserCompanyId(userId);
+    }
+
+    const companyFilter = companyId ? { companyId } : {};
+
     const [
       totalUsers,
       activeUsers,
       totalTasks,
     ] = await Promise.all([
       this.prisma.user.count({
-        where: { status: { not: 'RETIRED' } },
+        where: { 
+          status: { not: 'RETIRED' },
+          ...companyFilter,
+        },
       }),
       this.prisma.user.count({
-        where: { status: 'ACTIVE' },
+        where: { 
+          status: 'ACTIVE',
+          ...companyFilter,
+        },
       }),
-      this.prisma.task.count({ /* where: { taskType: 'MAIN' } */ }), // Count all tasks
+      this.prisma.task.count({ 
+        where: companyFilter,
+      }),
     ]);
 
     // Get completed tasks using workflow phases
-    const completedTasks = await this.getCompletedTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
-    const inProgressTasks = await this.getInProgressTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
-    const pendingTasks = await this.getPendingTasksCount({ /* taskType: 'MAIN' */ }); // Count all tasks
+    const completedTasks = await this.getCompletedTasksCount(companyFilter);
+    const inProgressTasks = await this.getInProgressTasksCount(companyFilter);
+    const pendingTasks = await this.getPendingTasksCount(companyFilter);
 
     // Get overdue tasks
     const now = new Date();
     const overdueTasks = await this.prisma.task.count({
-        where: {
-        // taskType: 'MAIN',  // Count all tasks
+      where: {
+        ...companyFilter,
         dueDate: { lt: now },
         currentPhaseId: { 
           notIn: await this.prisma.phase.findMany({
@@ -429,10 +461,21 @@ export class AnalyticsService {
     return result;
   }
 
-  async getTeamAnalytics() {
+  async getTeamAnalytics(userId?: string) {
+    // Get company filter
+    let companyId: string | null = null;
+    if (userId) {
+      companyId = await this.getUserCompanyId(userId);
+    }
+
+    const companyFilter = companyId ? { companyId } : {};
+
     // Simplified team analytics
     const users = await this.prisma.user.findMany({
-      where: { status: { not: 'RETIRED' } },
+      where: { 
+        status: { not: 'RETIRED' },
+        ...companyFilter,
+      },
       select: {
         id: true,
         name: true,
