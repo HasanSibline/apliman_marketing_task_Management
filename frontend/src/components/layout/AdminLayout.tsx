@@ -44,9 +44,9 @@ const AdminLayout: React.FC = () => {
     },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem('token');
-    dispatch(logout());
+    await dispatch(logout());
     navigate('/admin/login');
   };
 
