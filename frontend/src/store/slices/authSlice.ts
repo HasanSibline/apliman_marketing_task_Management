@@ -6,9 +6,10 @@ export interface User {
   id: string
   email: string
   name: string
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'EMPLOYEE'
+  role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE'
   position?: string
   status: 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED'
+  companyId?: string | null
 }
 
 interface AuthState {
