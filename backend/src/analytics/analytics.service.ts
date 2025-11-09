@@ -119,7 +119,7 @@ export class AnalyticsService {
           ...companyFilter,
         },
       }),
-      this.prisma.task.count({ 
+      this.prisma.task.count({
         where: companyFilter,
       }),
     ]);
@@ -132,7 +132,7 @@ export class AnalyticsService {
     // Get overdue tasks
     const now = new Date();
     const overdueTasks = await this.prisma.task.count({
-      where: {
+        where: {
         ...companyFilter,
         dueDate: { lt: now },
         currentPhaseId: { 
@@ -294,7 +294,7 @@ export class AnalyticsService {
     // Check task types distribution
     const tasksByType = await this.prisma.task.groupBy({
       by: ['taskType'],
-      where: { assignedToId: userId },
+        where: { assignedToId: userId },
       _count: true,
     });
     console.log('Tasks by type:', JSON.stringify(tasksByType));
@@ -304,14 +304,14 @@ export class AnalyticsService {
       totalCreatedTasks,
     ] = await Promise.all([
       this.prisma.task.count({
-        where: { 
+        where: {
           assignedToId: userId,
           // Count both MAIN tasks and SUBTASK if they exist
           // taskType: 'MAIN',
         },
       }),
       this.prisma.task.count({
-        where: { 
+        where: {
           createdById: userId,
           // Count both MAIN tasks and SUBTASK if they exist
           // taskType: 'MAIN',
@@ -441,7 +441,7 @@ export class AnalyticsService {
         totalAssignedTasks,
         totalCreatedTasks,
       completedTasks,
-        inProgressTasks,
+      inProgressTasks,
         pendingTasks: totalAssignedTasks - completedTasks - inProgressTasks,
         completionRate: totalAssignedTasks > 0 ? Math.round((completedTasks / totalAssignedTasks) * 100) : 0,
       },
@@ -490,9 +490,9 @@ export class AnalyticsService {
         const [assignedTasks, completedTasks] = await Promise.all([
           this.prisma.task.count({ where: { assignedToId: user.id /* taskType: 'MAIN' */ } }), // Count all tasks
           this.getCompletedTasksCount({ assignedToId: user.id /* taskType: 'MAIN' */ }), // Count all tasks
-        ]);
+    ]);
 
-        return {
+    return {
           ...user,
           assignedTasks,
           completedTasks,
@@ -517,7 +517,7 @@ export class AnalyticsService {
     }).then(phases => phases.map(p => p.id));
 
     const tasksCompletedThisWeek = await this.prisma.task.count({
-      where: {
+        where: { 
         // taskType: 'MAIN',  // Count all tasks
         currentPhaseId: { in: completedPhaseIds },
         updatedAt: { gte: oneWeekAgo },
@@ -533,7 +533,7 @@ export class AnalyticsService {
         totalTasks,
         averageCompletionRate,
         teamPerformance: averageCompletionRate,
-        tasksCompletedThisWeek,
+      tasksCompletedThisWeek,
       },
       totalTimeSpent: 0, // TODO: Implement time tracking
     };

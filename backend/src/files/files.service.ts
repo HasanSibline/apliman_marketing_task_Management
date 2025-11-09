@@ -13,6 +13,35 @@ export class FilesService {
     private readonly configService: ConfigService,
   ) {}
 
+  async uploadSingleFile(file: Express.Multer.File, userId: string) {
+    try {
+      let processedFile = file;
+      
+      // Compress image if it's an image
+      if (file.mimetype.startsWith('image/')) {
+        processedFile = await this.compressImage(file);
+      }
+
+      // Return file URL
+      const baseUrl = this.configService.get('BASE_URL') || 'http://localhost:3000';
+      const fileName = path.basename(processedFile.path);
+      
+      return {
+        url: `${baseUrl}/files/public/${fileName}`,
+        fileName: file.originalname,
+        size: processedFile.size,
+        mimeType: file.mimetype,
+      };
+    } catch (error) {
+      console.error(`Error processing file ${file.originalname}:`, error);
+      // Clean up the file if processing failed
+      if (existsSync(file.path)) {
+        await fs.unlink(file.path).catch(console.error);
+      }
+      throw new BadRequestException(`Failed to process file: ${file.originalname}`);
+    }
+  }
+
   async uploadFiles(taskId: string, files: Express.Multer.File[], userId: string) {
     // Verify task exists and user has access
     const task = await this.prisma.task.findFirst({

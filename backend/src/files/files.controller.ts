@@ -7,6 +7,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  UploadedFile,
   Request,
   Res,
   StreamableFile,
@@ -18,7 +19,7 @@ import {
   ApiBearerAuth,
   ApiConsumes,
 } from '@nestjs/swagger';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { createReadStream } from 'fs';
 import { FilesService } from './files.service';
@@ -33,6 +34,23 @@ import { UserRole } from '../types/prisma';
 @ApiBearerAuth()
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload a single file (logo, avatar, etc.)' })
+  @ApiConsumes('multipart/form-data')
+  @ApiResponse({ status: 201, description: 'File uploaded successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid file' })
+  async uploadFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    if (!file) {
+      throw new Error('No file provided');
+    }
+
+    return this.filesService.uploadSingleFile(file, req.user.id);
+  }
 
   @Post('upload/:taskId')
   @UseInterceptors(FilesInterceptor('files', 10))
