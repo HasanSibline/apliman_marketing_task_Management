@@ -4,7 +4,7 @@ import { useAppSelector } from '@/hooks/redux'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  roles?: ('SUPER_ADMIN' | 'ADMIN' | 'EMPLOYEE')[]
+  roles?: ('SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE')[]
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles }) => {
