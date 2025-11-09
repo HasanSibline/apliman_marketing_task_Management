@@ -5,6 +5,7 @@ import {
   Get,
   UseGuards,
   Logger,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -102,11 +103,11 @@ export class AiController {
   @UseGuards(JwtAuthGuard)
   async generateContent(
     @Body() data: { title: string; type: string },
-    @Req() req: any,
+    @Request() request: any,
   ) {
     try {
       const { title, type } = data;
-      const userId = req.user?.id;
+      const userId = request.user?.id;
       
       // Call the AI service once to get all content
       const response = await this.aiService.generateContentFromAI(title, type, userId);
