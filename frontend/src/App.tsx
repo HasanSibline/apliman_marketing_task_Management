@@ -3,8 +3,9 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { checkAuth } from '@/store/slices/authSlice'
 import { initializeSocket } from '@/store/slices/presenceSlice'
-import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicRoute from '@/components/auth/PublicRoute'
+import AdminRoute from '@/components/auth/AdminRoute'
+import CompanyRoute from '@/components/auth/CompanyRoute'
 import Layout from '@/components/layout/Layout'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import { keepAliveService } from '@/services/keepalive'
@@ -23,6 +24,8 @@ import NotFoundPage from '@/pages/NotFoundPage'
 import KnowledgeSourcesPage from '@/pages/admin/KnowledgeSourcesPage'
 
 // Super Admin Pages
+import AdminLogin from '@/pages/AdminLogin'
+import AdminLayout from '@/components/layout/AdminLayout'
 import SuperAdminDashboard from '@/pages/SuperAdminDashboard'
 import CreateCompany from '@/pages/CreateCompany'
 import CompanyDetails from '@/pages/CompanyDetails'
@@ -75,13 +78,39 @@ function App() {
           }
         />
 
-        {/* Protected Routes */}
+        {/* System Admin Login (Separate Portal) */}
+        <Route
+          path="/admin/login"
+          element={
+            <PublicRoute>
+              <AdminLogin />
+            </PublicRoute>
+          }
+        />
+
+        {/* System Admin Portal (Separate from Company Portal) */}
+        <Route
+          path="/admin"
+          element={
+            <AdminRoute>
+              <AdminLayout />
+            </AdminRoute>
+          }
+        >
+          <Route index element={<Navigate to="/admin/companies" replace />} />
+          <Route path="companies" element={<SuperAdminDashboard />} />
+          <Route path="companies/create" element={<CreateCompany />} />
+          <Route path="companies/:id" element={<CompanyDetails />} />
+          <Route path="companies/:id/edit" element={<CreateCompany />} />
+        </Route>
+
+        {/* Company Portal Routes (Protected) */}
         <Route
           path="/"
           element={
-            <ProtectedRoute>
+            <CompanyRoute>
               <Layout />
-            </ProtectedRoute>
+            </CompanyRoute>
           }
         >
         <Route index element={<Navigate to="/dashboard" replace />} />
@@ -94,12 +123,6 @@ function App() {
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route path="admin/knowledge-sources" element={<KnowledgeSourcesPage />} />
-        
-        {/* Super Admin Routes */}
-        <Route path="super-admin/companies" element={<SuperAdminDashboard />} />
-        <Route path="super-admin/companies/create" element={<CreateCompany />} />
-        <Route path="super-admin/companies/:id" element={<CompanyDetails />} />
-        <Route path="super-admin/companies/:id/edit" element={<CreateCompany />} />
       </Route>
 
       {/* 404 Route */}

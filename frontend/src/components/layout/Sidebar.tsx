@@ -9,7 +9,6 @@ import {
   ChartBarIcon,
   UserCircleIcon,
   GlobeAltIcon,
-  BuildingOfficeIcon,
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -26,16 +25,12 @@ const Sidebar: React.FC = () => {
     { name: 'Knowledge Sources', href: '/admin/knowledge-sources', icon: GlobeAltIcon, adminOnly: true },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
     { name: 'Profile', href: '/profile', icon: UserCircleIcon },
-    { name: 'Companies', href: '/super-admin/companies', icon: BuildingOfficeIcon, superAdminOnly: true },
   ]
 
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN'
-  const isAdmin = isSuperAdmin || user?.role === 'ADMIN'
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'COMPANY_ADMIN'
 
   const filteredNavigation = navigation.filter(item => 
-    (!item.adminOnly && !item.superAdminOnly) || 
-    (item.adminOnly && isAdmin) ||
-    (item.superAdminOnly && isSuperAdmin)
+    !item.adminOnly || isAdmin
   )
 
   return (

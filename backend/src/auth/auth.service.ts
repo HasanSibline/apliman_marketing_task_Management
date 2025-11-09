@@ -43,6 +43,11 @@ export class AuthService {
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
     
+    // Prevent SUPER_ADMIN from using company login
+    if (user.role === UserRole.SUPER_ADMIN && !user.companyId) {
+      throw new UnauthorizedException('System Administrators must use the admin portal at /admin/login');
+    }
+    
     // Check if company is active (if user has a company)
     if (user.companyId) {
       const company = await this.usersService.findCompanyById(user.companyId);
@@ -71,6 +76,41 @@ export class AuthService {
         companyId: user.companyId, // Include in response
       },
       accessToken,
+      expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
+    };
+  }
+
+  async adminLogin(loginDto: LoginDto) {
+    const user = await this.validateUser(loginDto.email, loginDto.password);
+    
+    // Only allow SUPER_ADMIN with NO company
+    if (user.role !== UserRole.SUPER_ADMIN || user.companyId !== null) {
+      throw new UnauthorizedException(
+        'Access denied. This portal is for System Administrators only. ' +
+        'Company users should login at /login'
+      );
+    }
+    
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      companyId: null, // Explicitly null for System Admin
+    };
+
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        position: user.position,
+        status: user.status,
+        companyId: null,
+      },
+      access_token,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
     };
   }

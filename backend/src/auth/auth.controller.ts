@@ -31,7 +31,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'User login' })
+  @ApiOperation({ summary: 'Company user login' })
   @ApiBody({ type: LoginDto })
   @ApiResponse({ 
     status: 200, 
@@ -58,6 +58,37 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('admin-login')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'System Administrator login (separate portal)' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Admin login successful',
+    schema: {
+      type: 'object',
+      properties: {
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            email: { type: 'string' },
+            name: { type: 'string' },
+            role: { type: 'string', enum: ['SUPER_ADMIN'] },
+            position: { type: 'string' },
+            status: { type: 'string', enum: ['ACTIVE', 'AWAY', 'OFFLINE', 'RETIRED'] },
+          },
+        },
+        access_token: { type: 'string' },
+        expiresIn: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: 'Invalid credentials or insufficient permissions' })
+  async adminLogin(@Body() loginDto: LoginDto) {
+    return this.authService.adminLogin(loginDto);
   }
 
   @Post('register')
