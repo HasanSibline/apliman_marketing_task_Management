@@ -197,6 +197,31 @@ export class CompaniesService {
   }
 
   /**
+   * Public endpoint: Get company branding by slug
+   * Used for company-specific login pages
+   */
+  async findBySlug(slug: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo: true,
+        primaryColor: true,
+        isActive: true,
+        subscriptionStatus: true,
+      },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    return company;
+  }
+
+  /**
    * Get company by slug (public endpoint for login pages)
    */
   async getCompanyBySlug(slug: string) {
