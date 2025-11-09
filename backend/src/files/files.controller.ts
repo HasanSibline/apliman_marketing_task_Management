@@ -11,6 +11,7 @@ import {
   Request,
   Res,
   StreamableFile,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -21,7 +22,8 @@ import {
 } from '@nestjs/swagger';
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
-import { createReadStream } from 'fs';
+import { createReadStream, existsSync } from 'fs';
+import { join } from 'path';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -117,5 +119,47 @@ export class FilesController {
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   getFileStats() {
     return this.filesService.getFileStats();
+  }
+}
+
+// Public Files Controller (No Authentication Required)
+@ApiTags('Public Files')
+@Controller('files/public')
+export class PublicFilesController {
+  @Get(':filename')
+  @ApiOperation({ summary: 'Serve public uploaded files (logos, avatars)' })
+  @ApiResponse({ status: 200, description: 'File served successfully' })
+  @ApiResponse({ status: 404, description: 'File not found' })
+  async serveFile(
+    @Param('filename') filename: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Security: Only allow files from temp directory (where single uploads go)
+    const uploadPath = process.env.UPLOAD_PATH || './uploads';
+    const filePath = join(uploadPath, 'temp', filename);
+
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('File not found');
+    }
+
+    const file = createReadStream(filePath);
+    
+    // Determine content type from extension
+    const ext = filename.split('.').pop()?.toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      'webp': 'image/webp',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'gif': 'image/gif',
+      'pdf': 'application/pdf',
+    };
+
+    res.set({
+      'Content-Type': mimeTypes[ext || ''] || 'application/octet-stream',
+      'Cache-Control': 'public, max-age=31536000', // Cache for 1 year
+    });
+
+    return new StreamableFile(file);
   }
 }

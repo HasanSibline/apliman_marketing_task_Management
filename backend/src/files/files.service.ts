@@ -22,12 +22,20 @@ export class FilesService {
         processedFile = await this.compressImage(file);
       }
 
-      // Return file URL
-      const baseUrl = this.configService.get('BASE_URL') || 'http://localhost:3000';
+      // Return file path (relative to uploads directory)
       const fileName = path.basename(processedFile.path);
       
+      // Use environment variable or construct from request
+      // For production, this should be set to the backend URL
+      const backendUrl = this.configService.get('BACKEND_URL') || this.configService.get('BASE_URL');
+      
+      // If no backend URL is configured, return just the path
+      const fileUrl = backendUrl 
+        ? `${backendUrl}/files/public/${fileName}`
+        : `/api/files/public/${fileName}`;
+      
       return {
-        url: `${baseUrl}/files/public/${fileName}`,
+        url: fileUrl,
         fileName: file.originalname,
         size: processedFile.size,
         mimeType: file.mimetype,
