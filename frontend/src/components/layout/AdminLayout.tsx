@@ -40,7 +40,7 @@ const AdminLayout: React.FC = () => {
     },
     { 
       name: 'Profile', 
-      href: '/profile', 
+      href: '/admin/profile', 
       icon: UserCircleIcon,
       description: 'Change password & settings'
     },

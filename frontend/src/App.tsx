@@ -12,6 +12,7 @@ import LoadingScreen from '@/components/ui/LoadingScreen'
 import { keepAliveService } from '@/services/keepalive'
 
 // Pages
+import GenericLogin from '@/pages/auth/GenericLogin'
 import DashboardPage from '@/pages/DashboardPage'
 import TasksPage from '@/pages/tasks/TasksPage'
 import TaskDetailPage from '@/pages/tasks/TaskDetailPage'
@@ -29,6 +30,8 @@ import AdminLayout from '@/components/layout/AdminLayout'
 import SuperAdminDashboard from '@/pages/SuperAdminDashboard'
 import CreateCompany from '@/pages/CreateCompany'
 import CompanyDetails from '@/pages/CompanyDetails'
+import AdminAnalytics from '@/pages/admin/AdminAnalytics'
+import AdminSettings from '@/pages/admin/AdminSettings'
 
 // Company Login
 import CompanyLogin from '@/pages/CompanyLogin'
@@ -71,7 +74,17 @@ function App() {
 
   return (
     <Routes>
-        {/* System Admin Login (Separate Portal) */}
+        {/* Default Company Login (Generic - No Logo) */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <GenericLogin />
+            </PublicRoute>
+          }
+        />
+
+        {/* System Admin Login (Hidden - Direct URL Only) */}
         <Route
           path="/admin/login"
           element={
@@ -81,7 +94,7 @@ function App() {
           }
         />
 
-        {/* Company-Specific Login (/:slug/login) */}
+        {/* Company-Specific Login (/:slug/login) - With Branding */}
         <Route
           path="/:slug/login"
           element={
@@ -89,12 +102,6 @@ function App() {
               <CompanyLogin />
             </PublicRoute>
           }
-        />
-
-        {/* Legacy /login redirect to admin (no default company) */}
-        <Route
-          path="/login"
-          element={<Navigate to="/admin/login" replace />}
         />
 
         {/* System Admin Portal (Separate from Company Portal) */}
@@ -111,8 +118,9 @@ function App() {
           <Route path="companies/create" element={<CreateCompany />} />
           <Route path="companies/:id" element={<CompanyDetails />} />
           <Route path="companies/:id/edit" element={<CreateCompany />} />
-          <Route path="analytics" element={<div className="p-6"><h1 className="text-2xl font-bold">System Analytics</h1><p className="mt-2 text-gray-600">Platform-wide statistics coming soon...</p></div>} />
-          <Route path="settings" element={<div className="p-6"><h1 className="text-2xl font-bold">System Settings</h1><p className="mt-2 text-gray-600">Global configurations coming soon...</p></div>} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
 
         {/* Shared Profile Route (accessible from both portals) */}

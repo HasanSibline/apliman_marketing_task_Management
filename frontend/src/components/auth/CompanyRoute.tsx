@@ -26,9 +26,9 @@ const CompanyRoute: React.FC<CompanyRouteProps> = ({ children }) => {
     }
   }, [isAuthenticated, user, location]);
 
-  // Not authenticated -> redirect to admin login (since we don't know which company yet)
+  // Not authenticated -> redirect to generic login
   if (!isAuthenticated) {
-    return <Navigate to="/admin/login" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // System Admin with NO company -> redirect to admin portal
@@ -40,7 +40,7 @@ const CompanyRoute: React.FC<CompanyRouteProps> = ({ children }) => {
   // User must have a company
   if (!user?.companyId) {
     console.error('Access denied: No company assigned to user');
-    return <Navigate to="/admin/login" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   // Valid company user -> allow access

@@ -36,6 +36,12 @@ export class CompaniesController {
     return this.companiesService.create(createCompanyDto, req.user.id);
   }
 
+  @Get('platform-stats')
+  @ApiOperation({ summary: 'Get platform-wide statistics' })
+  getPlatformStats() {
+    return this.companiesService.getPlatformStats();
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all companies with statistics (NO actual data)' })
   findAll() {

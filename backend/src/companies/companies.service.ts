@@ -376,6 +376,43 @@ export class CompaniesService {
   }
 
   /**
+   * Get platform-wide statistics
+   * Used for System Admin analytics dashboard
+   */
+  async getPlatformStats() {
+    const [
+      totalCompanies,
+      activeCompanies,
+      suspendedCompanies,
+      totalUsers,
+      totalTasks,
+      totalAIMessages,
+      companiesOnTrial,
+      companiesExpired,
+    ] = await Promise.all([
+      this.prisma.company.count(),
+      this.prisma.company.count({ where: { isActive: true, subscriptionStatus: 'ACTIVE' } }),
+      this.prisma.company.count({ where: { subscriptionStatus: 'SUSPENDED' } }),
+      this.prisma.user.count({ where: { companyId: { not: null } } }), // Exclude SUPER_ADMIN
+      this.prisma.task.count(),
+      this.prisma.chatMessage.count(),
+      this.prisma.company.count({ where: { subscriptionStatus: 'TRIAL' } }),
+      this.prisma.company.count({ where: { subscriptionStatus: 'EXPIRED' } }),
+    ]);
+
+    return {
+      totalCompanies,
+      activeCompanies,
+      suspendedCompanies,
+      totalUsers,
+      totalTasks,
+      totalAIMessages,
+      companiesOnTrial,
+      companiesExpired,
+    };
+  }
+
+  /**
    * Get plan-based limits
    */
   private getPlanLimits(plan: string) {
