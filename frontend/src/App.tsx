@@ -12,7 +12,6 @@ import LoadingScreen from '@/components/ui/LoadingScreen'
 import { keepAliveService } from '@/services/keepalive'
 
 // Pages
-import LoginPage from '@/pages/auth/LoginPage'
 import DashboardPage from '@/pages/DashboardPage'
 import TasksPage from '@/pages/tasks/TasksPage'
 import TaskDetailPage from '@/pages/tasks/TaskDetailPage'
@@ -30,6 +29,9 @@ import AdminLayout from '@/components/layout/AdminLayout'
 import SuperAdminDashboard from '@/pages/SuperAdminDashboard'
 import CreateCompany from '@/pages/CreateCompany'
 import CompanyDetails from '@/pages/CompanyDetails'
+
+// Company Login
+import CompanyLogin from '@/pages/CompanyLogin'
 
 function App() {
   const dispatch = useAppDispatch()
@@ -69,16 +71,6 @@ function App() {
 
   return (
     <Routes>
-        {/* Public Routes */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          }
-        />
-
         {/* System Admin Login (Separate Portal) */}
         <Route
           path="/admin/login"
@@ -87,6 +79,22 @@ function App() {
               <AdminLogin />
             </PublicRoute>
           }
+        />
+
+        {/* Company-Specific Login (/:slug/login) */}
+        <Route
+          path="/:slug/login"
+          element={
+            <PublicRoute>
+              <CompanyLogin />
+            </PublicRoute>
+          }
+        />
+
+        {/* Legacy /login redirect to Apliman (default company) */}
+        <Route
+          path="/login"
+          element={<Navigate to="/apliman/login" replace />}
         />
 
         {/* System Admin Portal (Separate from Company Portal) */}

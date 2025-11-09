@@ -197,6 +197,25 @@ export class CompaniesService {
   }
 
   /**
+   * Get company by slug (public endpoint for login pages)
+   */
+  async getCompanyBySlug(slug: string) {
+    return this.prisma.company.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo: true,
+        primaryColor: true,
+        isActive: true,
+        subscriptionStatus: true,
+        subscriptionEnd: true,
+      },
+    });
+  }
+
+  /**
    * Update company details
    */
   async update(id: string, updateCompanyDto: UpdateCompanyDto, superAdminId: string) {
