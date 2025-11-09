@@ -51,7 +51,9 @@ async function migrateToMultiTenant() {
     // Step 4: Create System Super Admin (OUTSIDE all companies)
     console.log('👤 Creating System Super Admin...');
     
-    const hashedPassword = await bcrypt.hash('SuperAdmin123!', 10);
+    // Get password from environment variable or use default
+    const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin123!';
+    const hashedPassword = await bcrypt.hash(adminPassword, 10);
     
     const superAdmin = await prisma.user.create({
       data: {
@@ -64,8 +66,14 @@ async function migrateToMultiTenant() {
       },
     });
 
-    console.log(`✅ Created System Super Admin: ${superAdmin.email} / SuperAdmin123!`);
-    console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!\n');
+    console.log(`✅ Created System Super Admin: ${superAdmin.email}`);
+    if (process.env.SUPER_ADMIN_PASSWORD) {
+      console.log('   🔐 Using custom password from SUPER_ADMIN_PASSWORD environment variable');
+    } else {
+      console.log('   🔐 Using default password: SuperAdmin123!');
+      console.log('   ⚠️  CHANGE THIS PASSWORD IMMEDIATELY!');
+    }
+    console.log();
 
     // Step 5: Convert all existing users to belong to Apliman company
     const existingUsers = await prisma.user.findMany({

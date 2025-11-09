@@ -9,6 +9,7 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const AdminLayout: React.FC = () => {
@@ -34,6 +35,12 @@ const AdminLayout: React.FC = () => {
       href: '/admin/settings', 
       icon: Cog6ToothIcon,
       description: 'Global configurations'
+    },
+    { 
+      name: 'Profile', 
+      href: '/profile', 
+      icon: UserCircleIcon,
+      description: 'Change password & settings'
     },
   ];
 

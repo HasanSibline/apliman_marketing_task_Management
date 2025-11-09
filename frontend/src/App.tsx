@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { checkAuth } from '@/store/slices/authSlice'
 import { initializeSocket } from '@/store/slices/presenceSlice'
+import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import PublicRoute from '@/components/auth/PublicRoute'
 import AdminRoute from '@/components/auth/AdminRoute'
 import CompanyRoute from '@/components/auth/CompanyRoute'
@@ -103,6 +104,16 @@ function App() {
           <Route path="companies/:id" element={<CompanyDetails />} />
           <Route path="companies/:id/edit" element={<CreateCompany />} />
         </Route>
+
+        {/* Shared Profile Route (accessible from both portals) */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Company Portal Routes (Protected) */}
         <Route
