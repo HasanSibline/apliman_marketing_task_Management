@@ -1,16 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { 
-  CogIcon, 
   ServerIcon, 
   ShieldCheckIcon,
   ClockIcon,
   DocumentTextIcon,
-  BellIcon,
-  EnvelopeIcon,
-  KeyIcon
 } from '@heroicons/react/24/outline';
-import { RootState } from '@/store';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
@@ -21,7 +15,6 @@ interface SystemSettings {
 }
 
 const AdminSettings: React.FC = () => {
-  const { user } = useSelector((state: RootState) => state.auth);
   const [settings, setSettings] = useState<SystemSettings>({
     maxFileSize: 5242880, // 5MB
     allowedFileTypes: 'image/jpeg,image/png,image/webp,application/pdf',
