@@ -104,9 +104,14 @@ export class KnowledgeService {
 
     const source = await this.prisma.knowledgeSource.create({
       data: {
-        ...createDto,
+        name: createDto.name,
+        url: createDto.url,
+        type: createDto.type,
+        description: createDto.description,
+        isActive: createDto.isActive,
+        priority: createDto.priority,
         createdById: userId,
-        companyId: user?.companyId,
+        companyId: user?.companyId!,
       },
       include: {
         createdBy: {
@@ -143,7 +148,14 @@ export class KnowledgeService {
     
     const source = await this.prisma.knowledgeSource.update({
       where: { id },
-      data: updateDto,
+      data: {
+        ...(updateDto.name && { name: updateDto.name }),
+        ...(updateDto.url && { url: updateDto.url }),
+        ...(updateDto.type && { type: updateDto.type }),
+        ...(updateDto.description !== undefined && { description: updateDto.description }),
+        ...(updateDto.isActive !== undefined && { isActive: updateDto.isActive }),
+        ...(updateDto.priority !== undefined && { priority: updateDto.priority }),
+      },
       include: {
         createdBy: {
           select: {

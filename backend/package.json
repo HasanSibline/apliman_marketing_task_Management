@@ -6,7 +6,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "prebuild": "npx prisma db push --skip-generate --accept-data-loss && npx prisma generate",
+    "prebuild": "npx prisma generate",
     "build": "nest build",
     "postbuild": "npx prisma generate",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
