@@ -147,16 +147,32 @@ const CompanyLogin: React.FC = () => {
               />
             </svg>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Access Denied
+              Company Not Found
             </h2>
             <p className="mt-2 text-center text-sm text-red-600">{error}</p>
-            <div className="mt-6">
-              <a
-                href="/admin/login"
-                className="text-indigo-600 hover:text-indigo-500 font-medium"
+            <p className="mt-4 text-center text-sm text-gray-600">
+              The company you're trying to access doesn't exist or has been deactivated.
+            </p>
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => window.history.back()}
+                className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium"
               >
-                Are you a System Administrator? Click here
-              </a>
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                  />
+                </svg>
+                Go Back
+              </button>
             </div>
           </div>
         </div>
@@ -260,16 +276,6 @@ const CompanyLogin: React.FC = () => {
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
-          </div>
-
-          <div className="text-center">
-            <a
-              href="/admin/login"
-              className="text-sm hover:underline"
-              style={{ color: accentColor }}
-            >
-              System Administrator? Login here
-            </a>
           </div>
         </form>
       </div>

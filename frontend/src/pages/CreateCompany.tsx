@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import toast from 'react-hot-toast';
+import api from '../services/api';
 
 interface CreateCompanyForm {
   name: string;
@@ -24,9 +24,12 @@ interface CreateCompanyForm {
 
 export default function CreateCompany() {
   const navigate = useNavigate();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
   
   const [formData, setFormData] = useState<CreateCompanyForm>({
     name: '',
@@ -57,6 +60,60 @@ export default function CreateCompany() {
     }
   };
 
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast.error('File size must be less than 5MB');
+        return;
+      }
+      
+      if (!file.type.startsWith('image/')) {
+        toast.error('Please select an image file');
+        return;
+      }
+
+      setLogoFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeLogo = () => {
+    setLogoFile(null);
+    setLogoPreview(null);
+    setFormData(prev => ({ ...prev, logo: undefined }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadLogo = async (): Promise<string | undefined> => {
+    if (!logoFile) return formData.logo;
+
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', logoFile);
+
+      const response = await api.post('/files/upload', formDataUpload, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      return response.data.url;
+    } catch (err) {
+      console.error('Error uploading logo:', err);
+      toast.error('Failed to upload logo');
+      return undefined;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -64,15 +121,26 @@ export default function CreateCompany() {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/companies`, formData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // Upload logo if provided
+      let logoUrl = formData.logo;
+      if (logoFile) {
+        logoUrl = await uploadLogo();
+      }
       
-      navigate('/super-admin/companies');
+      const payload = {
+        ...formData,
+        logo: logoUrl,
+      };
+
+      await api.post('/companies', payload);
+      
+      toast.success('Company created successfully!');
+      navigate('/admin/companies');
     } catch (err: any) {
       console.error('Error creating company:', err);
-      setError(err.response?.data?.message || 'Failed to create company');
+      const errorMessage = err.response?.data?.message || 'Failed to create company';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

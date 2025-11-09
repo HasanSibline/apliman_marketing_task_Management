@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { useAppDispatch } from '@/hooks/redux';
@@ -15,6 +15,7 @@ import {
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
@@ -87,11 +88,11 @@ const AdminLayout: React.FC = () => {
           <nav className="mt-5 px-2">
             <div className="space-y-1">
               {adminNavigation.map((item) => {
-                const isActive = window.location.pathname === item.href;
+                const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
                 return (
-                  <a
+                  <NavLink
                     key={item.name}
-                    href={item.href}
+                    to={item.href}
                     className={`${
                       isActive
                         ? 'bg-indigo-100 text-indigo-900 border-l-4 border-indigo-600'
@@ -108,7 +109,7 @@ const AdminLayout: React.FC = () => {
                       <p className="font-medium">{item.name}</p>
                       <p className="text-xs text-gray-500">{item.description}</p>
                     </div>
-                  </a>
+                  </NavLink>
                 );
               })}
             </div>

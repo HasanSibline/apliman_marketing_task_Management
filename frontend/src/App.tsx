@@ -111,6 +111,8 @@ function App() {
           <Route path="companies/create" element={<CreateCompany />} />
           <Route path="companies/:id" element={<CompanyDetails />} />
           <Route path="companies/:id/edit" element={<CreateCompany />} />
+          <Route path="analytics" element={<div className="p-6"><h1 className="text-2xl font-bold">System Analytics</h1><p className="mt-2 text-gray-600">Platform-wide statistics coming soon...</p></div>} />
+          <Route path="settings" element={<div className="p-6"><h1 className="text-2xl font-bold">System Settings</h1><p className="mt-2 text-gray-600">Global configurations coming soon...</p></div>} />
         </Route>
 
         {/* Shared Profile Route (accessible from both portals) */}
