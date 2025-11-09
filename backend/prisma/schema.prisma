@@ -470,8 +470,8 @@ model SystemSettings {
 }
 
 enum KnowledgeSourceType {
-  APLIMAN
-  COMPETITOR
+  OWN_COMPANY  // The company's own website/resources
+  COMPETITOR   // Competitor websites
 }
 
 model KnowledgeSource {

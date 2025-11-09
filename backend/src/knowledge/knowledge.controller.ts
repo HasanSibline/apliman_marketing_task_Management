@@ -51,10 +51,10 @@ export class KnowledgeController {
   }
 
   @Get()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async getAllKnowledgeSources(@Request() req) {
     try {
-      return await this.knowledgeService.findAll();
+      return await this.knowledgeService.findAll(req.user.id);
     } catch (error) {
       this.logger.error('Error fetching knowledge sources:', error);
       this.logger.error('Error stack:', error.stack);
@@ -80,10 +80,10 @@ export class KnowledgeController {
   }
 
   @Get(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async getKnowledgeSource(@Param('id') id: string) {
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  async getKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
-      const source = await this.knowledgeService.findOne(id);
+      const source = await this.knowledgeService.findOne(id, req.user.id);
       if (!source) {
         throw new HttpException('Knowledge source not found', HttpStatus.NOT_FOUND);
       }
@@ -102,7 +102,7 @@ export class KnowledgeController {
   }
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async createKnowledgeSource(
     @Body() createDto: CreateKnowledgeSourceDto,
     @Request() req,
@@ -137,13 +137,14 @@ export class KnowledgeController {
   }
 
   @Put(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async updateKnowledgeSource(
     @Param('id') id: string,
     @Body() updateDto: UpdateKnowledgeSourceDto,
+    @Request() req,
   ) {
     try {
-      return await this.knowledgeService.update(id, updateDto);
+      return await this.knowledgeService.update(id, updateDto, req.user.id);
     } catch (error) {
       this.logger.error(`Error updating knowledge source ${id}:`, error);
       this.logger.error('Error stack:', error.stack);
@@ -155,10 +156,10 @@ export class KnowledgeController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async deleteKnowledgeSource(@Param('id') id: string) {
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  async deleteKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
-      await this.knowledgeService.delete(id);
+      await this.knowledgeService.delete(id, req.user.id);
       return { message: 'Knowledge source deleted successfully' };
     } catch (error) {
       this.logger.error(`Error deleting knowledge source ${id}:`, error);
@@ -171,10 +172,10 @@ export class KnowledgeController {
   }
 
   @Post(':id/scrape')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async scrapeKnowledgeSource(@Param('id') id: string) {
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  async scrapeKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
-      return await this.knowledgeService.scrapeSource(id);
+      return await this.knowledgeService.scrapeSource(id, req.user.id);
     } catch (error) {
       this.logger.error(`Error scraping knowledge source ${id}:`, error);
       this.logger.error('Error stack:', error.stack);
@@ -186,10 +187,10 @@ export class KnowledgeController {
   }
 
   @Post('scrape-all')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  async scrapeAllKnowledgeSources() {
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  async scrapeAllKnowledgeSources(@Request() req) {
     try {
-      return await this.knowledgeService.scrapeAll();
+      return await this.knowledgeService.scrapeAll(req.user.id);
     } catch (error) {
       this.logger.error('Error scraping all knowledge sources:', error);
       this.logger.error('Error stack:', error.stack);

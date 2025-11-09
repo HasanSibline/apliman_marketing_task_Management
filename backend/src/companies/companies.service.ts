@@ -376,6 +376,43 @@ export class CompaniesService {
   }
 
   /**
+   * Get current user's company information
+   * Used by company users to fetch their own company details
+   */
+  async getMyCompany(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
+    if (!user?.companyId) {
+      throw new NotFoundException('User is not associated with any company');
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: user.companyId },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        logo: true,
+        primaryColor: true,
+        isActive: true,
+        subscriptionStatus: true,
+        subscriptionPlan: true,
+        aiEnabled: true,
+        aiProvider: true,
+      },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    return company;
+  }
+
+  /**
    * Get platform-wide statistics
    * Used for System Admin analytics dashboard
    */

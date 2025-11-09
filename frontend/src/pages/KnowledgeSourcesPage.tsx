@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Plus, RefreshCw, Edit, Trash2, Globe, AlertCircle, CheckCircle, Clock } from 'lucide-react';
-import api from '../../services/api';
+import api from '@/services/api';
 
 interface KnowledgeSource {
   id: string;
   name: string;
   url: string;
-  type: 'APLIMAN' | 'COMPETITOR';
+  type: 'OWN_COMPANY' | 'COMPETITOR';
   description?: string;
   isActive: boolean;
   content?: string;
@@ -23,6 +23,7 @@ interface KnowledgeSource {
 }
 
 export default function KnowledgeSourcesPage() {
+  const [companyName, setCompanyName] = useState('Your Company');
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -33,15 +34,27 @@ export default function KnowledgeSourcesPage() {
   const [formData, setFormData] = useState({
     name: '',
     url: '',
-    type: 'APLIMAN' as 'APLIMAN' | 'COMPETITOR',
+    type: 'OWN_COMPANY' as 'OWN_COMPANY' | 'COMPETITOR',
     description: '',
     isActive: true,
     priority: 3,
   });
 
   useEffect(() => {
+    fetchCompanyName();
     fetchSources();
   }, []);
+
+  const fetchCompanyName = async () => {
+    try {
+      // Fetch current user's company information
+      const response = await api.get('/companies/my-company');
+      setCompanyName(response.data.name || 'Your Company');
+    } catch (error) {
+      console.error('Error fetching company name:', error);
+      // Keep default "Your Company"
+    }
+  };
 
   const fetchSources = async () => {
     try {
@@ -128,7 +141,7 @@ export default function KnowledgeSourcesPage() {
     setFormData({
       name: '',
       url: '',
-      type: 'APLIMAN',
+      type: 'OWN_COMPANY',
       description: '',
       isActive: true,
       priority: 3,
@@ -164,7 +177,7 @@ export default function KnowledgeSourcesPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Knowledge Sources</h1>
             <p className="text-gray-600 mt-2">
-              Manage Apliman and competitor URLs for enhanced AI content generation
+              Manage {companyName} and competitor URLs for enhanced AI content generation
             </p>
           </div>
           <div className="flex gap-3">
@@ -219,12 +232,12 @@ export default function KnowledgeSourcesPage() {
                       <h3 className="text-xl font-semibold text-gray-900">{source.name}</h3>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          source.type === 'APLIMAN'
+                          source.type === 'OWN_COMPANY'
                             ? 'bg-indigo-100 text-indigo-800'
                             : 'bg-orange-100 text-orange-800'
                         }`}
                       >
-                        {source.type}
+                        {source.type === 'OWN_COMPANY' ? companyName : 'COMPETITOR'}
                       </span>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -342,11 +355,11 @@ export default function KnowledgeSourcesPage() {
                     </label>
                     <select
                       value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value as 'APLIMAN' | 'COMPETITOR' })}
+                      onChange={(e) => setFormData({ ...formData, type: e.target.value as 'OWN_COMPANY' | 'COMPETITOR' })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       required
                     >
-                      <option value="APLIMAN">Apliman</option>
+                      <option value="OWN_COMPANY">{companyName}</option>
                       <option value="COMPETITOR">Competitor</option>
                     </select>
                   </div>

@@ -20,28 +20,26 @@ export class KnowledgeService {
 
   /**
    * Get user's companyId for filtering
+   * Knowledge sources are company-specific only
    */
-  private async getUserCompanyId(userId: string): Promise<string | null> {
+  private async getUserCompanyId(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { companyId: true, role: true },
     });
     
-    if (user?.role === 'SUPER_ADMIN') {
-      return null;
+    if (!user?.companyId) {
+      throw new Error('User must belong to a company to access knowledge sources');
     }
     
-    return user?.companyId || null;
+    return user.companyId;
   }
 
-  async findAll(userId?: string) {
-    let companyId: string | null = null;
-    if (userId) {
-      companyId = await this.getUserCompanyId(userId);
-    }
+  async findAll(userId: string) {
+    const companyId = await this.getUserCompanyId(userId);
 
     return this.prisma.knowledgeSource.findMany({
-      where: companyId ? { companyId } : {},
+      where: { companyId },
       include: {
         createdBy: {
           select: {
@@ -59,16 +57,17 @@ export class KnowledgeService {
   }
 
   async findActive(userId?: string) {
-    let companyId: string | null = null;
+    // If userId provided, filter by company
+    // Otherwise return all active (for AI service)
+    let where: any = { isActive: true };
+    
     if (userId) {
-      companyId = await this.getUserCompanyId(userId);
+      const companyId = await this.getUserCompanyId(userId);
+      where.companyId = companyId;
     }
 
     return this.prisma.knowledgeSource.findMany({
-      where: {
-        isActive: true,
-        ...(companyId && { companyId }),
-      },
+      where,
       orderBy: [
         { priority: 'desc' },
         { createdAt: 'desc' },
@@ -76,9 +75,14 @@ export class KnowledgeService {
     });
   }
 
-  async findOne(id: string) {
-    return this.prisma.knowledgeSource.findUnique({
-      where: { id },
+  async findOne(id: string, userId: string) {
+    const companyId = await this.getUserCompanyId(userId);
+    
+    return this.prisma.knowledgeSource.findFirst({
+      where: { 
+        id,
+        companyId, // Ensure user can only access their company's sources
+      },
       include: {
         createdBy: {
           select: {
@@ -117,7 +121,7 @@ export class KnowledgeService {
 
     // Automatically scrape content if URL is provided
     if (source.url) {
-      this.scrapeSource(source.id).catch((error) => {
+      this.scrapeSource(source.id, userId).catch((error) => {
         this.logger.error(`Failed to scrape source ${source.id} after creation:`, error);
       });
     }
@@ -125,7 +129,18 @@ export class KnowledgeService {
     return source;
   }
 
-  async update(id: string, updateDto: UpdateKnowledgeSourceDto) {
+  async update(id: string, updateDto: UpdateKnowledgeSourceDto, userId: string) {
+    const companyId = await this.getUserCompanyId(userId);
+    
+    // Verify user has access to this source
+    const existing = await this.prisma.knowledgeSource.findFirst({
+      where: { id, companyId },
+    });
+    
+    if (!existing) {
+      throw new Error('Knowledge source not found or access denied');
+    }
+    
     const source = await this.prisma.knowledgeSource.update({
       where: { id },
       data: updateDto,
@@ -141,8 +156,8 @@ export class KnowledgeService {
     });
 
     // Re-scrape if URL was changed
-    if (updateDto.url && updateDto.url !== source.url) {
-      this.scrapeSource(id).catch((error) => {
+    if (updateDto.url && updateDto.url !== existing.url) {
+      this.scrapeSource(id, userId).catch((error) => {
         this.logger.error(`Failed to scrape source ${id} after update:`, error);
       });
     }
@@ -150,14 +165,25 @@ export class KnowledgeService {
     return source;
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId: string) {
+    const companyId = await this.getUserCompanyId(userId);
+    
+    // Verify user has access to this source
+    const existing = await this.prisma.knowledgeSource.findFirst({
+      where: { id, companyId },
+    });
+    
+    if (!existing) {
+      throw new Error('Knowledge source not found or access denied');
+    }
+    
     return this.prisma.knowledgeSource.delete({
       where: { id },
     });
   }
 
-  async scrapeSource(id: string) {
-    const source = await this.findOne(id);
+  async scrapeSource(id: string, userId: string) {
+    const source = await this.findOne(id, userId);
     if (!source) {
       throw new Error('Knowledge source not found');
     }
@@ -218,17 +244,20 @@ export class KnowledgeService {
     }
   }
 
-  async scrapeAll() {
+  async scrapeAll(userId: string) {
+    const companyId = await this.getUserCompanyId(userId);
+    
     const sources = await this.prisma.knowledgeSource.findMany({
       where: {
         isActive: true,
+        companyId, // Only scrape sources from user's company
       },
     });
 
     const results = [];
     for (const source of sources) {
       try {
-        await this.scrapeSource(source.id);
+        await this.scrapeSource(source.id, userId);
         results.push({
           id: source.id,
           name: source.name,

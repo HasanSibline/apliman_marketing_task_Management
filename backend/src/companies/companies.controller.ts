@@ -42,6 +42,13 @@ export class CompaniesController {
     return this.companiesService.getPlatformStats();
   }
 
+  @Get('my-company')
+  @ApiOperation({ summary: 'Get current user\'s company information' })
+  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.EMPLOYEE)
+  getMyCompany(@Req() req) {
+    return this.companiesService.getMyCompany(req.user.id);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all companies with statistics (NO actual data)' })
   findAll() {
