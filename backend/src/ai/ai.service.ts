@@ -20,38 +20,52 @@ export class AiService {
 
   /**
    * Get company's AI API key by user ID
+   * Returns null if company has no AI key (AI will be disabled)
    */
   private async getCompanyAiApiKey(userId?: string): Promise<string | null> {
     if (!userId) {
-      // Fallback to system default API key
-      return this.configService.get<string>('AI_API_KEY');
+      // No user context - AI disabled
+      this.logger.warn('No userId provided - AI disabled');
+      return null;
     }
 
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { companyId: true },
+        select: { companyId: true, role: true },
       });
 
       if (!user?.companyId) {
-        // Super admin or no company - use system default
-        return this.configService.get<string>('AI_API_KEY');
+        // Super admin or no company - AI disabled
+        this.logger.warn('User has no company - AI disabled');
+        return null;
       }
 
       const company = await this.prisma.company.findUnique({
         where: { id: user.companyId },
-        select: { aiApiKey: true, aiEnabled: true },
+        select: { 
+          name: true,
+          aiApiKey: true, 
+          aiEnabled: true 
+        },
       });
 
-      if (!company?.aiEnabled || !company?.aiApiKey) {
-        // Company AI not enabled - use system default
-        return this.configService.get<string>('AI_API_KEY');
+      if (!company) {
+        this.logger.warn('Company not found - AI disabled');
+        return null;
       }
 
+      if (!company.aiEnabled || !company.aiApiKey) {
+        // Company AI not enabled or no key provided - AI disabled
+        this.logger.warn(`AI disabled for company: ${company.name}`);
+        return null;
+      }
+
+      this.logger.log(`Using AI key for company: ${company.name}`);
       return company.aiApiKey;
     } catch (error) {
       this.logger.error('Error fetching company AI key:', error);
-      return this.configService.get<string>('AI_API_KEY');
+      return null; // AI disabled on error
     }
   }
 
@@ -60,6 +74,14 @@ export class AiService {
       this.logger.log(`Summarizing text: ${text.length} characters`);
       
       const apiKey = await this.getCompanyAiApiKey(userId);
+      
+      if (!apiKey) {
+        // AI not available for this company
+        this.logger.warn('AI key not available - returning truncated text');
+        return text.length > maxLength 
+          ? text.substring(0, maxLength - 3) + '...'
+          : text;
+      }
       
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/summarize`, {
@@ -91,6 +113,15 @@ export class AiService {
       this.logger.log(`Analyzing priority for: ${taskTitle}`);
       
       const apiKey = await this.getCompanyAiApiKey(userId);
+      
+      if (!apiKey) {
+        // AI not available - return default
+        this.logger.warn('AI key not available - returning default priority');
+        return {
+          suggestedPriority: 3,
+          reasoning: 'AI not available. Please add an AI API key to enable AI features.',
+        };
+      }
       
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/analyze-priority`, {
@@ -247,7 +278,7 @@ export class AiService {
     }
   }
 
-  async generateContentFromAI(title: string, type: string): Promise<{
+  async generateContentFromAI(title: string, type: string, userId?: string): Promise<{
     description: string;
     goals: string;
     priority?: number;
@@ -257,6 +288,14 @@ export class AiService {
       this.logger.log(`Calling AI service at: ${this.aiServiceUrl}/generate-content`);
       this.logger.log(`Request data: ${JSON.stringify({ title, type })}`);
       
+      const apiKey = await this.getCompanyAiApiKey(userId);
+      
+      if (!apiKey) {
+        // AI not available for this company
+        this.logger.warn('AI key not available - AI features disabled');
+        throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
+      }
+      
       // Fetch active knowledge sources
       const knowledgeSources = await this.getActiveKnowledgeSources();
       this.logger.log(`Using ${knowledgeSources.length} knowledge sources for content generation`);
@@ -265,7 +304,8 @@ export class AiService {
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
           type,
-          knowledge_sources: knowledgeSources
+          knowledge_sources: knowledgeSources,
+          api_key: apiKey, // Pass company-specific API key
         }, {
           timeout: 30000, // Increased timeout for better AI generation
         }),
@@ -289,7 +329,7 @@ export class AiService {
       }
       
       // Don't provide fallback - let the frontend handle the error
-      throw new Error(`AI content generation failed: ${error.message}`);
+      throw new Error(error.message || 'AI content generation failed');
     }
   }
 

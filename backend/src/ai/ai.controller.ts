@@ -99,12 +99,17 @@ export class AiController {
   @Post('generate-content')
   @ApiOperation({ summary: 'Generate content suggestions using AI' })
   @ApiResponse({ status: 200, description: 'Content generated successfully' })
-  async generateContent(@Body() data: { title: string; type: string }) {
+  @UseGuards(JwtAuthGuard)
+  async generateContent(
+    @Body() data: { title: string; type: string },
+    @Req() req: any,
+  ) {
     try {
       const { title, type } = data;
+      const userId = req.user?.id;
       
       // Call the AI service once to get all content
-      const response = await this.aiService.generateContentFromAI(title, type);
+      const response = await this.aiService.generateContentFromAI(title, type, userId);
       
       return {
         description: response.description,

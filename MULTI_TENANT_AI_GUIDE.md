@@ -88,17 +88,32 @@ User from Acme creates task with AI
 Backend (AiService):
   1. Gets userId
   2. Finds company has no AI key
-  3. Falls back to system default key
+  3. Returns error: "AI not enabled"
      ↓
-Python AI Service:
-  - Uses system AI key (from .env)
-  - Generates content
-  - Returns result
+Frontend:
+  - Shows error message
+  - "Generate with AI" button disabled
+  - User must fill manually
      ↓
-User receives AI content (using fallback) ✅
+User fills task details manually ✅
+AI is NOT available without company key ❌
 ```
 
 ---
+
+## ⚠️ **IMPORTANT: NO SYSTEM DEFAULT AI KEY**
+
+**There is NO fallback or system default AI key!**
+
+- ✅ Company HAS AI key → AI works
+- ❌ Company NO AI key → AI disabled
+- ❌ NO system-wide fallback key
+
+**Why?**
+- Each company provides their own AI key
+- System doesn't pay for AI usage
+- Fair usage per company
+- No shared resources
 
 ## 💾 **DATABASE STRUCTURE:**
 
