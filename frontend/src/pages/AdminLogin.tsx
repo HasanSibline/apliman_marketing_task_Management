@@ -1,8 +1,10 @@
 import React, { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import api from '../services/api';
 import toast from 'react-hot-toast';
+import { setAuth } from '../store/slices/authSlice';
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -10,6 +12,7 @@ const AdminLogin: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -35,13 +38,13 @@ const AdminLogin: React.FC = () => {
       localStorage.setItem('token', access_token);
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 
+      // Update Redux state with user data and token
+      dispatch(setAuth({ user, token: access_token }));
+
       toast.success('Welcome, System Administrator!');
 
       // Redirect to admin dashboard
       navigate('/admin/companies');
-      
-      // Reload to update auth state
-      window.location.reload();
     } catch (err: any) {
       console.error('Admin login error:', err);
       setError(
