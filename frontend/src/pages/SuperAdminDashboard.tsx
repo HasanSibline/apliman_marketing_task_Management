@@ -98,7 +98,7 @@ export default function SuperAdminDashboard() {
               <p className="mt-2 text-gray-600">Manage all companies in the system</p>
             </div>
             <button
-              onClick={() => navigate('/super-admin/companies/create')}
+              onClick={() => navigate('/admin/companies/create')}
               className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm"
             >
               + Create Company
