@@ -1,7 +1,8 @@
 import React from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
+import { useAppDispatch } from '@/hooks/redux';
 import { logout } from '../../store/slices/authSlice';
 import {
   BuildingOfficeIcon,
@@ -14,7 +15,7 @@ import {
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
 
   const adminNavigation = [
