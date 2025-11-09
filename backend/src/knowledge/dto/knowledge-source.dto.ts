@@ -1,9 +1,5 @@
 import { IsString, IsEnum, IsOptional, IsBoolean, IsInt, Min, Max, IsUrl } from 'class-validator';
-
-export enum KnowledgeSourceType {
-  APLIMAN = 'APLIMAN',
-  COMPETITOR = 'COMPETITOR',
-}
+import { KnowledgeSourceType } from '@prisma/client';
 
 export class CreateKnowledgeSourceDto {
   @IsString()
