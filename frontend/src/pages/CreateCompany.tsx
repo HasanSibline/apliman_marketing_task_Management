@@ -116,6 +116,11 @@ export default function CreateCompany() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Only allow submission on step 4
+    if (step !== 4) {
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -142,6 +147,17 @@ export default function CreateCompany() {
       toast.error(errorMessage);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    // Prevent Enter key from submitting form except on step 4
+    if (e.key === 'Enter' && step !== 4) {
+      e.preventDefault();
+      // Move to next step instead
+      if (step < 4) {
+        nextStep();
+      }
     }
   };
 
@@ -200,7 +216,7 @@ export default function CreateCompany() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-8">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="bg-white rounded-lg shadow-sm p-8">
           {/* Step 1: Company Info */}
           {step === 1 && (
             <div className="space-y-6">

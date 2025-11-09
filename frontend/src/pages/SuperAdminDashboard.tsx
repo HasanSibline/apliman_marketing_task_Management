@@ -214,13 +214,13 @@ export default function SuperAdminDashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        onClick={() => navigate(`/super-admin/companies/${company.id}`)}
+                        onClick={() => navigate(`/admin/companies/${company.id}`)}
                         className="text-blue-600 hover:text-blue-900 mr-4"
                       >
                         View
                       </button>
                       <button
-                        onClick={() => navigate(`/super-admin/companies/${company.id}/edit`)}
+                        onClick={() => navigate(`/admin/companies/${company.id}/edit`)}
                         className="text-indigo-600 hover:text-indigo-900"
                       >
                         Edit
