@@ -214,7 +214,6 @@ const CompanyLogin: React.FC = () => {
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
                 style={{ 
-                  focusRingColor: accentColor,
                   borderColor: error ? '#EF4444' : undefined 
                 }}
                 placeholder="Email address"
@@ -234,7 +233,6 @@ const CompanyLogin: React.FC = () => {
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
                 style={{ 
-                  focusRingColor: accentColor,
                   borderColor: error ? '#EF4444' : undefined 
                 }}
                 placeholder="Password"

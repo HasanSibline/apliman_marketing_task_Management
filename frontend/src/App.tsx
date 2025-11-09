@@ -91,10 +91,10 @@ function App() {
           }
         />
 
-        {/* Legacy /login redirect to Apliman (default company) */}
+        {/* Legacy /login redirect to admin (no default company) */}
         <Route
           path="/login"
-          element={<Navigate to="/apliman/login" replace />}
+          element={<Navigate to="/admin/login" replace />}
         />
 
         {/* System Admin Portal (Separate from Company Portal) */}

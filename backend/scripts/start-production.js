@@ -8,7 +8,7 @@ const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-console.log('🚀 Starting production deployment v3.2 (Multi-Tenant)...\n');
+console.log('🚀 Starting production deployment v4.0 (Multi-Tenant - Clean Start)...\n');
 
 // Helper function to run commands
 function runCommand(command, description, required = true) {
@@ -27,37 +27,37 @@ function runCommand(command, description, required = true) {
   }
 }
 
-// ⚠️ WARNING: This will reset your database and lose all data
-// Only use if you're okay with losing existing data
-console.log('⚠️  IMPORTANT: This deployment will reset your database.\n');
-console.log('   All existing data will be preserved and migrated to multi-tenant structure.\n');
-console.log('   If this is your first multi-tenant deployment, your data will be assigned to "Apliman" company.\n');
+// ⚠️ WARNING: This will reset your database
+console.log('⚠️  IMPORTANT: This deployment will create a fresh database.\n');
+console.log('   NO default company will be created.');
+console.log('   System Admin must create companies via Admin Panel.\n');
 
-// Step 1: Reset database and create fresh schema with multi-tenant structure
-console.log('🔄 Step 1: Resetting database and creating multi-tenant schema...\n');
+// Step 1: Reset database and create fresh schema
+console.log('🔄 Step 1: Creating fresh multi-tenant database...\n');
 const resetSuccess = runCommand(
   'npx prisma db push --force-reset --skip-generate --accept-data-loss',
-  '🗄️  Resetting database and applying new schema',
+  '🗄️  Applying schema to database',
   true
 );
 
 if (!resetSuccess) {
-  console.error('❌ Failed to reset database. Cannot continue.\n');
+  console.error('❌ Failed to apply schema. Cannot continue.\n');
   process.exit(1);
 }
 
-console.log('✅ Fresh multi-tenant database schema created!\n');
+console.log('✅ Multi-tenant database schema applied!\n');
 
-// Step 2: Seed with Apliman company and System Admin
-console.log('🔄 Step 2: Seeding database with default data...\n');
+// Step 2: Seed with System Admin ONLY
+console.log('🔄 Step 2: Creating System Administrator...\n');
 const seeded = runCommand(
   'npx prisma db seed',
-  '🌱 Creating default company and admin',
-  false // Optional - we'll create manually if needed
+  '🌱 Creating System Admin',
+  true // Required - we need the admin
 );
 
 if (!seeded) {
-  console.log('⚠️  Seed failed, will create defaults manually after app starts\n');
+  console.error('❌ Failed to create System Admin. Cannot continue.\n');
+  process.exit(1);
 }
 
 // Step 3: Generate Prisma Client
@@ -68,13 +68,13 @@ runCommand(
   true
 );
 
-// Step 4: Verify Prisma Client was generated correctly
+// Step 4: Verify Prisma Client
 console.log('\n🔍 Step 4: Verifying Prisma Client...\n');
 try {
   const { PrismaClient } = require('@prisma/client');
   const prisma = new PrismaClient();
   
-  if (prisma.company && prisma.knowledgeSource) {
+  if (prisma.company && prisma.user) {
     console.log('✅ Multi-tenant models verified in Prisma Client\n');
   } else {
     console.error('❌ Required models NOT found in Prisma Client');
@@ -90,11 +90,21 @@ try {
 }
 
 // Step 5: Start the application
-console.log('\n✅ All pre-flight checks passed!');
+console.log('\n═══════════════════════════════════════════════════');
+console.log('✅ DATABASE READY - MULTI-TENANT SYSTEM');
+console.log('═══════════════════════════════════════════════════');
 console.log('🚀 Starting NestJS application...\n');
-console.log('📝 NOTE: After app starts, login with:\n');
-console.log('   Email: superadmin@apliman.com\n');
-console.log('   Password: Check seed.ts or use SUPER_ADMIN_PASSWORD env var\n');
+console.log('📋 SYSTEM ADMINISTRATOR LOGIN:');
+console.log('   URL:      /admin/login');
+console.log('   Email:    superadmin@apliman.com');
+console.log('   Password: SuperAdmin123! (or from SUPER_ADMIN_PASSWORD env)');
+console.log('\n📝 NEXT STEPS AFTER APP STARTS:');
+console.log('   1. Login as System Administrator');
+console.log('   2. Go to /admin/companies');
+console.log('   3. Create your first company (e.g., Apliman)');
+console.log('   4. Add company admin user');
+console.log('   5. Company users login at /{company-slug}/login');
+console.log('═══════════════════════════════════════════════════\n');
 
 try {
   require('../dist/main');

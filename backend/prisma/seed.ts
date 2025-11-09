@@ -4,24 +4,9 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seed...');
-
-  // // Clear all tables first (in correct order due to foreign keys)
-  // console.log('  Clearing existing data...');
-  // await prisma.phaseHistory.deleteMany();
-  // await prisma.subtask.deleteMany();
-  // await prisma.notification.deleteMany();
-  // await prisma.taskComment.deleteMany();
-  // await prisma.taskFile.deleteMany();
-  // await prisma.taskAssignment.deleteMany();
-  // await prisma.task.deleteMany();
-  // await prisma.transition.deleteMany();
-  // await prisma.phase.deleteMany();
-  // await prisma.workflow.deleteMany();
-  // await prisma.user.deleteMany();
-  // await prisma.systemSettings.deleteMany();
-
-  // console.log('✅ All tables cleared');
+  console.log('🌱 Starting database seed for Multi-Tenant System...');
+  console.log('📋 This will create ONLY the System Administrator');
+  console.log('📋 Companies must be created via Admin Panel\n');
 
   // Create system settings
   const systemSettings = await prisma.systemSettings.upsert({
@@ -37,34 +22,51 @@ async function main() {
 
   console.log('✅ System settings created');
 
-  // Hash password for Super Admin
+  // Hash password for System Admin
   const saltRounds = 12;
-  const adminPassword = await bcrypt.hash('Admin123!', saltRounds);
+  const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin123!';
+  const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
 
-  // Create Super Admin only
+  // Create System Admin (NO company association)
   const superAdmin = await prisma.user.upsert({
-    where: { email: 'admin@system.com' },
+    where: { 
+      email_companyId: {
+        email: 'superadmin@apliman.com',
+        companyId: ''
+      }
+    },
     update: {},
     create: {
-      email: 'admin@system.com',
+      email: 'superadmin@apliman.com',
       name: 'System Administrator',
-      password: adminPassword,
+      password: hashedPassword,
       role: UserRole.SUPER_ADMIN,
       position: 'System Administrator',
       status: UserStatus.ACTIVE,
+      companyId: null, // System Admin has NO company
     },
   });
 
-  console.log('✅ Super Admin created:', superAdmin.email);
+  console.log('✅ System Administrator created:', superAdmin.email);
+  console.log('   Role: SUPER_ADMIN (manages all companies)');
+  console.log('   Company: NONE (system-wide access)\n');
 
-  // NO MORE DEFAULT WORKFLOWS - Users create their own!
-  console.log('✅ No default workflows seeded - users can create their own');
-
-  console.log('\n🎉 Database seeded successfully!');
-  console.log('\n📋 Default User:');
-  console.log('Super Admin: admin@system.com / Admin123!');
-  console.log('\n📋 Workflows:');
-  console.log('Users can create custom workflows from the Workflows page');
+  console.log('🎉 Database seeded successfully!\n');
+  console.log('═══════════════════════════════════════════════════');
+  console.log('📋 SYSTEM ADMINISTRATOR CREDENTIALS:');
+  console.log('═══════════════════════════════════════════════════');
+  console.log(`   Email:    ${superAdmin.email}`);
+  console.log(`   Password: ${process.env.SUPER_ADMIN_PASSWORD ? '[FROM ENV]' : 'SuperAdmin123!'}`);
+  console.log('   Login at: /admin/login');
+  console.log('═══════════════════════════════════════════════════\n');
+  console.log('📝 NEXT STEPS:');
+  console.log('   1. Login as System Administrator');
+  console.log('   2. Go to /admin/companies');
+  console.log('   3. Click "Create New Company"');
+  console.log('   4. Fill in company details (name, slug, logo, etc.)');
+  console.log('   5. Company users can login at /{company-slug}/login\n');
+  console.log('⚠️  IMPORTANT: Change the default password immediately!');
+  console.log('═══════════════════════════════════════════════════');
 }
 
 main()
