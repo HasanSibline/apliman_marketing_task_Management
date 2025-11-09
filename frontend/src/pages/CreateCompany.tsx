@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
@@ -160,7 +159,7 @@ export default function CreateCompany() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/super-admin/companies')}
+            onClick={() => navigate('/admin/companies')}
             className="text-gray-600 hover:text-gray-900 mb-4 flex items-center"
           >
             ← Back to Companies
@@ -262,16 +261,67 @@ export default function CreateCompany() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Logo URL (optional)
+                  Company Logo
                 </label>
-                <input
-                  type="text"
-                  name="logo"
-                  value={formData.logo || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="https://example.com/logo.png"
-                />
+                
+                {/* Logo Preview */}
+                {logoPreview && (
+                  <div className="mb-4 relative inline-block">
+                    <img 
+                      src={logoPreview} 
+                      alt="Logo preview" 
+                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeLogo}
+                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                {/* File Input */}
+                <div className="flex items-center space-x-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                    id="logo-upload"
+                  />
+                  <label
+                    htmlFor="logo-upload"
+                    className="cursor-pointer bg-white px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
+                  >
+                    Choose File
+                  </label>
+                  <span className="text-sm text-gray-500">
+                    {logoFile ? logoFile.name : 'or enter URL below'}
+                  </span>
+                </div>
+                
+                <p className="text-xs text-gray-500 mt-2">
+                  Max size: 5MB. Formats: JPG, PNG, WEBP, GIF
+                </p>
+                
+                <div className="mt-3">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Or paste logo URL
+                  </label>
+                  <input
+                    type="text"
+                    name="logo"
+                    value={formData.logo || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    placeholder="https://example.com/logo.png"
+                  />
+                </div>
               </div>
             </div>
           )}
