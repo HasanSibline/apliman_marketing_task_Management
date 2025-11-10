@@ -132,6 +132,25 @@ export default function CreateCompany() {
       return;
     }
     
+    // Validate required fields
+    if (!formData.name || !formData.slug) {
+      toast.error('Company name and slug are required');
+      setStep(1);
+      return;
+    }
+    
+    if (!formData.adminName || !formData.adminEmail || !formData.adminPassword) {
+      toast.error('Admin account details are required');
+      setStep(2);
+      return;
+    }
+    
+    if (formData.adminPassword.length < 8) {
+      toast.error('Admin password must be at least 8 characters');
+      setStep(2);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);
@@ -273,7 +292,6 @@ export default function CreateCompany() {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., Acme Corporation"
                 />
@@ -288,7 +306,6 @@ export default function CreateCompany() {
                   name="slug"
                   value={formData.slug}
                   onChange={handleChange}
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="e.g., acme-corporation"
                 />
@@ -384,7 +401,6 @@ export default function CreateCompany() {
                   name="adminName"
                   value={formData.adminName}
                   onChange={handleChange}
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="John Doe"
                 />
@@ -399,7 +415,6 @@ export default function CreateCompany() {
                   name="adminEmail"
                   value={formData.adminEmail}
                   onChange={handleChange}
-                  required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="admin@company.com"
                 />
@@ -414,7 +429,6 @@ export default function CreateCompany() {
                   name="adminPassword"
                   value={formData.adminPassword}
                   onChange={handleChange}
-                  required
                   minLength={8}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Minimum 8 characters"
@@ -454,7 +468,6 @@ export default function CreateCompany() {
                   name="subscriptionDays"
                   value={formData.subscriptionDays}
                   onChange={handleChange}
-                  required
                   min={1}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />

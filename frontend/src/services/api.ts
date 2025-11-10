@@ -32,8 +32,10 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Remove invalid token
       localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Don't redirect here - let route guards handle the redirect
+      // This prevents incorrect redirects (e.g. company users to /login instead of /{slug}/login)
     } else if (error.response?.status >= 500) {
       toast.error('Server error. Please try again later.')
     }
