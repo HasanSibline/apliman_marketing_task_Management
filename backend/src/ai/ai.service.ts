@@ -62,8 +62,12 @@ export class AiService {
       }
 
       this.logger.log(`Using AI for company: ${company.name}`);
+      
+      // CRITICAL: Decrypt the API key before using it
+      const decryptedApiKey = Buffer.from(company.aiApiKey, 'base64').toString('utf-8');
+      
       return {
-        apiKey: company.aiApiKey,
+        apiKey: decryptedApiKey,
         companyName: company.name
       };
     } catch (error) {
