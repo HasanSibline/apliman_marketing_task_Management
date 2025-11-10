@@ -206,12 +206,20 @@ export default function SuperAdminDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {companies.map((company) => (
+                {companies.map((company) => {
+                  // Convert relative logo URL to absolute URL if needed
+                  const logoUrl = company.logo 
+                    ? (company.logo.startsWith('http') 
+                        ? company.logo 
+                        : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`)
+                    : null;
+
+                  return (
                   <tr key={company.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {company.logo ? (
-                          <img src={company.logo} alt={company.name} className="h-10 w-10 rounded-full mr-3" />
+                        {logoUrl ? (
+                          <img src={logoUrl} alt={company.name} className="h-10 w-10 rounded-full object-cover mr-3" />
                         ) : (
                           <div
                             className="h-10 w-10 rounded-full mr-3 flex items-center justify-center text-white font-bold"
@@ -302,7 +310,8 @@ export default function SuperAdminDashboard() {
                       </div>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

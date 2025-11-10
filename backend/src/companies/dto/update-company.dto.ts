@@ -68,5 +68,10 @@ export class UpdateCompanyDto {
   @IsOptional()
   @IsBoolean()
   aiEnabled?: boolean;
+
+  @ApiProperty({ example: 'billing@company.com', description: 'Billing email', required: false })
+  @IsOptional()
+  @IsString()
+  billingEmail?: string;
 }
 

@@ -150,7 +150,7 @@ export default function CompanyDetails() {
             {error || 'Company not found'}
           </div>
           <button
-            onClick={() => navigate('/super-admin/companies')}
+            onClick={() => navigate('/admin/companies')}
             className="mt-4 text-blue-600 hover:text-blue-800"
           >
             ← Back to Companies
@@ -162,6 +162,13 @@ export default function CompanyDetails() {
 
   const daysUntilExpiry = company.subscriptionEnd 
     ? Math.ceil((new Date(company.subscriptionEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  // Convert relative logo URL to absolute URL if needed
+  const logoUrl = company.logo 
+    ? (company.logo.startsWith('http') 
+        ? company.logo 
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`)
     : null;
 
   return (
@@ -178,8 +185,8 @@ export default function CompanyDetails() {
           
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              {company.logo ? (
-                <img src={company.logo} alt={company.name} className="h-16 w-16 rounded-full mr-4" />
+              {logoUrl ? (
+                <img src={logoUrl} alt={company.name} className="h-16 w-16 rounded-full object-cover mr-4" />
               ) : (
                 <div
                   className="h-16 w-16 rounded-full mr-4 flex items-center justify-center text-white font-bold text-2xl"

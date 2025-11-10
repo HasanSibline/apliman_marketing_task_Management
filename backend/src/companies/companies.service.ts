@@ -185,20 +185,36 @@ export class CompaniesService {
       throw new NotFoundException('Company not found');
     }
 
+    // Get AI usage stats
     const aiUsage = await this.getAIUsageStats(company.id);
+
+    // Get task breakdown (active vs completed)
+    const activeTasks = await this.prisma.task.count({
+      where: {
+        companyId: id,
+        status: { not: 'COMPLETED' },
+      },
+    });
+
+    const completedTasks = await this.prisma.task.count({
+      where: {
+        companyId: id,
+        status: 'COMPLETED',
+      },
+    });
 
     return {
       ...company,
       aiApiKey: company.aiApiKey ? '[ENCRYPTED]' : null,
       stats: {
-        usersCount: company._count.users,
-        tasksCount: company._count.tasks,
-        workflowsCount: company._count.workflows,
-        chatSessionsCount: company._count.chatSessions,
+        totalUsers: company._count.users,
+        activeTasks: activeTasks,
+        completedTasks: completedTasks,
         aiMessagesCount: aiUsage.totalMessages,
         aiTokensUsed: aiUsage.totalTokens,
-        aiCost: aiUsage.totalCost,
+        aiTotalCost: aiUsage.totalCost,
       },
+      _count: undefined, // Remove raw count from response
     };
   }
 

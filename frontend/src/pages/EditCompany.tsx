@@ -165,7 +165,6 @@ export default function EditCompany() {
       
       const payload: any = {
         name: formData.name,
-        slug: formData.slug,
         logo: logoUrl,
         primaryColor: formData.primaryColor,
         subscriptionPlan: formData.subscriptionPlan,
@@ -179,6 +178,7 @@ export default function EditCompany() {
       // Only include aiApiKey if it was changed
       if (formData.aiApiKey && formData.aiApiKey.trim()) {
         payload.aiApiKey = formData.aiApiKey;
+        payload.aiEnabled = true;
       }
 
       await api.patch(`/companies/${id}`, payload);
