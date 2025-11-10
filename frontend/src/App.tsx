@@ -29,6 +29,7 @@ import AdminLogin from '@/pages/AdminLogin'
 import AdminLayout from '@/components/layout/AdminLayout'
 import SuperAdminDashboard from '@/pages/SuperAdminDashboard'
 import CreateCompany from '@/pages/CreateCompany'
+import EditCompany from '@/pages/EditCompany'
 import CompanyDetails from '@/pages/CompanyDetails'
 import AdminAnalytics from '@/pages/admin/AdminAnalytics'
 import AdminSettings from '@/pages/admin/AdminSettings'
@@ -117,7 +118,7 @@ function App() {
           <Route path="companies" element={<SuperAdminDashboard />} />
           <Route path="companies/create" element={<CreateCompany />} />
           <Route path="companies/:id" element={<CompanyDetails />} />
-          <Route path="companies/:id/edit" element={<CreateCompany />} />
+          <Route path="companies/:id/edit" element={<EditCompany />} />
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="profile" element={<ProfilePage />} />

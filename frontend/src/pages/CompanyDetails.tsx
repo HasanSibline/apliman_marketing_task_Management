@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+import api from '@/services/api';
+import toast from 'react-hot-toast';
 
 interface Company {
   id: string;
@@ -59,14 +58,12 @@ export default function CompanyDetails() {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/companies/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await api.get(`/companies/${id}`);
       setCompany(response.data);
     } catch (err: any) {
       console.error('Error fetching company:', err);
       setError(err.response?.data?.message || 'Failed to load company');
+      toast.error(err.response?.data?.message || 'Failed to load company');
     } finally {
       setLoading(false);
     }
@@ -77,13 +74,12 @@ export default function CompanyDetails() {
     
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.patch(`${API_URL}/companies/${id}/suspend`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/companies/${id}/suspend`, { reason: 'Suspended by admin' });
+      toast.success('Company suspended successfully');
       await fetchCompany();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to suspend company');
+      const message = err.response?.data?.message || 'Failed to suspend company';
+      toast.error(message);
     } finally {
       setActionLoading(false);
     }
@@ -92,13 +88,12 @@ export default function CompanyDetails() {
   const handleReactivate = async () => {
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.patch(`${API_URL}/companies/${id}/reactivate`, {}, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.post(`/companies/${id}/reactivate`);
+      toast.success('Company reactivated successfully');
       await fetchCompany();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to reactivate company');
+      const message = err.response?.data?.message || 'Failed to reactivate company';
+      toast.error(message);
     } finally {
       setActionLoading(false);
     }
@@ -106,22 +101,19 @@ export default function CompanyDetails() {
 
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 8) {
-      alert('Password must be at least 8 characters');
+      toast.error('Password must be at least 8 characters');
       return;
     }
     
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.post(`${API_URL}/companies/${id}/reset-password`, 
-        { newPassword },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/companies/${id}/reset-admin-password`, { adminEmail: company?.billingEmail });
       setShowResetPassword(false);
       setNewPassword('');
-      alert('Password reset successfully!');
+      toast.success('Password reset successfully!');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to reset password');
+      const message = err.response?.data?.message || 'Failed to reset password';
+      toast.error(message);
     } finally {
       setActionLoading(false);
     }
@@ -130,16 +122,13 @@ export default function CompanyDetails() {
   const handleExtendSubscription = async () => {
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.patch(`${API_URL}/companies/${id}/extend-subscription`, 
-        { days: extensionDays },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post(`/companies/${id}/extend-subscription`, { days: extensionDays });
       setShowExtendSubscription(false);
+      toast.success('Subscription extended successfully!');
       await fetchCompany();
-      alert('Subscription extended successfully!');
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to extend subscription');
+      const message = err.response?.data?.message || 'Failed to extend subscription';
+      toast.error(message);
     } finally {
       setActionLoading(false);
     }
@@ -181,7 +170,7 @@ export default function CompanyDetails() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate('/super-admin/companies')}
+            onClick={() => navigate('/admin/companies')}
             className="text-gray-600 hover:text-gray-900 mb-4 flex items-center"
           >
             ← Back to Companies
@@ -207,7 +196,7 @@ export default function CompanyDetails() {
             
             <div className="flex space-x-3">
               <button
-                onClick={() => navigate(`/super-admin/companies/${id}/edit`)}
+                onClick={() => navigate(`/admin/companies/${id}/edit`)}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Edit Company
@@ -326,11 +315,11 @@ export default function CompanyDetails() {
                 <>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Tokens Used:</span>
-                    <span className="font-semibold text-gray-900">{company.stats.aiTokensUsed.toLocaleString()}</span>
+                    <span className="font-semibold text-gray-900">{(company.stats.aiTokensUsed || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Total Cost:</span>
-                    <span className="font-semibold text-gray-900">${company.stats.aiTotalCost.toFixed(4)}</span>
+                    <span className="font-semibold text-gray-900">${(company.stats.aiTotalCost || 0).toFixed(4)}</span>
                   </div>
                 </>
               )}
