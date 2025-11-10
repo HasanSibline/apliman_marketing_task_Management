@@ -117,7 +117,7 @@ ApliChat:"""
         if not company_name:
             company_name = "the company"
             if knowledge_sources:
-                company_sources = [s for s in knowledge_sources if s.get('type') in ['COMPANY', 'APLIMAN']]
+                company_sources = [s for s in knowledge_sources if s.get('type') == 'COMPANY']
                 if company_sources and company_sources[0].get('name'):
                     company_name = company_sources[0].get('name').replace(' - ', '').replace('About ', '')
         
@@ -148,8 +148,8 @@ Position: {user.get('position', 'Not specified')}
                 if key != 'lastUpdated' and value:
                     prompt += f"- {key}: {value}\n"
 
-        # Add company knowledge (COMPANY or APLIMAN type for backwards compatibility)
-        company_sources = [s for s in knowledge_sources if s.get('type') in ['COMPANY', 'APLIMAN']]
+        # Add company knowledge (COMPANY type only)
+        company_sources = [s for s in knowledge_sources if s.get('type') == 'COMPANY']
         if company_sources:
             prompt += f"\n=== About {company_name} ===\n"
             for source in company_sources[:3]:  # Limit to top 3

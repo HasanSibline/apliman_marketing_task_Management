@@ -87,11 +87,6 @@ class ContentGenerator:
             company_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPANY' and ks.get('isActive')]
             if company_sources and company_sources[0].get('name'):
                 company_name = company_sources[0].get('name')
-            # Legacy support: Check for APLIMAN type (will be migrated to COMPANY)
-            elif not company_sources:
-                apliman_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'APLIMAN' and ks.get('isActive')]
-                if apliman_sources and apliman_sources[0].get('name'):
-                    company_name = apliman_sources[0].get('name').replace(' - ', '').replace('About ', '')
         
         # Dynamic company-aware system prompt
         system_prompt = f"""You are the AI assistant for {company_name}'s internal task management system.
@@ -113,8 +108,8 @@ For technical content: Include key talking points about {company_name}'s offerin
         
         # Add knowledge sources if available
         if self.knowledge_sources:
-            # Use COMPANY type (or APLIMAN for backwards compatibility)
-            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') in ['COMPANY', 'APLIMAN'] and ks.get('isActive')]
+            # Filter by COMPANY type only
+            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPANY' and ks.get('isActive')]
             competitor_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPETITOR' and ks.get('isActive')]
             
             if company_sources:
