@@ -206,7 +206,7 @@ export class CompaniesService {
 
     return {
       ...company,
-      aiApiKey: company.aiApiKey ? '[ENCRYPTED]' : null,
+      aiApiKey: company.aiApiKey ? this.decryptApiKey(company.aiApiKey) : null, // Decrypt for editing
       stats: {
         totalUsers: company._count.users,
         activeTasks: activeTasks,

@@ -12,7 +12,7 @@ export class WorkflowsController {
   constructor(private workflowsService: WorkflowsService) {}
 
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async createWorkflow(@Body() dto: CreateWorkflowDto, @Request() req) {
     return this.workflowsService.createWorkflow(dto, req.user.id);
   }
@@ -33,13 +33,13 @@ export class WorkflowsController {
   }
 
   @Put(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async updateWorkflow(@Param('id') id: string, @Body() dto: Partial<CreateWorkflowDto>) {
     return this.workflowsService.updateWorkflow(id, dto);
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async deleteWorkflow(@Param('id') id: string) {
     return this.workflowsService.deleteWorkflow(id);
   }
