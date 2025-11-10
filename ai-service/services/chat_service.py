@@ -37,7 +37,7 @@ class ChatService:
             user_context: Learned information about the user
             user: Current user details
             conversation_history: Recent conversation history
-            knowledge_sources: Apliman and competitor knowledge sources
+            knowledge_sources: Company and competitor knowledge sources
             additional_context: Task references and user mentions
             is_deep_analysis: Whether to provide detailed response
             
@@ -254,7 +254,7 @@ Instructions:
         Learn what user wants to know about specific domains
         
         Args:
-            domain_topic: Domain name (e.g., "apliman", "competitors")
+            domain_topic: Domain name (e.g., "company", "competitors")
             user_questions: Questions user asked about this domain
             existing_knowledge: Current knowledge about user's interests
             

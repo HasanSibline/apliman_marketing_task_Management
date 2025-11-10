@@ -176,10 +176,10 @@ JSON Response:"""
         existing_knowledge: Dict[str, Any]
     ) -> Optional[Dict[str, Any]]:
         """
-        Learn what the user wants to know about specific domains (Apliman, competitors, etc.)
+        Learn what the user wants to know about specific domains (company, competitors, etc.)
         
         Args:
-            domain_topic: The topic (e.g., "apliman", "competitors", "services")
+            domain_topic: The topic (e.g., "company", "competitors", "services")
             user_questions: List of user questions about this topic
             existing_knowledge: What we already know
             
