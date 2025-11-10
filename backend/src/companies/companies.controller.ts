@@ -26,19 +26,20 @@ import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 @ApiBearerAuth()
 @Controller('companies')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.SUPER_ADMIN) // All endpoints require SUPER_ADMIN
 export class CompaniesController {
   constructor(private readonly companiesService: CompaniesService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new company with admin user' })
   @HttpCode(HttpStatus.CREATED)
+  @Roles(UserRole.SUPER_ADMIN)
   create(@Body() createCompanyDto: CreateCompanyDto, @Req() req) {
     return this.companiesService.create(createCompanyDto, req.user.id);
   }
 
   @Get('platform-stats')
   @ApiOperation({ summary: 'Get platform-wide statistics' })
+  @Roles(UserRole.SUPER_ADMIN)
   getPlatformStats() {
     return this.companiesService.getPlatformStats();
   }
@@ -52,24 +53,28 @@ export class CompaniesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all companies with statistics (NO actual data)' })
+  @Roles(UserRole.SUPER_ADMIN)
   findAll() {
     return this.companiesService.findAll();
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get single company with statistics' })
+  @Roles(UserRole.SUPER_ADMIN)
   findOne(@Param('id') id: string) {
     return this.companiesService.findOne(id);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update company details' })
+  @Roles(UserRole.SUPER_ADMIN)
   update(@Param('id') id: string, @Body() updateCompanyDto: UpdateCompanyDto, @Req() req) {
     return this.companiesService.update(id, updateCompanyDto, req.user.id);
   }
 
   @Post(':id/extend-subscription')
   @ApiOperation({ summary: 'Extend company subscription' })
+  @Roles(UserRole.SUPER_ADMIN)
   extendSubscription(
     @Param('id') id: string,
     @Body() extendDto: ExtendSubscriptionDto,
@@ -80,18 +85,21 @@ export class CompaniesController {
 
   @Post(':id/suspend')
   @ApiOperation({ summary: 'Suspend company (disable access)' })
+  @Roles(UserRole.SUPER_ADMIN)
   suspend(@Param('id') id: string, @Body('reason') reason: string, @Req() req) {
     return this.companiesService.suspend(id, reason, req.user.id);
   }
 
   @Post(':id/reactivate')
   @ApiOperation({ summary: 'Reactivate suspended company' })
+  @Roles(UserRole.SUPER_ADMIN)
   reactivate(@Param('id') id: string, @Req() req) {
     return this.companiesService.reactivate(id, req.user.id);
   }
 
   @Post(':id/reset-admin-password')
   @ApiOperation({ summary: 'Reset company admin password' })
+  @Roles(UserRole.SUPER_ADMIN)
   resetAdminPassword(
     @Param('id') id: string,
     @Body() resetDto: ResetCompanyAdminPasswordDto,
@@ -101,6 +109,7 @@ export class CompaniesController {
 
   @Post(':id/toggle-ai')
   @ApiOperation({ summary: 'Enable or disable AI for a company' })
+  @Roles(UserRole.SUPER_ADMIN)
   toggleAI(
     @Param('id') id: string,
     @Body('enabled') enabled: boolean,
@@ -111,6 +120,7 @@ export class CompaniesController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a company and all its data' })
+  @Roles(UserRole.SUPER_ADMIN)
   delete(@Param('id') id: string, @Req() req) {
     return this.companiesService.delete(id, req.user.id);
   }

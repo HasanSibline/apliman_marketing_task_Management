@@ -2,7 +2,7 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import api, { BACKEND_URL } from '../services/api';
 import { setAuth } from '../store/slices/authSlice';
 
 interface CompanyBranding {
@@ -191,7 +191,7 @@ const CompanyLogin: React.FC = () => {
   const logoUrl = company?.logo 
     ? (company.logo.startsWith('http') 
         ? company.logo 
-        : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`)
+        : `${BACKEND_URL}${company.logo}`)
     : null;
 
   return (

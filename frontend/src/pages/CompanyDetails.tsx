@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api from '@/services/api';
+import api, { BACKEND_URL } from '@/services/api';
 import toast from 'react-hot-toast';
 
 interface Company {
@@ -168,7 +168,7 @@ export default function CompanyDetails() {
   const logoUrl = company.logo 
     ? (company.logo.startsWith('http') 
         ? company.logo 
-        : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`)
+        : `${BACKEND_URL}${company.logo}`)
     : null;
 
   return (

@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { BACKEND_URL } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
@@ -211,7 +212,7 @@ export default function SuperAdminDashboard() {
                   const logoUrl = company.logo 
                     ? (company.logo.startsWith('http') 
                         ? company.logo 
-                        : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`)
+                        : `${BACKEND_URL}${company.logo}`)
                     : null;
 
                   return (

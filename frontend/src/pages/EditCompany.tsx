@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import api, { BACKEND_URL } from '../services/api';
 
 interface EditCompanyForm {
   name: string;
@@ -72,7 +72,7 @@ export default function EditCompany() {
         // Convert relative URL to absolute if needed
         const absoluteLogoUrl = company.logo.startsWith('http')
           ? company.logo
-          : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`;
+          : `${BACKEND_URL}${company.logo}`;
         setLogoPreview(absoluteLogoUrl);
       }
     } catch (err: any) {
