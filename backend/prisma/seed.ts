@@ -28,26 +28,41 @@ async function main() {
   const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
 
   // Create System Admin (NO company association)
-  const superAdmin = await prisma.user.upsert({
+  // First, try to find existing System Admin
+  const existingAdmin = await prisma.user.findFirst({
     where: { 
-      email_companyId: {
-        email: 'superadmin@apliman.com',
-        companyId: null, // Changed from empty string to null
-      }
-    },
-    update: {},
-    create: {
       email: 'superadmin@apliman.com',
-      name: 'System Administrator',
-      password: hashedPassword,
-      role: UserRole.SUPER_ADMIN,
-      position: 'System Administrator',
-      status: UserStatus.ACTIVE,
-      companyId: null, // System Admin has NO company
-    },
+      companyId: null,
+    }
   });
 
-  console.log('✅ System Administrator created:', superAdmin.email);
+  let superAdmin;
+  if (existingAdmin) {
+    // Update existing admin
+    superAdmin = await prisma.user.update({
+      where: { id: existingAdmin.id },
+      data: {
+        password: hashedPassword,
+        status: UserStatus.ACTIVE,
+      },
+    });
+    console.log('✅ System Administrator updated:', superAdmin.email);
+  } else {
+    // Create new admin
+    superAdmin = await prisma.user.create({
+      data: {
+        email: 'superadmin@apliman.com',
+        name: 'System Administrator',
+        password: hashedPassword,
+        role: UserRole.SUPER_ADMIN,
+        position: 'System Administrator',
+        status: UserStatus.ACTIVE,
+        companyId: null, // System Admin has NO company
+      },
+    });
+    console.log('✅ System Administrator created:', superAdmin.email);
+  }
+
   console.log('   Role: SUPER_ADMIN (manages all companies)');
   console.log('   Company: NONE (system-wide access)\n');
 
