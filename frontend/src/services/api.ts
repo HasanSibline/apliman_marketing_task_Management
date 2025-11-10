@@ -7,7 +7,7 @@ export const BACKEND_URL = API_BASE_URL.replace('/api', '') // Base URL without 
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 60000, // Increased to 60 seconds for cold starts on Render
   headers: {
     'Content-Type': 'application/json',
   },
@@ -31,13 +31,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.code === 'ECONNABORTED') {
+      // Timeout error
+      toast.error('Request timed out. The server might be starting up, please try again in a moment.')
+    } else if (error.response?.status === 401) {
       // Remove invalid token
       localStorage.removeItem('token')
       // Don't redirect here - let route guards handle the redirect
       // This prevents incorrect redirects (e.g. company users to /login instead of /{slug}/login)
     } else if (error.response?.status >= 500) {
       toast.error('Server error. Please try again later.')
+    } else if (error.message === 'Network Error') {
+      toast.error('Cannot connect to server. Please check if the backend is running.')
     }
     return Promise.reject(error)
   }
