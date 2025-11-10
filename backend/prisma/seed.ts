@@ -32,7 +32,7 @@ async function main() {
     where: { 
       email_companyId: {
         email: 'superadmin@apliman.com',
-        companyId: ''
+        companyId: null, // Changed from empty string to null
       }
     },
     update: {},
