@@ -139,12 +139,18 @@ export default function CreateCompany() {
       // Upload logo if provided
       let logoUrl = undefined;
       if (logoFile) {
-        toast.info('Uploading logo...');
-        logoUrl = await uploadLogo();
-        if (!logoUrl) {
-          throw new Error('Logo upload failed');
+        const uploadToast = toast.loading('Uploading logo...');
+        try {
+          logoUrl = await uploadLogo();
+          if (!logoUrl) {
+            throw new Error('Logo upload failed');
+          }
+          console.log('Logo URL to be saved:', logoUrl);
+          toast.dismiss(uploadToast);
+        } catch (err) {
+          toast.dismiss(uploadToast);
+          throw err;
         }
-        console.log('Logo URL to be saved:', logoUrl);
       }
       
       const payload = {
