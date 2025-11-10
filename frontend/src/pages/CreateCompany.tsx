@@ -54,7 +54,16 @@ export default function CreateCompany() {
 
     // Auto-generate slug from name
     if (name === 'name') {
-      const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      let slug = value.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
+        .replace(/^-+|-+$/g, '')      // Remove leading/trailing hyphens
+        .replace(/-+/g, '-');          // Replace multiple hyphens with single hyphen
+      
+      // Ensure slug is not empty
+      if (!slug) {
+        slug = 'company';
+      }
+      
       setFormData(prev => ({ ...prev, slug }));
     }
   };
@@ -93,7 +102,7 @@ export default function CreateCompany() {
   };
 
   const uploadLogo = async (): Promise<string | undefined> => {
-    if (!logoFile) return formData.logo;
+    if (!logoFile) return undefined;
 
     try {
       const formDataUpload = new FormData();
@@ -105,11 +114,12 @@ export default function CreateCompany() {
         },
       });
 
-      return response.data.url;
+      console.log('Logo uploaded successfully:', response.data);
+      return response.data.url; // Returns path like /api/files/public/filename.webp
     } catch (err) {
       console.error('Error uploading logo:', err);
       toast.error('Failed to upload logo');
-      return undefined;
+      throw err; // Re-throw to prevent company creation with failed logo upload
     }
   };
 
@@ -118,6 +128,7 @@ export default function CreateCompany() {
     
     // Only allow submission on step 4
     if (step !== 4) {
+      e.stopPropagation();
       return;
     }
     
@@ -126,23 +137,41 @@ export default function CreateCompany() {
       setError(null);
       
       // Upload logo if provided
-      let logoUrl = formData.logo;
+      let logoUrl = undefined;
       if (logoFile) {
+        toast.info('Uploading logo...');
         logoUrl = await uploadLogo();
+        if (!logoUrl) {
+          throw new Error('Logo upload failed');
+        }
+        console.log('Logo URL to be saved:', logoUrl);
       }
       
       const payload = {
         ...formData,
-        logo: logoUrl,
+        logo: logoUrl, // This will be the file path from the server
       };
 
-      await api.post('/companies', payload);
+      console.log('Creating company with payload:', payload);
+      const response = await api.post('/companies', payload);
       
       toast.success('Company created successfully!');
+      
+      // Show the admin credentials to the super admin
+      if (response.data.adminCredentials) {
+        const { email, password } = response.data.adminCredentials;
+        const { slug } = response.data.company;
+        
+        toast.success(
+          `Admin Login:\nEmail: ${email}\nPassword: ${password}\nLogin URL: ${window.location.origin}/${slug}/login`,
+          { duration: 10000 }
+        );
+      }
+      
       navigate('/admin/companies');
     } catch (err: any) {
       console.error('Error creating company:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to create company';
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to create company';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -152,11 +181,18 @@ export default function CreateCompany() {
 
   const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
     // Prevent Enter key from submitting form except on step 4
-    if (e.key === 'Enter' && step !== 4) {
-      e.preventDefault();
-      // Move to next step instead
-      if (step < 4) {
-        nextStep();
+    if (e.key === 'Enter') {
+      const target = e.target as HTMLElement;
+      // Allow Enter in textarea, but prevent form submission on other inputs unless on step 4
+      if (target.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        if (step < 4) {
+          // Move to next step instead of submitting
+          nextStep();
+        } else {
+          // On step 4, trigger form submission
+          handleSubmit(e as any);
+        }
       }
     }
   };
@@ -286,7 +322,7 @@ export default function CreateCompany() {
                     <img 
                       src={logoPreview} 
                       alt="Logo preview" 
-                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg"
+                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white"
                     />
                     <button
                       type="button"
@@ -314,30 +350,16 @@ export default function CreateCompany() {
                     htmlFor="logo-upload"
                     className="cursor-pointer bg-white px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
                   >
-                    Choose File
+                    {logoFile ? 'Change Logo' : 'Choose Logo'}
                   </label>
                   <span className="text-sm text-gray-500">
-                    {logoFile ? logoFile.name : 'or enter URL below'}
+                    {logoFile ? logoFile.name : 'No file chosen'}
                   </span>
                 </div>
                 
                 <p className="text-xs text-gray-500 mt-2">
-                  Max size: 5MB. Formats: JPG, PNG, WEBP, GIF
+                  Max size: 5MB. Recommended: Square image (e.g., 200x200px). Formats: JPG, PNG, WEBP, GIF
                 </p>
-                
-                <div className="mt-3">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Or paste logo URL
-                  </label>
-                  <input
-                    type="text"
-                    name="logo"
-                    value={formData.logo || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-                    placeholder="https://example.com/logo.png"
-                  />
-                </div>
               </div>
             </div>
           )}

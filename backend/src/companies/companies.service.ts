@@ -64,6 +64,7 @@ export class CompaniesService {
           aiApiKey,
           aiProvider: createCompanyDto.aiProvider || 'gemini',
           aiEnabled: !!createCompanyDto.aiApiKey,
+          billingEmail: createCompanyDto.billingEmail,
           createdBy: superAdminId,
         },
       });

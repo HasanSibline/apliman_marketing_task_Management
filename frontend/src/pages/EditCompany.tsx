@@ -69,7 +69,11 @@ export default function EditCompany() {
       
       // Set logo preview if exists
       if (company.logo) {
-        setLogoPreview(company.logo);
+        // Convert relative URL to absolute if needed
+        const absoluteLogoUrl = company.logo.startsWith('http')
+          ? company.logo
+          : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`;
+        setLogoPreview(absoluteLogoUrl);
       }
     } catch (err: any) {
       console.error('Error fetching company:', err);
@@ -142,11 +146,12 @@ export default function EditCompany() {
         },
       });
 
-      return response.data.url;
+      console.log('Logo uploaded successfully:', response.data);
+      return response.data.url; // Returns path like /api/files/public/filename.webp
     } catch (err) {
       console.error('Error uploading logo:', err);
       toast.error('Failed to upload logo');
-      return undefined;
+      throw err; // Re-throw to prevent saving with failed logo upload
     }
   };
 
@@ -290,7 +295,7 @@ export default function EditCompany() {
                     <img 
                       src={logoPreview} 
                       alt="Logo preview" 
-                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg"
+                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white"
                     />
                     <button
                       type="button"

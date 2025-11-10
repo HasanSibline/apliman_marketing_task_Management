@@ -22,19 +22,6 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../types/prisma';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
-// Public controller for company branding (no auth required)
-@ApiTags('Public')
-@Controller('public/companies')
-export class PublicCompaniesController {
-  constructor(private readonly companiesService: CompaniesService) {}
-
-  @Get('by-slug/:slug')
-  @ApiOperation({ summary: 'Get company branding by slug (public endpoint)' })
-  getBySlug(@Param('slug') slug: string) {
-    return this.companiesService.findBySlug(slug);
-  }
-}
-
 @ApiTags('Companies (Super Admin Only)')
 @ApiBearerAuth()
 @Controller('companies')
