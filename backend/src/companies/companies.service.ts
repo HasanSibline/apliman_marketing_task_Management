@@ -76,15 +76,21 @@ export class CompaniesService {
       });
 
       // Create company admin user
-      await prisma.user.create({
+      const adminUser = await prisma.user.create({
         data: {
           companyId: newCompany.id,
           email: createCompanyDto.adminEmail,
           name: createCompanyDto.adminName,
           password: hashedPassword,
           role: 'COMPANY_ADMIN',
+          position: 'Company Administrator',
+          status: 'ACTIVE', // Ensure the user is active
         },
       });
+
+      console.log(`✅ Company admin created: ${adminUser.email} (${adminUser.name})`);
+      console.log(`   Company: ${newCompany.name} (${newCompany.slug})`);
+      console.log(`   Password hash length: ${hashedPassword.length}`);
 
       // Log subscription history
       await prisma.subscriptionHistory.create({
@@ -508,5 +514,81 @@ export class CompaniesService {
     // TODO: Implement proper decryption
     return Buffer.from(encryptedKey, 'base64').toString('utf-8');
   }
+
+  /**
+   * Toggle AI for a company
+   */
+  async toggleAI(companyId: string, enabled: boolean, superAdminId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    // If enabling AI, require an API key
+    if (enabled && !company.aiApiKey) {
+      throw new BadRequestException('Cannot enable AI: No API key configured for this company');
+    }
+
+    const updated = await this.prisma.company.update({
+      where: { id: companyId },
+      data: { aiEnabled: enabled },
+      select: {
+        id: true,
+        name: true,
+        aiEnabled: true,
+      },
+    });
+
+    return {
+      ...updated,
+      message: `AI ${enabled ? 'enabled' : 'disabled'} successfully`,
+    };
+  }
+
+  /**
+   * Delete a company and all its data
+   * DANGEROUS: This will delete all company data including users, tasks, etc.
+   */
+  async delete(companyId: string, superAdminId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      include: {
+        _count: {
+          select: {
+            users: true,
+            tasks: true,
+            workflows: true,
+          },
+        },
+      },
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    // Perform deletion in transaction
+    await this.prisma.$transaction(async (prisma) => {
+      // Delete all company-related data
+      // Prisma will handle cascade deletes based on schema
+
+      await prisma.company.delete({
+        where: { id: companyId },
+      });
+    });
+
+    return {
+      message: `Company "${company.name}" and all associated data deleted successfully`,
+      deletedCounts: {
+        users: company._count.users,
+        tasks: company._count.tasks,
+        workflows: company._count.workflows,
+      },
+    };
+  }
 }
+
 

@@ -110,5 +110,21 @@ export class CompaniesController {
   ) {
     return this.companiesService.resetAdminPassword(id, resetDto.adminEmail);
   }
+
+  @Post(':id/toggle-ai')
+  @ApiOperation({ summary: 'Enable or disable AI for a company' })
+  toggleAI(
+    @Param('id') id: string,
+    @Body('enabled') enabled: boolean,
+    @Req() req,
+  ) {
+    return this.companiesService.toggleAI(id, enabled, req.user.id);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete a company and all its data' })
+  delete(@Param('id') id: string, @Req() req) {
+    return this.companiesService.delete(id, req.user.id);
+  }
 }
 
