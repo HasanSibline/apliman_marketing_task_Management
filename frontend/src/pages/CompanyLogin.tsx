@@ -213,7 +213,7 @@ const CompanyLogin: React.FC = () => {
               className="mx-auto h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
               style={{ backgroundColor: accentColor }}
             >
-              {company?.name.charAt(0).toUpperCase()}
+              {company?.name?.charAt(0).toUpperCase()}
             </div>
           )}
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
