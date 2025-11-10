@@ -205,7 +205,7 @@ const CompanyLogin: React.FC = () => {
           {logoUrl ? (
             <img
               src={logoUrl}
-              alt={`${company.name} logo`}
+              alt={`${company?.name || 'Company'} logo`}
               className="mx-auto h-16 w-auto object-contain"
             />
           ) : (
