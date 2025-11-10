@@ -153,15 +153,32 @@ export class AuthService {
   }
 
   async refreshToken(user: any) {
+    // Fetch fresh user data to ensure we have the latest companyId
+    const fullUser = await this.usersService.findById(user.id);
+    
+    if (!fullUser) {
+      throw new UnauthorizedException('User not found');
+    }
+
     const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
+      sub: fullUser.id,
+      email: fullUser.email,
+      role: fullUser.role,
+      companyId: fullUser.companyId, // CRITICAL: Include companyId
     };
 
     const accessToken = this.jwtService.sign(payload);
 
     return {
+      user: {
+        id: fullUser.id,
+        email: fullUser.email,
+        name: fullUser.name,
+        role: fullUser.role,
+        position: fullUser.position,
+        status: fullUser.status,
+        companyId: fullUser.companyId, // Include in response
+      },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
     };
