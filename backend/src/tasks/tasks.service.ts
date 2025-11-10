@@ -166,10 +166,11 @@ export class TasksService {
         // Use pre-generated subtasks that user may have edited in the modal
         subtasksToCreate = createTaskDto.aiSubtasks;
       } else if (createTaskDto.generateSubtasks) {
-        // Fetch available users for AI assignment suggestions
+        // Fetch available users for AI assignment suggestions (COMPANY-SPECIFIC ONLY)
         const availableUsers = await this.prisma.user.findMany({
           where: {
             status: 'ACTIVE',
+            companyId: creator.companyId, // CRITICAL: Same company only
           },
             select: {
               id: true,
@@ -179,14 +180,14 @@ export class TasksService {
           },
         });
 
-        // Generate subtasks via AI with real user data
+        // Generate subtasks via AI with real user data (company-specific)
         const aiSubtasks = await this.aiService.generateSubtasks({
           title: createTaskDto.title,
           description,
           taskType,
           workflowPhases: workflow.phases.map(p => p.name),
           availableUsers,
-        });
+        }, creatorId); // Pass creatorId for company-specific knowledge sources
         subtasksToCreate = aiSubtasks.subtasks;
       }
 

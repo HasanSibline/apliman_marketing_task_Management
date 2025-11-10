@@ -147,10 +147,10 @@ export class ChatService {
       // Get user context
       const userContext = await this.getUserContext(userId);
 
-      // Get user details
+      // Get user details (including companyId for filtering)
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, name: true, email: true, role: true, position: true },
+        select: { id: true, name: true, email: true, role: true, position: true, companyId: true },
       });
 
       // Save user message
@@ -168,9 +168,32 @@ export class ChatService {
       const taskRefs = this.extractTaskReferences(dto.message);
       const isDeepAnalysis = /\b(deep|details|detailed|explain|elaborate)\b/i.test(dto.message);
 
-      // Get knowledge sources
+      // Get user's company ID for filtering
+      const userCompanyId = user.companyId;
+
+      // Get company's AI API key
+      const company = await this.prisma.company.findUnique({
+        where: { id: userCompanyId },
+        select: { 
+          aiApiKey: true, 
+          aiEnabled: true,
+          name: true 
+        },
+      });
+
+      if (!company || !company.aiEnabled || !company.aiApiKey) {
+        throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
+      }
+
+      // Decrypt the AI API key
+      const aiApiKey = Buffer.from(company.aiApiKey, 'base64').toString('utf-8');
+
+      // Get knowledge sources (COMPANY-SPECIFIC ONLY)
       const knowledgeSources = await this.prisma.knowledgeSource.findMany({
-        where: { isActive: true },
+        where: { 
+          isActive: true,
+          companyId: userCompanyId // CRITICAL: Only get this company's knowledge sources
+        },
         select: {
           id: true,
           name: true,
@@ -210,6 +233,7 @@ export class ChatService {
         knowledgeSources,
         additionalContext,
         isDeepAnalysis,
+        apiKey: aiApiKey, // CRITICAL: Pass company-specific API key
       });
 
       // Save assistant message
@@ -344,6 +368,7 @@ export class ChatService {
 
   /**
    * Fetch additional context based on mentions and task references
+   * COMPANY-SPECIFIC: Only fetch data from the user's company
    */
   private async fetchAdditionalContext(
     userId: string,
@@ -352,10 +377,21 @@ export class ChatService {
   ) {
     const context: any = {};
 
-    // Fetch mentioned users
+    // Get user's company for filtering
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
+    if (!user?.companyId) {
+      return context; // No company, no context
+    }
+
+    // Fetch mentioned users (SAME COMPANY ONLY)
     if (mentions.length > 0) {
       const users = await this.prisma.user.findMany({
         where: {
+          companyId: user.companyId, // CRITICAL: Same company only
           name: {
             in: mentions,
             mode: 'insensitive',
@@ -383,10 +419,11 @@ export class ChatService {
       context.mentionedUsers = users;
     }
 
-    // Fetch referenced tasks
+    // Fetch referenced tasks (SAME COMPANY ONLY)
     if (taskRefs.length > 0) {
       const tasks = await this.prisma.task.findMany({
         where: {
+          companyId: user.companyId, // CRITICAL: Same company only
           OR: taskRefs.map(ref => ({
             title: {
               contains: ref,
@@ -472,15 +509,28 @@ export class ChatService {
   /**
    * Learn from user's task history
    * Analyzes completed and active tasks to extract insights
+   * COMPANY-SPECIFIC: Only learns from the user's company data
    */
   async learnFromTaskHistory(userId: string) {
     try {
       // Get user context
       const userContext = await this.getUserContext(userId);
 
-      // Get completed tasks (last 10)
+      // Get user's company for filtering
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+
+      if (!user?.companyId) {
+        this.logger.warn('User has no company - skipping task history learning');
+        return;
+      }
+
+      // Get completed tasks (last 10, COMPANY-SPECIFIC)
       const completedTasks = await this.prisma.task.findMany({
         where: {
+          companyId: user.companyId, // CRITICAL: Same company only
           OR: [
             { createdById: userId },
             { assignedToId: userId },
@@ -501,9 +551,10 @@ export class ChatService {
         },
       });
 
-      // Get active tasks (up to 5)
+      // Get active tasks (up to 5, COMPANY-SPECIFIC)
       const activeTasks = await this.prisma.task.findMany({
         where: {
+          companyId: user.companyId, // CRITICAL: Same company only
           OR: [
             { createdById: userId },
             { assignedToId: userId },

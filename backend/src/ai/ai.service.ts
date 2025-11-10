@@ -296,8 +296,8 @@ export class AiService {
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
       }
       
-      // Fetch active knowledge sources
-      const knowledgeSources = await this.getActiveKnowledgeSources();
+      // Fetch active knowledge sources (company-specific)
+      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
       this.logger.log(`Using ${knowledgeSources.length} knowledge sources for content generation`);
       
       const response = await firstValueFrom(
@@ -333,12 +333,28 @@ export class AiService {
     }
   }
 
-  private async getActiveKnowledgeSources() {
+  /**
+   * Get active knowledge sources filtered by user's company
+   * COMPANY-SPECIFIC: Only returns knowledge sources from the user's company
+   */
+  private async getActiveKnowledgeSources(userId?: string) {
     try {
+      // Build where clause with company filter
+      const where: any = { isActive: true };
+      
+      if (userId) {
+        const user = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { companyId: true },
+        });
+
+        if (user?.companyId) {
+          where.companyId = user.companyId; // CRITICAL: Filter by company
+        }
+      }
+
       const sources = await this.prisma.knowledgeSource.findMany({
-        where: {
-          isActive: true,
-        },
+        where,
         orderBy: [
           { priority: 'desc' },
         ],
@@ -388,18 +404,21 @@ export class AiService {
     }
   }
 
-  async generateSubtasks(data: {
-    title: string;
-    description: string;
-    taskType: string;
-    workflowPhases: string[];
-    availableUsers?: { id: string; name: string; position: string; role: string }[];
-  }): Promise<{ subtasks: any[]; ai_provider: string }> {
+  async generateSubtasks(
+    data: {
+      title: string;
+      description: string;
+      taskType: string;
+      workflowPhases: string[];
+      availableUsers?: { id: string; name: string; position: string; role: string }[];
+    },
+    userId?: string
+  ): Promise<{ subtasks: any[]; ai_provider: string }> {
     try {
       this.logger.log(`Generating subtasks for: ${data.title}`);
       
-      // Fetch active knowledge sources
-      const knowledgeSources = await this.getActiveKnowledgeSources();
+      // Fetch active knowledge sources (company-specific)
+      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
       this.logger.log(`Using ${knowledgeSources.length} knowledge sources for subtask generation`);
       
       const response = await firstValueFrom(
