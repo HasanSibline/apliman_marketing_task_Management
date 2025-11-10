@@ -163,7 +163,7 @@ export class AuthService {
     const payload: JwtPayload = {
       sub: fullUser.id,
       email: fullUser.email,
-      role: fullUser.role,
+      role: fullUser.role as UserRole, // Cast Prisma enum to local enum
       companyId: fullUser.companyId, // CRITICAL: Include companyId
     };
 
