@@ -186,6 +186,13 @@ const CompanyLogin: React.FC = () => {
     : 'linear-gradient(to bottom right, #EFF6FF, #E0E7FF)';
 
   const accentColor = company?.primaryColor || '#4F46E5';
+  
+  // Convert relative logo URL to absolute URL if needed
+  const logoUrl = company?.logo 
+    ? (company.logo.startsWith('http') 
+        ? company.logo 
+        : `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${company.logo}`)
+    : null;
 
   return (
     <div 
@@ -195,9 +202,9 @@ const CompanyLogin: React.FC = () => {
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
         <div>
           {/* Company Logo */}
-          {company?.logo ? (
+          {logoUrl ? (
             <img
-              src={company.logo}
+              src={logoUrl}
               alt={`${company.name} logo`}
               className="mx-auto h-16 w-auto object-contain"
             />

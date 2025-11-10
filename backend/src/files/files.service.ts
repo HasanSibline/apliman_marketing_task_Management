@@ -25,14 +25,10 @@ export class FilesService {
       // Return file path (relative to uploads directory)
       const fileName = path.basename(processedFile.path);
       
-      // Use environment variable or construct from request
-      // For production, this should be set to the backend URL
-      const backendUrl = this.configService.get('BACKEND_URL') || this.configService.get('BASE_URL');
-      
-      // If no backend URL is configured, return just the path
-      const fileUrl = backendUrl 
-        ? `${backendUrl}/files/public/${fileName}`
-        : `/api/files/public/${fileName}`;
+      // Construct the file URL
+      // In production, the frontend will request this through the API
+      // So we return a path relative to the API base
+      const fileUrl = `/api/files/public/${fileName}`;
       
       return {
         url: fileUrl,

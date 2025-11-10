@@ -153,6 +153,7 @@ const authSlice = createSlice({
       .addCase(checkAuth.fulfilled, (state, action) => {
         state.isLoading = false
         state.isAuthenticated = true
+        state.user = action.payload.user // FIX: Add user to state
         state.token = action.payload.accessToken
         state.error = null
       })
