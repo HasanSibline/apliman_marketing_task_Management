@@ -67,40 +67,53 @@ class ContentGenerator:
         return await self._make_gemini_request(prompt)
             
     async def _make_gemini_request(self, prompt: str) -> str:
-        """Make a request to Gemini API with Apliman system prompt and knowledge sources"""
+        """Make a request to Gemini API with dynamic company-specific system prompt"""
         url = f"{self.base_url}/models/{self.model}:generateContent"
         
         # Check if this is a social media post
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
         is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
         
-        # Base Apliman system prompt
-        system_prompt = """You are the AI assistant for Apliman Technologies' internal marketing task management system.
+        # Extract company name from knowledge sources (defaults to "this company")
+        company_name = "this company"
+        if self.knowledge_sources:
+            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPANY' and ks.get('isActive')]
+            if company_sources and company_sources[0].get('name'):
+                company_name = company_sources[0].get('name')
+            # Legacy support: Check for APLIMAN type (will be migrated to COMPANY)
+            elif not company_sources:
+                apliman_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'APLIMAN' and ks.get('isActive')]
+                if apliman_sources and apliman_sources[0].get('name'):
+                    company_name = apliman_sources[0].get('name').replace(' - ', '').replace('About ', '')
+        
+        # Dynamic company-aware system prompt
+        system_prompt = f"""You are the AI assistant for {company_name}'s internal task management system.
 
 CONTENT GENERATION RULES:
-1. Always reference specific Apliman products and services based on the knowledge provided below
-2. Highlight industry-specific applications
-3. Emphasize key differentiators: AI-driven, multi-channel, scalable, secure
-4. Include technical depth for B2B/Enterprise audience
+1. Always reference specific {company_name} products and services based on the knowledge provided below
+2. Highlight industry-specific applications relevant to {company_name}
+3. Emphasize key differentiators and unique value propositions
+4. Include appropriate depth for the target audience
 5. Focus on business outcomes: revenue growth, customer engagement, efficiency
-6. Use telecom/tech terminology accurately
+6. Use accurate industry terminology
 
 OUTPUT FORMAT:
-Section 1 (Context): Explain WHY this task matters for Apliman's business, which products/solutions it promotes, target audience, strategic value.
+Section 1 (Context): Explain WHY this task matters for {company_name}'s business, which products/solutions it promotes, target audience, strategic value.
 Section 2 (Strategy & Deliverables): Specific execution steps, deliverables, success metrics, ready-to-use content.
 
 For social media: Include caption, hashtags, posting recommendations.
-For technical content: Include key talking points about Apliman's technology."""
+For technical content: Include key talking points about {company_name}'s offerings."""
         
         # Add knowledge sources if available
         if self.knowledge_sources:
-            apliman_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'APLIMAN' and ks.get('isActive')]
+            # Use COMPANY type (or APLIMAN for backwards compatibility)
+            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') in ['COMPANY', 'APLIMAN'] and ks.get('isActive')]
             competitor_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPETITOR' and ks.get('isActive')]
             
-            if apliman_sources:
-                system_prompt += "\n\n=== APLIMAN KNOWLEDGE BASE ===\n"
-                system_prompt += "Use the following information about Apliman to inform your content generation:\n\n"
-                for idx, source in enumerate(apliman_sources, 1):
+            if company_sources:
+                system_prompt += f"\n\n=== {company_name.upper()} KNOWLEDGE BASE ===\n"
+                system_prompt += f"Use the following information about {company_name} to inform your content generation:\n\n"
+                for idx, source in enumerate(company_sources, 1):
                     system_prompt += f"\n[Source {idx}: {source.get('name', 'Unknown')}]\n"
                     if source.get('content'):
                         # Truncate content to avoid exceeding token limits
@@ -112,7 +125,7 @@ For technical content: Include key talking points about Apliman's technology."""
             
             if competitor_sources:
                 system_prompt += "\n\n=== COMPETITIVE ANALYSIS ===\n"
-                system_prompt += "Consider the following competitor information for positioning Apliman's advantages:\n\n"
+                system_prompt += f"Consider the following competitor information for positioning {company_name}'s advantages:\n\n"
                 for idx, source in enumerate(competitor_sources, 1):
                     system_prompt += f"\n[Competitor {idx}: {source.get('name', 'Unknown')}]\n"
                     if source.get('content'):
@@ -123,25 +136,18 @@ For technical content: Include key talking points about Apliman's technology."""
                         # Fallback to description if content scraping failed (e.g., social media URLs)
                         system_prompt += f"Description: {source['description']}\n"
                 
-                system_prompt += "\n\nWhen generating content, subtly highlight Apliman's advantages without directly attacking competitors. Focus on Apliman's unique value propositions and strengths."
+                system_prompt += f"\n\nWhen generating content, subtly highlight {company_name}'s advantages without directly attacking competitors. Focus on {company_name}'s unique value propositions and strengths."
         else:
-            # Fallback to basic Apliman information if no knowledge sources
-            system_prompt += """
+            # Generic fallback if no knowledge sources provided
+            system_prompt += f"""
 
-ABOUT APLIMAN (Default Knowledge):
-Apliman is a leading provider of integrated communication solutions with presence in 50+ countries, serving 75+ governmental and private enterprises globally.
-
-CORE PRODUCTS & SERVICES:
-1. aïda - Intelligent platform enabling 100+ customer journey automations with AI-driven personalization
-2. aïReach - CPaaS (Communication Platform as a Service) supporting Voice, SMS, WhatsApp, Email, RCS with AI-driven channel optimization
-3. Call Completion Solutions (CCS) - Converting failed calls into successful connections
-4. Smart Ring Back Tone (SRBT) - Advanced ringback tone system with smart engagement features
-5. NameTag - Numeric digital identities for brands
-6. Interactive Voice Response (IVR) - Automated customer service systems
-
-TARGET INDUSTRIES:
-- Telecom Mobile Network Operators (MNOs)
-- Fintech, Education, Travel & Hospitality, E-Commerce, Government"""
+ABOUT {company_name.upper()}:
+Use the company information available or create general professional marketing content focused on:
+- Product/service quality and innovation
+- Customer value and satisfaction
+- Industry expertise and leadership
+- Business outcomes and ROI
+"""
         
         # Add social media specific instructions
         if is_social_media:
@@ -468,14 +474,14 @@ Respond with ONLY the bullet points, nothing else."""
             return 3  # Default to medium priority on error
 
     async def detect_task_type(self, title: str) -> str:
-        """Detect task type from title using AI with Apliman context"""
+        """Detect task type from title using AI with company context"""
         try:
             await self._rate_limit()
             
             prompt = f"""
             Analyze this task title and categorize it into ONE of these marketing task types:
             
-            - SOCIAL_MEDIA_POST: Social media content about Apliman products
+            - SOCIAL_MEDIA_POST: Social media content about products/services
             - VIDEO_CONTENT: Product demos, explainer videos, testimonials
             - BLOG_ARTICLE: Thought leadership, technical articles
             - EMAIL_CAMPAIGN: Product announcements, feature launches
