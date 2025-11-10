@@ -150,7 +150,7 @@ const AdminAnalytics: React.FC = () => {
                     <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
                     <dd>
                       <div className="text-2xl font-semibold text-gray-900">
-                        {stat.value.toLocaleString()}
+                        {(stat.value || 0).toLocaleString()}
                       </div>
                     </dd>
                   </dl>
@@ -169,28 +169,28 @@ const AdminAnalytics: React.FC = () => {
               <div className="w-4 h-4 bg-green-500 rounded-full mr-3"></div>
               <span className="text-sm text-gray-700">Active Subscriptions</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.activeCompanies}</span>
+            <span className="text-sm font-semibold text-gray-900">{stats.activeCompanies || 0}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-yellow-500 rounded-full mr-3"></div>
               <span className="text-sm text-gray-700">Trial Period</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.companiesOnTrial}</span>
+            <span className="text-sm font-semibold text-gray-900">{stats.companiesOnTrial || 0}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
               <span className="text-sm text-gray-700">Expired</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.companiesExpired}</span>
+            <span className="text-sm font-semibold text-gray-900">{stats.companiesExpired || 0}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-gray-500 rounded-full mr-3"></div>
               <span className="text-sm text-gray-700">Suspended</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.suspendedCompanies}</span>
+            <span className="text-sm font-semibold text-gray-900">{stats.suspendedCompanies || 0}</span>
           </div>
         </div>
       </div>
