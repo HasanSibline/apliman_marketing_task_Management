@@ -192,14 +192,14 @@ export class CompaniesService {
     const activeTasks = await this.prisma.task.count({
       where: {
         companyId: id,
-        status: { not: 'COMPLETED' },
+        phase: { not: 'COMPLETED' },
       },
     });
 
     const completedTasks = await this.prisma.task.count({
       where: {
         companyId: id,
-        status: 'COMPLETED',
+        phase: 'COMPLETED',
       },
     });
 
