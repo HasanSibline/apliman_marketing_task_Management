@@ -95,6 +95,7 @@ export class UsersService {
         role: true,
         position: true,
         status: true,
+        companyId: true, // CRITICAL: Include companyId
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
