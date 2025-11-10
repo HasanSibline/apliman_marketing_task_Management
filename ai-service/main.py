@@ -217,6 +217,7 @@ class GenerateContentRequest(BaseModel):
     title: str
     type: str = "task"
     knowledge_sources: Optional[List[dict]] = None  # Optional knowledge sources
+    company_name: Optional[str] = None  # Company name for personalized AI responses
 
 class ScrapeUrlRequest(BaseModel):
     url: str
@@ -228,6 +229,10 @@ async def generate_content(request: GenerateContentRequest):
         # Set knowledge sources in content generator if provided
         if request.knowledge_sources:
             content_generator.set_knowledge_sources(request.knowledge_sources)
+        
+        # Set company name if provided
+        if request.company_name:
+            content_generator.set_company_name(request.company_name)
         
         # Generate content
         description = await content_generator.generate_description(request.title)
@@ -275,6 +280,7 @@ class ChatRequest(BaseModel):
     knowledgeSources: List[Dict[str, Any]]
     additionalContext: Dict[str, Any]
     isDeepAnalysis: bool = False
+    companyName: Optional[str] = None  # Company name for personalized responses
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
@@ -287,7 +293,8 @@ async def chat(request: ChatRequest):
             conversation_history=request.conversationHistory,
             knowledge_sources=request.knowledgeSources,
             additional_context=request.additionalContext,
-            is_deep_analysis=request.isDeepAnalysis
+            is_deep_analysis=request.isDeepAnalysis,
+            company_name=request.companyName  # Pass company name
         )
         return result
     except Exception as e:

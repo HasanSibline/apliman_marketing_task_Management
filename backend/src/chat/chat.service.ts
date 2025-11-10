@@ -224,7 +224,7 @@ export class ChatService {
         },
       });
 
-      // Call AI service
+      // Call AI service with company name
       const aiResponse = await this.callAiChatService({
         message: dto.message,
         userContext: userContext.context,
@@ -234,6 +234,7 @@ export class ChatService {
         additionalContext,
         isDeepAnalysis,
         apiKey: aiApiKey, // CRITICAL: Pass company-specific API key
+        companyName: company.name, // CRITICAL: Pass actual company name
       });
 
       // Save assistant message

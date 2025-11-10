@@ -20,6 +20,7 @@ class ContentGenerator:
         self.last_request_time = None
         self.request_interval = 1.0  # Minimum time between requests in seconds
         self.knowledge_sources = None  # Store knowledge sources for enhanced prompts
+        self.company_name = None  # Store company name for personalized responses
         self._initialize_gemini()
         
     def _initialize_gemini(self):
@@ -61,6 +62,11 @@ class ContentGenerator:
         """Set knowledge sources for enhanced content generation"""
         self.knowledge_sources = knowledge_sources
         logger.info(f"✅ Set {len(knowledge_sources)} knowledge sources for content generation")
+    
+    def set_company_name(self, company_name: str):
+        """Set company name for personalized AI responses"""
+        self.company_name = company_name
+        logger.info(f"✅ Set company name: {company_name}")
             
     async def _make_request(self, prompt: str) -> str:
         """Make a request to Gemini API"""
@@ -74,9 +80,10 @@ class ContentGenerator:
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
         is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
         
-        # Extract company name from knowledge sources (defaults to "this company")
-        company_name = "this company"
-        if self.knowledge_sources:
+        # Extract company name (use provided name, or fall back to knowledge sources, or generic)
+        company_name = self.company_name or "this company"
+        
+        if not self.company_name and self.knowledge_sources:
             company_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPANY' and ks.get('isActive')]
             if company_sources and company_sources[0].get('name'):
                 company_name = company_sources[0].get('name')

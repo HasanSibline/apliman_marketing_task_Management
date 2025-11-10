@@ -19,10 +19,10 @@ export class AiService {
   }
 
   /**
-   * Get company's AI API key by user ID
+   * Get company's AI API key and name by user ID
    * Returns null if company has no AI key (AI will be disabled)
    */
-  private async getCompanyAiApiKey(userId?: string): Promise<string | null> {
+  private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string } | null> {
     if (!userId) {
       // No user context - AI disabled
       this.logger.warn('No userId provided - AI disabled');
@@ -61,12 +61,23 @@ export class AiService {
         return null;
       }
 
-      this.logger.log(`Using AI key for company: ${company.name}`);
-      return company.aiApiKey;
+      this.logger.log(`Using AI for company: ${company.name}`);
+      return {
+        apiKey: company.aiApiKey,
+        companyName: company.name
+      };
     } catch (error) {
-      this.logger.error('Error fetching company AI key:', error);
+      this.logger.error('Error fetching company AI info:', error);
       return null; // AI disabled on error
     }
+  }
+
+  /**
+   * Legacy method for backwards compatibility
+   */
+  private async getCompanyAiApiKey(userId?: string): Promise<string | null> {
+    const info = await this.getCompanyAiInfo(userId);
+    return info?.apiKey || null;
   }
 
   async summarizeText(text: string, maxLength: number = 150, userId?: string): Promise<string> {
@@ -288,11 +299,11 @@ export class AiService {
       this.logger.log(`Calling AI service at: ${this.aiServiceUrl}/generate-content`);
       this.logger.log(`Request data: ${JSON.stringify({ title, type })}`);
       
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const companyInfo = await this.getCompanyAiInfo(userId);
       
-      if (!apiKey) {
+      if (!companyInfo) {
         // AI not available for this company
-        this.logger.warn('AI key not available - AI features disabled');
+        this.logger.warn('AI not available - AI features disabled');
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
       }
       
@@ -305,7 +316,8 @@ export class AiService {
           title,
           type,
           knowledge_sources: knowledgeSources,
-          api_key: apiKey, // Pass company-specific API key
+          api_key: companyInfo.apiKey, // Pass company-specific API key
+          company_name: companyInfo.companyName, // CRITICAL: Pass actual company name
         }, {
           timeout: 30000, // Increased timeout for better AI generation
         }),

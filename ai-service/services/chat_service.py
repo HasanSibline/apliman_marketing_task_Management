@@ -27,7 +27,8 @@ class ChatService:
         conversation_history: List[Dict[str, Any]],
         knowledge_sources: List[Dict[str, Any]],
         additional_context: Dict[str, Any],
-        is_deep_analysis: bool = False
+        is_deep_analysis: bool = False,
+        company_name: str = None  # Add company_name parameter
     ) -> Dict[str, Any]:
         """
         Process a chat message and generate a response
@@ -40,6 +41,7 @@ class ChatService:
             knowledge_sources: Company and competitor knowledge sources
             additional_context: Task references and user mentions
             is_deep_analysis: Whether to provide detailed response
+            company_name: Company name for personalized responses
             
         Returns:
             Dict with message, contextUsed, and learnedContext
@@ -53,7 +55,8 @@ class ChatService:
                 user_context,
                 knowledge_sources,
                 additional_context,
-                is_deep_analysis
+                is_deep_analysis,
+                company_name  # Pass company name
             )
 
             # Build conversation history
@@ -103,18 +106,20 @@ ApliChat:"""
         user_context: Dict[str, Any],
         knowledge_sources: List[Dict[str, Any]],
         additional_context: Dict[str, Any],
-        is_deep_analysis: bool
+        is_deep_analysis: bool,
+        company_name: str = None  # Add company_name parameter
     ) -> str:
         """Build the system prompt with all context"""
         
         response_style = "detailed and comprehensive" if is_deep_analysis else "concise and conversational"
         
-        # Extract company name from knowledge sources (defaults to "the company")
-        company_name = "the company"
-        if knowledge_sources:
-            company_sources = [s for s in knowledge_sources if s.get('type') in ['COMPANY', 'APLIMAN']]
-            if company_sources and company_sources[0].get('name'):
-                company_name = company_sources[0].get('name').replace(' - ', '').replace('About ', '')
+        # Use provided company name, or extract from knowledge sources, or use generic fallback
+        if not company_name:
+            company_name = "the company"
+            if knowledge_sources:
+                company_sources = [s for s in knowledge_sources if s.get('type') in ['COMPANY', 'APLIMAN']]
+                if company_sources and company_sources[0].get('name'):
+                    company_name = company_sources[0].get('name').replace(' - ', '').replace('About ', '')
         
         prompt = f"""You are ApliChat, a helpful and versatile AI assistant integrated into {company_name}'s task management system. 
 
