@@ -2,7 +2,7 @@ import { IsString, IsOptional, IsInt, IsEnum, IsBoolean, Min } from 'class-valid
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateCompanyDto {
-  @ApiProperty({ example: 'Apliman Marketing Updated', description: 'Company name', required: false })
+  @ApiProperty({ example: 'Acme Corporation Updated', description: 'Company name', required: false })
   @IsOptional()
   @IsString()
   name?: string;

@@ -2,15 +2,15 @@ import { IsString, IsEmail, IsOptional, IsInt, IsEnum, IsBoolean, Min, Max } fro
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCompanyDto {
-  @ApiProperty({ example: 'Apliman Marketing', description: 'Company name' })
+  @ApiProperty({ example: 'Acme Corporation', description: 'Company name' })
   @IsString()
   name: string;
 
-  @ApiProperty({ example: 'apliman', description: 'URL-friendly slug' })
+  @ApiProperty({ example: 'acme', description: 'URL-friendly slug' })
   @IsString()
   slug: string;
 
-  @ApiProperty({ example: 'admin@apliman.com', description: 'Company admin email' })
+  @ApiProperty({ example: 'admin@acme.com', description: 'Company admin email' })
   @IsEmail()
   adminEmail: string;
 
@@ -71,7 +71,7 @@ export class CreateCompanyDto {
   @IsEnum(['gemini', 'openai'])
   aiProvider?: string;
 
-  @ApiProperty({ example: 'billing@apliman.com', description: 'Billing email', required: false })
+  @ApiProperty({ example: 'billing@company.com', description: 'Billing email', required: false })
   @IsOptional()
   @IsEmail()
   billingEmail?: string;

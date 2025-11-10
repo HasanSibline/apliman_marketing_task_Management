@@ -145,12 +145,10 @@ const AdminLogin: React.FC = () => {
           </div>
 
           <div className="text-center">
-            <a
-              href="/apliman/login"
-              className="text-sm text-indigo-600 hover:text-indigo-500"
-            >
-              Company Portal Login →
-            </a>
+            <p className="text-sm text-gray-600">
+              Looking for your company portal?{' '}
+              <span className="text-indigo-600">Use your company's login URL</span>
+            </p>
           </div>
         </form>
 

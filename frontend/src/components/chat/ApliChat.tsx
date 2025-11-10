@@ -444,7 +444,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   <p className="text-sm text-gray-600 mb-3">Your intelligent assistant</p>
                   <div className="space-y-2 text-xs text-gray-500">
                     <p className="px-3 py-1.5 bg-white rounded-lg shadow-sm inline-block">"List my tasks"</p>
-                    <p className="px-3 py-1.5 bg-white rounded-lg shadow-sm inline-block ml-2">"Tell me about Apliman"</p>
+                    <p className="px-3 py-1.5 bg-white rounded-lg shadow-sm inline-block ml-2">"Tell me about our company"</p>
             </div>
                 </motion.div>
           )}

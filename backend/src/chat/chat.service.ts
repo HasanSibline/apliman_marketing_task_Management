@@ -608,8 +608,8 @@ export class ChatService {
       const userContext = await this.getUserContext(userId);
       const context = userContext.context as any;
 
-      // Detect domain topics
-      const domains = ['apliman', 'competitor', 'service', 'product', 'feature'];
+      // Detect domain topics (generic company/industry terms)
+      const domains = ['company', 'competitor', 'service', 'product', 'feature'];
       const messageLower = message.toLowerCase();
 
       for (const domain of domains) {
