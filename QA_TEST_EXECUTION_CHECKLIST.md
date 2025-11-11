@@ -1,0 +1,553 @@
+# 🧪 QA Test Execution Checklist
+
+**Execution Date:** November 11, 2025  
+**Tester:** QA Agent  
+**Environment:** Production (https://taskmanagement-backendv2.onrender.com)
+
+---
+
+## ✅ QUICK START - CRITICAL PATH TESTING
+
+Execute these tests **IN ORDER** to verify core functionality:
+
+### Phase 1: System Administrator Tests (15 min)
+
+#### ✅ Test 1.1: Admin Login
+```
+URL: https://[frontend-url]/admin/login
+Credentials: superadmin@apliman.com / SuperAdmin123!
+
+Steps:
+1. Open admin login page
+2. Enter credentials
+3. Click "Sign In"
+4. Verify redirect to /admin/companies
+5. Verify no console errors
+
+Expected: Successfully logged in ✓
+```
+
+#### ✅ Test 1.2: Create Company with AI
+```
+Pre-requisite: Logged in as admin
+
+Steps:
+1. Click "Create New Company"
+2. STEP 1 - Basic Info:
+   - Name: "Test Company QA"
+   - Slug: "testqa"
+   - Admin Name: "QA Admin"
+   - Admin Email: "qa@testqa.com"
+   - Admin Password: "TestQA123!"
+   - Click NEXT
+3. STEP 2 - AI Configuration:
+   - Paste your Google Gemini API key
+   - Check "Enable AI"
+   - Click NEXT
+4. STEP 3 - Subscription:
+   - Plan: PRO
+   - Days: 30
+   - Click "Create Company"
+
+Expected: 
+- Company created successfully ✓
+- Admin credentials displayed ✓
+- Can see company in list ✓
+```
+
+#### ✅ Test 1.3: Verify AI Key Persistence
+```
+Pre-requisite: Company created with AI key
+
+Steps:
+1. Click "Edit" on Test Company QA
+2. Navigate to AI section
+3. Check if AI key is visible
+
+Expected: AI key should be visible (decrypted) ✓
+```
+
+---
+
+### Phase 2: Company Login & Authentication (10 min)
+
+#### ✅ Test 2.1: Company Admin Login - TOKEN TEST (CRITICAL!)
+```
+URL: https://[frontend-url]/testqa/login
+Credentials: qa@testqa.com / TestQA123!
+
+Steps:
+1. Open browser DevTools (F12)
+2. Go to Console tab
+3. Navigate to /testqa/login
+4. Enter credentials
+5. Click "Sign In"
+6. IMMEDIATELY check console
+
+Expected Results:
+✓ Redirected to /dashboard
+✓ NO 401 errors in console
+✓ Toast: "Welcome back, QA Admin!"
+✓ Dashboard loads with data
+
+Critical Checks:
+- Open DevTools > Application > Local Storage
+- Verify "token" key exists
+- Token should be a long JWT string (starts with "eyJ")
+```
+
+#### ✅ Test 2.2: Token Sent with API Calls
+```
+Pre-requisite: Logged in as company admin
+
+Steps:
+1. Open DevTools > Network tab
+2. Click on any page (Analytics, Users, etc.)
+3. Select an API call in Network tab
+4. Check "Request Headers"
+
+Expected:
+✓ Authorization: Bearer [token] header present
+✓ Requests return 200, not 401
+```
+
+---
+
+### Phase 3: Company Admin Permissions (15 min)
+
+#### ✅ Test 3.1: Workflows Access
+```
+Pre-requisite: Logged in as company admin
+
+Steps:
+1. Click "Workflows" in sidebar
+2. Check for "Create Workflow" button
+3. Check console for errors
+
+Expected:
+✓ Page loads successfully
+✓ NO 401 errors
+✓ "Create Workflow" button visible
+```
+
+#### ✅ Test 3.2: Analytics - All 3 Tabs
+```
+Pre-requisite: Logged in as company admin
+
+Steps:
+1. Click "Analytics" in sidebar
+2. Click "Dashboard" tab
+3. Click "Team Analytics" tab  
+4. Click "Task Analytics" tab
+5. Check console after each tab
+
+Expected:
+✓ All 3 tabs load successfully
+✓ NO 401 errors for any tab
+✓ Data displayed in each tab
+```
+
+#### ✅ Test 3.3: Users Management
+```
+Pre-requisite: Logged in as company admin
+
+Steps:
+1. Click "Users" in sidebar
+2. Click "Add User" button
+3. Fill form:
+   - Name: "Test Employee"
+   - Email: "employee@testqa.com"
+   - Password: "Emp123!"
+   - Role: EMPLOYEE
+   - Position: "Tester"
+4. Submit
+
+Expected:
+✓ User created successfully
+✓ Appears in users list
+✓ NO 401 errors
+```
+
+---
+
+### Phase 4: AI Features Testing (20 min)
+
+#### ✅ Test 4.1: AI Chat - Company Name Test (CRITICAL!)
+```
+Pre-requisite: Logged in as company admin (Test Company QA)
+
+Steps:
+1. Click ApliChat icon (bottom right)
+2. Wait for chat to load
+3. Type: "Tell me about our company"
+4. Send message
+5. Wait for response
+
+Expected:
+✓ Chat loads successfully
+✓ NO 401 errors
+✓ Response mentions "Test Company QA" (actual company name)
+✓ Response does NOT say "Apliman"
+✓ Response is relevant and contextual
+```
+
+#### ✅ Test 4.2: AI Task Generation - Description
+```
+Pre-requisite: Logged in as company admin
+
+Steps:
+1. Click "Tasks" in sidebar
+2. Click "Create Task"
+3. Enter title: "Redesign company website"
+4. Click "Generate with AI" button (description section)
+5. Wait for generation
+
+Expected:
+✓ NO 401 errors
+✓ Description generated
+✓ Content mentions "Test Company QA" or uses company context
+✓ Content is relevant to the title
+```
+
+#### ✅ Test 4.3: AI Subtask Generation
+```
+Pre-requisite: Creating a task
+
+Steps:
+1. Fill task form:
+   - Title: "Launch new marketing campaign"
+   - Description: "Plan and execute Q1 marketing campaign"
+   - Goals: "Increase brand awareness"
+   - Select workflow
+2. Submit task
+3. Open the created task
+4. Check subtasks section
+
+Expected:
+✓ Task created successfully
+✓ Subtasks auto-generated by AI
+✓ Subtasks are relevant to the task
+✓ NO errors in console
+```
+
+#### ✅ Test 4.4: AI @ Mentions - User Suggestions
+```
+Pre-requisite: Chat open
+
+Steps:
+1. Open ApliChat
+2. Type "@" in chat input
+3. Check suggestions dropdown
+
+Expected:
+✓ Dropdown appears with users
+✓ Only shows users from "Test Company QA"
+✓ Does NOT show users from other companies
+```
+
+---
+
+### Phase 5: Multi-Tenant Isolation (20 min)
+
+#### ✅ Test 5.1: Create Second Company
+```
+Pre-requisite: Logged in as System Admin
+
+Steps:
+1. Logout from company portal
+2. Login to /admin/login
+3. Create another company:
+   - Name: "Second Company QA"
+   - Slug: "secondqa"
+   - Admin: "admin@secondqa.com" / "SecondQA123!"
+   - Add different AI key (if available)
+
+Expected:
+✓ Second company created successfully
+```
+
+#### ✅ Test 5.2: Data Isolation - Tasks
+```
+Pre-requisite: Both companies created, each with tasks
+
+Steps:
+1. Login to testqa
+2. Create a task: "Task for Test Company"
+3. Note the task appears in list
+4. Logout
+5. Login to secondqa
+6. View tasks list
+
+Expected:
+✓ Task from Test Company is NOT visible
+✓ Only Second Company tasks visible
+✓ Complete data isolation confirmed
+```
+
+#### ✅ Test 5.3: Data Isolation - Users
+```
+Pre-requisite: Both companies have users
+
+Steps:
+1. Login to testqa
+2. Note users list (employee@testqa.com, etc.)
+3. Logout
+4. Login to secondqa
+5. View users list
+
+Expected:
+✓ testqa users NOT visible
+✓ Only secondqa users visible
+```
+
+#### ✅ Test 5.4: AI Isolation - Company Names
+```
+Pre-requisite: Both companies have AI enabled
+
+Steps:
+1. Login to testqa
+2. Open ApliChat
+3. Ask: "What is our company name?"
+4. Note response
+5. Logout
+6. Login to secondqa
+7. Ask same question
+
+Expected:
+✓ testqa AI says "Test Company QA"
+✓ secondqa AI says "Second Company QA"
+✓ No cross-contamination
+```
+
+#### ✅ Test 5.5: AI Isolation - Knowledge Sources
+```
+Pre-requisite: Both companies exist
+
+Steps:
+1. Login to testqa
+2. Go to Knowledge Sources
+3. Add source: "Test Company Info" (type: COMPANY)
+4. Logout
+5. Login to secondqa
+6. Go to Knowledge Sources
+
+Expected:
+✓ testqa knowledge source NOT visible
+✓ Each company has separate knowledge sources
+```
+
+---
+
+### Phase 6: Role-Based Access Control (15 min)
+
+#### ✅ Test 6.1: COMPANY_ADMIN Full Access
+```
+Pre-requisite: Logged in as qa@testqa.com (COMPANY_ADMIN)
+
+Checklist:
+□ Can access Workflows page
+□ Can CREATE workflow
+□ Can access ALL analytics tabs
+□ Can add/edit/delete users
+□ Can view company settings
+□ Cannot access /admin/companies (System Admin only)
+
+Expected: All checks pass ✓
+```
+
+#### ✅ Test 6.2: EMPLOYEE Limited Access
+```
+Pre-requisite: Created employee user, logged in as employee
+
+Checklist:
+□ Can view Tasks page
+□ Can view assigned tasks
+□ Can update own task status
+□ Can view User Analytics (own stats)
+□ CANNOT access Team Analytics
+□ CANNOT access Task Analytics  
+□ CANNOT create workflows
+□ CANNOT add users
+
+Expected: Limited access confirmed ✓
+```
+
+---
+
+### Phase 7: Error Scenarios (10 min)
+
+#### ✅ Test 7.1: Wrong Company Login
+```
+Steps:
+1. Navigate to /testqa/login
+2. Enter: admin@secondqa.com (different company)
+3. Enter correct password
+4. Click Sign In
+
+Expected:
+✓ Error: "Your account is not associated with this company"
+✓ Login blocked
+```
+
+#### ✅ Test 7.2: Suspended Company
+```
+Pre-requisite: System admin access
+
+Steps:
+1. Admin suspends "Test Company QA"
+2. Try to login to /testqa/login
+
+Expected:
+✓ Error: "Company account is suspended"
+✓ Login blocked
+✓ Reactivate for further tests
+```
+
+#### ✅ Test 7.3: Invalid AI Key
+```
+Steps:
+1. Admin edits company
+2. Changes AI key to "INVALID_KEY_123"
+3. Save
+4. Login as company user
+5. Try AI chat
+
+Expected:
+✓ Error message displayed
+✓ "AI service error" or similar
+✓ Graceful failure (no crash)
+```
+
+---
+
+## 📊 TEST EXECUTION RESULTS
+
+### Critical Path Results
+| Phase | Test | Status | Notes |
+|-------|------|--------|-------|
+| 1 | Admin Login | ⏳ Pending | |
+| 1 | Create Company | ⏳ Pending | |
+| 1 | AI Key Persistence | ⏳ Pending | |
+| 2 | Company Login Token | ⏳ Pending | **CRITICAL** |
+| 2 | Token in API Calls | ⏳ Pending | **CRITICAL** |
+| 3 | Workflows Access | ⏳ Pending | **CRITICAL** |
+| 3 | Analytics All Tabs | ⏳ Pending | **CRITICAL** |
+| 3 | Users Management | ⏳ Pending | |
+| 4 | AI Chat Company Name | ⏳ Pending | **CRITICAL** |
+| 4 | AI Task Generation | ⏳ Pending | **CRITICAL** |
+| 4 | AI Subtasks | ⏳ Pending | **CRITICAL** |
+| 4 | AI @ Mentions | ⏳ Pending | |
+| 5 | Second Company | ⏳ Pending | |
+| 5 | Tasks Isolation | ⏳ Pending | **CRITICAL** |
+| 5 | Users Isolation | ⏳ Pending | **CRITICAL** |
+| 5 | AI Company Names | ⏳ Pending | **CRITICAL** |
+| 5 | AI Knowledge Isolation | ⏳ Pending | **CRITICAL** |
+| 6 | COMPANY_ADMIN Access | ⏳ Pending | **CRITICAL** |
+| 6 | EMPLOYEE Limited | ⏳ Pending | |
+| 7 | Wrong Company Login | ⏳ Pending | |
+| 7 | Suspended Company | ⏳ Pending | |
+| 7 | Invalid AI Key | ⏳ Pending | |
+
+---
+
+## 🎯 PASS/FAIL CRITERIA
+
+### CRITICAL FAILURES (Must Fix Immediately):
+- ❌ Any 401 errors after login
+- ❌ Token not saved to localStorage
+- ❌ COMPANY_ADMIN cannot access workflows/analytics
+- ❌ AI uses wrong company name
+- ❌ Data visible across companies
+
+### MAJOR FAILURES (Fix Before Production):
+- ❌ AI key not persisting
+- ❌ Role permissions not working
+- ❌ AI features not working
+
+### MINOR FAILURES (Can fix post-launch):
+- ⚠️ UI glitches
+- ⚠️ Slow performance (>5s)
+- ⚠️ Missing validation messages
+
+---
+
+## 📝 HOW TO EXECUTE
+
+### For Manual Testing:
+1. Start from Phase 1
+2. Execute each test in order
+3. Mark status: ✅ Pass, ❌ Fail, ⚠️ Warning
+4. Document any failures with screenshots
+5. If critical failure found, STOP and fix
+
+### For Automated Testing:
+```bash
+# Backend tests
+cd backend
+npm run test
+
+# Frontend tests  
+cd frontend
+npm run test
+
+# E2E tests (if available)
+npm run test:e2e
+```
+
+---
+
+## 🐛 BUG REPORT TEMPLATE
+
+```markdown
+### Bug ID: [ID]
+**Test Case:** [Test ID]
+**Severity:** Critical / Major / Minor
+**Status:** Open / In Progress / Fixed
+
+**Description:**
+[What went wrong]
+
+**Steps to Reproduce:**
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+**Expected Result:**
+[What should happen]
+
+**Actual Result:**
+[What actually happened]
+
+**Console Errors:**
+```
+[Paste console errors]
+```
+
+**Screenshots:**
+[Attach screenshots]
+
+**Environment:**
+- Browser: [Chrome/Firefox/Safari]
+- OS: [Windows/Mac/Linux]
+- Date: [Date]
+```
+
+---
+
+## ✅ SIGN OFF
+
+Once all CRITICAL tests pass:
+
+- [ ] All Phase 1 tests passed
+- [ ] All Phase 2 tests passed (NO 401 errors!)
+- [ ] All Phase 3 tests passed (COMPANY_ADMIN permissions work)
+- [ ] All Phase 4 tests passed (AI works correctly)
+- [ ] All Phase 5 tests passed (Multi-tenant isolation verified)
+- [ ] All Phase 6 tests passed (RBAC working)
+- [ ] All Phase 7 tests passed (Error handling works)
+
+**QA Approval:** _________________  
+**Date:** _________________  
+**Ready for Production:** YES / NO
+
+
