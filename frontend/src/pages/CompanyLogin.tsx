@@ -76,7 +76,7 @@ const CompanyLogin: React.FC = () => {
         password,
       });
 
-      const { access_token, user } = response.data;
+      const { accessToken, user } = response.data; // FIX: Use accessToken (camelCase)
 
       // Verify user belongs to this company
       if (user.companyId !== company?.id) {
@@ -93,11 +93,11 @@ const CompanyLogin: React.FC = () => {
       }
 
       // Store token
-      localStorage.setItem('token', access_token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      localStorage.setItem('token', accessToken);
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
       // Update Redux state
-      dispatch(setAuth({ user, token: access_token }));
+      dispatch(setAuth({ user, token: accessToken }));
 
       toast.success(`Welcome back, ${user.name}!`);
 
