@@ -20,7 +20,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user }) 
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: '' as 'SUPER_ADMIN' | 'ADMIN' | 'EMPLOYEE',
+    role: '' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE',
     position: '',
     status: '' as 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED'
   })
@@ -102,14 +102,40 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user }) 
     }
   }
 
-  const canEditRole = (targetRole: string) => {
-    if (currentUser?.role === 'SUPER_ADMIN') {
-      return true // Super Admin can edit anyone's role
+  const canEditRole = () => {
+    if (!currentUser) return false
+
+    if (currentUser.role === 'SUPER_ADMIN') {
+      return true
     }
-    if (currentUser?.role === 'ADMIN') {
-      return targetRole === 'EMPLOYEE' // Admin can only manage employees
+
+    if (currentUser.role === 'COMPANY_ADMIN') {
+      return user.role !== 'SUPER_ADMIN'
     }
+
+    if (currentUser.role === 'ADMIN') {
+      return user.role === 'EMPLOYEE'
+    }
+
     return false
+  }
+
+  const roleOptions = () => {
+    if (!currentUser) return []
+
+    if (currentUser.role === 'SUPER_ADMIN') {
+      return ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN', 'EMPLOYEE'] as const
+    }
+
+    if (currentUser.role === 'COMPANY_ADMIN') {
+      return ['COMPANY_ADMIN', 'ADMIN', 'EMPLOYEE'] as const
+    }
+
+    if (currentUser.role === 'ADMIN') {
+      return ['ADMIN', 'EMPLOYEE'] as const
+    }
+
+    return [] as const
   }
 
   const handleResetPassword = async () => {
@@ -202,7 +228,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user }) 
                 </div>
 
                 {/* Role */}
-                {canEditRole(user.role) && (
+                {canEditRole() && (
                   <div>
                     <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                       Role *
@@ -214,13 +240,11 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user }) 
                       onChange={handleChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
-                      <option value="EMPLOYEE">Employee</option>
-                      {currentUser?.role === 'SUPER_ADMIN' && (
-                        <>
-                          <option value="ADMIN">Admin</option>
-                          <option value="SUPER_ADMIN">Super Admin</option>
-                        </>
-                      )}
+                      {roleOptions().map((roleOption) => (
+                        <option key={roleOption} value={roleOption}>
+                          {roleOption.replace('_', ' ')}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 )}

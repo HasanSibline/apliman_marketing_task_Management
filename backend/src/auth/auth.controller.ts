@@ -93,9 +93,9 @@ export class AuthController {
 
   @Post('register')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Register new user (Admin/Super Admin only)' })
+  @ApiOperation({ summary: 'Register new user (Company Admin/Admin/Super Admin only)' })
   @ApiBody({ type: RegisterDto })
   @ApiResponse({ 
     status: 201, 
@@ -116,7 +116,7 @@ export class AuthController {
   @ApiResponse({ status: 400, description: 'Bad request' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async register(@Body() registerDto: RegisterDto, @Request() req) {
-    return this.authService.register(registerDto, req.user.role);
+    return this.authService.register(registerDto, req.user);
   }
 
   @Post('logout')

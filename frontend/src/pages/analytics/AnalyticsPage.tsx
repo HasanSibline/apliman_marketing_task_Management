@@ -12,7 +12,7 @@ function classNames(...classes: string[]) {
 
 const AnalyticsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
-  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'COMPANY_ADMIN'
   
   // For non-admin users, start at "My Analytics" (which is tab 0 for them)
   // For admin users, start at "Overview" (which is tab 0)

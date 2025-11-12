@@ -141,8 +141,8 @@ export class TasksController {
 
   @Delete(':id')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Delete task (Admin/Super Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete task (Admin/Company Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'Task deleted successfully' })
   @ApiResponse({ status: 404, description: 'Task not found' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
@@ -226,8 +226,8 @@ export class TasksController {
 
   @Patch(':id/assignment')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Update task assignment (Admin/Super Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Update task assignment (Admin/Company Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'Task assignment updated successfully' })
   @ApiResponse({ status: 404, description: 'Task not found' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
@@ -255,8 +255,8 @@ export class TasksController {
 
   @Get('approvals/pending')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all pending phase approvals (Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get all pending phase approvals (Admin/Company Admin only)' })
   @ApiResponse({ status: 200, description: 'Pending approvals retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async getPendingApprovals(@Request() req) {
@@ -265,8 +265,8 @@ export class TasksController {
 
   @Post('approvals/:id/approve')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Approve phase change (Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Approve phase change (Admin/Company Admin only)' })
   @ApiResponse({ status: 200, description: 'Phase change approved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'Approval not found' })

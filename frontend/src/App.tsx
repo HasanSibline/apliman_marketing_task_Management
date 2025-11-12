@@ -147,12 +147,33 @@ function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
-        <Route path="workflows" element={<WorkflowsPage />} />
-        <Route path="users" element={<UsersPage />} />
+        <Route
+          path="workflows"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN']}>
+              <WorkflowsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="users"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN']}>
+              <UsersPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
-        <Route path="knowledge-sources" element={<KnowledgeSourcesPage />} />
+        <Route
+          path="knowledge-sources"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN']}>
+              <KnowledgeSourcesPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       {/* 404 Route */}

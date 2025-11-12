@@ -6,11 +6,12 @@ export interface User {
   id: string
   email: string
   name: string
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'EMPLOYEE'
+  role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE'
   position?: string
   status: 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED'
   createdAt: string
   updatedAt: string
+  companyId: string | null
 }
 
 interface UsersState {
@@ -179,10 +180,10 @@ const usersSlice = createSlice({
       .addCase(updateUser.fulfilled, (state, action) => {
         const index = state.users.findIndex(user => user.id === action.payload.id)
         if (index !== -1) {
-          state.users[index] = action.payload
+          state.users[index] = { ...state.users[index], ...action.payload }
         }
         if (state.currentUser?.id === action.payload.id) {
-          state.currentUser = action.payload
+          state.currentUser = { ...state.currentUser, ...action.payload }
         }
       })
 
@@ -190,10 +191,10 @@ const usersSlice = createSlice({
       .addCase(updateUserStatus.fulfilled, (state, action) => {
         const index = state.users.findIndex(user => user.id === action.payload.id)
         if (index !== -1) {
-          state.users[index] = action.payload
+          state.users[index] = { ...state.users[index], ...action.payload }
         }
         if (state.currentUser?.id === action.payload.id) {
-          state.currentUser = action.payload
+          state.currentUser = { ...state.currentUser, ...action.payload }
         }
       })
 

@@ -58,8 +58,9 @@ export interface RegisterData {
   email: string
   name: string
   password: string
-  role: 'SUPER_ADMIN' | 'ADMIN' | 'EMPLOYEE'
+  role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE'
   position?: string
+  companyId?: string
 }
 
 import { Task } from '@/types/task'

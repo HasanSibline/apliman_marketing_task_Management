@@ -20,7 +20,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'EMPLOYEE' as 'SUPER_ADMIN' | 'ADMIN' | 'EMPLOYEE',
+    role: 'EMPLOYEE' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE',
     position: '',
   })
 
@@ -108,12 +108,15 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
     }
   }
 
-  const canCreateRole = (role: string) => {
+  const canCreateRole = (role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE') => {
     if (user?.role === 'SUPER_ADMIN') {
-      return true // Super Admin can create anyone
+      return true // Super Admin can create any role
+    }
+    if (user?.role === 'COMPANY_ADMIN') {
+      return role !== 'SUPER_ADMIN' // Company Admin can create company admins, admins, and employees
     }
     if (user?.role === 'ADMIN') {
-      return role === 'EMPLOYEE' // Admin can only create employees
+      return role === 'EMPLOYEE' // Department Admin can only create employees
     }
     return false
   }
@@ -206,15 +209,12 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose }) =>
                     onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
-                    {canCreateRole('EMPLOYEE') && (
-                      <option value="EMPLOYEE">Employee</option>
+                    {canCreateRole('EMPLOYEE') && <option value="EMPLOYEE">Employee</option>}
+                    {canCreateRole('ADMIN') && <option value="ADMIN">Admin</option>}
+                    {canCreateRole('COMPANY_ADMIN') && (
+                      <option value="COMPANY_ADMIN">Company Admin</option>
                     )}
-                    {canCreateRole('ADMIN') && (
-                      <option value="ADMIN">Admin</option>
-                    )}
-                    {canCreateRole('SUPER_ADMIN') && (
-                      <option value="SUPER_ADMIN">Super Admin</option>
-                    )}
+                    {canCreateRole('SUPER_ADMIN') && <option value="SUPER_ADMIN">Super Admin</option>}
                   </select>
                 </div>
 

@@ -45,7 +45,7 @@ export class RegisterDto {
     enum: UserRole,
     example: UserRole.EMPLOYEE,
   })
-  @IsEnum(UserRole, { message: 'Role must be SUPER_ADMIN, ADMIN, or EMPLOYEE' })
+  @IsEnum(UserRole, { message: 'Role must be SUPER_ADMIN, COMPANY_ADMIN, ADMIN, or EMPLOYEE' })
   role: UserRole;
 
   @ApiProperty({
@@ -56,4 +56,13 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   position?: string;
+
+  @ApiProperty({
+    description: 'Associated company ID (required when creating company-specific users as Super Admin)',
+    example: 'd5e8a2b1-1234-4cde-9f67-abcdef123456',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  companyId?: string;
 }

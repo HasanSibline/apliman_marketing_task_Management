@@ -46,8 +46,23 @@ const UsersPage: React.FC = () => {
   }
 
   const canManageUser = (targetUser: any) => {
-    if (user?.role === 'SUPER_ADMIN') return true
-    if (user?.role === 'ADMIN' && targetUser.role === 'EMPLOYEE') return true
+    if (!user) return false
+
+    if (user.role === 'SUPER_ADMIN') {
+      return true
+    }
+
+    if (user.role === 'COMPANY_ADMIN') {
+      if (targetUser.role === 'SUPER_ADMIN') return false
+      if (user.companyId && targetUser.companyId && user.companyId !== targetUser.companyId) return false
+      return true
+    }
+
+    if (user.role === 'ADMIN') {
+      if (user.companyId && targetUser.companyId && user.companyId !== targetUser.companyId) return false
+      return targetUser.role === 'EMPLOYEE'
+    }
+
     return false
   }
 
@@ -58,8 +73,9 @@ const UsersPage: React.FC = () => {
     RETIRED: 'bg-red-100 text-red-800',
   }
 
-  const roleColors = {
+  const roleColors: Record<string, string> = {
     SUPER_ADMIN: 'bg-purple-100 text-purple-800',
+    COMPANY_ADMIN: 'bg-indigo-100 text-indigo-800',
     ADMIN: 'bg-blue-100 text-blue-800',
     EMPLOYEE: 'bg-gray-100 text-gray-800',
   }
@@ -74,7 +90,7 @@ const UsersPage: React.FC = () => {
             Manage team members and their roles
           </p>
         </div>
-        {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+        {(user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'ADMIN') && (
           <button
             onClick={() => setShowCreateModal(true)}
             className="btn-primary"
@@ -171,7 +187,7 @@ const UsersPage: React.FC = () => {
               
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <span className={`status-badge ${roleColors[userItem.role as keyof typeof roleColors]}`}>
+                  <span className={`status-badge ${roleColors[userItem.role] || 'bg-gray-100 text-gray-800'}`}>
                     {userItem.role.replace('_', ' ')}
                   </span>
                   <span className={`status-badge ${statusColors[userItem.status as keyof typeof statusColors]}`}>
