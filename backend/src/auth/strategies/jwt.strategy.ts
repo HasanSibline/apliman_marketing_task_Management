@@ -40,6 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       position: user.position,
       status: user.status,
+      companyId: user.companyId, // CRITICAL: Include companyId for multi-tenancy
     };
   }
 }
