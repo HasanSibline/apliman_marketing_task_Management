@@ -233,7 +233,7 @@ export class ChatService {
         knowledgeSources,
         additionalContext,
         isDeepAnalysis,
-        apiKey: aiApiKey, // CRITICAL: Pass company-specific API key
+        api_key: aiApiKey, // CRITICAL: Pass company-specific API key (snake_case for Python)
         companyName: company.name, // CRITICAL: Pass actual company name
       });
 

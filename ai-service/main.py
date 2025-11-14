@@ -218,6 +218,7 @@ class GenerateContentRequest(BaseModel):
     type: str = "task"
     knowledge_sources: Optional[List[dict]] = None  # Optional knowledge sources
     company_name: Optional[str] = None  # Company name for personalized AI responses
+    api_key: Optional[str] = None  # Company-specific API key
 
 class ScrapeUrlRequest(BaseModel):
     url: str
@@ -226,18 +227,35 @@ class ScrapeUrlRequest(BaseModel):
 async def generate_content(request: GenerateContentRequest):
     """Generate content using configured AI provider with optional knowledge sources"""
     try:
-        # Set knowledge sources in content generator if provided
+        # CRITICAL: Use company-provided API key if available
+        api_key_to_use = request.api_key
+        
+        # If no API key provided, check environment fallback
+        if not api_key_to_use:
+            api_keys = config.get_api_keys()
+            if not api_keys:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No API key provided. AI is not enabled for your company."
+                )
+            api_key_to_use = api_keys[0]
+            logger.warning("Using fallback environment API key - company should provide their own key")
+        
+        # Create a temporary content generator with the provided API key
+        temp_generator = ContentGenerator(api_key_to_use)
+        
+        # Set knowledge sources if provided
         if request.knowledge_sources:
-            content_generator.set_knowledge_sources(request.knowledge_sources)
+            temp_generator.set_knowledge_sources(request.knowledge_sources)
         
         # Set company name if provided
         if request.company_name:
-            content_generator.set_company_name(request.company_name)
+            temp_generator.set_company_name(request.company_name)
         
         # Generate content
-        description = await content_generator.generate_description(request.title)
-        goals = await content_generator.generate_goals(request.title)
-        priority = await content_generator.analyze_priority(request.title, description)
+        description = await temp_generator.generate_description(request.title)
+        goals = await temp_generator.generate_goals(request.title)
+        priority = await temp_generator.analyze_priority(request.title, description)
         
         return {
             "ai_provider": "gemini",
@@ -245,6 +263,8 @@ async def generate_content(request: GenerateContentRequest):
             "goals": goals,
             "priority": priority
         }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Content generation failed: {e}")
         raise HTTPException(
@@ -281,12 +301,30 @@ class ChatRequest(BaseModel):
     additionalContext: Dict[str, Any]
     isDeepAnalysis: bool = False
     companyName: Optional[str] = None  # Company name for personalized responses
+    api_key: Optional[str] = None  # Company-specific API key
 
 @app.post("/chat")
 async def chat(request: ChatRequest):
     """Process chat message with ApliChat"""
     try:
-        result = chat_service.process_chat_message(
+        # CRITICAL: Use company-provided API key if available
+        api_key_to_use = request.api_key
+        
+        # If no API key provided, check environment fallback
+        if not api_key_to_use:
+            api_keys = config.get_api_keys()
+            if not api_keys:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No API key provided. AI is not enabled for your company."
+                )
+            api_key_to_use = api_keys[0]
+            logger.warning("Using fallback environment API key - company should provide their own key")
+        
+        # Create a temporary chat service with the provided API key
+        temp_chat_service = ChatService(api_key_to_use)
+        
+        result = temp_chat_service.process_chat_message(
             message=request.message,
             user_context=request.userContext,
             user=request.user,
@@ -297,6 +335,8 @@ async def chat(request: ChatRequest):
             company_name=request.companyName  # Pass company name
         )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Chat processing failed: {e}")
         raise HTTPException(
@@ -335,15 +375,38 @@ async def generate_subtasks(request: dict):
         workflow_phases = request.get("workflowPhases", [])
         available_users = request.get("availableUsers", [])
         knowledge_sources = request.get("knowledgeSources", None)
+        api_key = request.get("api_key", None)
+        company_name = request.get("company_name", None)
         
         if not title:
             raise HTTPException(status_code=400, detail="Title required")
         
+        # CRITICAL: Use company-provided API key if available
+        api_key_to_use = api_key
+        
+        # If no API key provided, check environment fallback
+        if not api_key_to_use:
+            api_keys = config.get_api_keys()
+            if not api_keys:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No API key provided. AI is not enabled for your company."
+                )
+            api_key_to_use = api_keys[0]
+            logger.warning("Using fallback environment API key - company should provide their own key")
+        
+        # Create a temporary content generator with the provided API key
+        temp_generator = ContentGenerator(api_key_to_use)
+        
         # Set knowledge sources if provided
         if knowledge_sources:
-            content_generator.set_knowledge_sources(knowledge_sources)
+            temp_generator.set_knowledge_sources(knowledge_sources)
         
-        subtasks = await content_generator.generate_subtasks(
+        # Set company name if provided
+        if company_name:
+            temp_generator.set_company_name(company_name)
+        
+        subtasks = await temp_generator.generate_subtasks(
             title, task_type, description, workflow_phases, available_users
         )
         

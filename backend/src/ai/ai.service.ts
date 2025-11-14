@@ -433,6 +433,15 @@ export class AiService {
     try {
       this.logger.log(`Generating subtasks for: ${data.title}`);
       
+      // Get company AI info (API key and company name)
+      const companyInfo = await this.getCompanyAiInfo(userId);
+      
+      if (!companyInfo) {
+        // AI not available for this company
+        this.logger.warn('AI not available - using fallback subtasks');
+        throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
+      }
+      
       // Fetch active knowledge sources (company-specific)
       const knowledgeSources = await this.getActiveKnowledgeSources(userId);
       this.logger.log(`Using ${knowledgeSources.length} knowledge sources for subtask generation`);
@@ -440,7 +449,9 @@ export class AiService {
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, {
           ...data,
-          knowledgeSources
+          knowledgeSources,
+          api_key: companyInfo.apiKey, // Pass company-specific API key
+          company_name: companyInfo.companyName, // Pass actual company name
         }, {
           timeout: 15000,
         }),
