@@ -10,9 +10,10 @@ interface EditUserModalProps {
   isOpen: boolean
   onClose: () => void
   user: any
+  companyName?: string
 }
 
-const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user }) => {
+const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, companyName }) => {
   const dispatch = useAppDispatch()
   const currentUser = useAppSelector((state) => state.auth.user)
   const [isLoading, setIsLoading] = useState(false)
@@ -120,22 +121,40 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user }) 
     return false
   }
 
-  const roleOptions = () => {
+  type RoleOption = 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE'
+
+  const roleOptions = (): RoleOption[] => {
     if (!currentUser) return []
 
     if (currentUser.role === 'SUPER_ADMIN') {
-      return ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN', 'EMPLOYEE'] as const
+      return ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN', 'EMPLOYEE']
     }
 
     if (currentUser.role === 'COMPANY_ADMIN') {
-      return ['COMPANY_ADMIN', 'ADMIN', 'EMPLOYEE'] as const
+      // System Administrator can manage Company Admins and Employees
+      return ['ADMIN', 'EMPLOYEE']
     }
 
     if (currentUser.role === 'ADMIN') {
-      return ['ADMIN', 'EMPLOYEE'] as const
+      return ['EMPLOYEE']
     }
 
-    return [] as const
+    return []
+  }
+
+  const getRoleOptionLabel = (role: RoleOption) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'Platform Administrator'
+      case 'COMPANY_ADMIN':
+        return 'System Administrator'
+      case 'ADMIN':
+        return companyName ? `${companyName} Admin` : 'Company Admin'
+      case 'EMPLOYEE':
+        return 'Employee'
+      default:
+        return role
+    }
   }
 
   const handleResetPassword = async () => {
@@ -242,7 +261,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user }) 
                     >
                       {roleOptions().map((roleOption) => (
                         <option key={roleOption} value={roleOption}>
-                          {roleOption.replace('_', ' ')}
+                          {getRoleOptionLabel(roleOption)}
                         </option>
                       ))}
                     </select>

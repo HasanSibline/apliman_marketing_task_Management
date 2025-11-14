@@ -15,6 +15,7 @@ import CreateUserModal from '@/components/users/CreateUserModal'
 import EditUserModal from '@/components/users/EditUserModal'
 import DeleteUserModal from '@/components/users/DeleteUserModal'
 import ResetPasswordModal from '@/components/users/ResetPasswordModal'
+import api from '@/services/api'
 
 const UsersPage: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -25,10 +26,26 @@ const UsersPage: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [companyName, setCompanyName] = useState<string>('Your Company')
 
   useEffect(() => {
     dispatch(fetchUsers({}))
   }, [dispatch])
+
+  useEffect(() => {
+    const fetchCompanyDetails = async () => {
+      if (!user?.companyId) return
+
+      try {
+        const response = await api.get('/companies/my-company')
+        setCompanyName(response.data?.name ?? 'Your Company')
+      } catch (error) {
+        console.error('Failed to fetch company details:', error)
+      }
+    }
+
+    fetchCompanyDetails()
+  }, [user?.companyId])
 
   const handleEdit = (user: any) => {
     setSelectedUser(user)
@@ -78,6 +95,21 @@ const UsersPage: React.FC = () => {
     COMPANY_ADMIN: 'bg-indigo-100 text-indigo-800',
     ADMIN: 'bg-blue-100 text-blue-800',
     EMPLOYEE: 'bg-gray-100 text-gray-800',
+  }
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'SUPER_ADMIN':
+        return 'Platform Administrator'
+      case 'COMPANY_ADMIN':
+        return 'System Administrator'
+      case 'ADMIN':
+        return `${companyName} Admin`
+      case 'EMPLOYEE':
+        return 'Employee'
+      default:
+        return role
+    }
   }
 
   return (
@@ -188,7 +220,7 @@ const UsersPage: React.FC = () => {
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <span className={`status-badge ${roleColors[userItem.role] || 'bg-gray-100 text-gray-800'}`}>
-                    {userItem.role.replace('_', ' ')}
+                    {getRoleLabel(userItem.role)}
                   </span>
                   <span className={`status-badge ${statusColors[userItem.status as keyof typeof statusColors]}`}>
                     {userItem.status}
@@ -214,6 +246,7 @@ const UsersPage: React.FC = () => {
       <CreateUserModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
+        companyName={companyName}
       />
 
       {/* Edit User Modal */}
@@ -225,6 +258,7 @@ const UsersPage: React.FC = () => {
             setSelectedUser(null)
           }}
           user={selectedUser}
+          companyName={companyName}
         />
       )}
 
