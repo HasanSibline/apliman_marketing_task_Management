@@ -84,7 +84,7 @@ class ContentGenerator:
         company_name = self.company_name or "this company"
         
         if not self.company_name and self.knowledge_sources:
-            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPANY' and ks.get('isActive')]
+            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') in ['COMPANY', 'OWN_COMPANY'] and ks.get('isActive')]
             if company_sources and company_sources[0].get('name'):
                 company_name = company_sources[0].get('name')
         
@@ -110,8 +110,8 @@ For technical content: Include key talking points about {company_name}'s actual 
         
         # Add knowledge sources if available
         if self.knowledge_sources:
-            # Filter by COMPANY type only
-            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPANY' and ks.get('isActive')]
+            # Filter by COMPANY or OWN_COMPANY type
+            company_sources = [ks for ks in self.knowledge_sources if ks.get('type') in ['COMPANY', 'OWN_COMPANY'] and ks.get('isActive')]
             competitor_sources = [ks for ks in self.knowledge_sources if ks.get('type') == 'COMPETITOR' and ks.get('isActive')]
             
             if company_sources:
