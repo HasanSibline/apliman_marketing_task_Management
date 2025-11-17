@@ -153,25 +153,50 @@ Position: {user.get('position', 'Not specified')}
 
         # Add company knowledge (COMPANY type only)
         company_sources = [s for s in knowledge_sources if s.get('type') == 'COMPANY']
+        has_company_content = False
+        
         if company_sources:
             prompt += f"\n=== About {company_name} ===\n"
             for source in company_sources[:3]:  # Limit to top 3
                 if source.get('content'):
                     content = source['content'][:2000]
                     prompt += f"\n{source.get('name', 'Source')}:\n{content}\n"
+                    has_company_content = True
                 elif source.get('description'):
                     prompt += f"\n{source.get('name', 'Source')}: {source.get('description')}\n"
+                    has_company_content = True
+        
+        # Warn if no company knowledge available
+        if not has_company_content:
+            prompt += f"\n⚠️ WARNING: No knowledge sources with content available for {company_name}. If asked about {company_name}, you MUST say you don't have information yet.\n"
 
-        # Add competitor knowledge
+        # Add competitor knowledge with competitive analysis instructions
         competitor_sources = [s for s in knowledge_sources if s.get('type') == 'COMPETITOR']
+        has_competitor_content = False
+        
         if competitor_sources:
-            prompt += "\n=== About Competitors ===\n"
+            prompt += "\n=== COMPETITIVE INTELLIGENCE ===\n"
+            prompt += f"Use this information to help {company_name} compete effectively:\n\n"
+            
             for source in competitor_sources[:2]:  # Limit to top 2
                 if source.get('content'):
                     content = source['content'][:1500]
                     prompt += f"\n{source.get('name', 'Competitor')}:\n{content}\n"
+                    has_competitor_content = True
                 elif source.get('description'):
                     prompt += f"\n{source.get('name', 'Competitor')}: {source.get('description')}\n"
+                    has_competitor_content = True
+            
+            if has_competitor_content:
+                prompt += f"""
+COMPETITIVE STRATEGY GUIDELINES:
+- When discussing competitors, identify {company_name}'s unique advantages and differentiators
+- Suggest ways {company_name} can improve based on competitor strengths
+- Highlight gaps in competitor offerings that {company_name} can exploit
+- Recommend strategies to position {company_name} ahead of competitors
+- Focus on value propositions that set {company_name} apart
+- Never directly attack or disparage competitors - focus on {company_name}'s strengths
+"""
 
         # Add task references
         if additional_context.get('referencedTasks'):
@@ -199,15 +224,33 @@ Active tasks: {task_count}
 
         prompt += f"""
 
-Instructions:
-- When asked about "{company_name}", "{company_name}'s services", "our company", "what does {company_name} do", etc., ALWAYS refer to the knowledge sources above about {company_name}'s actual business
-- DO NOT confuse {company_name} (the business) with the task management platform (which is just a tool they're using)
-- For task management platform questions (e.g., "how do I create a task"), help with the platform features
-- For general questions, use your broad knowledge base
-- Keep responses short and friendly unless asked for details
-- If you learn something new about the user (name, preferences, etc.), note it
-- When discussing {company_name} vs competitors, highlight {company_name}'s business strengths naturally
-- Be helpful, accurate, and engaging in all conversations
+CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
+
+1. KNOWLEDGE SOURCE PRIORITY:
+   - When asked about "{company_name}", ONLY use information from the knowledge sources above
+   - If knowledge sources have NO content about {company_name}, say: "I don't have detailed information about {company_name} yet. Please ask your administrator to add knowledge sources."
+   - NEVER make up or invent information about {company_name}
+   - NEVER guess what {company_name} does or what services they offer
+
+2. COMPANY VS PLATFORM:
+   - {company_name} is a BUSINESS/ORGANIZATION (use knowledge sources)
+   - The task management platform is just a TOOL they're using
+   - Don't confuse the two
+
+3. GENERAL KNOWLEDGE:
+   - For general questions (weather, facts, etc.), use your knowledge but be honest about limitations
+   - If you cannot access real-time information, say so clearly
+   - Don't pretend to search online if you can't
+
+4. RESPONSE RULES:
+   - Keep responses short and friendly unless asked for details
+   - If you don't know something, say "I don't know" or "I don't have that information"
+   - Never hallucinate or make up plausible-sounding but false information
+   - When discussing competitors, only use information from competitor knowledge sources
+
+5. TASK MANAGEMENT HELP:
+   - For platform questions (e.g., "how do I create a task"), provide helpful guidance
+   - Use task references and user mentions when available
 
 """
 

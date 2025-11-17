@@ -128,8 +128,9 @@ For technical content: Include key talking points about {company_name}'s actual 
                         system_prompt += f"Description: {source['description']}\n"
             
             if competitor_sources:
-                system_prompt += "\n\n=== COMPETITIVE ANALYSIS ===\n"
-                system_prompt += f"Consider the following competitor information for positioning {company_name}'s advantages:\n\n"
+                system_prompt += "\n\n=== COMPETITIVE INTELLIGENCE & STRATEGY ===\n"
+                system_prompt += f"Use this competitor analysis to help {company_name} compete effectively:\n\n"
+                
                 for idx, source in enumerate(competitor_sources, 1):
                     system_prompt += f"\n[Competitor {idx}: {source.get('name', 'Unknown')}]\n"
                     if source.get('content'):
@@ -140,7 +141,23 @@ For technical content: Include key talking points about {company_name}'s actual 
                         # Fallback to description if content scraping failed (e.g., social media URLs)
                         system_prompt += f"Description: {source['description']}\n"
                 
-                system_prompt += f"\n\nWhen generating content, subtly highlight {company_name}'s advantages without directly attacking competitors. Focus on {company_name}'s unique value propositions and strengths."
+                system_prompt += f"""
+
+COMPETITIVE TASK GENERATION STRATEGY:
+1. DIFFERENTIATION: Create tasks that highlight {company_name}'s unique advantages over competitors
+2. GAP EXPLOITATION: Identify weaknesses in competitor offerings and create tasks to capitalize on them
+3. INNOVATION: Suggest tasks that position {company_name} as more innovative or advanced
+4. VALUE PROPOSITION: Focus tasks on {company_name}'s superior value, quality, or service
+5. MARKET POSITIONING: Create tasks that strengthen {company_name}'s market position
+6. COMPETITIVE EDGE: Recommend tasks that give {company_name} a clear competitive advantage
+
+CONTENT GUIDELINES:
+- Subtly highlight {company_name}'s advantages without directly attacking competitors
+- Focus on what makes {company_name} better, faster, or more valuable
+- Suggest improvements based on competitor strengths
+- Identify opportunities where {company_name} can lead the market
+- Create actionable tasks that enhance {company_name}'s competitive position
+"""
         else:
             # Generic fallback if no knowledge sources provided
             system_prompt += f"""
