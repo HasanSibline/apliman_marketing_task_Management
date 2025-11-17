@@ -25,20 +25,24 @@ export class AiService {
   private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string } | null> {
     if (!userId) {
       // No user context - AI disabled
-      this.logger.warn('No userId provided - AI disabled');
-      return null;
+      this.logger.error('❌ No userId provided - AI disabled');
+      throw new Error('User ID is required for AI features');
     }
 
     try {
+      this.logger.log(`🔍 Looking up user: ${userId}`);
+      
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { companyId: true, role: true },
+        select: { companyId: true, role: true, name: true, email: true },
       });
+
+      this.logger.log(`👤 User found: ${user?.name} (${user?.email}), Role: ${user?.role}, CompanyId: ${user?.companyId}`);
 
       if (!user?.companyId) {
         // Super admin or no company - AI disabled
-        this.logger.warn('User has no company - AI disabled');
-        return null;
+        this.logger.error(`❌ User ${user?.name} has no company - AI disabled`);
+        throw new Error('AI is not available for users without a company. Please contact your administrator.');
       }
 
       const company = await this.prisma.company.findUnique({

@@ -170,6 +170,13 @@ export class ChatService {
 
       // Get user's company ID for filtering
       const userCompanyId = user.companyId;
+      
+      this.logger.log(`🏢 User company ID: ${userCompanyId}`);
+
+      if (!userCompanyId) {
+        this.logger.error(`❌ User ${user.name} has no companyId!`);
+        throw new Error('Your account is not associated with a company. Please contact support.');
+      }
 
       // Get company's AI API key
       const company = await this.prisma.company.findUnique({
@@ -180,6 +187,8 @@ export class ChatService {
           name: true 
         },
       });
+
+      this.logger.log(`🏢 Company found: ${company?.name}, AI Enabled: ${company?.aiEnabled}, Has API Key: ${!!company?.aiApiKey}`);
 
       if (!company || !company.aiEnabled || !company.aiApiKey) {
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
@@ -203,6 +212,11 @@ export class ChatService {
           content: true,
           metadata: true,
         },
+      });
+      
+      this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for company ${company.name}`);
+      knowledgeSources.forEach(ks => {
+        this.logger.log(`  - ${ks.name} (${ks.type}): ${ks.content ? `${ks.content.length} chars` : 'NO CONTENT'}`);
       });
 
       // Fetch additional context based on mentions and task references
