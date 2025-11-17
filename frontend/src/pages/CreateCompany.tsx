@@ -125,12 +125,17 @@ export default function CreateCompany() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     
-    // Only allow submission on step 4
+    // CRITICAL: Only allow submission on step 4
+    // This prevents accidental form submission before reaching the final step
     if (step !== 4) {
-      e.stopPropagation();
+      console.warn('Form submission blocked - not on step 4. Current step:', step);
+      toast.error('Please complete all steps before creating the company');
       return;
     }
+    
+    console.log('Form submission allowed - on step 4');
     
     // Validate required fields
     if (!formData.name || !formData.slug) {
@@ -211,12 +216,17 @@ export default function CreateCompany() {
       // Allow Enter in textarea, but prevent form submission on other inputs unless on step 4
       if (target.tagName !== 'TEXTAREA') {
         e.preventDefault();
+        e.stopPropagation();
+        
         if (step < 4) {
           // Move to next step instead of submitting
+          console.log('Enter key pressed - moving to next step');
           nextStep();
         } else {
-          // On step 4, trigger form submission
-          handleSubmit(e as any);
+          // On step 4, allow form submission via the submit button only
+          // Don't trigger submission on Enter to prevent accidental submission
+          console.log('Enter key pressed on step 4 - use "Create Company" button to submit');
+          toast('Please click "Create Company" button to submit', { icon: '👆' });
         }
       }
     }
@@ -277,7 +287,12 @@ export default function CreateCompany() {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="bg-white rounded-lg shadow-sm p-8">
+        <form 
+          onSubmit={handleSubmit} 
+          onKeyDown={handleFormKeyDown} 
+          autoComplete="off"
+          className="bg-white rounded-lg shadow-sm p-8"
+        >
           {/* Step 1: Company Info */}
           {step === 1 && (
             <div className="space-y-6">
@@ -493,21 +508,43 @@ export default function CreateCompany() {
           {/* Step 4: AI & Limits */}
           {step === 4 && (
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Configuration & Resource Limits</h2>
-              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  AI API Key (optional)
-                </label>
-                <input
-                  type="text"
-                  name="aiApiKey"
-                  value={formData.aiApiKey || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Your Gemini API key"
-                />
-                <p className="text-sm text-gray-500 mt-1">If provided, AI features will be enabled for this company</p>
+                <h2 className="text-xl font-semibold text-gray-900 mb-2">AI Configuration & Resource Limits</h2>
+                <p className="text-sm text-gray-600 mb-4">
+                  Configure AI features and set resource limits for the company. 
+                  <span className="font-semibold text-blue-600"> AI configuration is optional</span> - you can skip it and enable AI later.
+                </p>
+              </div>
+              
+              {/* AI Configuration Section */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  AI Features (Optional)
+                </h3>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    AI API Key
+                  </label>
+                  <input
+                    type="text"
+                    name="aiApiKey"
+                    value={formData.aiApiKey || ''}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                    placeholder="Enter your Gemini API key (optional)"
+                  />
+                  <p className="text-sm text-gray-600 mt-2">
+                    {formData.aiApiKey ? (
+                      <span className="text-green-600 font-medium">✓ AI will be enabled for this company</span>
+                    ) : (
+                      <span className="text-gray-500">AI will be disabled. You can enable it later by editing the company.</span>
+                    )}
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -568,6 +605,38 @@ export default function CreateCompany() {
                   />
                 </div>
               </div>
+              
+              {/* Summary Section */}
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">📋 Summary - Review Before Creating</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-600">Company:</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.name || 'Not set'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Slug:</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.slug || 'Not set'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Admin:</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.adminName || 'Not set'}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Plan:</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.subscriptionPlan}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-gray-600">AI Status:</span>
+                    <span className={`ml-2 font-medium ${formData.aiApiKey ? 'text-green-600' : 'text-gray-500'}`}>
+                      {formData.aiApiKey ? '✓ Enabled' : '✗ Disabled (can enable later)'}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-3 border-t border-gray-300 pt-3">
+                  ⚠️ Click "Create Company" button below to create the company. This action cannot be undone.
+                </p>
+              </div>
             </div>
           )}
 
@@ -595,9 +664,21 @@ export default function CreateCompany() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto flex items-center gap-2"
               >
-                {loading ? 'Creating...' : 'Create Company'}
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating Company...
+                  </>
+                ) : (
+                  <>
+                    ✓ Create Company
+                  </>
+                )}
               </button>
             )}
           </div>
