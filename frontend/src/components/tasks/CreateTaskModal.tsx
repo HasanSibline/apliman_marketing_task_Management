@@ -103,10 +103,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       
       // Generate basic content
       setLoadingStage('✍️ Writing detailed description and goals...')
+      const token = localStorage.getItem('token')
       const contentResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-content`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // CRITICAL: Include auth token
         },
         body: JSON.stringify({ 
           title: formData.title,
