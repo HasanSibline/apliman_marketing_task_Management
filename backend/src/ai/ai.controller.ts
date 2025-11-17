@@ -142,15 +142,19 @@ export class AiController {
   @ApiOperation({ summary: 'Generate subtasks using AI' })
   @ApiResponse({ status: 200, description: 'Subtasks generated successfully' })
   @UseGuards(JwtAuthGuard)
-  async generateSubtasks(@Body() data: {
-    title: string;
-    description: string;
-    taskType: string;
-    workflowPhases: string[];
-    availableUsers?: { id: string; name: string; position: string; role: string }[];
-  }) {
+  async generateSubtasks(
+    @Body() data: {
+      title: string;
+      description: string;
+      taskType: string;
+      workflowPhases: string[];
+      availableUsers?: { id: string; name: string; position: string; role: string }[];
+    },
+    @Request() request: any,
+  ) {
     try {
-      const result = await this.aiService.generateSubtasks(data);
+      const userId = request.user?.id;
+      const result = await this.aiService.generateSubtasks(data, userId);
       return result;
     } catch (error) {
       this.logger.error('Error generating subtasks:', error);

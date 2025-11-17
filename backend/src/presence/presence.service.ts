@@ -77,10 +77,25 @@ export class PresenceService {
     return presences;
   }
 
-  async getTeamPresence() {
+  async getTeamPresence(userId?: string) {
+    // Get user's company for filtering
+    let companyId: string | null = null;
+    if (userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true, role: true },
+      });
+      
+      // Super admin sees all users, others see only their company
+      if (user?.role !== 'SUPER_ADMIN') {
+        companyId = user?.companyId || null;
+      }
+    }
+
     const users = await this.prisma.user.findMany({
       where: {
         status: { not: UserStatus.RETIRED },
+        ...(companyId ? { companyId } : {}), // Filter by company if not super admin
       },
       select: {
         id: true,

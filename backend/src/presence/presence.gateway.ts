@@ -115,7 +115,7 @@ export class PresenceGateway implements OnGatewayConnection, OnGatewayDisconnect
   @SubscribeMessage('presence:get_team')
   async handleGetTeamPresence(@ConnectedSocket() client: AuthenticatedSocket) {
     if (client.userId) {
-      const teamPresence = await this.presenceService.getTeamPresence();
+      const teamPresence = await this.presenceService.getTeamPresence(client.userId);
       (client as any).emit('presence:team', teamPresence);
     }
   }
