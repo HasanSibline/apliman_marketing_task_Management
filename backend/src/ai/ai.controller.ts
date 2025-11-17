@@ -109,8 +109,17 @@ export class AiController {
       const { title, type } = data;
       const userId = request.user?.id;
       
+      this.logger.log(`🎯 Generate content request - User ID: ${userId}, Title: ${title}`);
+      
+      if (!userId) {
+        this.logger.error('❌ No userId in request - JWT validation may have failed');
+        throw new Error('Authentication required');
+      }
+      
       // Call the AI service once to get all content
       const response = await this.aiService.generateContentFromAI(title, type, userId);
+      
+      this.logger.log(`✅ Content generated successfully for user ${userId}`);
       
       return {
         description: response.description,
@@ -119,7 +128,7 @@ export class AiController {
         ai_provider: response.ai_provider || 'fallback'
       };
     } catch (error) {
-      this.logger.error('Error generating content:', error);
+      this.logger.error(`❌ Error generating content for user ${request.user?.id}:`, error.message);
       throw error;
     }
   }
