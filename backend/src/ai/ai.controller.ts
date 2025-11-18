@@ -129,6 +129,8 @@ export class AiController {
       };
     } catch (error) {
       this.logger.error(`❌ Error generating content for user ${request.user?.id}:`, error.message);
+      this.logger.error(`❌ Error stack:`, error.stack);
+      this.logger.error(`❌ Full error object:`, JSON.stringify(error, null, 2));
       throw error;
     }
   }
