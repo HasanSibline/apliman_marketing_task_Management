@@ -328,6 +328,15 @@ export class AiService {
       const knowledgeSources = await this.getActiveKnowledgeSources(userId);
       this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for content generation`);
       
+      this.logger.log(`🚀 Calling AI service POST ${this.aiServiceUrl}/generate-content`);
+      this.logger.log(`📦 Request payload: ${JSON.stringify({
+        title,
+        type,
+        knowledge_sources_count: knowledgeSources.length,
+        has_api_key: !!companyInfo.apiKey,
+        company_name: companyInfo.companyName
+      })}`);
+      
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
@@ -340,7 +349,13 @@ export class AiService {
         }),
       );
       
-      this.logger.log(`AI service response received: ${JSON.stringify({ ai_provider: response.data.ai_provider })}`);
+      this.logger.log(`✅ AI service response received successfully`);
+      this.logger.log(`📊 Response data: ${JSON.stringify({ 
+        ai_provider: response.data.ai_provider,
+        has_description: !!response.data.description,
+        has_goals: !!response.data.goals,
+        priority: response.data.priority
+      })}`);
       
       return {
         description: response.data.description,
@@ -349,16 +364,24 @@ export class AiService {
         ai_provider: response.data.ai_provider || 'gemini'
       };
     } catch (error) {
-      this.logger.error('Error generating content from AI:');
-      this.logger.error(`Error message: ${error.message}`);
-      this.logger.error(`Error stack: ${error.stack}`);
+      this.logger.error('❌ Error generating content from AI:');
+      this.logger.error(`   Error type: ${error.constructor.name}`);
+      this.logger.error(`   Error message: ${error.message}`);
+      this.logger.error(`   Error stack: ${error.stack}`);
+      
       if (error.response) {
-        this.logger.error(`Response status: ${error.response.status}`);
-        this.logger.error(`Response data: ${JSON.stringify(error.response.data)}`);
+        this.logger.error(`   HTTP Response status: ${error.response.status}`);
+        this.logger.error(`   HTTP Response statusText: ${error.response.statusText}`);
+        this.logger.error(`   HTTP Response data: ${JSON.stringify(error.response.data)}`);
       }
       
-      // Don't provide fallback - let the frontend handle the error
-      throw new Error(error.message || 'AI content generation failed');
+      if (error.code) {
+        this.logger.error(`   Error code: ${error.code}`);
+      }
+      
+      // Re-throw with more context
+      const errorMessage = error.response?.data?.detail || error.message || 'AI content generation failed';
+      throw new Error(errorMessage);
     }
   }
 
