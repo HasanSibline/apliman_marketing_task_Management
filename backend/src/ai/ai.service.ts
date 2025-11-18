@@ -304,20 +304,29 @@ export class AiService {
     ai_provider?: string;
   }> {
     try {
-      this.logger.log(`Calling AI service at: ${this.aiServiceUrl}/generate-content`);
-      this.logger.log(`Request data: ${JSON.stringify({ title, type })}`);
+      this.logger.log(`🎯 generateContentFromAI called - Title: "${title}", Type: "${type}", UserId: ${userId}`);
+      this.logger.log(`📍 AI Service URL: ${this.aiServiceUrl}/generate-content`);
       
+      if (!userId) {
+        this.logger.error('❌ No userId provided to generateContentFromAI');
+        throw new Error('User ID is required for AI content generation');
+      }
+      
+      this.logger.log(`🔍 Fetching company AI info for user: ${userId}`);
       const companyInfo = await this.getCompanyAiInfo(userId);
       
       if (!companyInfo) {
         // AI not available for this company
-        this.logger.warn('AI not available - AI features disabled');
+        this.logger.error(`❌ No company AI info found for user: ${userId}`);
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
       }
       
+      this.logger.log(`✅ Company AI info retrieved: ${companyInfo.companyName}, Has API Key: ${!!companyInfo.apiKey}`);
+      
       // Fetch active knowledge sources (company-specific)
+      this.logger.log(`🔍 Fetching knowledge sources for user: ${userId}`);
       const knowledgeSources = await this.getActiveKnowledgeSources(userId);
-      this.logger.log(`Using ${knowledgeSources.length} knowledge sources for content generation`);
+      this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for content generation`);
       
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
