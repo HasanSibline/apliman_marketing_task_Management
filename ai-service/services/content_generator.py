@@ -15,32 +15,37 @@ class ContentGeneratorError(Exception):
     pass
 
 class ContentGenerator:
-    def __init__(self):
+    def __init__(self, api_key: Optional[str] = None):
         self.config = get_config()
         self.last_request_time = None
         self.request_interval = 1.0  # Minimum time between requests in seconds
         self.knowledge_sources = None  # Store knowledge sources for enhanced prompts
         self.company_name = None  # Store company name for personalized responses
+        self.provided_api_key = api_key  # Store the provided API key
         self._initialize_gemini()
         
     def _initialize_gemini(self):
         """Initialize Gemini with multiple API keys support"""
         try:
-            # Get all available API keys
-            self.api_keys = self.config.get_api_keys()
-            if not self.api_keys:
-                raise ContentGeneratorError(
-                    "No Google API keys found in environment variables. "
-                    "Please set GOOGLE_API_KEY or GOOGLE_API_KEYS in your .env file."
-                )
+            # CRITICAL: Use provided API key if available (company-specific)
+            if self.provided_api_key:
+                self.api_keys = [self.provided_api_key]
+                logger.info(f"✅ Gemini initialized with company-provided API key")
+            else:
+                # Get all available API keys from environment
+                self.api_keys = self.config.get_api_keys()
+                if not self.api_keys:
+                    raise ContentGeneratorError(
+                        "No Google API keys found in environment variables. "
+                        "Please set GOOGLE_API_KEY or GOOGLE_API_KEYS in your .env file."
+                    )
+                logger.info(f"✅ Gemini initialized with {len(self.api_keys)} environment API key(s)")
+                if len(self.api_keys) > 1:
+                    logger.info(f"🔄 Multiple API keys detected - automatic fallback enabled")
             
             self.current_key_index = 0  # Track which key we're using
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
             self.model = self.config.GEMINI_MODEL
-            
-            logger.info(f"✅ Gemini initialized with {len(self.api_keys)} API key(s)")
-            if len(self.api_keys) > 1:
-                logger.info(f"🔄 Multiple API keys detected - automatic fallback enabled")
             
         except Exception as e:
             raise ContentGeneratorError(f"Failed to initialize Gemini: {str(e)}")
