@@ -92,8 +92,6 @@ export default function CreateCompany() {
     maxStorage: 10,
   });
 
-  const setError = (field: string, msg: string) =>
-    setFieldErrors(prev => ({ ...prev, [field]: msg }));
   const clearError = (field: string) =>
     setFieldErrors(prev => { const next = { ...prev }; delete next[field]; return next; });
 
