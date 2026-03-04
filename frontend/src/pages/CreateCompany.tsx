@@ -284,7 +284,6 @@ export default function CreateCompany() {
         </button>
 
         <div className="mb-10">
-          <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl mb-4">🏢</div>
           <h1 className="text-xl font-bold text-white">Create Company</h1>
           <p className="text-sm text-gray-400 mt-1">4-step setup wizard</p>
         </div>
