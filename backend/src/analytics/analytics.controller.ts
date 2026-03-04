@@ -28,7 +28,7 @@ import { UserRole } from '../types/prisma';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AnalyticsController {
-  constructor(private readonly analyticsService: AnalyticsService) {}
+  constructor(private readonly analyticsService: AnalyticsService) { }
 
   @Get('dashboard')
   @UseGuards(RolesGuard)
@@ -49,7 +49,7 @@ export class AnalyticsController {
       if (!req.user || !req.user.id) {
         throw new Error('User not authenticated or user ID not found');
       }
-      
+
       return await this.analyticsService.getUserAnalytics(req.user.id);
     } catch (error) {
       console.error('Error getting user dashboard stats:', error);
@@ -67,11 +67,11 @@ export class AnalyticsController {
       console.log('Request user object:', req.user);
       console.log('User ID from request:', req.user?.id);
       console.log('Time range:', timeRange);
-      
+
       if (!req.user || !req.user.id) {
         throw new Error('User not authenticated or user ID not found');
       }
-      
+
       return await this.analyticsService.getUserAnalytics(req.user.id, timeRange);
     } catch (error) {
       console.error('Error getting user analytics:', error);
@@ -124,7 +124,7 @@ export class AnalyticsController {
       if (!req.user || !req.user.id) {
         throw new Error('User not authenticated or user ID not found');
       }
-      
+
       return await this.analyticsService.getUserAnalytics(req.user.id);
     } catch (error) {
       console.error('Error getting user task analytics:', error);
@@ -137,8 +137,8 @@ export class AnalyticsController {
   @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: 'Export tasks to Excel (Admin/Super Admin only)' })
   @ApiQuery({ name: 'format', enum: ['excel', 'csv'], required: false })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'File generated successfully',
     headers: {
       'Content-Type': {
@@ -151,14 +151,15 @@ export class AnalyticsController {
   })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   async exportTasks(
+    @Request() req,
     @Res({ passthrough: true }) res: Response,
     @Query('format') format: 'excel' | 'csv' = 'excel',
   ) {
-    const buffer = await this.analyticsService.exportData(format);
+    const buffer = await this.analyticsService.exportData(req.user.id, format);
     const timestamp = new Date().toISOString().split('T')[0];
     const extension = format === 'excel' ? 'xlsx' : 'csv';
     const filename = `tasks_export_${timestamp}.${extension}`;
-    const mimeType = format === 'excel' 
+    const mimeType = format === 'excel'
       ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       : 'text/csv';
 

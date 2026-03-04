@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WorkflowsService } from '../workflows/workflows.service';
@@ -10,12 +10,13 @@ import { UserRole } from '../types/prisma';
 
 @Injectable()
 export class TasksService {
+  private readonly logger = new Logger(TasksService.name);
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly workflowsService: WorkflowsService,
     private readonly aiService: AiService,
-  ) {}
+  ) { }
 
   /**
    * Get user's companyId for filtering
@@ -26,12 +27,12 @@ export class TasksService {
       where: { id: userId },
       select: { companyId: true, role: true },
     });
-    
+
     // Super admin has no company filter
     if (user?.role === 'SUPER_ADMIN') {
       return null;
     }
-    
+
     return user?.companyId || null;
   }
 
@@ -62,9 +63,29 @@ export class TasksService {
         );
       }
 
+      // Enforce company task limit (if configured)
+      if (creator.companyId) {
+        const company = await this.prisma.company.findUnique({
+          where: { id: creator.companyId },
+          select: { maxTasks: true },
+        });
+        if (company?.maxTasks) {
+          const currentTaskCount = await this.prisma.task.count({
+            where: { companyId: creator.companyId, taskType: { not: 'SUBTASK' } },
+          });
+          if (currentTaskCount >= company.maxTasks) {
+            throw new BadRequestException(
+              `Task limit reached. Your plan allows a maximum of ${company.maxTasks} tasks. ` +
+              `Please upgrade your plan or delete old tasks to continue.`
+            );
+          }
+        }
+      }
+
+
       let taskType = 'GENERAL';
       let workflow;
-      
+
       // 1. Determine workflow - either provided or AI-detected
       if (createTaskDto.workflowId) {
         workflow = await this.prisma.workflow.findUnique({
@@ -84,35 +105,35 @@ export class TasksService {
           console.log('AI task type detection failed, using GENERAL:', error);
           taskType = 'GENERAL';
         }
-        
+
         // Try to get default workflow, but fallback to ANY workflow if not found
         try {
           workflow = await this.workflowsService.getDefaultWorkflow(taskType, creatorId);
         } catch (error) {
           console.log(`No default workflow for ${taskType}, trying to find any workflow...`);
-          
+
           // Fallback 1: Try to find ANY workflow of this task type within company
           workflow = await this.prisma.workflow.findFirst({
-            where: { 
-              taskType, 
+            where: {
+              taskType,
               isActive: true,
               companyId: creator.companyId,
             },
             include: { phases: { orderBy: { order: 'asc' } } },
           });
-          
+
           // Fallback 2: If still no workflow, get ANY active workflow in company
           if (!workflow) {
             console.log('No workflow found for task type, using first available workflow...');
             workflow = await this.prisma.workflow.findFirst({
-              where: { 
+              where: {
                 isActive: true,
                 companyId: creator.companyId,
               },
               include: { phases: { orderBy: { order: 'asc' } } },
             });
           }
-          
+
           // Fallback 3: If STILL no workflow, throw error
           if (!workflow) {
             throw new BadRequestException(
@@ -136,7 +157,7 @@ export class TasksService {
 
       // 3. Create the task in the starting phase
       const startPhase = workflow.phases[0];
-      
+
       const task = await this.prisma.task.create({
         data: {
           title: createTaskDto.title,
@@ -172,10 +193,10 @@ export class TasksService {
             status: 'ACTIVE',
             companyId: creator.companyId, // CRITICAL: Same company only
           },
-            select: {
-              id: true,
-              name: true,
-              position: true,
+          select: {
+            id: true,
+            name: true,
+            position: true,
             role: true,
           },
         });
@@ -195,7 +216,7 @@ export class TasksService {
       if (subtasksToCreate.length > 0) {
         for (const [index, subtask] of subtasksToCreate.entries()) {
           // Find matching phase for subtask
-          const subtaskPhase = workflow.phases.find(p => 
+          const subtaskPhase = workflow.phases.find(p =>
             subtask.phaseName && p.name.toLowerCase().includes(subtask.phaseName.toLowerCase())
           ) || startPhase;
 
@@ -223,14 +244,14 @@ export class TasksService {
               where: {
                 position: { contains: subtask.suggestedRole },
                 status: 'ACTIVE',
-        },
-      });
+              },
+            });
           }
 
           // Create subtask record
           const createdSubtask = await this.prisma.subtask.create({
             data: {
-          taskId: task.id,
+              taskId: task.id,
               title: subtask.title,
               description: subtask.description,
               order: index,
@@ -262,8 +283,8 @@ export class TasksService {
               include: {
                 assignedTo: { select: { id: true, name: true, email: true, position: true } },
                 createdBy: { select: { id: true, name: true, email: true, position: true } },
-        },
-      });
+              },
+            });
 
             // Create task assignment record for individual task
             await this.prisma.taskAssignment.create({
@@ -290,7 +311,7 @@ export class TasksService {
               type: 'SUBTASK_CREATED',
               title: 'Subtask Created',
               message: `Subtask "${subtask.title}" was created but needs assignment`,
-          taskId: task.id,
+              taskId: task.id,
               subtaskId: createdSubtask.id,
               actionUrl: `/tasks/${task.id}`,
             });
@@ -300,10 +321,10 @@ export class TasksService {
 
       // 5. Handle main task placement when subtasks are auto-created
       // If subtasks were created and assigned to others, mark main task as coordination task
-      const hasAssignedSubtasks = subtasksToCreate.some(subtask => 
+      const hasAssignedSubtasks = subtasksToCreate.some(subtask =>
         createTaskDto.autoAssign && (subtask.suggestedUserId || subtask.suggestedRole)
       );
-      
+
       if (hasAssignedSubtasks) {
         // Update main task to reflect its coordination role
         await this.prisma.task.update({
@@ -345,7 +366,7 @@ export class TasksService {
             assignedById: creatorId,
           },
         });
-        
+
         await this.notificationsService.createNotification({
           userId: createTaskDto.assignedToId,
           type: 'task_assigned',
@@ -384,7 +405,7 @@ export class TasksService {
     // Check if user has permission to move the task
     // Allow: admins, task creator, or assigned users
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'COMPANY_ADMIN';
     const isCreator = task.createdById === userId;
     const isAssigned = task.assignedToId === userId;
     const isInAssignments = task.assignments?.some(a => a.userId === userId);
@@ -409,7 +430,7 @@ export class TasksService {
         task.currentPhaseId,
         toPhaseId
       );
-      
+
       if (!isValidTransition) {
         throw new BadRequestException(
           `Cannot move task from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`
@@ -427,7 +448,7 @@ export class TasksService {
     // Move directly without approval
     await this.prisma.task.update({
       where: { id: taskId },
-      data: { 
+      data: {
         currentPhaseId: toPhaseId,
         completedAt: toPhase.isEndPhase ? new Date() : null,
       },
@@ -448,7 +469,7 @@ export class TasksService {
     const usersToNotify = [
       task.assignedTo,
       ...task.assignments.map(a => a.user),
-    ].filter((user, index, self) => 
+    ].filter((user, index, self) =>
       user && self.findIndex(u => u?.id === user.id) === index && user.id !== userId
     );
 
@@ -471,22 +492,27 @@ export class TasksService {
         });
       }
 
-      // Notify admins
-          const admins = await this.prisma.user.findMany({
-            where: {
-          role: { in: ['SUPER_ADMIN', 'ADMIN'] },
+      // Notify admins — scoped to the same company only
+      const admins = await this.prisma.user.findMany({
+        where: {
+          role: { in: ['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN'] },
           id: { not: userId },
-            },
-            select: { id: true },
-          });
+          // Super admins have no companyId so they get all notifications; others are company-scoped
+          OR: [
+            { companyId: task.companyId },
+            { role: 'SUPER_ADMIN', companyId: null },
+          ],
+        },
+        select: { id: true },
+      });
 
-          for (const admin of admins) {
-            await this.notificationsService.createNotification({
-              userId: admin.id,
+      for (const admin of admins) {
+        await this.notificationsService.createNotification({
+          userId: admin.id,
           type: 'task_completed',
           title: 'Task Completed',
           message: `Task "${task.title}" was completed by ${movedBy?.name || 'someone'}`,
-              taskId: task.id,
+          taskId: task.id,
           actionUrl: `/tasks/${task.id}`,
         });
       }
@@ -510,7 +536,7 @@ export class TasksService {
           type: 'task_phase_changed',
           title: 'Task Phase Updated',
           message: `Task "${task.title}" moved from "${currentPhase?.name || 'Unknown'}" to "${toPhase.name}"`,
-              taskId: task.id,
+          taskId: task.id,
           phaseId: toPhaseId,
           actionUrl: `/tasks/${task.id}`,
         });
@@ -524,7 +550,7 @@ export class TasksService {
     // Find the subtask
     const subtask = await this.prisma.subtask.findUnique({
       where: { id: subtaskId },
-      include: { 
+      include: {
         task: {
           include: {
             assignedTo: true,
@@ -574,9 +600,9 @@ export class TasksService {
       }
 
       // Notify task assignee if different from creator and completer
-      if (subtask.task.assignedToId && 
-          subtask.task.assignedToId !== userId && 
-          subtask.task.assignedToId !== subtask.task.createdById) {
+      if (subtask.task.assignedToId &&
+        subtask.task.assignedToId !== userId &&
+        subtask.task.assignedToId !== subtask.task.createdById) {
         await this.notificationsService.createNotification({
           userId: subtask.task.assignedToId,
           type: 'task_completed',
@@ -587,11 +613,15 @@ export class TasksService {
         });
       }
 
-      // Notify all admins
+      // Notify all admins — scoped to the same company only
       const admins = await this.prisma.user.findMany({
         where: {
-          role: { in: ['SUPER_ADMIN', 'ADMIN'] },
+          role: { in: ['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN'] },
           id: { not: userId }, // Don't notify the person who completed it
+          OR: [
+            { companyId: subtask.task.companyId },
+            { role: 'SUPER_ADMIN', companyId: null },
+          ],
         },
         select: { id: true },
       });
@@ -989,7 +1019,7 @@ export class TasksService {
     console.log(`Found ${total} tasks matching query for user ${userId} (role: ${userRole})`);
     console.log(`Returning ${tasks.length} tasks after pagination`);
     console.log(`Where clause:`, JSON.stringify(where, null, 2));
-    
+
     // Debug: Check if any SUBTASK tasks are in results (should be none)
     const subtaskCount = tasks.filter((t: any) => t.taskType === 'SUBTASK').length;
     if (subtaskCount > 0) {
@@ -1147,7 +1177,7 @@ export class TasksService {
       const isAssigned = existingTask.assignedToId === userId;
       const isCreator = existingTask.createdById === userId;
       const isInAssignments = existingTask.assignments?.some(a => a.userId === userId);
-      
+
       if (!isAssigned && !isCreator && !isInAssignments) {
         throw new ForbiddenException('You do not have permission to edit this task. Only assigned users can edit.');
       }
@@ -1348,7 +1378,7 @@ export class TasksService {
       for (const image of images) {
         // Convert buffer to base64
         const base64Data = image.buffer.toString('base64');
-        
+
         // Create image record
         const imageRecord = await this.prisma.commentImage.create({
           data: {
@@ -1358,7 +1388,7 @@ export class TasksService {
             size: image.size,
           },
         });
-        
+
         imageRecords.push({
           id: imageRecord.id,
           mimeType: imageRecord.mimeType,
@@ -1615,9 +1645,9 @@ export class TasksService {
       const mainTasksCount = workflow.tasks.filter(t => t.taskType !== 'SUBTASK').length;
       // Count SUBTASK types separately
       const subtasksCount = workflow.tasks.filter(t => t.taskType === 'SUBTASK').length;
-      
+
       console.log(`Workflow: ${workflow.name}, Main Tasks: ${mainTasksCount}, Subtasks: ${subtasksCount}, Color: ${workflow.color}`);
-      
+
       // ALWAYS include workflow in result, even if count is 0
       // Frontend will filter out 0-count workflows for display
       acc[workflow.name] = {
@@ -1653,7 +1683,7 @@ export class TasksService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { lastActiveAt: new Date() },
-    }).catch(() => {});
+    }).catch(() => { });
   }
 
   private async handlePhaseChange(task: any, oldPhase: any) {
@@ -1666,7 +1696,7 @@ export class TasksService {
       await this.prisma.user.update({
         where: { id: task.assignedToId },
         data: { lastActiveAt: new Date() },
-      }).catch(() => {});
+      }).catch(() => { });
     }
   }
 
@@ -1694,8 +1724,8 @@ export class TasksService {
         userId: task.assignedToId,
         taskId: task.id,
         type: 'task_phase_changed',
-      title,
-      message,
+        title,
+        message,
         actionUrl: `/tasks/${task.id}`,
       });
     }

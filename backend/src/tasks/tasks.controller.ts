@@ -25,6 +25,7 @@ import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { AddSubtaskDto } from './dto/add-subtask.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -35,7 +36,7 @@ import { UserRole } from '../types/prisma';
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class TasksController {
-  constructor(private readonly tasksService: TasksService) {}
+  constructor(private readonly tasksService: TasksService) { }
 
   @Post()
   @ApiOperation({ summary: 'Create new task' })
@@ -206,7 +207,7 @@ export class TasksController {
   @ApiResponse({ status: 404, description: 'Task not found' })
   async addSubtask(
     @Param('id') taskId: string,
-    @Body() addSubtaskDto: any,
+    @Body() addSubtaskDto: AddSubtaskDto,
     @Request() req,
   ) {
     return this.tasksService.addSubtask(taskId, addSubtaskDto, req.user.id);
@@ -245,7 +246,7 @@ export class TasksController {
   @ApiResponse({ status: 404, description: 'Image not found' })
   async getCommentImage(@Param('imageId') imageId: string, @Request() _req) {
     const image = await this.tasksService.getCommentImage(imageId);
-    
+
     // Return image as base64 data URL
     return {
       data: `data:${image.mimeType};base64,${image.data}`,

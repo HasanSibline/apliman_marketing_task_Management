@@ -1,10 +1,12 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { UserRole, UserStatus } from '../types/prisma';
 
@@ -14,11 +16,11 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    
+
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -28,7 +30,7 @@ export class AuthService {
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
-    
+
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -42,12 +44,12 @@ export class AuthService {
 
   async login(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
-    
+
     // Prevent SUPER_ADMIN from using company login
     if (user.role === UserRole.SUPER_ADMIN && !user.companyId) {
       throw new UnauthorizedException('System Administrators must use the admin portal at /admin/login');
     }
-    
+
     // Check if company is active (if user has a company)
     if (user.companyId) {
       const company = await this.usersService.findCompanyById(user.companyId);
@@ -55,7 +57,7 @@ export class AuthService {
         throw new UnauthorizedException('Company account is suspended or inactive');
       }
     }
-    
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -82,7 +84,7 @@ export class AuthService {
 
   async adminLogin(loginDto: LoginDto) {
     const user = await this.validateUser(loginDto.email, loginDto.password);
-    
+
     // Only allow SUPER_ADMIN with NO company
     if (user.role !== UserRole.SUPER_ADMIN || user.companyId !== null) {
       throw new UnauthorizedException(
@@ -90,7 +92,7 @@ export class AuthService {
         'Company users should login at /login'
       );
     }
-    
+
     const payload: JwtPayload = {
       sub: user.id,
       email: user.email,
@@ -181,6 +183,22 @@ export class AuthService {
         throw new BadRequestException('Insufficient permissions to create users');
     }
 
+    // Enforce company user limit (if configured)
+    if (targetCompanyId) {
+      const existingUsers = await this.usersService.findAll(undefined, undefined, targetCompanyId);
+      const companyRecord = await this.usersService.findCompanyById(targetCompanyId);
+      if (companyRecord && (companyRecord as any).maxUsers) {
+        const activeUserCount = existingUsers.filter(u => u.status !== 'RETIRED').length;
+        if (activeUserCount >= (companyRecord as any).maxUsers) {
+          throw new BadRequestException(
+            `User limit reached. Your plan allows a maximum of ${(companyRecord as any).maxUsers} users. ` +
+            `Please upgrade your plan or deactivate existing users to add new ones.`
+          );
+        }
+      }
+    }
+
+
     // Create user
     const user = await this.usersService.create({
       ...registerDto,
@@ -192,17 +210,18 @@ export class AuthService {
     return user;
   }
 
+
   async logout(userId: string) {
     // Update user status to OFFLINE
     await this.usersService.updateUserStatus(userId, UserStatus.OFFLINE);
-    
+
     return { message: 'Logged out successfully' };
   }
 
   async refreshToken(user: any) {
     // Fetch fresh user data to ensure we have the latest companyId
     const fullUser = await this.usersService.findById(user.id);
-    
+
     if (!fullUser) {
       throw new UnauthorizedException('User not found');
     }
@@ -233,13 +252,13 @@ export class AuthService {
 
   async changePassword(userId: string, oldPassword: string, newPassword: string) {
     const user = await this.usersService.findById(userId);
-    
+
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
 
     const isOldPasswordValid = await bcrypt.compare(oldPassword, user.password);
-    
+
     if (!isOldPasswordValid) {
       throw new UnauthorizedException('Current password is incorrect');
     }
@@ -250,5 +269,62 @@ export class AuthService {
     await this.usersService.updatePassword(userId, hashedNewPassword);
 
     return { message: 'Password changed successfully' };
+  }
+
+  // In-memory token store. In production, use Redis or a DB table.
+  private readonly _resetTokens = new Map<string, { userId: string; expiresAt: number }>();
+
+  /**
+   * Generate a password-reset token for the given email.
+   * If an email provider (SendGrid, etc.) is configured the token should be
+   * emailed instead of returned in the response.
+   */
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.usersService.findByEmail(dto.email);
+
+    // Always return the same shape so we don’t leak whether an account exists
+    if (!user) {
+      return { message: 'If that email is registered, a reset link has been sent.' };
+    }
+
+    // Generate a secure random token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = Date.now() + 30 * 60 * 1000; // 30 minutes
+    this._resetTokens.set(token, { userId: user.id, expiresAt });
+
+    // TODO: Replace the returned token with an email dispatch once an email
+    // provider (e.g. SendGrid / Nodemailer) is configured.
+    // Example: await this.mailService.sendPasswordReset(user.email, token);
+    console.warn(
+      `[ForgotPassword] Reset token for ${user.email}: ${token} ` +
+      `(valid 30 min). Send this via email in production!`,
+    );
+
+    return {
+      message: 'If that email is registered, a reset link has been sent.',
+      // REMOVE in production once email is wired up:
+      debug_token: process.env.NODE_ENV !== 'production' ? token : undefined,
+    };
+  }
+
+  /**
+   * Consume a reset token and set a new password.
+   */
+  async resetPasswordWithToken(dto: ResetPasswordDto) {
+    const entry = this._resetTokens.get(dto.token);
+
+    if (!entry || Date.now() > entry.expiresAt) {
+      this._resetTokens.delete(dto.token);
+      throw new BadRequestException('Reset token is invalid or has expired.');
+    }
+
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(dto.newPassword, saltRounds);
+    await this.usersService.updatePassword(entry.userId, hashedPassword);
+
+    // Invalidate token after use
+    this._resetTokens.delete(dto.token);
+
+    return { message: 'Password has been reset successfully. You can now log in.' };
   }
 }

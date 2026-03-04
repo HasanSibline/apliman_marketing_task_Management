@@ -9,7 +9,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createUserDto: CreateUserDto) {
     try {
@@ -46,11 +46,11 @@ export class UsersService {
 
   async findAll(role?: UserRole, status?: UserStatus, companyId?: string) {
     const where: Prisma.UserWhereInput = {};
-    
+
     if (role) {
       where.role = role;
     }
-    
+
     if (status) {
       where.status = status;
     }
@@ -144,6 +144,7 @@ export class UsersService {
         isActive: true,
         subscriptionStatus: true,
         subscriptionEnd: true,
+        maxUsers: true,
       },
     });
   }
@@ -183,7 +184,7 @@ export class UsersService {
 
   async updateUserStatus(id: string, status: UserStatus) {
     const updateData: any = { status };
-    
+
     if (status === UserStatus.ACTIVE) {
       updateData.lastActiveAt = new Date();
     }
@@ -253,7 +254,7 @@ export class UsersService {
 
   async getUserStats(id: string) {
     const user = await this.findById(id);
-    
+
     const [assignedTasks, createdTasks] = await Promise.all([
       this.prisma.task.count({
         where: { assignedToId: id },

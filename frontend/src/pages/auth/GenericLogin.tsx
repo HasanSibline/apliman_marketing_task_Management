@@ -10,6 +10,10 @@ const GenericLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showForgotModal, setShowForgotModal] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotResult, setForgotResult] = useState<string | null>(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -54,12 +58,31 @@ const GenericLogin: React.FC = () => {
     } catch (err: any) {
       console.error('Login error:', err);
       setError(
-        err.response?.data?.message || 
+        err.response?.data?.message ||
         'Invalid credentials. Please try again.'
       );
       toast.error(err.response?.data?.message || 'Login failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setForgotLoading(true);
+    try {
+      const resp = await api.post('/auth/forgot-password', { email: forgotEmail });
+      const token = resp.data?.debug_token;
+      if (token) {
+        setForgotResult(`Reset token (dev only): ${token}`);
+      } else {
+        setForgotResult('If that email is registered, a reset link has been sent.');
+      }
+      toast.success('Password reset token generated');
+    } catch {
+      toast.error('Failed to send reset request');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -103,8 +126,8 @@ const GenericLogin: React.FC = () => {
                 autoComplete="email"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                style={{ 
-                  borderColor: error ? '#EF4444' : undefined 
+                style={{
+                  borderColor: error ? '#EF4444' : undefined
                 }}
                 placeholder="Email address"
                 value={email}
@@ -122,8 +145,8 @@ const GenericLogin: React.FC = () => {
                 autoComplete="current-password"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                style={{ 
-                  borderColor: error ? '#EF4444' : undefined 
+                style={{
+                  borderColor: error ? '#EF4444' : undefined
                 }}
                 placeholder="Password"
                 value={password}
@@ -142,7 +165,7 @@ const GenericLogin: React.FC = () => {
             <button
               type="submit"
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-              style={{ 
+              style={{
                 opacity: loading ? 0.7 : 1
               }}
               disabled={loading}
@@ -150,17 +173,74 @@ const GenericLogin: React.FC = () => {
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => { setShowForgotModal(true); setForgotResult(null); }}
+              className="text-sm text-indigo-600 hover:text-indigo-800 underline focus:outline-none"
+            >
+              Forgot your password?
+            </button>
+          </div>
         </form>
-        
+
         <div className="text-center">
           <p className="text-xs text-gray-500">
             Don't have an account? Contact your administrator
           </p>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Reset Password</h3>
+            {forgotResult ? (
+              <>
+                <p className="text-sm text-gray-700 bg-indigo-50 p-3 rounded mb-4 break-all">{forgotResult}</p>
+                <button
+                  onClick={() => { setShowForgotModal(false); setForgotResult(null); setForgotEmail(''); }}
+                  className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
+                >
+                  Close
+                </button>
+              </>
+            ) : (
+              <form onSubmit={handleForgotPassword}>
+                <p className="text-sm text-gray-500 mb-4">Enter your email address and we\'ll generate a password reset token.</p>
+                <input
+                  type="email"
+                  required
+                  placeholder="Email address"
+                  value={forgotEmail}
+                  onChange={e => setForgotEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotModal(false)}
+                    className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={forgotLoading}
+                    className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-70"
+                  >
+                    {forgotLoading ? 'Sending...' : 'Send Reset'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default GenericLogin;
-

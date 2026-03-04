@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { 
+import {
   ArrowLeftIcon,
-  PaperClipIcon, 
+  PaperClipIcon,
   ChatBubbleLeftIcon,
   CalendarIcon,
   UserIcon,
@@ -42,7 +42,7 @@ const TaskDetailPage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(0)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isAddSubtaskModalOpen, setIsAddSubtaskModalOpen] = useState(false)
-  
+
   const isThisTaskTracking = timeTracking.activeTaskId === id
   const isTimerRunning = isThisTaskTracking && timeTracking.isRunning
 
@@ -97,7 +97,7 @@ const TaskDetailPage: React.FC = () => {
 
   const handlePhaseChange = async (newPhaseId: string) => {
     if (!id) return
-    
+
     try {
       await tasksApi.moveToPhase(id, newPhaseId, 'Phase changed by user')
       dispatch(fetchTaskById(id))
@@ -114,48 +114,48 @@ const TaskDetailPage: React.FC = () => {
 
   const getPriorityConfig = (priority: number) => {
     switch (priority) {
-      case 1: 
-        return { 
+      case 1:
+        return {
           color: '#6B7280',
           bg: 'bg-gray-100',
           text: 'text-gray-700',
           icon: ArrowDownIcon,
           label: 'Low Priority'
         }
-      case 2: 
-        return { 
+      case 2:
+        return {
           color: '#3B82F6',
           bg: 'bg-blue-100',
           text: 'text-blue-700',
           icon: ChevronUpIcon,
           label: 'Medium Priority'
         }
-      case 3: 
-        return { 
+      case 3:
+        return {
           color: '#F59E0B',
           bg: 'bg-amber-100',
           text: 'text-amber-700',
           icon: ArrowUpIcon,
           label: 'High Priority'
         }
-      case 4: 
-        return { 
+      case 4:
+        return {
           color: '#EF4444',
           bg: 'bg-red-100',
           text: 'text-red-700',
           icon: BoltIcon,
           label: 'Urgent'
         }
-      case 5: 
-        return { 
+      case 5:
+        return {
           color: '#DC2626',
           bg: 'bg-red-200',
           text: 'text-red-800',
           icon: FireIcon,
           label: 'Critical'
         }
-      default: 
-        return { 
+      default:
+        return {
           color: '#6B7280',
           bg: 'bg-gray-100',
           text: 'text-gray-700',
@@ -174,7 +174,7 @@ const TaskDetailPage: React.FC = () => {
 
   const handleDeleteTask = async () => {
     if (!currentTask) return
-    
+
     if (window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
       try {
         await tasksApi.delete(currentTask.id)
@@ -194,7 +194,7 @@ const TaskDetailPage: React.FC = () => {
 
   const handleAddSubtask = async (subtaskData: any) => {
     if (!id) return
-    
+
     try {
       await tasksApi.addSubtask(id, subtaskData)
       toast.success('Subtask added successfully!')
@@ -264,7 +264,7 @@ const TaskDetailPage: React.FC = () => {
                 <h1 className="text-3xl font-bold text-gray-900 mb-3">
                   {currentTask.title}
                 </h1>
-                
+
                 {/* Meta Info */}
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
                   <div className="flex items-center gap-1.5">
@@ -282,10 +282,10 @@ const TaskDetailPage: React.FC = () => {
                   )}
                   <div className="flex items-center gap-1.5">
                     <CalendarIcon className="h-4 w-4" />
-                    <span>Created {new Date(currentTask.createdAt).toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      day: 'numeric', 
-                      year: 'numeric' 
+                    <span>Created {new Date(currentTask.createdAt).toLocaleDateString('en-US', {
+                      month: 'long',
+                      day: 'numeric',
+                      year: 'numeric'
                     })}</span>
                   </div>
                 </div>
@@ -300,15 +300,15 @@ const TaskDetailPage: React.FC = () => {
 
                   {/* Workflow Phase Tag */}
                   {currentTask.currentPhase && (
-                    <div 
+                    <div
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-                      style={{ 
+                      style={{
                         backgroundColor: `${currentTask.currentPhase.color}20`,
                         color: currentTask.currentPhase.color,
                         border: `1px solid ${currentTask.currentPhase.color}40`
                       }}
                     >
-                      <span 
+                      <span
                         className="w-2 h-2 rounded-full"
                         style={{ backgroundColor: currentTask.currentPhase.color }}
                       />
@@ -321,29 +321,27 @@ const TaskDetailPage: React.FC = () => {
 
                   {/* Task Type Badge */}
                   {currentTask.taskType && currentTask.taskType !== 'GENERAL' && (
-                    <span className={`px-3 py-1.5 text-sm font-medium rounded-lg ${
-                      currentTask.taskType === 'COORDINATION' 
-                        ? 'bg-indigo-100 text-indigo-700' 
+                    <span className={`px-3 py-1.5 text-sm font-medium rounded-lg ${currentTask.taskType === 'COORDINATION'
+                        ? 'bg-indigo-100 text-indigo-700'
                         : currentTask.taskType === 'SUBTASK'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
                       {currentTask.taskType}
                     </span>
                   )}
 
                   {/* Due Date */}
                   {currentTask.dueDate && (
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${
-                      new Date(currentTask.dueDate) < new Date() && !currentTask.completedAt
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${new Date(currentTask.dueDate) < new Date() && !currentTask.completedAt
                         ? 'bg-red-100 text-red-700'
                         : 'bg-gray-100 text-gray-700'
-                    }`}>
+                      }`}>
                       <CalendarIcon className="h-4 w-4" />
                       <span className="text-sm font-medium">
-                        Due {new Date(currentTask.dueDate).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric' 
+                        Due {new Date(currentTask.dueDate).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric'
                         })}
                       </span>
                     </div>
@@ -357,21 +355,7 @@ const TaskDetailPage: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Deadline Badge */}
-                  {currentTask.dueDate && !currentTask.completedAt && (
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium ${
-                      new Date(currentTask.dueDate) < new Date()
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      <CalendarIcon className="w-4 h-4" />
-                      Due {new Date(currentTask.dueDate).toLocaleDateString('en-US', { 
-                        month: 'short', 
-                        day: 'numeric',
-                        year: new Date(currentTask.dueDate).getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                      })}
-                    </div>
-                  )}
+
 
                   {/* Compact Time Tracking */}
                   <div className="flex items-center gap-2">
@@ -495,8 +479,8 @@ const TaskDetailPage: React.FC = () => {
               <PaperClipIcon className="h-5 w-5 text-blue-600" />
               Files ({(currentTask as any).files?.length || 0})
             </h2>
-            
-            <FileUpload 
+
+            <FileUpload
               taskId={currentTask.id}
               files={(currentTask as any).files || []}
               onFilesUpdated={() => dispatch(fetchTaskById(currentTask.id))}
@@ -515,8 +499,8 @@ const TaskDetailPage: React.FC = () => {
               <ChatBubbleLeftIcon className="h-5 w-5 text-blue-600" />
               Comments ({(currentTask as any).comments?.length || 0})
             </h2>
-            
-            <TaskComments 
+
+            <TaskComments
               taskId={currentTask.id}
               comments={(currentTask as any).comments || []}
               subtasks={currentTask.subtasks || []}
@@ -528,7 +512,7 @@ const TaskDetailPage: React.FC = () => {
 
       {/* Right Sidebar */}
       <div className="w-96 flex-shrink-0">
-        <SubtaskSidebar 
+        <SubtaskSidebar
           task={currentTask}
           onAddSubtask={() => setIsAddSubtaskModalOpen(true)}
           onSubtaskUpdate={handleRefreshTask}

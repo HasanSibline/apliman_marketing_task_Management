@@ -43,10 +43,10 @@ function App() {
 
   useEffect(() => {
     dispatch(checkAuth())
-    
+
     // Start keepalive service to prevent AI service from sleeping
     keepAliveService.start()
-    
+
     // Cleanup on unmount
     return () => {
       keepAliveService.stop()
@@ -59,15 +59,7 @@ function App() {
     }
   }, [dispatch, isAuthenticated, user])
 
-  // Start keepalive service to prevent Render services from sleeping
-  useEffect(() => {
-    keepAliveService.start()
-    
-    // Cleanup on unmount
-    return () => {
-      keepAliveService.stop()
-    }
-  }, [])
+
 
   if (isLoading) {
     return <LoadingScreen />
@@ -75,74 +67,74 @@ function App() {
 
   return (
     <Routes>
-        {/* Default Company Login (Generic - No Logo) */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <GenericLogin />
-            </PublicRoute>
-          }
-        />
+      {/* Default Company Login (Generic - No Logo) */}
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <GenericLogin />
+          </PublicRoute>
+        }
+      />
 
-        {/* System Admin Login (Hidden - Direct URL Only) */}
-        <Route
-          path="/admin/login"
-          element={
-            <PublicRoute>
-              <AdminLogin />
-            </PublicRoute>
-          }
-        />
+      {/* System Admin Login (Hidden - Direct URL Only) */}
+      <Route
+        path="/admin/login"
+        element={
+          <PublicRoute>
+            <AdminLogin />
+          </PublicRoute>
+        }
+      />
 
-        {/* Company-Specific Login (/:slug/login) - With Branding */}
-        <Route
-          path="/:slug/login"
-          element={
-            <PublicRoute>
-              <CompanyLogin />
-            </PublicRoute>
-          }
-        />
+      {/* Company-Specific Login (/:slug/login) - With Branding */}
+      <Route
+        path="/:slug/login"
+        element={
+          <PublicRoute>
+            <CompanyLogin />
+          </PublicRoute>
+        }
+      />
 
-        {/* System Admin Portal (Separate from Company Portal) */}
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminLayout />
-            </AdminRoute>
-          }
-        >
-          <Route index element={<Navigate to="/admin/companies" replace />} />
-          <Route path="companies" element={<SuperAdminDashboard />} />
-          <Route path="companies/create" element={<CreateCompany />} />
-          <Route path="companies/:id" element={<CompanyDetails />} />
-          <Route path="companies/:id/edit" element={<EditCompany />} />
-          <Route path="analytics" element={<AdminAnalytics />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="profile" element={<ProfilePage />} />
-        </Route>
+      {/* System Admin Portal (Separate from Company Portal) */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminLayout />
+          </AdminRoute>
+        }
+      >
+        <Route index element={<Navigate to="/admin/companies" replace />} />
+        <Route path="companies" element={<SuperAdminDashboard />} />
+        <Route path="companies/create" element={<CreateCompany />} />
+        <Route path="companies/:id" element={<CompanyDetails />} />
+        <Route path="companies/:id/edit" element={<EditCompany />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
+        <Route path="settings" element={<AdminSettings />} />
+        <Route path="profile" element={<ProfilePage />} />
+      </Route>
 
-        {/* Shared Profile Route (accessible from both portals) */}
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
+      {/* Shared Profile Route (accessible from both portals) */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
 
-        {/* Company Portal Routes (Protected) */}
-        <Route
-          path="/"
-          element={
-            <CompanyRoute>
-              <Layout />
-            </CompanyRoute>
-          }
-        >
+      {/* Company Portal Routes (Protected) */}
+      <Route
+        path="/"
+        element={
+          <CompanyRoute>
+            <Layout />
+          </CompanyRoute>
+        }
+      >
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="tasks" element={<TasksPage />} />

@@ -18,6 +18,12 @@ export class AiService {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
 
+  /** Authorization headers sent with every AI service request */
+  private get aiServiceHeaders(): Record<string, string> {
+    const secret = this.configService.get<string>('AI_SERVICE_SECRET', '');
+    return secret ? { Authorization: `Bearer ${secret}` } : {};
+  }
+
   /**
    * Get company's AI API key and name by user ID
    * Returns null if company has no AI key (AI will be disabled)
@@ -31,7 +37,7 @@ export class AiService {
 
     try {
       this.logger.log(`🔍 Looking up user: ${userId}`);
-      
+
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
         select: { companyId: true, role: true, name: true, email: true },
@@ -47,10 +53,10 @@ export class AiService {
 
       const company = await this.prisma.company.findUnique({
         where: { id: user.companyId },
-        select: { 
+        select: {
           name: true,
-          aiApiKey: true, 
-          aiEnabled: true 
+          aiApiKey: true,
+          aiEnabled: true
         },
       });
 
@@ -66,10 +72,10 @@ export class AiService {
       }
 
       this.logger.log(`Using AI for company: ${company.name}`);
-      
+
       // CRITICAL: Decrypt the API key before using it
       const decryptedApiKey = Buffer.from(company.aiApiKey, 'base64').toString('utf-8');
-      
+
       return {
         apiKey: decryptedApiKey,
         companyName: company.name
@@ -91,17 +97,17 @@ export class AiService {
   async summarizeText(text: string, maxLength: number = 150, userId?: string): Promise<string> {
     try {
       this.logger.log(`Summarizing text: ${text.length} characters`);
-      
+
       const apiKey = await this.getCompanyAiApiKey(userId);
-      
+
       if (!apiKey) {
         // AI not available for this company
         this.logger.warn('AI key not available - returning truncated text');
-        return text.length > maxLength 
+        return text.length > maxLength
           ? text.substring(0, maxLength - 3) + '...'
           : text;
       }
-      
+
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/summarize`, {
           text,
@@ -118,7 +124,7 @@ export class AiService {
       this.logger.error('Error summarizing text:', error.message);
       this.logger.error('AI Service URL:', this.aiServiceUrl);
       // Fallback: return truncated text
-      return text.length > maxLength 
+      return text.length > maxLength
         ? text.substring(0, maxLength - 3) + '...'
         : text;
     }
@@ -130,9 +136,9 @@ export class AiService {
   }> {
     try {
       this.logger.log(`Analyzing priority for: ${taskTitle}`);
-      
+
       const apiKey = await this.getCompanyAiApiKey(userId);
-      
+
       if (!apiKey) {
         // AI not available - return default
         this.logger.warn('AI key not available - returning default priority');
@@ -141,7 +147,7 @@ export class AiService {
           reasoning: 'AI not available. Please add an AI API key to enable AI features.',
         };
       }
-      
+
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/analyze-priority`, {
           title: taskTitle,
@@ -258,7 +264,7 @@ export class AiService {
           timeout: 10000, // 10 second timeout
         }),
       );
-      
+
       return response.data.description.trim();
     } catch (error) {
       this.logger.error('Error generating task description:', error);
@@ -280,7 +286,7 @@ export class AiService {
           timeout: 10000, // 10 second timeout
         }),
       );
-      
+
       return response.data.goals.trim();
     } catch (error) {
       this.logger.error('Error generating task goals:', error);
@@ -306,28 +312,28 @@ export class AiService {
     try {
       this.logger.log(`🎯 generateContentFromAI called - Title: "${title}", Type: "${type}", UserId: ${userId}`);
       this.logger.log(`📍 AI Service URL: ${this.aiServiceUrl}/generate-content`);
-      
+
       if (!userId) {
         this.logger.error('❌ No userId provided to generateContentFromAI');
         throw new Error('User ID is required for AI content generation');
       }
-      
+
       this.logger.log(`🔍 Fetching company AI info for user: ${userId}`);
       const companyInfo = await this.getCompanyAiInfo(userId);
-      
+
       if (!companyInfo) {
         // AI not available for this company
         this.logger.error(`❌ No company AI info found for user: ${userId}`);
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
       }
-      
+
       this.logger.log(`✅ Company AI info retrieved: ${companyInfo.companyName}, Has API Key: ${!!companyInfo.apiKey}`);
-      
+
       // Fetch active knowledge sources (company-specific)
       this.logger.log(`🔍 Fetching knowledge sources for user: ${userId}`);
       const knowledgeSources = await this.getActiveKnowledgeSources(userId);
       this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for content generation`);
-      
+
       this.logger.log(`🚀 Calling AI service POST ${this.aiServiceUrl}/generate-content`);
       this.logger.log(`📦 Request payload: ${JSON.stringify({
         title,
@@ -336,27 +342,28 @@ export class AiService {
         has_api_key: !!companyInfo.apiKey,
         company_name: companyInfo.companyName
       })}`);
-      
+
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
           type,
           knowledge_sources: knowledgeSources,
-          api_key: companyInfo.apiKey, // Pass company-specific API key
-          company_name: companyInfo.companyName, // CRITICAL: Pass actual company name
+          api_key: companyInfo.apiKey,
+          company_name: companyInfo.companyName,
         }, {
-          timeout: 30000, // Increased timeout for better AI generation
+          headers: this.aiServiceHeaders,
+          timeout: 30000,
         }),
       );
-      
+
       this.logger.log(`✅ AI service response received successfully`);
-      this.logger.log(`📊 Response data: ${JSON.stringify({ 
+      this.logger.log(`📊 Response data: ${JSON.stringify({
         ai_provider: response.data.ai_provider,
         has_description: !!response.data.description,
         has_goals: !!response.data.goals,
         priority: response.data.priority
       })}`);
-      
+
       return {
         description: response.data.description,
         goals: response.data.goals,
@@ -368,17 +375,17 @@ export class AiService {
       this.logger.error(`   Error type: ${error.constructor.name}`);
       this.logger.error(`   Error message: ${error.message}`);
       this.logger.error(`   Error stack: ${error.stack}`);
-      
+
       if (error.response) {
         this.logger.error(`   HTTP Response status: ${error.response.status}`);
         this.logger.error(`   HTTP Response statusText: ${error.response.statusText}`);
         this.logger.error(`   HTTP Response data: ${JSON.stringify(error.response.data)}`);
       }
-      
+
       if (error.code) {
         this.logger.error(`   Error code: ${error.code}`);
       }
-      
+
       // Re-throw with more context
       const errorMessage = error.response?.data?.detail || error.message || 'AI content generation failed';
       throw new Error(errorMessage);
@@ -393,7 +400,7 @@ export class AiService {
     try {
       // Build where clause with company filter
       const where: any = { isActive: true };
-      
+
       if (userId) {
         const user = await this.prisma.user.findUnique({
           where: { id: userId },
@@ -418,7 +425,7 @@ export class AiService {
           priority: true,
         },
       });
-      
+
       return sources.map(source => ({
         id: source.id,
         name: source.name,
@@ -436,11 +443,12 @@ export class AiService {
   async detectTaskType(title: string): Promise<{ task_type: string; ai_provider: string }> {
     try {
       this.logger.log(`Detecting task type for: ${title}`);
-      
+
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
           title,
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 10000,
         }),
       );
@@ -468,27 +476,28 @@ export class AiService {
   ): Promise<{ subtasks: any[]; ai_provider: string }> {
     try {
       this.logger.log(`Generating subtasks for: ${data.title}`);
-      
+
       // Get company AI info (API key and company name)
       const companyInfo = await this.getCompanyAiInfo(userId);
-      
+
       if (!companyInfo) {
         // AI not available for this company
         this.logger.warn('AI not available - using fallback subtasks');
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
       }
-      
+
       // Fetch active knowledge sources (company-specific)
       const knowledgeSources = await this.getActiveKnowledgeSources(userId);
       this.logger.log(`Using ${knowledgeSources.length} knowledge sources for subtask generation`);
-      
+
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, {
           ...data,
           knowledgeSources,
-          api_key: companyInfo.apiKey, // Pass company-specific API key
-          company_name: companyInfo.companyName, // Pass actual company name
+          api_key: companyInfo.apiKey,
+          company_name: companyInfo.companyName,
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 15000,
         }),
       );
@@ -527,7 +536,7 @@ export class AiService {
   }> {
     try {
       this.logger.log(`Generating content for: ${title}`);
-      
+
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
@@ -567,7 +576,7 @@ export class AiService {
           timeout: 5000, // 5 second timeout
         }),
       );
-      
+
       const data = response.data;
       return {
         isHealthy: data.status === 'healthy',

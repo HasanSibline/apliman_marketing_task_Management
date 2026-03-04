@@ -1,10 +1,12 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Security
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import logging
 from datetime import datetime
 import psutil
 import os
+import asyncio
 import aiohttp
 from config import get_config
 from services.content_generator import ContentGenerator
@@ -26,14 +28,30 @@ app = FastAPI(
 # Get configuration
 config = get_config()
 
-# Configure CORS
+# Configure CORS - restrict to backend origin only
+_allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3001").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure appropriately for production
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )
+
+# ── Auth helper ──────────────────────────────────────────────────────────────
+_bearer_scheme = HTTPBearer(auto_error=False)
+
+def require_service_token(
+    credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
+):
+    """Validate the AI_SERVICE_SECRET bearer token on protected endpoints."""
+    expected = os.getenv("AI_SERVICE_SECRET", "")
+    if not expected:
+        # Secret not configured — allow in dev so the service still works locally
+        logger.warning("AI_SERVICE_SECRET is not set; endpoint is unauthenticated")
+        return
+    if credentials is None or credentials.credentials != expected:
+        raise HTTPException(status_code=401, detail="Invalid or missing service token")
 
 # Initialize services
 content_generator = ContentGenerator()
@@ -223,7 +241,7 @@ class GenerateContentRequest(BaseModel):
 class ScrapeUrlRequest(BaseModel):
     url: str
 
-@app.post("/generate-content")
+@app.post("/generate-content", dependencies=[Depends(require_service_token)])
 async def generate_content(request: GenerateContentRequest):
     """Generate content using configured AI provider with optional knowledge sources"""
     try:
@@ -276,7 +294,7 @@ async def generate_content(request: GenerateContentRequest):
             }
         )
 
-@app.post("/scrape-url")
+@app.post("/scrape-url", dependencies=[Depends(require_service_token)])
 async def scrape_url(request: ScrapeUrlRequest):
     """Scrape content from a URL"""
     try:
@@ -303,7 +321,7 @@ class ChatRequest(BaseModel):
     companyName: Optional[str] = None  # Company name for personalized responses
     api_key: Optional[str] = None  # Company-specific API key
 
-@app.post("/chat")
+@app.post("/chat", dependencies=[Depends(require_service_token)])
 async def chat(request: ChatRequest):
     """Process chat message with ApliChat"""
     try:
@@ -324,7 +342,9 @@ async def chat(request: ChatRequest):
         # Create a temporary chat service with the provided API key
         temp_chat_service = ChatService(api_key_to_use)
         
-        result = temp_chat_service.process_chat_message(
+        # Run synchronous chat processing in a thread to avoid blocking the event loop
+        result = await asyncio.to_thread(
+            temp_chat_service.process_chat_message,
             message=request.message,
             user_context=request.userContext,
             user=request.user,
@@ -332,7 +352,7 @@ async def chat(request: ChatRequest):
             knowledge_sources=request.knowledgeSources,
             additional_context=request.additionalContext,
             is_deep_analysis=request.isDeepAnalysis,
-            company_name=request.companyName  # Pass company name
+            company_name=request.companyName,
         )
         return result
     except HTTPException:
@@ -347,7 +367,7 @@ async def chat(request: ChatRequest):
             }
         )
 
-@app.post("/detect-task-type")
+@app.post("/detect-task-type", dependencies=[Depends(require_service_token)])
 async def detect_task_type(request: dict):
     """Detect task type from title"""
     try:
@@ -365,7 +385,7 @@ async def detect_task_type(request: dict):
         logger.error(f"Task type detection failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/generate-subtasks")
+@app.post("/generate-subtasks", dependencies=[Depends(require_service_token)])
 async def generate_subtasks(request: dict):
     """Generate intelligent subtasks"""
     try:
@@ -418,7 +438,7 @@ async def generate_subtasks(request: dict):
         logger.error(f"Subtask generation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/performance-insights")
+@app.post("/performance-insights", dependencies=[Depends(require_service_token)])
 async def generate_performance_insights(request: dict):
     """Generate performance insights from analytics data"""
     try:

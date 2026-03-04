@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as XLSX from 'xlsx';
@@ -8,10 +8,11 @@ import { UserRole } from '../types/prisma';
 
 @Injectable()
 export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name);
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {}
+  ) { }
 
   /**
    * Get user's companyId for filtering
@@ -21,11 +22,11 @@ export class AnalyticsService {
       where: { id: userId },
       select: { companyId: true, role: true },
     });
-    
+
     if (user?.role === UserRole.SUPER_ADMIN) {
       return null; // Super admin sees all companies
     }
-    
+
     return user?.companyId || null;
   }
 
@@ -43,9 +44,9 @@ export class AnalyticsService {
       },
       select: { id: true },
     });
-    
+
     const phaseIds = completedPhases.map(p => p.id);
-    
+
     return this.prisma.task.count({
       where: {
         ...whereClause,
@@ -65,9 +66,9 @@ export class AnalyticsService {
       },
       select: { id: true },
     });
-    
+
     const phaseIds = inProgressPhases.map(p => p.id);
-    
+
     return this.prisma.task.count({
       where: {
         ...whereClause,
@@ -82,9 +83,9 @@ export class AnalyticsService {
       where: { isStartPhase: true },
       select: { id: true },
     });
-    
+
     const phaseIds = startPhases.map(p => p.id);
-    
+
     return this.prisma.task.count({
       where: {
         ...whereClause,
@@ -108,13 +109,13 @@ export class AnalyticsService {
       totalTasks,
     ] = await Promise.all([
       this.prisma.user.count({
-        where: { 
+        where: {
           status: { not: 'RETIRED' },
           ...companyFilter,
         },
       }),
       this.prisma.user.count({
-        where: { 
+        where: {
           status: 'ACTIVE',
           ...companyFilter,
         },
@@ -132,10 +133,10 @@ export class AnalyticsService {
     // Get overdue tasks
     const now = new Date();
     const overdueTasks = await this.prisma.task.count({
-        where: {
+      where: {
         ...companyFilter,
         dueDate: { lt: now },
-        currentPhaseId: { 
+        currentPhaseId: {
           notIn: await this.prisma.phase.findMany({
             where: { isEndPhase: true },
             select: { id: true },
@@ -175,8 +176,13 @@ export class AnalyticsService {
     });
 
     // Get top performers (users with most completed tasks)
+    const completedPhaseIdsForPerformers = await this.prisma.phase.findMany({
+      where: { isEndPhase: true, ...(companyId ? { workflow: { companyId } } : {}) },
+      select: { id: true },
+    }).then(phases => phases.map(p => p.id));
+
     const topPerformers = await this.prisma.user.findMany({
-      where: { status: 'ACTIVE' },
+      where: { status: 'ACTIVE', ...companyFilter },
       take: 5,
       select: {
         id: true,
@@ -187,6 +193,18 @@ export class AnalyticsService {
       },
       orderBy: { assignedTasks: { _count: 'desc' } },
     });
+
+    // Re-score by completed tasks for a meaningful ranking
+    const performersWithCompletions = await Promise.all(
+      topPerformers.map(async (u) => {
+        const completed = await this.prisma.task.count({
+          where: { assignedToId: u.id, currentPhaseId: { in: completedPhaseIdsForPerformers } },
+        });
+        return { ...u, completedTasks: completed };
+      })
+    );
+    const topPerformersRanked = performersWithCompletions
+      .sort((a, b) => b.completedTasks - a.completedTasks);
 
     // Get tasks completed this week
     const oneWeekAgo = new Date();
@@ -225,11 +243,11 @@ export class AnalyticsService {
         workflow: task.workflow?.name || 'Unknown',
         createdAt: task.createdAt,
       })),
-      topPerformers: topPerformers.map(user => ({
+      topPerformers: topPerformersRanked.map(user => ({
         name: user.name,
         email: user.email,
         position: user.position,
-        tasksCompleted: user._count.assignedTasks,
+        tasksCompleted: (user as any).completedTasks ?? 0,
       })),
       tasksCompletedThisWeek,
       weekOverWeekChange: 0,
@@ -237,14 +255,12 @@ export class AnalyticsService {
   }
 
   async getUserAnalytics(userId: string, timeRange?: string) {
-    console.log('=== getUserAnalytics called ===');
-    console.log('User ID:', userId);
-    console.log('Time range:', timeRange);
-    
+    this.logger.debug(`getUserAnalytics userId=${userId} range=${timeRange}`);
+
     // Calculate date range based on timeRange parameter
     let dateFrom = new Date();
     let weeks = 4; // Default for chart
-    
+
     switch (timeRange) {
       case 'week':
         dateFrom.setDate(dateFrom.getDate() - 7);
@@ -262,10 +278,8 @@ export class AnalyticsService {
         dateFrom.setMonth(dateFrom.getMonth() - 1); // Default to month
         weeks = 4;
     }
-    
-    console.log('Date from:', dateFrom);
-    console.log('Weeks to calculate:', weeks);
-    
+
+    this.logger.debug(`Date from: ${dateFrom.toISOString()}, weeks: ${weeks}`);
     // Get user details
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -283,21 +297,21 @@ export class AnalyticsService {
       throw new Error('User not found');
     }
 
-    console.log('User found:', user.name);
+    this.logger.debug(`User found: ${user.name}`);
 
     // First, check ALL tasks assigned to this user (any type)
     const allAssignedTasks = await this.prisma.task.count({
       where: { assignedToId: userId },
     });
-    console.log('Total tasks assigned (any type):', allAssignedTasks);
+    this.logger.debug(`Total tasks assigned: ${allAssignedTasks}`);
 
     // Check task types distribution
     const tasksByType = await this.prisma.task.groupBy({
       by: ['taskType'],
-        where: { assignedToId: userId },
+      where: { assignedToId: userId },
       _count: true,
     });
-    console.log('Tasks by type:', JSON.stringify(tasksByType));
+    this.logger.debug(`Tasks by type: ${JSON.stringify(tasksByType)}`);
 
     const [
       totalAssignedTasks,
@@ -319,55 +333,50 @@ export class AnalyticsService {
       }),
     ]);
 
-    console.log('Total assigned MAIN tasks:', totalAssignedTasks);
-    console.log('Total created MAIN tasks:', totalCreatedTasks);
+    this.logger.debug(`Assigned tasks: ${totalAssignedTasks}, Created tasks: ${totalCreatedTasks}`);
 
-    const completedTasks = await this.getCompletedTasksCount({ 
+    const completedTasks = await this.getCompletedTasksCount({
       assignedToId: userId,
       // taskType: 'MAIN',  // Remove filter to count all tasks
     });
-
-    console.log('Completed tasks:', completedTasks);
 
     const inProgressTasks = await this.getInProgressTasksCount({
       assignedToId: userId,
       // taskType: 'MAIN',  // Remove filter to count all tasks
     });
-
-    console.log('In progress tasks:', inProgressTasks);
+    this.logger.debug(`Completed: ${completedTasks}, InProgress: ${inProgressTasks}`);
 
     // Get performance trend based on time range
+    this.logger.debug('Calculating performance trend...');
+
     const performanceTrend = [];
-    console.log('Calculating performance trend...');
-    
     for (let i = weeks - 1; i >= 0; i--) {
       const periodStart = new Date();
       const periodEnd = new Date();
       let label = '';
-      
+
       if (timeRange === 'year') {
         // For year view, show months
         periodStart.setMonth(periodStart.getMonth() - i - 1);
         periodStart.setDate(1);
         periodStart.setHours(0, 0, 0, 0);
-        
+
         periodEnd.setMonth(periodEnd.getMonth() - i);
         periodEnd.setDate(0); // Last day of previous month
         periodEnd.setHours(23, 59, 59, 999);
-        
+
         label = periodStart.toLocaleString('default', { month: 'short', year: 'numeric' });
       } else {
         // For week/month view, show weeks
         periodStart.setDate(periodStart.getDate() - (i * 7 + 7));
         periodStart.setHours(0, 0, 0, 0);
-        
+
         periodEnd.setDate(periodEnd.getDate() - (i * 7));
         periodEnd.setHours(23, 59, 59, 999);
-        
+
         label = `Week ${weeks - i}`;
       }
 
-      console.log(`Period ${weeks - i}: ${periodStart.toISOString()} to ${periodEnd.toISOString()}`);
 
       // Get tasks assigned in this period
       const assignedInPeriod = await this.prisma.task.count({
@@ -399,7 +408,6 @@ export class AnalyticsService {
         },
       });
 
-      console.log(`  - Assigned: ${assignedInPeriod}, Completed: ${completedInPeriod}`);
 
       performanceTrend.push({
         date: label,
@@ -415,7 +423,6 @@ export class AnalyticsService {
       { name: 'Pending', value: totalAssignedTasks - completedTasks - inProgressTasks },
     ].filter(item => item.value > 0);
 
-    console.log('Tasks by status:', tasksByStatus);
 
     // Get recent activity
     const recentTasks = await this.prisma.task.findMany({
@@ -433,15 +440,14 @@ export class AnalyticsService {
       },
     });
 
-    console.log('Recent tasks count:', recentTasks.length);
 
     const result = {
       user,
       stats: {
         totalAssignedTasks,
         totalCreatedTasks,
-      completedTasks,
-      inProgressTasks,
+        completedTasks,
+        inProgressTasks,
         pendingTasks: totalAssignedTasks - completedTasks - inProgressTasks,
         completionRate: totalAssignedTasks > 0 ? Math.round((completedTasks / totalAssignedTasks) * 100) : 0,
       },
@@ -455,9 +461,8 @@ export class AnalyticsService {
       })),
     };
 
-    console.log('=== Returning analytics data ===');
-    console.log(JSON.stringify(result, null, 2));
-    
+    this.logger.debug(`getUserAnalytics complete for ${userId}`);
+
     return result;
   }
 
@@ -472,7 +477,7 @@ export class AnalyticsService {
 
     // Simplified team analytics
     const users = await this.prisma.user.findMany({
-      where: { 
+      where: {
         status: { not: 'RETIRED' },
         ...companyFilter,
       },
@@ -490,9 +495,9 @@ export class AnalyticsService {
         const [assignedTasks, completedTasks] = await Promise.all([
           this.prisma.task.count({ where: { assignedToId: user.id /* taskType: 'MAIN' */ } }), // Count all tasks
           this.getCompletedTasksCount({ assignedToId: user.id /* taskType: 'MAIN' */ }), // Count all tasks
-    ]);
+        ]);
 
-    return {
+        return {
           ...user,
           assignedTasks,
           completedTasks,
@@ -504,7 +509,7 @@ export class AnalyticsService {
     // Calculate summary stats
     const totalTasks = teamStats.reduce((sum, member) => sum + member.assignedTasks, 0);
     const totalCompleted = teamStats.reduce((sum, member) => sum + member.completedTasks, 0);
-    const averageCompletionRate = teamStats.length > 0 
+    const averageCompletionRate = teamStats.length > 0
       ? Math.round(teamStats.reduce((sum, member) => sum + member.completionRate, 0) / teamStats.length)
       : 0;
 
@@ -517,7 +522,7 @@ export class AnalyticsService {
     }).then(phases => phases.map(p => p.id));
 
     const tasksCompletedThisWeek = await this.prisma.task.count({
-        where: { 
+      where: {
         // taskType: 'MAIN',  // Count all tasks
         currentPhaseId: { in: completedPhaseIds },
         updatedAt: { gte: oneWeekAgo },
@@ -533,15 +538,20 @@ export class AnalyticsService {
         totalTasks,
         averageCompletionRate,
         teamPerformance: averageCompletionRate,
-      tasksCompletedThisWeek,
+        tasksCompletedThisWeek,
       },
       totalTimeSpent: 0, // TODO: Implement time tracking
     };
   }
 
-  async exportData(format: 'excel' | 'csv' = 'excel') {
+  async exportData(userId: string, format: 'excel' | 'csv' = 'excel') {
+    // Scope export to the user's company for tenant isolation
+    const companyId = await this.getUserCompanyId(userId);
+    const companyFilter = companyId ? { companyId } : {};
+
     // Simplified export - basic task data
     const tasks = await this.prisma.task.findMany({
+      where: companyFilter,
       include: {
         createdBy: { select: { name: true, email: true } },
         assignedTo: { select: { name: true, email: true } },
@@ -566,8 +576,8 @@ export class AnalyticsService {
 
     if (format === 'excel') {
       const worksheet = XLSX.utils.json_to_sheet(exportData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Tasks');
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Tasks');
 
       return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
     } else {
