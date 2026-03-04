@@ -25,11 +25,6 @@ interface Company {
   _count?: { users: number; tasks: number };
 }
 
-interface ResetPasswordResult {
-  companyName: string;
-  adminEmail: string;
-  newPassword: string;
-}
 
 // ── Reset Password Modal ──────────────────────────────────────────────────────
 function ResetPasswordModal({
