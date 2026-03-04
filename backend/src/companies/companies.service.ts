@@ -133,19 +133,26 @@ export class CompaniesService {
           },
         },
         settings: true,
+        users: {
+          where: { role: 'COMPANY_ADMIN' },
+          select: { id: true, email: true, name: true },
+          take: 1,
+        },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: { createdAt: 'desc' },
     });
 
     // Get AI usage for each company
     const companiesWithStats = await Promise.all(
       companies.map(async (company) => {
         const aiUsage = await this.getAIUsageStats(company.id);
+        const adminUser = (company as any).users?.[0] ?? null;
         return {
           ...company,
-          aiApiKey: company.aiApiKey ? '[ENCRYPTED]' : null, // Never expose the actual key
+          users: undefined,          // remove the raw array
+          adminEmail: adminUser?.email ?? null,
+          adminName: adminUser?.name ?? null,
+          aiApiKey: company.aiApiKey ? '[ENCRYPTED]' : null,
           stats: {
             usersCount: company._count.users,
             tasksCount: company._count.tasks,
@@ -155,7 +162,7 @@ export class CompaniesService {
             aiTokensUsed: aiUsage.totalTokens,
             aiCost: aiUsage.totalCost,
           },
-          _count: undefined, // Remove raw count
+          _count: undefined,
         };
       }),
     );

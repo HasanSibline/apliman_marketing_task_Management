@@ -3,6 +3,74 @@ import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../services/api';
 
+// ── One-time credentials modal ────────────────────────────────────────────────
+function CredentialsModal({
+  data, onClose,
+}: {
+  data: { label: string; value: string; copyable?: boolean }[];
+  onClose: () => void;
+}) {
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(label);
+    setTimeout(() => setCopied(null), 2000);
+  };
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl">🔐</div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Company Created!</h2>
+              <p className="text-sm text-indigo-200">Save these credentials — password won't be shown again</p>
+            </div>
+          </div>
+        </div>
+        <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+          <span className="text-amber-500 mt-0.5">⚠️</span>
+          <p className="text-xs text-amber-700 font-medium">
+            This password is shown only once. Copy and share it securely with the company admin before closing.
+          </p>
+        </div>
+        <div className="px-6 py-4 space-y-3">
+          {data.map(({ label, value, copyable }) => (
+            <div key={label} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-gray-500 mb-0.5">{label}</p>
+                <p className="text-sm font-mono font-semibold text-gray-900 break-all">{value}</p>
+              </div>
+              {copyable && (
+                <button onClick={() => copy(value, label)}
+                  className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition
+                    ${copied === label ? 'bg-emerald-100 text-emerald-700' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}>
+                  {copied === label ? '✓ Copied' : 'Copy'}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="px-6 pb-5 flex gap-3">
+          <button
+            onClick={() => {
+              const all = data.filter(d => d.copyable).map(d => `${d.label}: ${d.value}`).join('\n');
+              navigator.clipboard.writeText(all);
+              toast.success('All credentials copied!');
+            }}
+            className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">
+            📋 Copy All
+          </button>
+          <button onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition">
+            I've saved it — Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface CreateCompanyForm {
   name: string;
   slug: string;
@@ -117,6 +185,7 @@ export default function CreateCompany() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [credentials, setCredentials] = useState<{ label: string; value: string; copyable?: boolean }[] | null>(null);
 
   const [formData, setFormData] = useState<CreateCompanyForm>({
     name: '',
@@ -243,15 +312,20 @@ export default function CreateCompany() {
       const response = await api.post('/companies', { ...formData, logo: logoUrl });
       toast.success('Company created successfully!');
 
+      // Show one-time credentials modal instead of toast
       if (response.data.adminCredentials) {
         const { email, password } = response.data.adminCredentials;
-        const { slug } = response.data.company;
-        toast.success(
-          `✅ Admin credentials\nEmail: ${email}\nPassword: ${password}\nURL: ${window.location.origin}/${slug}/login`,
-          { duration: 12000 }
-        );
+        const slug = response.data.company?.slug ?? formData.slug;
+        setCredentials([
+          { label: 'Company', value: formData.name },
+          { label: 'Admin Name', value: formData.adminName },
+          { label: 'Admin Email', value: email, copyable: true },
+          { label: 'Password', value: password, copyable: true },
+          { label: 'Login URL', value: `${window.location.origin}/${slug}/login`, copyable: true },
+        ]);
+      } else {
+        navigate('/admin/companies');
       }
-      navigate('/admin/companies');
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Failed to create company';
       toast.error(msg);
@@ -271,6 +345,13 @@ export default function CreateCompany() {
 
   return (
     <div className="min-h-screen bg-gray-950 flex">
+      {/* Credentials modal — shown once after successful creation */}
+      {credentials && (
+        <CredentialsModal
+          data={credentials}
+          onClose={() => { setCredentials(null); navigate('/admin/companies'); }}
+        />
+      )}
       {/* ── LEFT SIDEBAR ── */}
       <aside className="hidden lg:flex w-72 flex-col bg-gray-900 border-r border-gray-800 p-8">
         <button
