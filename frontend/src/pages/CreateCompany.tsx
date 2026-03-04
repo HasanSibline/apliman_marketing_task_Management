@@ -21,25 +21,66 @@ interface CreateCompanyForm {
   billingEmail?: string;
 }
 
+const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
+  FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 'Free' },
+  PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
+  ENTERPRISE: { maxUsers: 200, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
+};
+
+const STEPS = [
+  { id: 1, label: 'Company Info', icon: '🏢' },
+  { id: 2, label: 'Admin Account', icon: '👤' },
+  { id: 3, label: 'Subscription', icon: '💳' },
+  { id: 4, label: 'AI & Limits', icon: '🤖' },
+];
+
+function PasswordStrength({ password }: { password: string }) {
+  if (!password) return null;
+  let score = 0;
+  if (password.length >= 8) score++;
+  if (password.length >= 12) score++;
+  if (/[A-Z]/.test(password)) score++;
+  if (/[0-9]/.test(password)) score++;
+  if (/[^A-Za-z0-9]/.test(password)) score++;
+
+  const levels = [
+    { label: 'Weak', color: 'bg-red-500', text: 'text-red-600' },
+    { label: 'Weak', color: 'bg-red-500', text: 'text-red-600' },
+    { label: 'Fair', color: 'bg-amber-400', text: 'text-amber-600' },
+    { label: 'Good', color: 'bg-blue-500', text: 'text-blue-600' },
+    { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-600' },
+    { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-600' },
+  ];
+  const level = levels[Math.min(score, 5)];
+  const width = ['10%', '20%', '45%', '65%', '85%', '100%'][Math.min(score, 5)];
+
+  return (
+    <div className="mt-2 space-y-1">
+      <div className="flex justify-between items-center">
+        <span className="text-xs text-gray-400">Password strength</span>
+        <span className={`text-xs font-semibold ${level.text}`}>{level.label}</span>
+      </div>
+      <div className="h-1.5 w-full bg-gray-700 rounded-full overflow-hidden">
+        <div className={`h-full rounded-full transition-all duration-500 ${level.color}`} style={{ width }} />
+      </div>
+      <p className="text-xs text-gray-500">Tip: mix uppercase, numbers & symbols</p>
+    </div>
+  );
+}
+
 export default function CreateCompany() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-
-  const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number }> = {
-    FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1 },
-    PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10 },
-    ENTERPRISE: { maxUsers: 200, maxTasks: -1, maxStorage: 100 },
-  };
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const [formData, setFormData] = useState<CreateCompanyForm>({
     name: '',
     slug: '',
-    primaryColor: '#3B82F6',
+    primaryColor: '#6366f1',
     adminName: '',
     adminEmail: '',
     adminPassword: '',
@@ -51,24 +92,28 @@ export default function CreateCompany() {
     maxStorage: 10,
   });
 
+  const setError = (field: string, msg: string) =>
+    setFieldErrors(prev => ({ ...prev, [field]: msg }));
+  const clearError = (field: string) =>
+    setFieldErrors(prev => { const next = { ...prev }; delete next[field]; return next; });
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    const newValue = type === 'number' ? parseInt(value) : value;
+    const newValue = type === 'number' ? parseInt(value) || 0 : value;
+    clearError(name);
 
     setFormData(prev => {
       const updated = { ...prev, [name]: newValue };
 
-      // Auto-generate slug from name
       if (name === 'name') {
         let slug = value.toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '')
           .replace(/-+/g, '-');
-        if (!slug) slug = 'company';
+        if (!slug && value) slug = 'company';
         updated.slug = slug;
       }
 
-      // When plan changes, auto-apply recommended limits
       if (name === 'subscriptionPlan') {
         const limits = PLAN_LIMITS[value] || PLAN_LIMITS.PRO;
         updated.maxUsers = limits.maxUsers;
@@ -82,642 +127,579 @@ export default function CreateCompany() {
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast.error('File size must be less than 5MB');
-        return;
-      }
-
-      if (!file.type.startsWith('image/')) {
-        toast.error('Please select an image file');
-        return;
-      }
-
-      setLogoFile(file);
-
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return; }
+    if (!file.type.startsWith('image/')) { toast.error('Images only'); return; }
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setLogoPreview(reader.result as string);
+    reader.readAsDataURL(file);
   };
 
   const removeLogo = () => {
     setLogoFile(null);
     setLogoPreview(null);
     setFormData(prev => ({ ...prev, logo: undefined }));
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  // Per-step validation — returns true if valid
+  const validateStep = (s: number): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (s === 1) {
+      if (!formData.name.trim()) errors.name = 'Company name is required';
+      if (!formData.slug.trim()) errors.slug = 'Slug is required';
+    }
+    if (s === 2) {
+      if (!formData.adminName.trim()) errors.adminName = 'Admin name is required';
+      if (!formData.adminEmail.trim()) errors.adminEmail = 'Admin email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail))
+        errors.adminEmail = 'Enter a valid email address';
+      if (!formData.adminPassword) errors.adminPassword = 'Password is required';
+      else if (formData.adminPassword.length < 8)
+        errors.adminPassword = 'Password must be at least 8 characters';
+    }
+    if (s === 3) {
+      if (!formData.subscriptionDays || formData.subscriptionDays < 1)
+        errors.subscriptionDays = 'Must be at least 1 day';
+    }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      toast.error('Please fix the highlighted fields');
+      return false;
+    }
+    return true;
+  };
+
+  const nextStep = () => {
+    if (validateStep(step) && step < 4) setStep(step + 1);
+  };
+  const prevStep = () => { if (step > 1) { setFieldErrors({}); setStep(step - 1); } };
 
   const uploadLogo = async (): Promise<string | undefined> => {
     if (!logoFile) return undefined;
-    try {
-      const formDataUpload = new FormData();
-      formDataUpload.append('file', logoFile);
-      const response = await api.post('/files/upload', formDataUpload, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      return response.data.url;
-    } catch (err) {
-      toast.error('Failed to upload logo');
-      throw err;
-    }
+    const fd = new FormData();
+    fd.append('file', logoFile);
+    const res = await api.post('/files/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    return res.data.url;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (step !== 4) return;
-
-    if (!formData.name || !formData.slug) {
-      toast.error('Company name and slug are required'); setStep(1); return;
-    }
-    if (!formData.adminName || !formData.adminEmail || !formData.adminPassword) {
-      toast.error('Admin account details are required'); setStep(2); return;
-    }
-    if (formData.adminPassword.length < 8) {
-      toast.error('Admin password must be at least 8 characters'); setStep(2); return;
-    }
+    if (!validateStep(4)) return;
 
     try {
       setLoading(true);
-      setError(null);
-
-      let logoUrl = undefined;
+      let logoUrl: string | undefined;
       if (logoFile) {
-        const uploadToast = toast.loading('Uploading logo...');
-        try {
-          logoUrl = await uploadLogo();
-          if (!logoUrl) throw new Error('Logo upload failed');
-          toast.dismiss(uploadToast);
-        } catch (err) {
-          toast.dismiss(uploadToast);
-          throw err;
-        }
+        const t = toast.loading('Uploading logo…');
+        try { logoUrl = await uploadLogo(); toast.dismiss(t); }
+        catch (err) { toast.dismiss(t); throw err; }
       }
 
-      const payload = { ...formData, logo: logoUrl };
-      const response = await api.post('/companies', payload);
-
+      const response = await api.post('/companies', { ...formData, logo: logoUrl });
       toast.success('Company created successfully!');
 
       if (response.data.adminCredentials) {
         const { email, password } = response.data.adminCredentials;
         const { slug } = response.data.company;
         toast.success(
-          `Admin Login:\nEmail: ${email}\nPassword: ${password}\nLogin URL: ${window.location.origin}/${slug}/login`,
-          { duration: 10000 }
+          `✅ Admin credentials\nEmail: ${email}\nPassword: ${password}\nURL: ${window.location.origin}/${slug}/login`,
+          { duration: 12000 }
         );
       }
-
       navigate('/admin/companies');
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create company';
-      setError(errorMessage);
-      toast.error(errorMessage);
+      const msg = err.response?.data?.message || err.message || 'Failed to create company';
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleFormKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
-    // Prevent Enter key from submitting form except on step 4
-    if (e.key === 'Enter') {
-      const target = e.target as HTMLElement;
-      // Allow Enter in textarea, but prevent form submission on other inputs unless on step 4
-      if (target.tagName !== 'TEXTAREA') {
-        e.preventDefault();
-        e.stopPropagation();
-
-        if (step < 4) {
-          // Move to next step instead of submitting
-          console.log('Enter key pressed - moving to next step');
-          nextStep();
-        } else {
-          // On step 4, allow form submission via the submit button only
-          // Don't trigger submission on Enter to prevent accidental submission
-          console.log('Enter key pressed on step 4 - use "Create Company" button to submit');
-          toast('Please click "Create Company" button to submit', { icon: '👆' });
-        }
-      }
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
+    if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      if (step < 4) nextStep();
     }
   };
 
-  const getPasswordStrength = (pw: string): { label: string; color: string; width: string } => {
-    if (!pw) return { label: '', color: 'bg-gray-200', width: '0%' };
-    let score = 0;
-    if (pw.length >= 8) score++;
-    if (pw.length >= 12) score++;
-    if (/[A-Z]/.test(pw)) score++;
-    if (/[0-9]/.test(pw)) score++;
-    if (/[^A-Za-z0-9]/.test(pw)) score++;
-    if (score <= 1) return { label: 'Weak', color: 'bg-red-500', width: '25%' };
-    if (score === 2) return { label: 'Fair', color: 'bg-yellow-500', width: '50%' };
-    if (score === 3) return { label: 'Good', color: 'bg-blue-500', width: '75%' };
-    return { label: 'Strong', color: 'bg-green-500', width: '100%' };
-  };
+  const fmt = (n: number) => n === -1 ? '∞' : n.toLocaleString();
 
-  const nextStep = () => {
-    // Validate current step before advancing
-    if (step === 1) {
-      if (!formData.name.trim()) { toast.error('Company name is required'); return; }
-      if (!formData.slug.trim()) { toast.error('Slug is required'); return; }
-    }
-    if (step === 2) {
-      if (!formData.adminName.trim()) { toast.error('Admin name is required'); return; }
-      if (!formData.adminEmail.trim()) { toast.error('Admin email is required'); return; }
-      if (!formData.adminPassword || formData.adminPassword.length < 8) {
-        toast.error('Password must be at least 8 characters'); return;
-      }
-    }
-    if (step === 3) {
-      if (!formData.subscriptionDays || formData.subscriptionDays < 1) {
-        toast.error('Subscription duration must be at least 1 day'); return;
-      }
-    }
-    if (step < 4) setStep(step + 1);
-  };
-
-  const prevStep = () => {
-    if (step > 1) setStep(step - 1);
-  };
+  // --- Input component helper
+  const Field = ({
+    label, name, type = 'text', placeholder, required, hint, children
+  }: {
+    label: string; name: string; type?: string; placeholder?: string;
+    required?: boolean; hint?: string; children?: React.ReactNode;
+  }) => (
+    <div>
+      <label className="block text-sm font-medium text-gray-200 mb-1.5">
+        {label}{required && <span className="text-indigo-400 ml-1">*</span>}
+      </label>
+      {children ?? (
+        <input
+          type={type}
+          name={name}
+          value={(formData as any)[name] ?? ''}
+          onChange={handleChange}
+          placeholder={placeholder}
+          className={`w-full px-4 py-2.5 rounded-xl bg-gray-800 border text-white placeholder-gray-500 text-sm
+            focus:outline-none focus:ring-2 focus:ring-indigo-500 transition
+            ${fieldErrors[name] ? 'border-red-500' : 'border-gray-700 hover:border-gray-600'}`}
+        />
+      )}
+      {fieldErrors[name] && (
+        <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
+          <span>⚠</span> {fieldErrors[name]}
+        </p>
+      )}
+      {hint && !fieldErrors[name] && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-3xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/admin/companies')}
-            className="text-gray-600 hover:text-gray-900 mb-4 flex items-center"
-          >
-            ← Back to Companies
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Create New Company</h1>
-          <p className="mt-2 text-gray-600">Set up a new company with admin account and subscription</p>
-        </div>
-
-        {/* Progress Steps */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            {[1, 2, 3, 4].map((num) => (
-              <div key={num} className="flex items-center flex-1">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${step >= num ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 text-gray-400'
-                  }`}>
-                  {num}
-                </div>
-                {num < 4 && (
-                  <div className={`flex-1 h-1 mx-2 ${step > num ? 'bg-blue-600' : 'bg-gray-300'}`}></div>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="flex justify-between mt-2">
-            <span className={`text-sm ${step >= 1 ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>Company Info</span>
-            <span className={`text-sm ${step >= 2 ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>Admin Account</span>
-            <span className={`text-sm ${step >= 3 ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>Subscription</span>
-            <span className={`text-sm ${step >= 4 ? 'text-blue-600 font-medium' : 'text-gray-400'}`}>AI & Limits</span>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {error}
-          </div>
-        )}
-
-        {/* Form */}
-        <form
-          onSubmit={handleSubmit}
-          onKeyDown={handleFormKeyDown}
-          autoComplete="off"
-          className="bg-white rounded-lg shadow-sm p-8"
+    <div className="min-h-screen bg-gray-950 flex">
+      {/* ── LEFT SIDEBAR ── */}
+      <aside className="hidden lg:flex w-72 flex-col bg-gray-900 border-r border-gray-800 p-8">
+        <button
+          onClick={() => navigate('/admin/companies')}
+          className="flex items-center gap-2 text-gray-400 hover:text-white text-sm mb-10 transition"
         >
-          {/* Step 1: Company Info */}
-          {step === 1 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Company Information</h2>
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Companies
+        </button>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Name *
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., Acme Corporation"
-                />
-              </div>
+        <div className="mb-10">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-2xl mb-4">🏢</div>
+          <h1 className="text-xl font-bold text-white">Create Company</h1>
+          <p className="text-sm text-gray-400 mt-1">4-step setup wizard</p>
+        </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Slug (URL-friendly name) *
-                </label>
-                <input
-                  type="text"
-                  name="slug"
-                  value={formData.slug}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., acme-corporation"
-                />
-                <p className="text-sm text-gray-500 mt-1">Auto-generated from company name</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Primary Color
-                </label>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="color"
-                    name="primaryColor"
-                    value={formData.primaryColor}
-                    onChange={handleChange}
-                    className="h-12 w-20 border border-gray-300 rounded cursor-pointer"
-                  />
-                  <input
-                    type="text"
-                    value={formData.primaryColor}
-                    onChange={(e) => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
-                    placeholder="#3B82F6"
-                  />
+        {/* Step list */}
+        <nav className="flex flex-col gap-1">
+          {STEPS.map((s) => {
+            const isActive = step === s.id;
+            const isCompleted = step > s.id;
+            return (
+              <div
+                key={s.id}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-default
+                  ${isActive ? 'bg-indigo-600 text-white' : ''}
+                  ${isCompleted ? 'text-emerald-400' : ''}
+                  ${!isActive && !isCompleted ? 'text-gray-500' : ''}`}
+              >
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0
+                  ${isActive ? 'bg-white text-indigo-600' : ''}
+                  ${isCompleted ? 'bg-emerald-500 text-white' : ''}
+                  ${!isActive && !isCompleted ? 'bg-gray-800 text-gray-500' : ''}`}>
+                  {isCompleted ? '✓' : s.id}
+                </div>
+                <div>
+                  <div className={`text-sm font-medium ${isActive ? 'text-white' : ''}`}>{s.label}</div>
                 </div>
               </div>
+            );
+          })}
+        </nav>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Logo
-                </label>
-
-                {/* Logo Preview */}
-                {logoPreview && (
-                  <div className="mb-4 relative inline-block">
-                    <img
-                      src={logoPreview}
-                      alt="Logo preview"
-                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white"
-                    />
-                    <button
-                      type="button"
-                      onClick={removeLogo}
-                      className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+        {/* Preview card */}
+        {formData.name && (
+          <div className="mt-auto pt-8">
+            <div className="rounded-xl border border-gray-700 bg-gray-800 p-4">
+              <div className="flex items-center gap-3 mb-3">
+                {logoPreview ? (
+                  <img src={logoPreview} alt="logo" className="w-9 h-9 rounded-lg object-contain bg-white p-1" />
+                ) : (
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-lg font-bold"
+                    style={{ backgroundColor: formData.primaryColor }}>
+                    {formData.name[0]?.toUpperCase()}
                   </div>
                 )}
+                <div>
+                  <p className="text-sm font-semibold text-white truncate max-w-[140px]">{formData.name}</p>
+                  <p className="text-xs text-gray-400">/{formData.slug}</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium
+                  ${formData.subscriptionPlan === 'FREE' ? 'bg-gray-700 text-gray-300' : ''}
+                  ${formData.subscriptionPlan === 'PRO' ? 'bg-indigo-900 text-indigo-300' : ''}
+                  ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-900 text-amber-300' : ''}`}>
+                  {formData.subscriptionPlan}
+                </span>
+                <span className="text-xs text-gray-500">{formData.subscriptionDays}d</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </aside>
 
-                {/* File Input */}
-                <div className="flex items-center space-x-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="hidden"
-                    id="logo-upload"
-                  />
-                  <label
-                    htmlFor="logo-upload"
-                    className="cursor-pointer bg-white px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm font-medium text-gray-700"
-                  >
-                    {logoFile ? 'Change Logo' : 'Choose Logo'}
+      {/* ── MAIN CONTENT ── */}
+      <main className="flex-1 flex flex-col min-h-screen overflow-y-auto">
+        {/* Mobile header */}
+        <div className="lg:hidden flex items-center gap-3 p-4 border-b border-gray-800">
+          <button onClick={() => navigate('/admin/companies')} className="text-gray-400">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-white font-semibold">Create New Company</h1>
+        </div>
+
+        <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full px-6 py-10">
+          {/* Progress bar */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-3">
+              {STEPS.map((s, i) => (
+                <div key={s.id} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300
+                      ${step > s.id ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30' : ''}
+                      ${step === s.id ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/40 ring-4 ring-indigo-500/20' : ''}
+                      ${step < s.id ? 'bg-gray-800 text-gray-500 border border-gray-700' : ''}`}>
+                      {step > s.id ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : s.id}
+                    </div>
+                    <span className={`mt-1.5 text-xs font-medium whitespace-nowrap transition-colors
+                      ${step === s.id ? 'text-indigo-400' : step > s.id ? 'text-emerald-500' : 'text-gray-600'}`}>
+                      {s.label}
+                    </span>
+                  </div>
+                  {i < STEPS.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-3 mb-5 rounded-full transition-colors duration-500
+                      ${step > s.id ? 'bg-emerald-500' : 'bg-gray-800'}`} />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Card */}
+          <form
+            onSubmit={handleSubmit}
+            onKeyDown={handleKeyDown}
+            autoComplete="off"
+            className="bg-gray-900 border border-gray-800 rounded-2xl p-8 shadow-2xl"
+          >
+            {/* ── STEP 1: Company Info ── */}
+            {step === 1 && (
+              <div className="space-y-6">
+                <div className="mb-2">
+                  <h2 className="text-xl font-bold text-white">Company Information</h2>
+                  <p className="text-sm text-gray-400 mt-1">Basic details about the company</p>
+                </div>
+
+                <Field label="Company Name" name="name" placeholder="e.g. Acme Corporation" required
+                  hint="This is the company's display name" />
+
+                <Field label="URL Slug" name="slug" placeholder="e.g. acme-corporation" required
+                  hint={`Login URL: ${window.location.origin}/${formData.slug || 'your-slug'}/login`} />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-1.5">
+                    Brand Color
                   </label>
-                  <span className="text-sm text-gray-500">
-                    {logoFile ? logoFile.name : 'No file chosen'}
+                  <div className="flex items-center gap-3">
+                    <div className="relative">
+                      <input
+                        type="color"
+                        name="primaryColor"
+                        value={formData.primaryColor}
+                        onChange={handleChange}
+                        className="w-12 h-12 rounded-xl border border-gray-700 bg-transparent cursor-pointer p-1"
+                      />
+                    </div>
+                    <input
+                      type="text"
+                      value={formData.primaryColor}
+                      onChange={e => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      placeholder="#6366f1"
+                    />
+                    <div className="w-10 h-10 rounded-xl shrink-0" style={{ backgroundColor: formData.primaryColor }} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-1.5">Company Logo</label>
+                  {logoPreview ? (
+                    <div className="flex items-center gap-4 p-4 bg-gray-800 rounded-xl border border-gray-700">
+                      <img src={logoPreview} alt="logo preview" className="w-16 h-16 object-contain rounded-lg bg-white p-1" />
+                      <div className="flex-1">
+                        <p className="text-sm text-white font-medium truncate">{logoFile?.name}</p>
+                        <p className="text-xs text-gray-400">{((logoFile?.size ?? 0) / 1024).toFixed(0)} KB</p>
+                      </div>
+                      <button type="button" onClick={removeLogo}
+                        className="text-gray-400 hover:text-red-400 p-2 rounded-lg hover:bg-gray-700 transition">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ) : (
+                    <label htmlFor="logo-upload"
+                      className="flex flex-col items-center justify-center gap-2 p-6 border-2 border-dashed border-gray-700 rounded-xl cursor-pointer hover:border-indigo-500 hover:bg-gray-800/50 transition">
+                      <span className="text-3xl">📁</span>
+                      <span className="text-sm text-gray-400">Click to upload logo</span>
+                      <span className="text-xs text-gray-600">PNG, JPG, WEBP — max 5MB</span>
+                      <input ref={fileInputRef} id="logo-upload" type="file" accept="image/*"
+                        onChange={handleLogoChange} className="hidden" />
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 2: Admin Account ── */}
+            {step === 2 && (
+              <div className="space-y-6">
+                <div className="mb-2">
+                  <h2 className="text-xl font-bold text-white">Admin Account</h2>
+                  <p className="text-sm text-gray-400 mt-1">This person will manage the company</p>
+                </div>
+
+                <Field label="Full Name" name="adminName" placeholder="e.g. John Doe" required />
+                <Field label="Email Address" name="adminEmail" type="email" placeholder="admin@company.com" required />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-1.5">
+                    Password <span className="text-indigo-400">*</span>
+                  </label>
+                  <input
+                    type="password"
+                    name="adminPassword"
+                    value={formData.adminPassword}
+                    onChange={handleChange}
+                    placeholder="Minimum 8 characters"
+                    className={`w-full px-4 py-2.5 rounded-xl bg-gray-800 border text-white placeholder-gray-500 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500 transition
+                      ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-700 hover:border-gray-600'}`}
+                  />
+                  {fieldErrors.adminPassword && (
+                    <p className="mt-1 text-xs text-red-400">⚠ {fieldErrors.adminPassword}</p>
+                  )}
+                  <PasswordStrength password={formData.adminPassword} />
+                </div>
+              </div>
+            )}
+
+            {/* ── STEP 3: Subscription ── */}
+            {step === 3 && (
+              <div className="space-y-6">
+                <div className="mb-2">
+                  <h2 className="text-xl font-bold text-white">Subscription</h2>
+                  <p className="text-sm text-gray-400 mt-1">Choose a plan and set duration</p>
+                </div>
+
+                {/* Plan cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  {(['FREE', 'PRO', 'ENTERPRISE'] as const).map(plan => {
+                    const info = PLAN_LIMITS[plan];
+                    const selected = formData.subscriptionPlan === plan;
+                    return (
+                      <button
+                        key={plan}
+                        type="button"
+                        onClick={() => handleChange({ target: { name: 'subscriptionPlan', value: plan, type: 'select' } } as any)}
+                        className={`flex flex-col items-start p-4 rounded-xl border transition-all duration-200 text-left
+                          ${selected
+                            ? 'border-indigo-500 bg-indigo-950 shadow-lg shadow-indigo-500/20'
+                            : 'border-gray-700 bg-gray-800 hover:border-gray-600'}`}
+                      >
+                        <div className={`text-xs font-bold mb-2 px-2 py-0.5 rounded-full
+                          ${plan === 'FREE' ? 'bg-gray-700 text-gray-300' :
+                            plan === 'PRO' ? 'bg-indigo-700 text-indigo-200' :
+                              'bg-amber-800 text-amber-200'}`}>
+                          {plan}
+                        </div>
+                        <p className="text-white font-semibold text-sm">{info.price}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {info.maxUsers === -1 ? '∞' : info.maxUsers} users<br />
+                          {info.maxTasks === -1 ? '∞' : info.maxTasks} tasks
+                        </p>
+                        {selected && (
+                          <div className="mt-2 w-full flex justify-end">
+                            <span className="w-4 h-4 rounded-full bg-indigo-500 flex items-center justify-center">
+                              <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <Field label="Duration (days)" name="subscriptionDays" type="number" required
+                  hint="How many days this subscription is active from today">
+                  <input
+                    type="number"
+                    name="subscriptionDays"
+                    value={formData.subscriptionDays}
+                    onChange={handleChange}
+                    min={1}
+                    className={`w-full px-4 py-2.5 rounded-xl bg-gray-800 border text-white text-sm
+                      focus:outline-none focus:ring-2 focus:ring-indigo-500 transition
+                      ${fieldErrors.subscriptionDays ? 'border-red-500' : 'border-gray-700 hover:border-gray-600'}`}
+                  />
+                </Field>
+                {fieldErrors.subscriptionDays && (
+                  <p className="-mt-4 text-xs text-red-400">⚠ {fieldErrors.subscriptionDays}</p>
+                )}
+
+                <div className="p-4 rounded-xl bg-gray-800 border border-gray-700 text-sm text-gray-300">
+                  📅 Subscription ends:{' '}
+                  <span className="font-semibold text-white">
+                    {new Date(Date.now() + formData.subscriptionDays * 86400000).toLocaleDateString('en-US', {
+                      year: 'numeric', month: 'long', day: 'numeric'
+                    })}
                   </span>
                 </div>
 
-                <p className="text-xs text-gray-500 mt-2">
-                  Max size: 5MB. Recommended: Square image (e.g., 200x200px). Formats: JPG, PNG, WEBP, GIF
-                </p>
+                <Field label="Billing Email" name="billingEmail" type="email" placeholder="billing@company.com"
+                  hint="Optional — for invoicing purposes" />
               </div>
-            </div>
-          )}
+            )}
 
-          {step === 2 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Account</h2>
+            {/* ── STEP 4: AI & Limits ── */}
+            {step === 4 && (
+              <div className="space-y-6">
+                <div className="mb-2">
+                  <h2 className="text-xl font-bold text-white">AI & Resource Limits</h2>
+                  <p className="text-sm text-gray-400 mt-1">Optional AI configuration — can be changed later</p>
+                </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Admin Name *</label>
-                <input
-                  type="text"
-                  name="adminName"
-                  value={formData.adminName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="John Doe"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Admin Email *</label>
-                <input
-                  type="email"
-                  name="adminEmail"
-                  value={formData.adminEmail}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="admin@company.com"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Admin Password *</label>
-                <input
-                  type="password"
-                  name="adminPassword"
-                  value={formData.adminPassword}
-                  onChange={handleChange}
-                  minLength={8}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Minimum 8 characters"
-                />
-                {/* Password strength indicator */}
-                {formData.adminPassword && (() => {
-                  const strength = getPasswordStrength(formData.adminPassword);
-                  return (
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-500">Password strength</span>
-                        <span className={`text-xs font-medium ${strength.label === 'Weak' ? 'text-red-600' :
-                            strength.label === 'Fair' ? 'text-yellow-600' :
-                              strength.label === 'Good' ? 'text-blue-600' : 'text-green-600'
-                          }`}>{strength.label}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
-                          style={{ width: strength.width }}
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">Use uppercase, numbers & symbols for a stronger password.</p>
+                <div className="p-4 rounded-xl bg-indigo-950 border border-indigo-800">
+                  <h3 className="text-sm font-semibold text-indigo-300 flex items-center gap-2 mb-3">
+                    <span>⚡</span> AI Features (Optional)
+                  </h3>
+                  <Field label="Gemini API Key" name="aiApiKey" placeholder="AIza..." hint={
+                    formData.aiApiKey ? '✓ AI will be enabled for this company' : 'Leave blank to enable AI later'
+                  } />
+                  {formData.aiApiKey && (
+                    <div className="mt-3">
+                      <label className="block text-sm font-medium text-gray-200 mb-1.5">AI Provider</label>
+                      <select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
+                        className="w-full px-4 py-2.5 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="gemini">Google Gemini</option>
+                        <option value="openai">OpenAI</option>
+                      </select>
                     </div>
-                  );
-                })()}
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Subscription */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Subscription Details</h2>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subscription Plan *
-                </label>
-                <select
-                  name="subscriptionPlan"
-                  value={formData.subscriptionPlan}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="FREE">FREE - Basic features</option>
-                  <option value="PRO">PRO - Advanced features</option>
-                  <option value="ENTERPRISE">ENTERPRISE - All features</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Subscription Duration (days) *
-                </label>
-                <input
-                  type="number"
-                  name="subscriptionDays"
-                  value={formData.subscriptionDays}
-                  onChange={handleChange}
-                  min={1}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <p className="text-sm text-gray-500 mt-1">Number of days the subscription is valid</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Billing Email (optional)
-                </label>
-                <input
-                  type="email"
-                  name="billingEmail"
-                  value={formData.billingEmail || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="billing@company.com"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Step 4: AI & Limits */}
-          {step === 4 && (
-            <div className="space-y-6">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900 mb-2">AI Configuration & Resource Limits</h2>
-                <p className="text-sm text-gray-600 mb-4">
-                  Configure AI features and set resource limits for the company.
-                  <span className="font-semibold text-blue-600"> AI configuration is optional</span> - you can skip it and enable AI later.
-                </p>
-              </div>
-
-              {/* AI Configuration Section */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  AI Features (Optional)
-                </h3>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    AI API Key
-                  </label>
-                  <input
-                    type="text"
-                    name="aiApiKey"
-                    value={formData.aiApiKey || ''}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                    placeholder="Enter your Gemini API key (optional)"
-                  />
-                  <p className="text-sm text-gray-600 mt-2">
-                    {formData.aiApiKey ? (
-                      <span className="text-green-600 font-medium">✓ AI will be enabled for this company</span>
-                    ) : (
-                      <span className="text-gray-500">AI will be disabled. You can enable it later by editing the company.</span>
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  AI Provider
-                </label>
-                <select
-                  name="aiProvider"
-                  value={formData.aiProvider}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="gemini">Google Gemini</option>
-                  <option value="openai">OpenAI</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max Users
-                  </label>
-                  <input
-                    type="number"
-                    name="maxUsers"
-                    value={formData.maxUsers}
-                    onChange={handleChange}
-                    min={1}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max Tasks
-                  </label>
-                  <input
-                    type="number"
-                    name="maxTasks"
-                    value={formData.maxTasks}
-                    onChange={handleChange}
-                    min={1}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { label: 'Max Users', name: 'maxUsers' },
+                    { label: 'Max Tasks', name: 'maxTasks' },
+                    { label: 'Storage (GB)', name: 'maxStorage' },
+                  ].map(({ label, name }) => (
+                    <div key={name}>
+                      <label className="block text-xs font-medium text-gray-400 mb-1.5">{label}</label>
+                      <input
+                        type="number"
+                        name={name}
+                        value={(formData as any)[name]}
+                        onChange={handleChange}
+                        min={-1}
+                        className="w-full px-3 py-2.5 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition hover:border-gray-600"
+                      />
+                      <p className="text-xs text-gray-600 mt-1">-1 = unlimited</p>
+                    </div>
+                  ))}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Max Storage (GB)
-                  </label>
-                  <input
-                    type="number"
-                    name="maxStorage"
-                    value={formData.maxStorage}
-                    onChange={handleChange}
-                    min={1}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                {/* Full review summary */}
+                <div className="rounded-xl border border-gray-700 bg-gray-800 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-gray-700 bg-gray-750">
+                    <h3 className="text-sm font-semibold text-white">📋 Review Summary</h3>
+                  </div>
+                  <div className="p-4 grid grid-cols-2 gap-3 text-sm">
+                    {[
+                      { label: 'Company', value: formData.name, required: true },
+                      { label: 'Slug', value: formData.slug, required: true },
+                      { label: 'Admin name', value: formData.adminName, required: true },
+                      { label: 'Admin email', value: formData.adminEmail, required: true },
+                      { label: 'Plan', value: formData.subscriptionPlan },
+                      { label: 'Duration', value: `${formData.subscriptionDays} days` },
+                      { label: 'Max users', value: fmt(formData.maxUsers) },
+                      { label: 'Max tasks', value: fmt(formData.maxTasks) },
+                      { label: 'Storage', value: `${formData.maxStorage} GB` },
+                      { label: 'AI', value: formData.aiApiKey ? '✓ Enabled' : '— Disabled', color: formData.aiApiKey ? 'text-emerald-400' : 'text-gray-500' },
+                    ].map(({ label, value, required, color }) => (
+                      <div key={label} className="flex flex-col gap-0.5">
+                        <span className="text-gray-500 text-xs">{label}</span>
+                        <span className={`font-medium ${color ?? 'text-white'} ${required && !value ? 'text-red-400' : ''}`}>
+                          {value || (required ? '⚠ Missing' : '—')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
+            )}
 
-              {/* Summary Section */}
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">📋 Summary — Review Before Creating</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-600">Company:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.name || <span className="text-red-500">Not set</span>}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Slug:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.slug || <span className="text-red-500">Not set</span>}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Admin name:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.adminName || <span className="text-red-500">Not set</span>}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Admin email:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.adminEmail || <span className="text-red-500">Not set</span>}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Plan:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.subscriptionPlan}</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Duration:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.subscriptionDays} days</span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Users / Tasks / Storage:</span>
-                    <span className="ml-2 font-medium text-gray-900">
-                      {formData.maxUsers === -1 ? '∞' : formData.maxUsers} / {formData.maxTasks === -1 ? '∞' : formData.maxTasks} / {formData.maxStorage} GB
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">AI Status:</span>
-                    <span className={`ml-2 font-medium ${formData.aiApiKey ? 'text-green-600' : 'text-gray-500'}`}>
-                      {formData.aiApiKey ? '✓ Enabled' : '✗ Disabled (can enable later)'}
-                    </span>
-                  </div>
-                </div>
-                <p className="text-xs text-gray-500 mt-3 border-t border-gray-300 pt-3">
-                  ⚠️ Click "Create Company" button below to finalise. This action cannot be undone.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-            {step > 1 && (
+            {/* ── Navigation Buttons ── */}
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-800">
               <button
                 type="button"
                 onClick={prevStep}
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className={`px-5 py-2.5 text-sm font-medium rounded-xl border border-gray-700 text-gray-300
+                  hover:bg-gray-800 hover:text-white transition
+                  ${step === 1 ? 'invisible' : ''}`}
               >
-                Previous
+                ← Previous
               </button>
-            )}
 
-            {step < 4 ? (
-              <button
-                type="button"
-                onClick={nextStep}
-                className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors ${step === 1 ? 'ml-auto' : ''}`}
-              >
-                Next
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={loading}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed ml-auto flex items-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Creating Company...
-                  </>
-                ) : (
-                  <>
-                    ✓ Create Company
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
+              <div className="flex items-center gap-2">
+                {STEPS.map(s => (
+                  <div key={s.id} className={`h-1.5 rounded-full transition-all duration-300
+                    ${step === s.id ? 'w-6 bg-indigo-500' : step > s.id ? 'w-2 bg-emerald-500' : 'w-2 bg-gray-700'}`} />
+                ))}
+              </div>
+
+              {step < 4 ? (
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-lg shadow-indigo-500/20"
+                >
+                  Next →
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="px-6 py-2.5 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500
+                    text-white transition shadow-lg shadow-emerald-500/20 disabled:opacity-60 disabled:cursor-not-allowed
+                    flex items-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Creating…
+                    </>
+                  ) : '✓ Create Company'}
+                </button>
+              )}
+            </div>
+          </form>
+        </div>
+      </main>
     </div>
   );
 }
-
