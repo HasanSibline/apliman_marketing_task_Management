@@ -21,6 +21,47 @@ interface CreateCompanyForm {
   billingEmail?: string;
 }
 
+// ── Field component — defined OUTSIDE the parent so React never remounts it ──
+function Field({
+  label, name, type = 'text', placeholder, required, hint,
+  value, onChange, error, children,
+}: {
+  label: string;
+  name: string;
+  type?: string;
+  placeholder?: string;
+  required?: boolean;
+  hint?: string;
+  value?: string | number;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  error?: string;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-200 mb-1.5">
+        {label}{required && <span className="text-indigo-400 ml-1">*</span>}
+      </label>
+      {children ?? (
+        <input
+          type={type}
+          name={name}
+          value={value ?? ''}
+          onChange={onChange}
+          placeholder={placeholder}
+          className={`w-full px-4 py-2.5 rounded-xl bg-gray-800 border text-white placeholder-gray-500 text-sm
+            focus:outline-none focus:ring-2 focus:ring-indigo-500 transition
+            ${error ? 'border-red-500' : 'border-gray-700 hover:border-gray-600'}`}
+        />
+      )}
+      {error && (
+        <p className="mt-1 text-xs text-red-400 flex items-center gap-1">⚠ {error}</p>
+      )}
+      {hint && !error && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
 const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
   FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 'Free' },
   PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
@@ -228,38 +269,6 @@ export default function CreateCompany() {
 
   const fmt = (n: number) => n === -1 ? '∞' : n.toLocaleString();
 
-  // --- Input component helper
-  const Field = ({
-    label, name, type = 'text', placeholder, required, hint, children
-  }: {
-    label: string; name: string; type?: string; placeholder?: string;
-    required?: boolean; hint?: string; children?: React.ReactNode;
-  }) => (
-    <div>
-      <label className="block text-sm font-medium text-gray-200 mb-1.5">
-        {label}{required && <span className="text-indigo-400 ml-1">*</span>}
-      </label>
-      {children ?? (
-        <input
-          type={type}
-          name={name}
-          value={(formData as any)[name] ?? ''}
-          onChange={handleChange}
-          placeholder={placeholder}
-          className={`w-full px-4 py-2.5 rounded-xl bg-gray-800 border text-white placeholder-gray-500 text-sm
-            focus:outline-none focus:ring-2 focus:ring-indigo-500 transition
-            ${fieldErrors[name] ? 'border-red-500' : 'border-gray-700 hover:border-gray-600'}`}
-        />
-      )}
-      {fieldErrors[name] && (
-        <p className="mt-1 text-xs text-red-400 flex items-center gap-1">
-          <span>⚠</span> {fieldErrors[name]}
-        </p>
-      )}
-      {hint && !fieldErrors[name] && <p className="mt-1 text-xs text-gray-500">{hint}</p>}
-    </div>
-  );
-
   return (
     <div className="min-h-screen bg-gray-950 flex">
       {/* ── LEFT SIDEBAR ── */}
@@ -398,9 +407,11 @@ export default function CreateCompany() {
                 </div>
 
                 <Field label="Company Name" name="name" placeholder="e.g. Acme Corporation" required
+                  value={formData.name} onChange={handleChange} error={fieldErrors.name}
                   hint="This is the company's display name" />
 
                 <Field label="URL Slug" name="slug" placeholder="e.g. acme-corporation" required
+                  value={formData.slug} onChange={handleChange} error={fieldErrors.slug}
                   hint={`Login URL: ${window.location.origin}/${formData.slug || 'your-slug'}/login`} />
 
                 <div>
@@ -466,8 +477,10 @@ export default function CreateCompany() {
                   <p className="text-sm text-gray-400 mt-1">This person will manage the company</p>
                 </div>
 
-                <Field label="Full Name" name="adminName" placeholder="e.g. John Doe" required />
-                <Field label="Email Address" name="adminEmail" type="email" placeholder="admin@company.com" required />
+                <Field label="Full Name" name="adminName" placeholder="e.g. John Doe" required
+                  value={formData.adminName} onChange={handleChange} error={fieldErrors.adminName} />
+                <Field label="Email Address" name="adminEmail" type="email" placeholder="admin@company.com" required
+                  value={formData.adminEmail} onChange={handleChange} error={fieldErrors.adminEmail} />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-200 mb-1.5">
@@ -540,21 +553,8 @@ export default function CreateCompany() {
                 </div>
 
                 <Field label="Duration (days)" name="subscriptionDays" type="number" required
-                  hint="How many days this subscription is active from today">
-                  <input
-                    type="number"
-                    name="subscriptionDays"
-                    value={formData.subscriptionDays}
-                    onChange={handleChange}
-                    min={1}
-                    className={`w-full px-4 py-2.5 rounded-xl bg-gray-800 border text-white text-sm
-                      focus:outline-none focus:ring-2 focus:ring-indigo-500 transition
-                      ${fieldErrors.subscriptionDays ? 'border-red-500' : 'border-gray-700 hover:border-gray-600'}`}
-                  />
-                </Field>
-                {fieldErrors.subscriptionDays && (
-                  <p className="-mt-4 text-xs text-red-400">⚠ {fieldErrors.subscriptionDays}</p>
-                )}
+                  value={formData.subscriptionDays} onChange={handleChange} error={fieldErrors.subscriptionDays}
+                  hint="How many days this subscription is active from today" />
 
                 <div className="p-4 rounded-xl bg-gray-800 border border-gray-700 text-sm text-gray-300">
                   📅 Subscription ends:{' '}
@@ -566,6 +566,7 @@ export default function CreateCompany() {
                 </div>
 
                 <Field label="Billing Email" name="billingEmail" type="email" placeholder="billing@company.com"
+                  value={formData.billingEmail ?? ''} onChange={handleChange}
                   hint="Optional — for invoicing purposes" />
               </div>
             )}
@@ -582,9 +583,9 @@ export default function CreateCompany() {
                   <h3 className="text-sm font-semibold text-indigo-300 flex items-center gap-2 mb-3">
                     <span>⚡</span> AI Features (Optional)
                   </h3>
-                  <Field label="Gemini API Key" name="aiApiKey" placeholder="AIza..." hint={
-                    formData.aiApiKey ? '✓ AI will be enabled for this company' : 'Leave blank to enable AI later'
-                  } />
+                  <Field label="Gemini API Key" name="aiApiKey" placeholder="AIza..."
+                    value={formData.aiApiKey ?? ''} onChange={handleChange}
+                    hint={formData.aiApiKey ? '✓ AI will be enabled for this company' : 'Leave blank to enable AI later'} />
                   {formData.aiApiKey && (
                     <div className="mt-3">
                       <label className="block text-sm font-medium text-gray-200 mb-1.5">AI Provider</label>
