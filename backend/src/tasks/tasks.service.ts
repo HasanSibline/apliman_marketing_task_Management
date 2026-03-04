@@ -1730,4 +1730,41 @@ export class TasksService {
       });
     }
   }
+
+  // ── Dependencies ─────────────────────────────────────────────────────────
+
+  async addDependency(taskId: string, blockerId: string, companyId: string) {
+    if (taskId === blockerId) throw new BadRequestException('A task cannot depend on itself');
+    // Verify both tasks belong to this company
+    const [task, blocker] = await Promise.all([
+      this.prisma.task.findFirst({ where: { id: taskId, companyId } }),
+      this.prisma.task.findFirst({ where: { id: blockerId, companyId } }),
+    ]);
+    if (!task || !blocker) throw new NotFoundException('Task not found');
+
+    return (this.prisma as any).taskDependency.upsert({
+      where: { taskId_blockerId: { taskId, blockerId } },
+      create: { taskId, blockerId },
+      update: {},
+    });
+  }
+
+  async removeDependency(taskId: string, blockerId: string, companyId: string) {
+    const task = await this.prisma.task.findFirst({ where: { id: taskId, companyId } });
+    if (!task) throw new NotFoundException('Task not found');
+    return (this.prisma as any).taskDependency.delete({
+      where: { taskId_blockerId: { taskId, blockerId } },
+    });
+  }
+
+  // ── Quarter assignment ───────────────────────────────────────────────────
+
+  async assignQuarter(taskId: string, quarterId: string | null, companyId: string) {
+    const task = await this.prisma.task.findFirst({ where: { id: taskId, companyId } });
+    if (!task) throw new NotFoundException('Task not found');
+    return (this.prisma as any).task.update({
+      where: { id: taskId },
+      data: { quarterId },
+    });
+  }
 }

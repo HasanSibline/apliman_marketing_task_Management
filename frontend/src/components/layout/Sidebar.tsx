@@ -9,6 +9,8 @@ import {
   ChartBarIcon,
   UserCircleIcon,
   GlobeAltIcon,
+  CalendarDaysIcon,
+  FlagIcon,
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -20,6 +22,8 @@ const Sidebar: React.FC = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    { name: 'Quarters', href: '/quarters', icon: CalendarDaysIcon },
+    { name: 'Objectives', href: '/objectives', icon: FlagIcon },
     { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
     { name: 'Knowledge Sources', href: '/knowledge-sources', icon: GlobeAltIcon, adminOnly: true },
@@ -29,7 +33,7 @@ const Sidebar: React.FC = () => {
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'COMPANY_ADMIN'
 
-  const filteredNavigation = navigation.filter(item => 
+  const filteredNavigation = navigation.filter(item =>
     !item.adminOnly || isAdmin
   )
 
@@ -62,23 +66,21 @@ const Sidebar: React.FC = () => {
         {/* Navigation */}
         <nav className="flex-1 px-2 py-4 space-y-1">
           {filteredNavigation.map((item) => {
-            const isActive = location.pathname === item.href || 
+            const isActive = location.pathname === item.href ||
               (item.href !== '/dashboard' && location.pathname.startsWith(item.href))
-            
+
             return (
               <NavLink
                 key={item.name}
                 to={item.href}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                  isActive
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${isActive
                     ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-500'
                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                  }`}
               >
                 <item.icon
-                  className={`flex-shrink-0 h-5 w-5 ${
-                    isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
-                  }`}
+                  className={`flex-shrink-0 h-5 w-5 ${isActive ? 'text-primary-500' : 'text-gray-400 group-hover:text-gray-500'
+                    }`}
                 />
                 {sidebarOpen && (
                   <motion.span

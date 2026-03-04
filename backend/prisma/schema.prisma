@@ -79,7 +79,9 @@ model Company {
   chatSessions  ChatSession[]
   knowledgeSources KnowledgeSource[]
   aiUsageStats  CompanyAIUsage[]
-  
+  quarters      Quarter[]
+  objectives    Objective[]
+
   @@map("companies")
 }
 
@@ -208,6 +210,14 @@ model Task {
   parentTaskId String?
   subtaskId    String? @unique
 
+  // Quarter / OKR links (nullable — existing tasks unaffected)
+  quarterId      String?
+  quarter        Quarter?    @relation(fields: [quarterId], references: [id])
+  objectiveId    String?
+  objective      Objective?  @relation(fields: [objectiveId], references: [id])
+  rolledOverFrom String?     // source quarterId when rolled over
+  isRolledOver   Boolean     @default(false)
+
   // Relations
   assignedTo    User?            @relation("TaskAssignee", fields: [assignedToId], references: [id])
   createdBy     User             @relation("TaskCreator", fields: [createdById], references: [id])
@@ -223,9 +233,10 @@ model Task {
   subtasks      Subtask[]
   phaseHistory  PhaseHistory[]
   approvals     PhaseApproval[]
+  blockedBy     TaskDependency[] @relation("DependencyTask")
+  blocking      TaskDependency[] @relation("DependencyBlocker")
 
   @@map("tasks")
-}
 
 model TaskAssignment {
   id           String   @id @default(uuid())
@@ -535,4 +546,92 @@ model UserChatContext {
   updatedAt DateTime @updatedAt
 
   @@map("user_chat_contexts")
+}
+
+// ── Quarter / OKR System ──────────────────────────────────────────────────────
+
+enum QuarterStatus {
+  UPCOMING
+  ACTIVE
+  CLOSED
+}
+
+model Quarter {
+  id        String        @id @default(uuid())
+  companyId String
+  company   Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  name      String        // e.g. "Q1", "Q2", "Q3", "Q4"
+  year      Int           // e.g. 2025
+  startDate DateTime
+  endDate   DateTime
+  status    QuarterStatus @default(UPCOMING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks      Task[]
+  objectives Objective[]
+
+  @@unique([companyId, name, year])
+  @@map("quarters")
+}
+
+enum ObjectiveStatus {
+  ON_TRACK
+  AT_RISK
+  OFF_TRACK
+  COMPLETED
+  CANCELLED
+}
+
+model Objective {
+  id          String          @id @default(uuid())
+  companyId   String
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  quarterId   String?
+  quarter     Quarter?        @relation(fields: [quarterId], references: [id])
+
+  title       String
+  description String?
+  ownerId     String?
+  status      ObjectiveStatus @default(ON_TRACK)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  keyResults  KeyResult[]
+  tasks       Task[]
+
+  @@map("objectives")
+}
+
+model KeyResult {
+  id          String    @id @default(uuid())
+  objectiveId String
+  objective   Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+
+  title        String
+  unit         String    @default("number") // "number", "percent", "currency", "boolean"
+  startValue   Float     @default(0)
+  targetValue  Float
+  currentValue Float     @default(0)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("key_results")
+}
+
+model TaskDependency {
+  id         String @id @default(uuid())
+  taskId     String  // the task that is blocked
+  task       Task   @relation("DependencyTask", fields: [taskId], references: [id], onDelete: Cascade)
+  blockerId  String  // the task that must be completed first
+  blocker    Task   @relation("DependencyBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+
+  @@unique([taskId, blockerId])
+  @@map("task_dependencies")
 }

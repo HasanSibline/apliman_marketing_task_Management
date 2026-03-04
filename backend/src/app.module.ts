@@ -15,6 +15,8 @@ import { KnowledgeModule } from './knowledge/knowledge.module';
 import { ChatModule } from './chat/chat.module';
 import { CompaniesModule } from './companies/companies.module';
 import { SystemModule } from './system/system.module';
+import { QuartersModule } from './quarters/quarters.module';
+import { ObjectivesModule } from './objectives/objectives.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -39,8 +41,10 @@ import { AppService } from './app.service';
     ChatModule,
     CompaniesModule,
     SystemModule,
+    QuartersModule,
+    ObjectivesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

@@ -19,7 +19,9 @@ import {
   FireIcon,
   ChevronUpIcon,
   ChevronDownIcon,
-  XMarkIcon
+  XMarkIcon,
+  CalendarDaysIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
@@ -322,10 +324,10 @@ const TaskDetailPage: React.FC = () => {
                   {/* Task Type Badge */}
                   {currentTask.taskType && currentTask.taskType !== 'GENERAL' && (
                     <span className={`px-3 py-1.5 text-sm font-medium rounded-lg ${currentTask.taskType === 'COORDINATION'
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : currentTask.taskType === 'SUBTASK'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-blue-100 text-blue-700'
+                      ? 'bg-indigo-100 text-indigo-700'
+                      : currentTask.taskType === 'SUBTASK'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-blue-100 text-blue-700'
                       }`}>
                       {currentTask.taskType}
                     </span>
@@ -334,8 +336,8 @@ const TaskDetailPage: React.FC = () => {
                   {/* Due Date */}
                   {currentTask.dueDate && (
                     <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${new Date(currentTask.dueDate) < new Date() && !currentTask.completedAt
-                        ? 'bg-red-100 text-red-700'
-                        : 'bg-gray-100 text-gray-700'
+                      ? 'bg-red-100 text-red-700'
+                      : 'bg-gray-100 text-gray-700'
                       }`}>
                       <CalendarIcon className="h-4 w-4" />
                       <span className="text-sm font-medium">
@@ -355,8 +357,21 @@ const TaskDetailPage: React.FC = () => {
                     </div>
                   )}
 
+                  {/* Quarter badge */}
+                  {(currentTask as any).quarter && (
+                    <div className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg">
+                      <CalendarDaysIcon className="h-4 w-4" />
+                      <span className="text-sm font-medium">{(currentTask as any).quarter.name} {(currentTask as any).quarter.year}</span>
+                    </div>
+                  )}
 
-
+                  {/* Rolled-over badge */}
+                  {(currentTask as any).isRolledOver && (
+                    <div className="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg">
+                      <ArrowPathIcon className="h-4 w-4" />
+                      <span className="text-sm font-medium">Rolled over</span>
+                    </div>
+                  )}
                   {/* Compact Time Tracking */}
                   <div className="flex items-center gap-2">
                     {isTimerRunning ? (

@@ -23,6 +23,8 @@ import ProfilePage from '@/pages/ProfilePage'
 import ActivityPage from '@/pages/ActivityPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import KnowledgeSourcesPage from '@/pages/KnowledgeSourcesPage'
+import QuartersPage from '@/pages/quarters/QuartersPage'
+import ObjectivesPage from '@/pages/objectives/ObjectivesPage'
 
 // Super Admin Pages
 import AdminLogin from '@/pages/AdminLogin'
@@ -156,6 +158,8 @@ function App() {
           }
         />
         <Route path="analytics" element={<AnalyticsPage />} />
+        <Route path="quarters" element={<QuartersPage />} />
+        <Route path="objectives" element={<ObjectivesPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route

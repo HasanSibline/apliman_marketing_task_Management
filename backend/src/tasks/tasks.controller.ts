@@ -26,6 +26,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { AddSubtaskDto } from './dto/add-subtask.dto';
+import { AddDependencyDto, AssignQuarterDto } from './dto/task-extensions.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -292,5 +293,39 @@ export class TasksController {
     @Request() req,
   ) {
     return this.tasksService.rejectPhaseChange(approvalId, req.user.id, req.user.role, body.comment);
+  }
+
+  // ── Dependencies ──────────────────────────────────────────────────────────
+
+  @Post(':id/dependencies')
+  @ApiOperation({ summary: 'Add a dependency (this task is blocked by another)' })
+  addDependency(
+    @Param('id') id: string,
+    @Body() dto: AddDependencyDto,
+    @Request() req,
+  ) {
+    return this.tasksService.addDependency(id, dto.blockerId, req.user.companyId);
+  }
+
+  @Delete(':id/dependencies/:blockerId')
+  @ApiOperation({ summary: 'Remove a dependency' })
+  removeDependency(
+    @Param('id') id: string,
+    @Param('blockerId') blockerId: string,
+    @Request() req,
+  ) {
+    return this.tasksService.removeDependency(id, blockerId, req.user.companyId);
+  }
+
+  // ── Quarter assignment ─────────────────────────────────────────────────────
+
+  @Patch(':id/quarter')
+  @ApiOperation({ summary: 'Assign or unassign task to a quarter' })
+  assignQuarter(
+    @Param('id') id: string,
+    @Body() dto: AssignQuarterDto,
+    @Request() req,
+  ) {
+    return this.tasksService.assignQuarter(id, dto.quarterId ?? null, req.user.companyId);
   }
 }
