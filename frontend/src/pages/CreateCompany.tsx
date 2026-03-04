@@ -597,25 +597,24 @@ export default function CreateCompany() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { label: 'Max Users', name: 'maxUsers' },
-                    { label: 'Max Tasks', name: 'maxTasks' },
-                    { label: 'Storage (GB)', name: 'maxStorage' },
-                  ].map(({ label, name }) => (
-                    <div key={name}>
-                      <label className="block text-xs font-medium text-gray-400 mb-1.5">{label}</label>
-                      <input
-                        type="number"
-                        name={name}
-                        value={(formData as any)[name]}
-                        onChange={handleChange}
-                        min={-1}
-                        className="w-full px-3 py-2.5 rounded-xl bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition hover:border-gray-600"
-                      />
-                      <p className="text-xs text-gray-600 mt-1">-1 = unlimited</p>
-                    </div>
-                  ))}
+                {/* Plan limits summary — driven by plan selection on Step 3 */}
+                <div className="rounded-xl bg-gray-800 border border-gray-700 p-4">
+                  <p className="text-xs font-medium text-gray-400 mb-3 uppercase tracking-wide">
+                    Limits from {formData.subscriptionPlan} plan
+                  </p>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Max Users', value: fmt(formData.maxUsers) },
+                      { label: 'Max Tasks', value: fmt(formData.maxTasks) },
+                      { label: 'Storage', value: `${fmt(formData.maxStorage)} GB` },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="flex flex-col items-center p-3 bg-gray-900 rounded-xl">
+                        <span className="text-xl font-bold text-white">{value}</span>
+                        <span className="text-xs text-gray-500 mt-1">{label}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-gray-600 mt-3">To change limits, go back to Step 3 and change the plan.</p>
                 </div>
 
                 {/* Full review summary */}

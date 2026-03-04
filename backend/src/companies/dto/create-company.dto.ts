@@ -43,22 +43,22 @@ export class CreateCompanyDto {
   @IsString()
   primaryColor?: string;
 
-  @ApiProperty({ example: 10, description: 'Maximum number of users', required: false })
+  @ApiProperty({ example: 10, description: 'Maximum number of users (-1 = unlimited)', required: false })
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(-1)
   maxUsers?: number;
 
-  @ApiProperty({ example: 1000, description: 'Maximum number of tasks', required: false })
+  @ApiProperty({ example: 1000, description: 'Maximum number of tasks (-1 = unlimited)', required: false })
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(-1)
   maxTasks?: number;
 
-  @ApiProperty({ example: 5, description: 'Maximum storage in GB', required: false })
+  @ApiProperty({ example: 5, description: 'Maximum storage in GB (-1 = unlimited)', required: false })
   @IsOptional()
   @IsInt()
-  @Min(1)
+  @Min(-1)
   maxStorage?: number;
 
   @ApiProperty({ example: 'YOUR_API_KEY_HERE', description: 'AI API key (Gemini/OpenAI)', required: false })
