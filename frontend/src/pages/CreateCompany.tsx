@@ -29,7 +29,13 @@ export default function CreateCompany() {
   const [step, setStep] = useState(1);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  
+
+  const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number }> = {
+    FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1 },
+    PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10 },
+    ENTERPRISE: { maxUsers: 200, maxTasks: -1, maxStorage: 100 },
+  };
+
   const [formData, setFormData] = useState<CreateCompanyForm>({
     name: '',
     slug: '',
@@ -40,32 +46,38 @@ export default function CreateCompany() {
     subscriptionPlan: 'PRO',
     subscriptionDays: 30,
     aiProvider: 'gemini',
-    maxUsers: 50,
+    maxUsers: 25,
     maxTasks: 5000,
     maxStorage: 10,
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'number' ? parseInt(value) : value,
-    }));
+    const newValue = type === 'number' ? parseInt(value) : value;
 
-    // Auto-generate slug from name
-    if (name === 'name') {
-      let slug = value.toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric with hyphens
-        .replace(/^-+|-+$/g, '')      // Remove leading/trailing hyphens
-        .replace(/-+/g, '-');          // Replace multiple hyphens with single hyphen
-      
-      // Ensure slug is not empty
-      if (!slug) {
-        slug = 'company';
+    setFormData(prev => {
+      const updated = { ...prev, [name]: newValue };
+
+      // Auto-generate slug from name
+      if (name === 'name') {
+        let slug = value.toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .replace(/-+/g, '-');
+        if (!slug) slug = 'company';
+        updated.slug = slug;
       }
-      
-      setFormData(prev => ({ ...prev, slug }));
-    }
+
+      // When plan changes, auto-apply recommended limits
+      if (name === 'subscriptionPlan') {
+        const limits = PLAN_LIMITS[value] || PLAN_LIMITS.PRO;
+        updated.maxUsers = limits.maxUsers;
+        updated.maxTasks = limits.maxTasks;
+        updated.maxStorage = limits.maxStorage;
+      }
+
+      return updated;
+    });
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,14 +87,14 @@ export default function CreateCompany() {
         toast.error('File size must be less than 5MB');
         return;
       }
-      
+
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file');
         return;
       }
 
       setLogoFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -103,104 +115,67 @@ export default function CreateCompany() {
 
   const uploadLogo = async (): Promise<string | undefined> => {
     if (!logoFile) return undefined;
-
     try {
       const formDataUpload = new FormData();
       formDataUpload.append('file', logoFile);
-
       const response = await api.post('/files/upload', formDataUpload, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
-
-      console.log('Logo uploaded successfully:', response.data);
-      return response.data.url; // Returns path like /api/files/public/filename.webp
+      return response.data.url;
     } catch (err) {
-      console.error('Error uploading logo:', err);
       toast.error('Failed to upload logo');
-      throw err; // Re-throw to prevent company creation with failed logo upload
+      throw err;
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // CRITICAL: Only allow submission on step 4
-    // This prevents accidental form submission before reaching the final step
-    if (step !== 4) {
-      console.warn('Form submission blocked - not on step 4. Current step:', step);
-      toast.error('Please complete all steps before creating the company');
-      return;
-    }
-    
-    console.log('Form submission allowed - on step 4');
-    
-    // Validate required fields
+    if (step !== 4) return;
+
     if (!formData.name || !formData.slug) {
-      toast.error('Company name and slug are required');
-      setStep(1);
-      return;
+      toast.error('Company name and slug are required'); setStep(1); return;
     }
-    
     if (!formData.adminName || !formData.adminEmail || !formData.adminPassword) {
-      toast.error('Admin account details are required');
-      setStep(2);
-      return;
+      toast.error('Admin account details are required'); setStep(2); return;
     }
-    
     if (formData.adminPassword.length < 8) {
-      toast.error('Admin password must be at least 8 characters');
-      setStep(2);
-      return;
+      toast.error('Admin password must be at least 8 characters'); setStep(2); return;
     }
-    
+
     try {
       setLoading(true);
       setError(null);
-      
-      // Upload logo if provided
+
       let logoUrl = undefined;
       if (logoFile) {
         const uploadToast = toast.loading('Uploading logo...');
         try {
           logoUrl = await uploadLogo();
-          if (!logoUrl) {
-            throw new Error('Logo upload failed');
-          }
-          console.log('Logo URL to be saved:', logoUrl);
+          if (!logoUrl) throw new Error('Logo upload failed');
           toast.dismiss(uploadToast);
         } catch (err) {
           toast.dismiss(uploadToast);
           throw err;
         }
       }
-      
-      const payload = {
-        ...formData,
-        logo: logoUrl, // This will be the file path from the server
-      };
 
-      console.log('Creating company with payload:', payload);
+      const payload = { ...formData, logo: logoUrl };
       const response = await api.post('/companies', payload);
-      
+
       toast.success('Company created successfully!');
-      
-      // Show the admin credentials to the super admin
+
       if (response.data.adminCredentials) {
         const { email, password } = response.data.adminCredentials;
         const { slug } = response.data.company;
-        
         toast.success(
           `Admin Login:\nEmail: ${email}\nPassword: ${password}\nLogin URL: ${window.location.origin}/${slug}/login`,
           { duration: 10000 }
         );
       }
-      
+
       navigate('/admin/companies');
     } catch (err: any) {
-      console.error('Error creating company:', err);
       const errorMessage = err.response?.data?.message || err.message || 'Failed to create company';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -217,7 +192,7 @@ export default function CreateCompany() {
       if (target.tagName !== 'TEXTAREA') {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (step < 4) {
           // Move to next step instead of submitting
           console.log('Enter key pressed - moving to next step');
@@ -232,7 +207,38 @@ export default function CreateCompany() {
     }
   };
 
+  const getPasswordStrength = (pw: string): { label: string; color: string; width: string } => {
+    if (!pw) return { label: '', color: 'bg-gray-200', width: '0%' };
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (score <= 1) return { label: 'Weak', color: 'bg-red-500', width: '25%' };
+    if (score === 2) return { label: 'Fair', color: 'bg-yellow-500', width: '50%' };
+    if (score === 3) return { label: 'Good', color: 'bg-blue-500', width: '75%' };
+    return { label: 'Strong', color: 'bg-green-500', width: '100%' };
+  };
+
   const nextStep = () => {
+    // Validate current step before advancing
+    if (step === 1) {
+      if (!formData.name.trim()) { toast.error('Company name is required'); return; }
+      if (!formData.slug.trim()) { toast.error('Slug is required'); return; }
+    }
+    if (step === 2) {
+      if (!formData.adminName.trim()) { toast.error('Admin name is required'); return; }
+      if (!formData.adminEmail.trim()) { toast.error('Admin email is required'); return; }
+      if (!formData.adminPassword || formData.adminPassword.length < 8) {
+        toast.error('Password must be at least 8 characters'); return;
+      }
+    }
+    if (step === 3) {
+      if (!formData.subscriptionDays || formData.subscriptionDays < 1) {
+        toast.error('Subscription duration must be at least 1 day'); return;
+      }
+    }
     if (step < 4) setStep(step + 1);
   };
 
@@ -260,9 +266,8 @@ export default function CreateCompany() {
           <div className="flex items-center justify-between">
             {[1, 2, 3, 4].map((num) => (
               <div key={num} className="flex items-center flex-1">
-                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                  step >= num ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 text-gray-400'
-                }`}>
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${step >= num ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-300 text-gray-400'
+                  }`}>
                   {num}
                 </div>
                 {num < 4 && (
@@ -287,9 +292,9 @@ export default function CreateCompany() {
         )}
 
         {/* Form */}
-        <form 
-          onSubmit={handleSubmit} 
-          onKeyDown={handleFormKeyDown} 
+        <form
+          onSubmit={handleSubmit}
+          onKeyDown={handleFormKeyDown}
           autoComplete="off"
           className="bg-white rounded-lg shadow-sm p-8"
         >
@@ -297,7 +302,7 @@ export default function CreateCompany() {
           {step === 1 && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Company Information</h2>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company Name *
@@ -353,13 +358,13 @@ export default function CreateCompany() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company Logo
                 </label>
-                
+
                 {/* Logo Preview */}
                 {logoPreview && (
                   <div className="mb-4 relative inline-block">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo preview" 
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
                       className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white"
                     />
                     <button
@@ -373,7 +378,7 @@ export default function CreateCompany() {
                     </button>
                   </div>
                 )}
-                
+
                 {/* File Input */}
                 <div className="flex items-center space-x-4">
                   <input
@@ -394,7 +399,7 @@ export default function CreateCompany() {
                     {logoFile ? logoFile.name : 'No file chosen'}
                   </span>
                 </div>
-                
+
                 <p className="text-xs text-gray-500 mt-2">
                   Max size: 5MB. Recommended: Square image (e.g., 200x200px). Formats: JPG, PNG, WEBP, GIF
                 </p>
@@ -402,15 +407,12 @@ export default function CreateCompany() {
             </div>
           )}
 
-          {/* Step 2: Admin Account */}
           {step === 2 && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Account</h2>
-              
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Name *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Admin Name *</label>
                 <input
                   type="text"
                   name="adminName"
@@ -422,9 +424,7 @@ export default function CreateCompany() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Email *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Admin Email *</label>
                 <input
                   type="email"
                   name="adminEmail"
@@ -436,9 +436,7 @@ export default function CreateCompany() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Admin Password *
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Admin Password *</label>
                 <input
                   type="password"
                   name="adminPassword"
@@ -448,7 +446,28 @@ export default function CreateCompany() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Minimum 8 characters"
                 />
-                <p className="text-sm text-gray-500 mt-1">At least 8 characters</p>
+                {/* Password strength indicator */}
+                {formData.adminPassword && (() => {
+                  const strength = getPasswordStrength(formData.adminPassword);
+                  return (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-500">Password strength</span>
+                        <span className={`text-xs font-medium ${strength.label === 'Weak' ? 'text-red-600' :
+                            strength.label === 'Fair' ? 'text-yellow-600' :
+                              strength.label === 'Good' ? 'text-blue-600' : 'text-green-600'
+                          }`}>{strength.label}</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-300 ${strength.color}`}
+                          style={{ width: strength.width }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">Use uppercase, numbers & symbols for a stronger password.</p>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -457,7 +476,7 @@ export default function CreateCompany() {
           {step === 3 && (
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Subscription Details</h2>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Subscription Plan *
@@ -511,11 +530,11 @@ export default function CreateCompany() {
               <div>
                 <h2 className="text-xl font-semibold text-gray-900 mb-2">AI Configuration & Resource Limits</h2>
                 <p className="text-sm text-gray-600 mb-4">
-                  Configure AI features and set resource limits for the company. 
+                  Configure AI features and set resource limits for the company.
                   <span className="font-semibold text-blue-600"> AI configuration is optional</span> - you can skip it and enable AI later.
                 </p>
               </div>
-              
+
               {/* AI Configuration Section */}
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="text-sm font-semibold text-blue-900 mb-3 flex items-center gap-2">
@@ -524,7 +543,7 @@ export default function CreateCompany() {
                   </svg>
                   AI Features (Optional)
                 </h3>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     AI API Key
@@ -605,28 +624,42 @@ export default function CreateCompany() {
                   />
                 </div>
               </div>
-              
+
               {/* Summary Section */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">📋 Summary - Review Before Creating</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-3">📋 Summary — Review Before Creating</h3>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
                     <span className="text-gray-600">Company:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.name || 'Not set'}</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.name || <span className="text-red-500">Not set</span>}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Slug:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.slug || 'Not set'}</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.slug || <span className="text-red-500">Not set</span>}</span>
                   </div>
                   <div>
-                    <span className="text-gray-600">Admin:</span>
-                    <span className="ml-2 font-medium text-gray-900">{formData.adminName || 'Not set'}</span>
+                    <span className="text-gray-600">Admin name:</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.adminName || <span className="text-red-500">Not set</span>}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Admin email:</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.adminEmail || <span className="text-red-500">Not set</span>}</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Plan:</span>
                     <span className="ml-2 font-medium text-gray-900">{formData.subscriptionPlan}</span>
                   </div>
-                  <div className="col-span-2">
+                  <div>
+                    <span className="text-gray-600">Duration:</span>
+                    <span className="ml-2 font-medium text-gray-900">{formData.subscriptionDays} days</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-600">Users / Tasks / Storage:</span>
+                    <span className="ml-2 font-medium text-gray-900">
+                      {formData.maxUsers === -1 ? '∞' : formData.maxUsers} / {formData.maxTasks === -1 ? '∞' : formData.maxTasks} / {formData.maxStorage} GB
+                    </span>
+                  </div>
+                  <div>
                     <span className="text-gray-600">AI Status:</span>
                     <span className={`ml-2 font-medium ${formData.aiApiKey ? 'text-green-600' : 'text-gray-500'}`}>
                       {formData.aiApiKey ? '✓ Enabled' : '✗ Disabled (can enable later)'}
@@ -634,7 +667,7 @@ export default function CreateCompany() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-500 mt-3 border-t border-gray-300 pt-3">
-                  ⚠️ Click "Create Company" button below to create the company. This action cannot be undone.
+                  ⚠️ Click "Create Company" button below to finalise. This action cannot be undone.
                 </p>
               </div>
             </div>
@@ -651,7 +684,7 @@ export default function CreateCompany() {
                 Previous
               </button>
             )}
-            
+
             {step < 4 ? (
               <button
                 type="button"

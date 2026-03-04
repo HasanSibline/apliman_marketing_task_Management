@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -8,7 +8,8 @@ import * as crypto from 'crypto';
 
 @Injectable()
 export class CompaniesService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(CompaniesService.name);
+  constructor(private prisma: PrismaService) { }
 
   /**
    * Create a new company with admin user
@@ -56,6 +57,7 @@ export class CompaniesService {
           logo: createCompanyDto.logo,
           primaryColor: createCompanyDto.primaryColor || '#3B82F6',
           subscriptionPlan: createCompanyDto.subscriptionPlan,
+          subscriptionStatus: subscriptionEnd ? 'ACTIVE' : 'TRIAL',
           subscriptionEnd,
           monthlyPrice: limits.price,
           maxUsers: createCompanyDto.maxUsers || limits.maxUsers,
@@ -89,9 +91,7 @@ export class CompaniesService {
         },
       });
 
-      console.log(`✅ Company admin created: ${adminUser.email} (${adminUser.name})`);
-      console.log(`   Company: ${newCompany.name} (${newCompany.slug})`);
-      console.log(`   Password hash length: ${hashedPassword.length}`);
+      this.logger.log(`Company created: ${newCompany.name} (${newCompany.slug}), admin: ${adminUser.email}`);
 
       // Log subscription history
       await prisma.subscriptionHistory.create({
@@ -189,18 +189,27 @@ export class CompaniesService {
     // Get AI usage stats
     const aiUsage = await this.getAIUsageStats(company.id);
 
-    // Get task breakdown (active vs completed)
+    // Count active and completed tasks using workflow end phases
+    const endPhaseIds = await this.prisma.phase
+      .findMany({
+        where: { isEndPhase: true, workflow: { companyId: id } },
+        select: { id: true },
+      })
+      .then((phases) => phases.map((p) => p.id));
+
     const activeTasks = await this.prisma.task.count({
       where: {
         companyId: id,
-        phase: { not: 'COMPLETED' },
+        taskType: { not: 'SUBTASK' },
+        currentPhaseId: { notIn: endPhaseIds },
       },
     });
 
     const completedTasks = await this.prisma.task.count({
       where: {
         companyId: id,
-        phase: 'COMPLETED',
+        taskType: { not: 'SUBTASK' },
+        currentPhaseId: { in: endPhaseIds },
       },
     });
 
