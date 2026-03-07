@@ -18,6 +18,12 @@ export class KnowledgeService {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
 
+  /** Authorization headers sent with every AI service request */
+  private get aiServiceHeaders(): Record<string, string> {
+    const secret = this.configService.get<string>('AI_SERVICE_SECRET', '');
+    return secret ? { Authorization: `Bearer ${secret}` } : {};
+  }
+
   /**
    * Get user's companyId for filtering
    * Knowledge sources are company-specific only
@@ -27,11 +33,11 @@ export class KnowledgeService {
       where: { id: userId },
       select: { companyId: true, role: true },
     });
-    
+
     if (!user?.companyId) {
       throw new Error('User must belong to a company to access knowledge sources');
     }
-    
+
     return user.companyId;
   }
 
@@ -60,7 +66,7 @@ export class KnowledgeService {
     // If userId provided, filter by company
     // Otherwise return all active (for AI service)
     let where: any = { isActive: true };
-    
+
     if (userId) {
       const companyId = await this.getUserCompanyId(userId);
       where.companyId = companyId;
@@ -77,9 +83,9 @@ export class KnowledgeService {
 
   async findOne(id: string, userId: string) {
     const companyId = await this.getUserCompanyId(userId);
-    
+
     return this.prisma.knowledgeSource.findFirst({
-      where: { 
+      where: {
         id,
         companyId, // Ensure user can only access their company's sources
       },
@@ -136,16 +142,16 @@ export class KnowledgeService {
 
   async update(id: string, updateDto: UpdateKnowledgeSourceDto, userId: string) {
     const companyId = await this.getUserCompanyId(userId);
-    
+
     // Verify user has access to this source
     const existing = await this.prisma.knowledgeSource.findFirst({
       where: { id, companyId },
     });
-    
+
     if (!existing) {
       throw new Error('Knowledge source not found or access denied');
     }
-    
+
     const source = await this.prisma.knowledgeSource.update({
       where: { id },
       data: {
@@ -179,16 +185,16 @@ export class KnowledgeService {
 
   async delete(id: string, userId: string) {
     const companyId = await this.getUserCompanyId(userId);
-    
+
     // Verify user has access to this source
     const existing = await this.prisma.knowledgeSource.findFirst({
       where: { id, companyId },
     });
-    
+
     if (!existing) {
       throw new Error('Knowledge source not found or access denied');
     }
-    
+
     return this.prisma.knowledgeSource.delete({
       where: { id },
     });
@@ -208,6 +214,7 @@ export class KnowledgeService {
         this.httpService.post(`${this.aiServiceUrl}/scrape-url`, {
           url: source.url,
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 30000, // 30 second timeout
         }),
       );
@@ -258,7 +265,7 @@ export class KnowledgeService {
 
   async scrapeAll(userId: string) {
     const companyId = await this.getUserCompanyId(userId);
-    
+
     const sources = await this.prisma.knowledgeSource.findMany({
       where: {
         isActive: true,
