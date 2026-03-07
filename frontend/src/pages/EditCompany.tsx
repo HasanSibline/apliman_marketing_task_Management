@@ -18,6 +18,12 @@ interface EditCompanyForm {
   billingEmail?: string;
 }
 
+const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
+  FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 'Free' },
+  PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
+  ENTERPRISE: { maxUsers: 200, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
+};
+
 export default function EditCompany() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -27,7 +33,7 @@ export default function EditCompany() {
   const [error, setError] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
-  
+
   const [formData, setFormData] = useState<EditCompanyForm>({
     name: '',
     slug: '',
@@ -51,7 +57,7 @@ export default function EditCompany() {
       setLoadingData(true);
       const response = await api.get(`/companies/${id}`);
       const company = response.data;
-      
+
       setFormData({
         name: company.name || '',
         slug: company.slug || '',
@@ -66,7 +72,7 @@ export default function EditCompany() {
         maxStorage: company.maxStorage || 10,
         billingEmail: company.billingEmail || '',
       });
-      
+
       // Set logo preview if exists
       if (company.logo) {
         // Convert relative URL to absolute if needed
@@ -86,7 +92,7 @@ export default function EditCompany() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
-    
+
     if (type === 'checkbox') {
       const checked = (e.target as HTMLInputElement).checked;
       setFormData(prev => ({
@@ -94,10 +100,17 @@ export default function EditCompany() {
         [name]: checked,
       }));
     } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: type === 'number' ? parseInt(value) || 0 : value,
-      }));
+      const newValue = type === 'number' ? parseInt(value) || 0 : value;
+      setFormData(prev => {
+        const updated = { ...prev, [name]: newValue };
+        if (name === 'subscriptionPlan') {
+          const limits = PLAN_LIMITS[value as string] || PLAN_LIMITS.PRO;
+          updated.maxUsers = limits.maxUsers;
+          updated.maxTasks = limits.maxTasks;
+          updated.maxStorage = limits.maxStorage;
+        }
+        return updated;
+      });
     }
   };
 
@@ -108,14 +121,14 @@ export default function EditCompany() {
         toast.error('File size must be less than 5MB');
         return;
       }
-      
+
       if (!file.type.startsWith('image/')) {
         toast.error('Please select an image file');
         return;
       }
 
       setLogoFile(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
@@ -157,17 +170,17 @@ export default function EditCompany() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       setLoading(true);
       setError(null);
-      
+
       // Upload logo if a new one was selected
       let logoUrl = formData.logo;
       if (logoFile) {
         logoUrl = await uploadLogo();
       }
-      
+
       const payload: any = {
         name: formData.name,
         logo: logoUrl,
@@ -187,7 +200,7 @@ export default function EditCompany() {
       }
 
       await api.patch(`/companies/${id}`, payload);
-      
+
       toast.success('Company updated successfully!');
       navigate(`/admin/companies/${id}`);
     } catch (err: any) {
@@ -232,7 +245,7 @@ export default function EditCompany() {
           {/* Company Info Section */}
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Company Information</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -289,12 +302,12 @@ export default function EditCompany() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company Logo
                 </label>
-                
+
                 {logoPreview && (
                   <div className="mb-4 relative inline-block">
-                    <img 
-                      src={logoPreview} 
-                      alt="Logo preview" 
+                    <img
+                      src={logoPreview}
+                      alt="Logo preview"
                       className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white"
                     />
                     <button
@@ -308,7 +321,7 @@ export default function EditCompany() {
                     </button>
                   </div>
                 )}
-                
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -337,7 +350,7 @@ export default function EditCompany() {
           {/* Subscription Section */}
           <div className="border-t border-gray-200 pt-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Subscription</h2>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Subscription Plan
@@ -358,7 +371,7 @@ export default function EditCompany() {
           {/* AI Configuration Section */}
           <div className="border-t border-gray-200 pt-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Configuration</h2>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="flex items-center space-x-2">
@@ -406,54 +419,6 @@ export default function EditCompany() {
             </div>
           </div>
 
-          {/* Resource Limits Section */}
-          <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Resource Limits</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Users
-                </label>
-                <input
-                  type="number"
-                  name="maxUsers"
-                  value={formData.maxUsers}
-                  onChange={handleChange}
-                  min={1}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Tasks
-                </label>
-                <input
-                  type="number"
-                  name="maxTasks"
-                  value={formData.maxTasks}
-                  onChange={handleChange}
-                  min={1}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Storage (GB)
-                </label>
-                <input
-                  type="number"
-                  name="maxStorage"
-                  value={formData.maxStorage}
-                  onChange={handleChange}
-                  min={1}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">

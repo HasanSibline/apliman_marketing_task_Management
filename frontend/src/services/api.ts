@@ -35,8 +35,9 @@ api.interceptors.response.use(
       // Timeout error
       toast.error('Request timed out. The server might be starting up, please try again in a moment.')
     } else if (error.response?.status === 401) {
-      // Remove invalid token
       localStorage.removeItem('token')
+      // Force reload to trigger route guards and clear Redux state
+      window.location.reload()
       // Don't redirect here - let route guards handle the redirect
       // This prevents incorrect redirects (e.g. company users to /login instead of /{slug}/login)
     } else if (error.response?.status >= 500) {

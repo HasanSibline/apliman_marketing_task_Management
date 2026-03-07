@@ -3,7 +3,8 @@ import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
+import { ArrowLeftIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { changePassword, updateUser } from '@/store/slices/authSlice'
 import { usersApi } from '@/services/api'
@@ -27,6 +28,7 @@ type ProfileFormData = yup.InferType<typeof profileSchema>
 type PasswordFormData = yup.InferType<typeof passwordSchema>
 
 const ProfilePage: React.FC = () => {
+  const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { user, isLoading } = useAppSelector((state) => state.auth)
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile')
@@ -76,6 +78,14 @@ const ProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 transition"
+      >
+        <ArrowLeftIcon className="h-4 h-4 mr-2" />
+        Back
+      </button>
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -103,21 +113,19 @@ const ProfilePage: React.FC = () => {
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('profile')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'profile'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Profile Information
           </button>
           <button
             onClick={() => setActiveTab('password')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === 'password'
-                ? 'border-primary-500 text-primary-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'password'
+              ? 'border-primary-500 text-primary-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
           >
             Change Password
           </button>

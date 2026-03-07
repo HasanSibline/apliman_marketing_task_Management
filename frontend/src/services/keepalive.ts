@@ -2,10 +2,11 @@
  * Keepalive service to prevent AI service from sleeping on Render
  */
 
+import { BACKEND_URL } from './api'
+
 class KeepAliveService {
   private intervals: NodeJS.Timeout[] = []
-  private readonly AI_SERVICE_URL = 'https://apliman-marketing-task-management.onrender.com'
-  private readonly BACKEND_URL = 'https://taskmanagement-backendv2.onrender.com'
+  private readonly BACKEND_URL = BACKEND_URL
   private readonly PING_INTERVAL = 10 * 60 * 1000 // 10 minutes
 
   start() {
@@ -15,22 +16,18 @@ class KeepAliveService {
     }
 
     console.log('🔄 Starting keepalive service...')
-    
-    // Ping AI service
-    const aiInterval = setInterval(() => {
-      this.pingService(this.AI_SERVICE_URL + '/health', 'AI service')
-    }, this.PING_INTERVAL)
 
-    // Ping backend service  
+    // Ping backend service to prevent AI service/backend from sleeping
     const backendInterval = setInterval(() => {
-      this.pingService(this.BACKEND_URL + '/api/health', 'Backend')
+      this.pingService(this.BACKEND_URL + '/health', 'Backend')
+      this.pingService(this.BACKEND_URL + '/keepalive', 'Keepalive')
     }, this.PING_INTERVAL)
 
-    this.intervals.push(aiInterval, backendInterval)
+    this.intervals.push(backendInterval)
 
-    // Initial ping
-    this.pingService(this.AI_SERVICE_URL + '/health', 'AI service')
-    this.pingService(this.BACKEND_URL + '/api/health', 'Backend')
+    // Initial pings
+    this.pingService(this.BACKEND_URL + '/health', 'Backend')
+    this.pingService(this.BACKEND_URL + '/keepalive', 'Keepalive')
   }
 
   stop() {
@@ -42,13 +39,13 @@ class KeepAliveService {
   private async pingService(url: string, serviceName: string) {
     try {
       const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          })
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
 
-          if (response.ok) {
+      if (response.ok) {
         console.log(`✅ ${serviceName} keepalive ping successful (${url.split('/').pop()})`)
       } else {
         console.warn(`⚠️ ${serviceName} keepalive ping failed: ${response.status}`)
