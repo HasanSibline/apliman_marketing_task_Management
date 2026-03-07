@@ -154,6 +154,7 @@ export class AiService {
           description: taskDescription,
           api_key: apiKey, // Pass company-specific API key
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
         }),
       );
@@ -189,6 +190,8 @@ export class AiService {
           description: taskDescription,
           goals,
           phase: currentPhase,
+        }, {
+          headers: this.aiServiceHeaders,
         }),
       );
 
@@ -218,6 +221,7 @@ export class AiService {
         this.httpService.post(`${this.aiServiceUrl}/performance-insights`, {
           analytics: analyticsData,
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 15000, // 15 second timeout for complex analysis
         }),
       );
@@ -244,6 +248,8 @@ export class AiService {
         this.httpService.post(`${this.aiServiceUrl}/extract-text`, {
           file_path: filePath,
           mime_type: mimeType,
+        }, {
+          headers: this.aiServiceHeaders,
         }),
       );
 
@@ -261,6 +267,7 @@ export class AiService {
           title,
           type: 'task'
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
         }),
       );
@@ -283,6 +290,7 @@ export class AiService {
           title,
           type: 'task'
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
         }),
       );
