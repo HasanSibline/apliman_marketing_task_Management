@@ -64,7 +64,7 @@ export default function EditCompany() {
         logo: company.logo || undefined,
         primaryColor: company.primaryColor || '#3B82F6',
         subscriptionPlan: company.subscriptionPlan || 'PRO',
-        aiApiKey: '', // Don't populate for security
+        aiApiKey: company.aiEnabled ? '******' : '', // Show masking instead of removed
         aiProvider: company.aiProvider || 'gemini',
         aiEnabled: company.aiEnabled || false,
         maxUsers: company.maxUsers || 50,
@@ -194,9 +194,12 @@ export default function EditCompany() {
       };
 
       // Only include aiApiKey if it was changed
-      if (formData.aiApiKey && formData.aiApiKey.trim()) {
+      if (formData.aiApiKey && formData.aiApiKey.trim() && formData.aiApiKey !== '******') {
         payload.aiApiKey = formData.aiApiKey;
         payload.aiEnabled = true;
+      } else if (!formData.aiApiKey) {
+        // If they clear the field entirely, maybe disable AI?
+        // (Depends on your logic, but we'll leave it as is or handle it)
       }
 
       await api.patch(`/companies/${id}`, payload);

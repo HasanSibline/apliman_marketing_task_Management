@@ -20,14 +20,14 @@ class KeepAliveService {
     // Ping backend service to prevent AI service/backend from sleeping
     const backendInterval = setInterval(() => {
       this.pingService(this.BACKEND_URL + '/health', 'Backend')
-      this.pingService(this.BACKEND_URL + '/keepalive', 'Keepalive')
+      this.pingService(this.BACKEND_URL + '/keepalive/ai', 'AI Proxy')
     }, this.PING_INTERVAL)
 
     this.intervals.push(backendInterval)
 
     // Initial pings
     this.pingService(this.BACKEND_URL + '/health', 'Backend')
-    this.pingService(this.BACKEND_URL + '/keepalive', 'Keepalive')
+    this.pingService(this.BACKEND_URL + '/keepalive/ai', 'AI Proxy')
   }
 
   stop() {
