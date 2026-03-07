@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeftIcon,
   PaperClipIcon,
@@ -22,6 +22,9 @@ import {
   XMarkIcon,
   CalendarDaysIcon,
   ArrowPathIcon,
+  ExclamationTriangleIcon,
+  CogIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
@@ -44,6 +47,9 @@ const TaskDetailPage: React.FC = () => {
   const [currentTime, setCurrentTime] = useState(0)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [isAddSubtaskModalOpen, setIsAddSubtaskModalOpen] = useState(false)
+  const [isAddDependencyModalOpen, setIsAddDependencyModalOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<any[]>([])
 
   const isThisTaskTracking = timeTracking.activeTaskId === id
   const isTimerRunning = isThisTaskTracking && timeTracking.isRunning
@@ -193,6 +199,50 @@ const TaskDetailPage: React.FC = () => {
       dispatch(fetchTaskById(id))
     }
   }
+
+  const handleAddDependency = async (blockerId: string) => {
+    if (!id) return
+    try {
+      await tasksApi.addDependency(id, blockerId)
+      toast.success('Dependency added')
+      handleRefreshTask()
+      setIsAddDependencyModalOpen(false)
+      setSearchQuery('')
+      setSearchResults([])
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to add dependency')
+    }
+  }
+
+  const handleRemoveDependency = async (blockerId: string) => {
+    if (!id) return
+    if (!window.confirm('Remove this dependency?')) return
+    try {
+      await tasksApi.removeDependency(id, blockerId)
+      toast.success('Dependency removed')
+      handleRefreshTask()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to remove dependency')
+    }
+  }
+
+  useEffect(() => {
+    const searchTasks = async () => {
+      if (searchQuery.length < 2) {
+        setSearchResults([])
+        return
+      }
+      try {
+        const results = await tasksApi.getAll({ search: searchQuery, limit: 10 })
+        setSearchResults((results as any).tasks || [])
+      } catch (error) {
+        console.error('Search failed:', error)
+      }
+    }
+
+    const timer = setTimeout(searchTasks, 300)
+    return () => clearTimeout(timer)
+  }, [searchQuery])
 
   const handleAddSubtask = async (subtaskData: any) => {
     if (!id) return
@@ -481,6 +531,92 @@ const TaskDetailPage: React.FC = () => {
               </div>
             )}
 
+            {/* Dependencies */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <CogIcon className="h-5 w-5 text-purple-600" />
+                  Dependencies
+                </h2>
+                {canEdit && (
+                  <button
+                    onClick={() => setIsAddDependencyModalOpen(true)}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    + Add Blocker
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-4">
+                {/* Blocked By */}
+                <div>
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    Blocked By
+                  </h3>
+                  {currentTask.blockedBy && currentTask.blockedBy.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2">
+                      {currentTask.blockedBy.map((dep) => (
+                        <div
+                          key={dep.id}
+                          className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg group"
+                        >
+                          <div
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={() => navigate(`/tasks/${dep.blocker.id}`)}
+                          >
+                            <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />
+                            <span className="text-sm font-medium text-red-700 hover:underline line-clamp-1">
+                              {dep.blocker.title}
+                            </span>
+                          </div>
+                          {canEdit && (
+                            <button
+                              onClick={() => handleRemoveDependency(dep.blockerId)}
+                              className="p-1 text-red-400 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <XMarkIcon className="h-4 w-4" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">No blockers</p>
+                  )}
+                </div>
+
+                {/* Blocking */}
+                <div>
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
+                    Blocking
+                  </h3>
+                  {currentTask.blocking && currentTask.blocking.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-2">
+                      {currentTask.blocking.map((dep) => (
+                        <div
+                          key={dep.id}
+                          className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg group"
+                        >
+                          <div
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={() => navigate(`/tasks/${dep.dependent.id}`)}
+                          >
+                            <CheckCircleIcon className="h-4 w-4 text-blue-500" />
+                            <span className="text-sm font-medium text-blue-700 hover:underline line-clamp-1">
+                              {dep.dependent.title}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic">Not blocking any tasks</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
           </motion.div>
 
           {/* Files */}
@@ -549,6 +685,88 @@ const TaskDetailPage: React.FC = () => {
         onAdd={handleAddSubtask}
         availablePhases={currentTask.workflow?.phases || []}
       />
+
+      {/* Add Dependency Modal */}
+      <AnimatePresence>
+        {isAddDependencyModalOpen && (
+          <div className="fixed inset-0 z-[100] overflow-y-auto">
+            <div className="flex min-h-screen items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsAddDependencyModalOpen(false)}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl p-6"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-gray-900">Add Task Blocker</h3>
+                  <button onClick={() => setIsAddDependencyModalOpen(false)}>
+                    <XMarkIcon className="w-6 h-6 text-gray-400 hover:text-gray-600" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search tasks to add as blocker..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="max-h-60 overflow-y-auto border border-gray-100 rounded-lg divide-y divide-gray-100">
+                    {searchResults.length > 0 ? (
+                      searchResults
+                        .filter(t => t.id !== id)
+                        .map((task) => (
+                          <button
+                            key={task.id}
+                            onClick={() => handleAddDependency(task.id)}
+                            className="w-full flex items-center justify-between p-3 hover:bg-blue-50 transition-colors text-left"
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 line-clamp-1">{task.title}</p>
+                              <p className="text-xs text-gray-500">
+                                {task.currentPhase?.name || 'No Phase'} • {task.assignedTo?.name || 'Unassigned'}
+                              </p>
+                            </div>
+                            <PlusIcon className="w-5 h-5 text-blue-500" />
+                          </button>
+                        ))
+                    ) : searchQuery.length >= 2 ? (
+                      <div className="p-8 text-center">
+                        <p className="text-sm text-gray-500 italic">No tasks found matching "{searchQuery}"</p>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center">
+                        <p className="text-sm text-gray-500">Type at least 2 characters to search...</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end">
+                  <button
+                    onClick={() => setIsAddDependencyModalOpen(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, CalendarIcon, FlagIcon, UserGroupIcon } from '@heroicons/react/24/outline'
-import { tasksApi, usersApi } from '@/services/api'
+import { tasksApi, usersApi, quartersApi, objectivesApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
 interface EditTaskModalProps {
@@ -19,15 +19,19 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
     priority: 1,
     dueDate: '',
     assignedUserIds: [] as string[],
+    quarterId: '',
+    objectiveId: '',
   })
   const [users, setUsers] = useState<any[]>([])
+  const [quarters, setQuarters] = useState<any[]>([])
+  const [objectives, setObjectives] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (task) {
       // Collect all assigned user IDs from assignments array
       const assignedIds = task.assignments?.map((a: any) => a.userId) || []
-      
+
       setFormData({
         title: task.title || '',
         description: task.description || '',
@@ -35,21 +39,29 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
         priority: task.priority || 1,
         dueDate: task.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
         assignedUserIds: assignedIds,
+        quarterId: task.quarterId || '',
+        objectiveId: task.objectiveId || '',
       })
     }
   }, [task])
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
-        const data = await usersApi.getAll()
-        setUsers(Array.isArray(data) ? data : (data as any).users || [])
+        const [usersData, quartersData, objectivesData] = await Promise.all([
+          usersApi.getAll(),
+          quartersApi.getAll(),
+          objectivesApi.getAll(),
+        ])
+        setUsers(Array.isArray(usersData) ? usersData : (usersData as any).users || [])
+        setQuarters(quartersData)
+        setObjectives(objectivesData)
       } catch (error) {
-        console.error('Failed to fetch users:', error)
+        console.error('Failed to fetch modal data:', error)
       }
     }
     if (isOpen) {
-      fetchUsers()
+      fetchData()
     }
   }, [isOpen])
 
@@ -175,6 +187,45 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                </div>
+              </div>
+
+              {/* Quarter and Objective Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Quarter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quarter
+                  </label>
+                  <select
+                    value={formData.quarterId}
+                    onChange={(e) => setFormData({ ...formData, quarterId: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">No Quarter</option>
+                    {quarters.map((q) => (
+                      <option key={q.id} value={q.id}>{q.name} {q.year}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Objective */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Objective
+                  </label>
+                  <select
+                    value={formData.objectiveId}
+                    onChange={(e) => setFormData({ ...formData, objectiveId: e.target.value })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">No Objective</option>
+                    {objectives
+                      .filter(obj => !formData.quarterId || obj.quarterId === formData.quarterId)
+                      .map((obj) => (
+                        <option key={obj.id} value={obj.id}>{obj.title}</option>
+                      ))}
+                  </select>
                 </div>
               </div>
 

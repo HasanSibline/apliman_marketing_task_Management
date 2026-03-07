@@ -116,4 +116,33 @@ export interface Task {
   childTasks?: Task[]
   subtaskId?: string
   linkedSubtask?: Subtask
+  // OKR and Quarter integration
+  quarterId?: string
+  quarter?: {
+    id: string
+    name: string
+    year: number
+    status: string
+  }
+  objectiveId?: string
+  objective?: {
+    id: string
+    title: string
+    quarterId?: string
+  }
+  rolledOverFrom?: string
+  isRolledOver?: boolean
+  // Dependencies
+  blockedBy?: {
+    id: string
+    taskId: string
+    blockerId: string
+    blocker: Task
+  }[]
+  blocking?: {
+    id: string
+    taskId: string
+    blockerId: string
+    dependent: Task
+  }[]
 }

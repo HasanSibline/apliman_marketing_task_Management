@@ -4,7 +4,7 @@ import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon } from '@heroicon
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
-import { workflowsApi } from '@/services/api'
+import { workflowsApi, quartersApi, objectivesApi } from '@/services/api'
 import { Workflow } from '@/types/task'
 import ContentSuggester from '../ai/ContentSuggester'
 import toast from 'react-hot-toast'
@@ -19,7 +19,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const { users } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
   const { isLoading } = useAppSelector((state) => state.tasks)
-  
+
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null)
   const [isLoadingWorkflows, setIsLoadingWorkflows] = useState(false)
@@ -34,7 +34,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     aiProvider?: string
   } | null>(null)
   const [showAiPreview, setShowAiPreview] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -46,13 +46,18 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     workflowId: '',
     generateSubtasks: false,
     autoAssign: false,
+    quarterId: '',
+    objectiveId: '',
   })
+  const [quarters, setQuarters] = useState<any[]>([])
+  const [objectives, setObjectives] = useState<any[]>([])
 
   useEffect(() => {
     if (isOpen) {
       dispatch(fetchAssignableUsers())
       loadWorkflows()
-      
+      loadMetadata()
+
       // Auto-select current user as assigned
       if (user?.id && !formData.assignedUserIds.includes(user.id)) {
         setFormData(prev => ({
@@ -64,12 +69,25 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     }
   }, [isOpen, dispatch, user?.id])
 
+  const loadMetadata = async () => {
+    try {
+      const [quartersData, objectivesData] = await Promise.all([
+        quartersApi.getAll(),
+        objectivesApi.getAll(),
+      ])
+      setQuarters(quartersData)
+      setObjectives(objectivesData)
+    } catch (error) {
+      console.error('Error loading metadata:', error)
+    }
+  }
+
   const loadWorkflows = async () => {
     try {
       setIsLoadingWorkflows(true)
       const workflowsData = await workflowsApi.getAll()
       setWorkflows(workflowsData)
-      
+
       // Auto-select default general workflow if available
       const defaultWorkflow = workflowsData.find(w => w.isDefault && w.taskType === 'GENERAL')
       if (defaultWorkflow) {
@@ -100,7 +118,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       setIsGeneratingContent(true)
       setLoadingStage('🤖 AI is thinking about your task...')
       const preview: any = {}
-      
+
       // Generate basic content
       setLoadingStage('✍️ Writing detailed description and goals...')
       const token = localStorage.getItem('token')
@@ -110,7 +128,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`, // CRITICAL: Include auth token
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           title: formData.title,
           type: selectedWorkflow?.taskType || 'GENERAL'
         }),
@@ -129,7 +147,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       // Generate subtasks if workflow is selected
       if (selectedWorkflow && formData.generateSubtasks) {
         setLoadingStage('📝 Creating smart subtasks for your workflow...')
-        
+
         const subtasksResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-subtasks`, {
           method: 'POST',
           headers: {
@@ -157,15 +175,15 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       }
 
       setLoadingStage('✨ Finalizing your AI-generated content...')
-      
+
       // Show preview modal
       setAiPreview(preview)
       setShowAiPreview(true)
       toast.success('🎉 AI content generated successfully!')
-      
+
     } catch (error: any) {
       console.error('Error generating AI content:', error)
-      
+
       // Show specific error messages
       if (error.message.includes('AI service error')) {
         toast.error('AI service is temporarily unavailable. Please try again later.')
@@ -230,17 +248,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Ensure the creator is always assigned to the task (especially for employees)
-    const assignedUserIds = formData.assignedUserIds.length > 0 
-      ? formData.assignedUserIds 
+    const assignedUserIds = formData.assignedUserIds.length > 0
+      ? formData.assignedUserIds
       : (user?.id ? [user.id] : []);
-    
+
     // Make sure creator is always included if they're an employee
     if (user?.id && !assignedUserIds.includes(user.id)) {
       assignedUserIds.push(user.id);
     }
-    
+
     const taskData = {
       ...formData,
       dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
@@ -254,7 +272,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       const result = await dispatch(createTask(taskData))
       if (createTask.fulfilled.match(result)) {
         toast.success('Task created successfully!')
-        
+
         // Close modal and reset form
         onClose()
         setFormData({
@@ -268,12 +286,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           workflowId: '',
           generateSubtasks: false,
           autoAssign: false,
+          quarterId: '',
+          objectiveId: '',
         })
         setAiGeneratedSubtasks([]) // Clear AI subtasks
 
         // Dispatch custom event to notify NotificationBell
         window.dispatchEvent(new CustomEvent('taskUpdated'))
-        
+
         // The Redux state already has the new task, no need to fetch again
       }
     } catch (error: any) {
@@ -309,7 +329,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               className="fixed inset-0 bg-black bg-opacity-50"
               onClick={onClose}
             />
-            
+
             {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -396,7 +416,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         <span className="text-xs">{isGeneratingContent ? 'Generating...' : 'Generate AI'}</span>
                       </button>
                     </div>
-                    
+
                     {/* Loading Stage Display */}
                     {isGeneratingContent && loadingStage && (
                       <div className="mt-2 text-sm text-purple-600 animate-pulse flex items-center">
@@ -404,14 +424,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         {loadingStage}
                       </div>
                     )}
-                    <div 
-                      id="content-suggester" 
-                      className="absolute top-full mt-1 left-0 right-0 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4" 
+                    <div
+                      id="content-suggester"
+                      className="absolute top-full mt-1 left-0 right-0 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4"
                       style={{ display: 'none' }}
                     >
-                      <ContentSuggester 
-                        title={formData.title} 
-                        type="task" 
+                      <ContentSuggester
+                        title={formData.title}
+                        type="task"
                         onSuggestionSelect={(suggestion) => {
                           setFormData(prev => ({
                             ...prev,
@@ -500,6 +520,47 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
                 </div>
 
+                {/* Quarter and Objective */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label htmlFor="quarterId" className="block text-sm font-medium text-gray-700 mb-2">
+                      Quarter
+                    </label>
+                    <select
+                      id="quarterId"
+                      name="quarterId"
+                      value={formData.quarterId}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="">No Quarter</option>
+                      {quarters.map((q) => (
+                        <option key={q.id} value={q.id}>{q.name} {q.year}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label htmlFor="objectiveId" className="block text-sm font-medium text-gray-700 mb-2">
+                      Objective
+                    </label>
+                    <select
+                      id="objectiveId"
+                      name="objectiveId"
+                      value={formData.objectiveId}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    >
+                      <option value="">No Objective</option>
+                      {objectives
+                        .filter(obj => !formData.quarterId || obj.quarterId === formData.quarterId)
+                        .map((obj) => (
+                          <option key={obj.id} value={obj.id}>{obj.title}</option>
+                        ))}
+                    </select>
+                  </div>
+                </div>
+
                 {/* Assign To */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -526,7 +587,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         ))}
                       </select>
                     </div>
-                    
+
                     {/* Multiple assignments */}
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -579,7 +640,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     <SparklesIcon className="h-5 w-5 mr-2 text-purple-500" />
                     AI-Powered Features
                   </h3>
-                  
+
                   <div className="space-y-4">
                     <label className="flex items-center">
                       <input
@@ -634,7 +695,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         <span>Add Custom</span>
                       </button>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {aiGeneratedSubtasks.map((subtask, index) => (
                         <div
@@ -648,7 +709,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
-                          
+
                           <div className="space-y-3">
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -662,7 +723,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 placeholder="Subtask title"
                               />
                             </div>
-                            
+
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Description
@@ -675,7 +736,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 placeholder="Brief description"
                               />
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-2">
                               <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">
@@ -693,7 +754,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   ))}
                                 </select>
                               </div>
-                              
+
                               <div>
                                 <label className="block text-xs font-medium text-gray-700 mb-1">
                                   Est. Hours
@@ -708,7 +769,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 />
                               </div>
                             </div>
-                            
+
                             {subtask.suggestedRole && (
                               <div className="flex items-center space-x-2">
                                 <span className="text-xs text-gray-500">Suggested for:</span>
@@ -721,7 +782,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         </div>
                       ))}
                     </div>
-                    
+
                     <div className="mt-4 text-sm text-gray-600 bg-green-50 p-3 rounded-md">
                       <p className="font-medium mb-1">📝 These subtasks were generated by AI based on your task details.</p>
                       <p>You can edit, remove, or add custom subtasks. They will be created automatically when you create the task.</p>
@@ -765,7 +826,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               className="fixed inset-0 bg-black bg-opacity-50"
               onClick={discardAiContent}
             />
-            
+
             {/* Preview Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -819,18 +880,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   <div>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">⚡ Priority</h3>
                     <div className="bg-gray-50 p-4 rounded-lg border">
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        aiPreview.priority === 5 ? 'bg-red-100 text-red-800' :
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${aiPreview.priority === 5 ? 'bg-red-100 text-red-800' :
                         aiPreview.priority === 4 ? 'bg-orange-100 text-orange-800' :
-                        aiPreview.priority === 3 ? 'bg-yellow-100 text-yellow-800' :
-                        aiPreview.priority === 2 ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
+                          aiPreview.priority === 3 ? 'bg-yellow-100 text-yellow-800' :
+                            aiPreview.priority === 2 ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                        }`}>
                         {aiPreview.priority === 5 ? 'Critical' :
-                         aiPreview.priority === 4 ? 'High' :
-                         aiPreview.priority === 3 ? 'Normal' :
-                         aiPreview.priority === 2 ? 'Medium' :
-                         'Low'} Priority
+                          aiPreview.priority === 4 ? 'High' :
+                            aiPreview.priority === 3 ? 'Normal' :
+                              aiPreview.priority === 2 ? 'Medium' :
+                                'Low'} Priority
                       </span>
                     </div>
                   </div>
@@ -858,11 +918,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                               ✕
                             </button>
                           </div>
-                          
+
                           {subtask.description && (
                             <p className="text-sm text-gray-600 mb-3">{subtask.description}</p>
                           )}
-                          
+
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                             {/* Phase Selection */}
                             <div>
@@ -891,8 +951,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 onChange={(e) => {
                                   const selectedUser = users.find(u => u.id === e.target.value)
                                   const updatedSubtasks = [...(aiPreview.subtasks || [])]
-                                  updatedSubtasks[index] = { 
-                                    ...updatedSubtasks[index], 
+                                  updatedSubtasks[index] = {
+                                    ...updatedSubtasks[index],
                                     suggestedUserId: e.target.value,
                                     suggestedUserName: selectedUser?.name || '',
                                     suggestedRole: selectedUser?.position || subtask.suggestedRole
@@ -931,7 +991,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         </div>
                       ))}
                     </div>
-                    
+
                     {/* Add Custom Subtask Button */}
                     <button
                       onClick={() => {
@@ -944,9 +1004,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                           suggestedUserName: '',
                           estimatedHours: 2,
                         }
-                        setAiPreview(prev => prev ? { 
-                          ...prev, 
-                          subtasks: [...(prev.subtasks || []), newSubtask] 
+                        setAiPreview(prev => prev ? {
+                          ...prev,
+                          subtasks: [...(prev.subtasks || []), newSubtask]
                         } : null)
                       }}
                       className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-primary-300 hover:text-primary-600 transition-colors"
@@ -957,11 +1017,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 )}
 
                 {/* AI Provider Info */}
-                <div className={`p-4 rounded-lg ${
-                  aiPreview.aiProvider === 'fallback' 
-                    ? 'bg-yellow-50 border border-yellow-200' 
-                    : 'bg-green-50 border border-green-200'
-                }`}>
+                <div className={`p-4 rounded-lg ${aiPreview.aiProvider === 'fallback'
+                  ? 'bg-yellow-50 border border-yellow-200'
+                  : 'bg-green-50 border border-green-200'
+                  }`}>
                   <p className="text-sm">
                     {aiPreview.aiProvider === 'fallback' ? (
                       <>

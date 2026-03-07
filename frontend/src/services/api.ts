@@ -224,6 +224,7 @@ export const tasksApi = {
     phase?: string
     assignedToId?: string
     createdById?: string
+    search?: string
     page?: number
     limit?: number
   }): Promise<{ tasks: Task[]; pagination: any }> => {
@@ -359,6 +360,21 @@ export const tasksApi = {
 
   getTimeEntries: async (taskId: string): Promise<any[]> => {
     const response = await api.get(`/tasks/${taskId}/time`)
+    return response.data
+  },
+
+  // Dependencies
+  addDependency: async (taskId: string, blockerId: string): Promise<any> => {
+    const response = await api.post(`/tasks/${taskId}/dependencies`, { blockerId })
+    return response.data
+  },
+
+  removeDependency: async (taskId: string, blockerId: string): Promise<void> => {
+    await api.delete(`/tasks/${taskId}/dependencies/${blockerId}`)
+  },
+
+  assignToQuarter: async (taskId: string, quarterId: string): Promise<any> => {
+    const response = await api.patch(`/tasks/${taskId}/quarter`, { quarterId })
     return response.data
   },
 }
@@ -569,6 +585,76 @@ export const notificationsApi = {
 
   deleteAllNotifications: async (): Promise<any> => {
     const response = await api.delete('/notifications')
+    return response.data
+  },
+}
+
+export const quartersApi = {
+  getAll: async (): Promise<any[]> => {
+    const response = await api.get('/quarters')
+    return response.data
+  },
+  getById: async (id: string): Promise<any> => {
+    const response = await api.get(`/quarters/${id}`)
+    return response.data
+  },
+  getAnalytics: async (id: string): Promise<any> => {
+    const response = await api.get(`/quarters/${id}/analytics`)
+    return response.data
+  },
+  getYearlyAnalytics: async (year?: number): Promise<any> => {
+    const response = await api.get('/quarters/yearly', {
+      params: year ? { year } : {},
+    })
+    return response.data
+  },
+  create: async (data: any): Promise<any> => {
+    const response = await api.post('/quarters', data)
+    return response.data
+  },
+  close: async (id: string, data: any): Promise<any> => {
+    const response = await api.post(`/quarters/${id}/close`, data)
+    return response.data
+  },
+}
+
+export const objectivesApi = {
+  getAll: async (params?: { quarterId?: string }): Promise<any[]> => {
+    const response = await api.get('/objectives', { params })
+    return response.data
+  },
+  getById: async (id: string): Promise<any> => {
+    const response = await api.get(`/objectives/${id}`)
+    return response.data
+  },
+  create: async (data: any): Promise<any> => {
+    const response = await api.post('/objectives', data)
+    return response.data
+  },
+  update: async (id: string, data: any): Promise<any> => {
+    const response = await api.patch(`/objectives/${id}`, data)
+    return response.data
+  },
+  delete: async (id: string): Promise<void> => {
+    await api.delete(`/objectives/${id}`)
+  },
+  addKeyResult: async (id: string, data: any): Promise<any> => {
+    const response = await api.post(`/objectives/${id}/key-results`, data)
+    return response.data
+  },
+  updateKeyResult: async (krId: string, data: any): Promise<any> => {
+    const response = await api.patch(`/objectives/key-results/${krId}`, data)
+    return response.data
+  },
+  deleteKeyResult: async (krId: string): Promise<void> => {
+    await api.delete(`/objectives/key-results/${krId}`)
+  },
+  linkTask: async (id: string, taskId: string): Promise<any> => {
+    const response = await api.post(`/objectives/${id}/tasks/${taskId}`)
+    return response.data
+  },
+  unlinkTask: async (id: string, taskId: string): Promise<any> => {
+    const response = await api.delete(`/objectives/${id}/tasks/${taskId}`)
     return response.data
   },
 }

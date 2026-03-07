@@ -1,8 +1,8 @@
-import { 
-  IsString, 
-  IsOptional, 
-  IsInt, 
-  Min, 
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  Min,
   Max,
   IsDateString,
   MinLength,
@@ -128,4 +128,22 @@ export class CreateTaskDto {
     assignedToId?: string;
     estimatedHours?: number;
   }>;
+
+  @ApiProperty({
+    description: 'Quarter ID this task belongs to',
+    example: 'uuid-string',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  quarterId?: string;
+
+  @ApiProperty({
+    description: 'Objective ID this task belongs to',
+    example: 'uuid-string',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  objectiveId?: string;
 }

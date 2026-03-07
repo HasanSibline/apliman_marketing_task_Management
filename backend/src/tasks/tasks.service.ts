@@ -171,6 +171,8 @@ export class TasksService {
           createdById: creatorId,
           assignedToId: createTaskDto.assignedToId,
           companyId: creator.companyId, // Add company isolation
+          quarterId: createTaskDto.quarterId || null,
+          objectiveId: createTaskDto.objectiveId || null,
         },
         include: {
           workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
@@ -1005,6 +1007,13 @@ export class TasksService {
               subtasks: true,
             },
           },
+          quarter: {
+            select: {
+              id: true,
+              name: true,
+              year: true,
+            },
+          },
         },
         orderBy: [
           { priority: 'desc' },
@@ -1135,6 +1144,41 @@ export class TasksService {
         },
         files: {
           orderBy: { uploadedAt: 'desc' },
+        },
+        quarter: {
+          select: {
+            id: true,
+            name: true,
+            year: true,
+          },
+        },
+        objective: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
+        blockedBy: {
+          include: {
+            blocker: {
+              select: {
+                id: true,
+                title: true,
+                currentPhase: true,
+              },
+            },
+          },
+        },
+        blocking: {
+          include: {
+            dependent: {
+              select: {
+                id: true,
+                title: true,
+                currentPhase: true,
+              },
+            },
+          },
         },
         comments: {
           include: {

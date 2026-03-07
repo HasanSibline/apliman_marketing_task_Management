@@ -233,10 +233,11 @@ model Task {
   subtasks      Subtask[]
   phaseHistory  PhaseHistory[]
   approvals     PhaseApproval[]
-  blockedBy     TaskDependency[] @relation("DependencyTask")
-  blocking      TaskDependency[] @relation("DependencyBlocker")
+  blockedBy     TaskDependency[] @relation("DependencyBlockedTask")
+  blocking      TaskDependency[] @relation("DependencyBlockerTask")
 
   @@map("tasks")
+}
 
 model TaskAssignment {
   id           String   @id @default(uuid())
@@ -626,9 +627,9 @@ model KeyResult {
 model TaskDependency {
   id         String @id @default(uuid())
   taskId     String  // the task that is blocked
-  task       Task   @relation("DependencyTask", fields: [taskId], references: [id], onDelete: Cascade)
+  dependent  Task   @relation("DependencyBlockedTask", fields: [taskId], references: [id], onDelete: Cascade)
   blockerId  String  // the task that must be completed first
-  blocker    Task   @relation("DependencyBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocker    Task   @relation("DependencyBlockerTask", fields: [blockerId], references: [id], onDelete: Cascade)
 
   createdAt  DateTime @default(now())
 
