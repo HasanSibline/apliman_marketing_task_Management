@@ -6,7 +6,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
   const configService = app.get(ConfigService);
   const port = configService.get('PORT') || 3001;
   const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:5173';
@@ -16,7 +16,7 @@ async function bootstrap() {
     origin: (origin, callback) => {
       // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
-      
+
       const allowedOrigins = [
         frontendUrl,
         'http://localhost:3000',
@@ -26,15 +26,15 @@ async function bootstrap() {
         'http://127.0.0.1:3000',
         'https://apliman-marketing-task-management.pages.dev', // Your Cloudflare Pages URL
       ];
-      
+
       // Check if origin is allowed
-      if (allowedOrigins.includes(origin) || 
-          origin.includes('.pages.dev') || 
-          origin.includes('.onrender.com') ||
-          origin === 'https://apliman-marketing-task-management.onrender.com') {
+      if (allowedOrigins.includes(origin) ||
+        origin.includes('.pages.dev') ||
+        origin.includes('.onrender.com') ||
+        origin === 'https://apliman-marketing-task-management.onrender.com') {
         return callback(null, true);
       }
-      
+
       console.log('CORS blocked origin:', origin);
       console.log('Allowed origins:', allowedOrigins);
       callback(new Error('Not allowed by CORS'));
@@ -42,8 +42,8 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
-      'Content-Type', 
-      'Authorization', 
+      'Content-Type',
+      'Authorization',
       'Accept',
       'Origin',
       'X-Requested-With',
@@ -68,8 +68,8 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix
-  app.setGlobalPrefix('api');
+  // API prefix — exclude health check endpoints for Render/monitoring
+  app.setGlobalPrefix('api', { exclude: ['health', 'keepalive', '/'] });
 
   // Swagger documentation (always available)
   const config = new DocumentBuilder()
@@ -78,7 +78,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addBearerAuth()
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 

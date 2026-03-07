@@ -272,6 +272,11 @@ export default function CreateCompany() {
       if (!formData.subscriptionDays || formData.subscriptionDays < 1)
         errors.subscriptionDays = 'Must be at least 1 day';
     }
+    if (s === 4) {
+      if (!formData.aiApiKey?.trim()) {
+        errors.aiApiKey = 'AI API Key is required to enable AI features';
+      }
+    }
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -337,7 +342,13 @@ export default function CreateCompany() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
     if (e.key === 'Enter' && (e.target as HTMLElement).tagName !== 'TEXTAREA') {
       e.preventDefault();
-      if (step < 4) nextStep();
+      if (step < 4) {
+        nextStep();
+      } else {
+        // Trigger handle submit manually if on last step
+        const form = e.currentTarget;
+        form.requestSubmit();
+      }
     }
   };
 
@@ -656,16 +667,16 @@ export default function CreateCompany() {
               <div className="space-y-6">
                 <div className="mb-2">
                   <h2 className="text-xl font-bold text-white">AI & Resource Limits</h2>
-                  <p className="text-sm text-gray-400 mt-1">Optional AI configuration — can be changed later</p>
+                  <p className="text-sm text-gray-400 mt-1">Configure AI and verify resource limits</p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-indigo-950 border border-indigo-800">
                   <h3 className="text-sm font-semibold text-indigo-300 flex items-center gap-2 mb-3">
-                    <span>⚡</span> AI Features (Optional)
+                    <span>⚡</span> AI Configuration (Required)
                   </h3>
-                  <Field label="Gemini API Key" name="aiApiKey" placeholder="AIza..."
-                    value={formData.aiApiKey ?? ''} onChange={handleChange}
-                    hint={formData.aiApiKey ? '✓ AI will be enabled for this company' : 'Leave blank to enable AI later'} />
+                  <Field label="Gemini API Key" name="aiApiKey" placeholder="AIza..." required
+                    value={formData.aiApiKey ?? ''} onChange={handleChange} error={fieldErrors.aiApiKey}
+                    hint="Your Google Gemini API Key is required for AI features like task generation" />
                   {formData.aiApiKey && (
                     <div className="mt-3">
                       <label className="block text-sm font-medium text-gray-200 mb-1.5">AI Provider</label>
