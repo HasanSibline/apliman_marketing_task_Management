@@ -391,12 +391,12 @@ const ObjectivesPage: React.FC = () => {
             {/* Filters */}
             <div className="flex gap-3 flex-wrap">
                 <select value={filterQuarter} onChange={e => setFilterQuarter(e.target.value)}
-                    className="select-field w-auto text-sm">
+                    className="select-field w-auto text-sm pr-8">
                     <option value="">All quarters</option>
                     {quarters.map(q => <option key={q.id} value={q.id}>{q.name} {q.year}</option>)}
                 </select>
                 <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                    className="select-field w-auto text-sm">
+                    className="select-field w-auto text-sm pr-8">
                     <option value="">All statuses</option>
                     {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                 </select>
