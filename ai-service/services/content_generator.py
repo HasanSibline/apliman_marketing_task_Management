@@ -218,7 +218,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(url, headers=headers, json=payload) as response:
+                    async with session.post(f"{url}?key={current_key}", headers=headers, json=payload) as response:
                         if response.status == 200:
                             data = await response.json()
                             if not data.get('candidates', []):

@@ -1,4 +1,13 @@
 import { useState, useRef } from 'react';
+import {
+  UsersIcon,
+  ClipboardDocumentCheckIcon,
+  CloudArrowUpIcon,
+  CheckBadgeIcon,
+  InformationCircleIcon,
+  CalendarIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../services/api';
@@ -21,7 +30,9 @@ function CredentialsModal({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl">🔐</div>
+            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl">
+              <CheckBadgeIcon className="h-6 w-6" />
+            </div>
             <div>
               <h2 className="text-lg font-bold text-white">Company Created!</h2>
               <p className="text-sm text-blue-100">Save these credentials — password won't be shown again</p>
@@ -29,7 +40,9 @@ function CredentialsModal({
           </div>
         </div>
         <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
-          <span className="text-amber-500 mt-0.5">⚠️</span>
+          <span className="text-amber-500 mt-0.5">
+            <InformationCircleIcon className="h-5 w-5" />
+          </span>
           <p className="text-xs text-amber-700 font-medium">
             This password is shown only once. Copy and share it securely with the company admin before closing.
           </p>
@@ -43,8 +56,8 @@ function CredentialsModal({
               </div>
               {copyable && (
                 <button onClick={() => copy(value, label)}
-                  className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition
-                    ${copied === label ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
+                  className={`ml - 3 px - 3 py - 1.5 rounded - lg text - xs font - medium shrink - 0 transition
+                    ${copied === label ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'} `}>
                   {copied === label ? '✓ Copied' : 'Copy'}
                 </button>
               )}
@@ -54,12 +67,13 @@ function CredentialsModal({
         <div className="px-6 pb-5 flex gap-3">
           <button
             onClick={() => {
-              const all = data.filter(d => d.copyable).map(d => `${d.label}: ${d.value}`).join('\n');
+              const all = data.filter(d => d.copyable).map(d => `${d.label}: ${d.value} `).join('\n');
               navigator.clipboard.writeText(all);
               toast.success('All credentials copied!');
             }}
             className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">
-            📋 Copy All
+            <ClipboardDocumentCheckIcon className="h-4 w-4 mr-2" />
+            Copy All
           </button>
           <button onClick={onClose}
             className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
@@ -117,9 +131,9 @@ function Field({
           value={value ?? ''}
           onChange={onChange}
           placeholder={placeholder}
-          className={`w-full px-4 py-2.5 rounded-xl bg-white border text-gray-900 placeholder-gray-400 text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-500 transition
-            ${error ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'}`}
+          className={`w - full px - 4 py - 2.5 rounded - xl bg - white border text - gray - 900 placeholder - gray - 400 text - sm
+focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
+            ${error ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'} `}
         />
       )}
       {error && (
@@ -167,10 +181,10 @@ function PasswordStrength({ password }: { password: string }) {
     <div className="mt-2 space-y-1">
       <div className="flex justify-between items-center">
         <span className="text-xs text-gray-500">Password strength</span>
-        <span className={`text-xs font-semibold ${level.text}`}>{level.label}</span>
+        <span className={`text - xs font - semibold ${level.text} `}>{level.label}</span>
       </div>
       <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-500 ${level.color}`} style={{ width }} />
+        <div className={`h - full rounded - full transition - all duration - 500 ${level.color} `} style={{ width }} />
       </div>
       <p className="text-xs text-gray-400">Tip: mix uppercase, numbers & symbols</p>
     </div>
@@ -326,7 +340,7 @@ export default function CreateCompany() {
           { label: 'Admin Name', value: formData.adminName },
           { label: 'Admin Email', value: email, copyable: true },
           { label: 'Password', value: password, copyable: true },
-          { label: 'Login URL', value: `${window.location.origin}/${slug}/login`, copyable: true },
+          { label: 'Login URL', value: `${window.location.origin} /${slug}/login`, copyable: true },
         ]);
       } else {
         navigate('/admin/companies');
@@ -388,19 +402,19 @@ export default function CreateCompany() {
             return (
               <div
                 key={s.id}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-default
+                className={`flex items - center gap - 3 px - 4 py - 3 rounded - xl transition cursor -default
                   ${isActive ? 'bg-blue-600 text-white shadow-md' : ''}
                   ${isCompleted ? 'text-blue-700' : ''}
-                  ${!isActive && !isCompleted ? 'text-gray-400' : ''}`}
+                  ${!isActive && !isCompleted ? 'text-gray-400' : ''} `}
               >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0
+                <div className={`w - 8 h - 8 rounded - full flex items - center justify - center text - xs font - bold shrink - 0
                   ${isActive ? 'bg-white text-blue-600' : ''}
                   ${isCompleted ? 'bg-blue-100 text-blue-700' : ''}
-                  ${!isActive && !isCompleted ? 'bg-gray-100 text-gray-400' : ''}`}>
+                  ${!isActive && !isCompleted ? 'bg-gray-100 text-gray-400' : ''} `}>
                   {isCompleted ? '✓' : s.id}
                 </div>
                 <div>
-                  <div className={`text-sm font-semibold ${isActive ? 'text-white' : ''}`}>{s.label}</div>
+                  <div className={`text - sm font - semibold ${isActive ? 'text-white' : ''} `}>{s.label}</div>
                 </div>
               </div>
             );
@@ -426,10 +440,10 @@ export default function CreateCompany() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
+                <span className={`text - [10px] px - 2.5 py - 1 rounded - full font - bold uppercase tracking - wider
                   ${formData.subscriptionPlan === 'FREE' ? 'bg-gray-200 text-gray-600' : ''}
                   ${formData.subscriptionPlan === 'PRO' ? 'bg-blue-100 text-blue-700' : ''}
-                  ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' : ''}`}>
+                  ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' : ''} `}>
                   {formData.subscriptionPlan}
                 </span>
                 <span className="text-xs font-medium text-gray-400">{formData.subscriptionDays}d</span>
@@ -458,24 +472,24 @@ export default function CreateCompany() {
               {STEPS.map((s, i) => (
                 <div key={s.id} className="flex items-center flex-1">
                   <div className="flex flex-col items-center">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300
+                    <div className={`w - 10 h - 10 rounded - full flex items - center justify - center text - sm font - bold transition - all duration - 300
                       ${step > s.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : ''}
                       ${step === s.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/30 ring-4 ring-blue-600/10' : ''}
-                      ${step < s.id ? 'bg-white text-gray-400 border border-gray-200' : ''}`}>
+                      ${step < s.id ? 'bg-white text-gray-400 border border-gray-200' : ''} `}>
                       {step > s.id ? (
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                         </svg>
                       ) : s.id}
                     </div>
-                    <span className={`mt-2 text-xs font-bold uppercase tracking-wider transition-colors
-                      ${step === s.id ? 'text-blue-600' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'}`}>
+                    <span className={`mt - 2 text - xs font - bold uppercase tracking - wider transition - colors
+                      ${step === s.id ? 'text-blue-600' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'} `}>
                       {s.label}
                     </span>
                   </div>
                   {i < STEPS.length - 1 && (
-                    <div className={`flex-1 h-1 mx-4 mb-6 rounded-full transition-colors duration-500
-                      ${step > s.id ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                    <div className={`flex - 1 h - 1 mx - 4 mb - 6 rounded - full transition - colors duration - 500
+                      ${step > s.id ? 'bg-blue-600' : 'bg-gray-200'} `} />
                   )}
                 </div>
               ))}
@@ -503,7 +517,7 @@ export default function CreateCompany() {
 
                 <Field label="URL Slug" name="slug" placeholder="e.g. acme-corporation" required
                   value={formData.slug} onChange={handleChange} error={fieldErrors.slug}
-                  hint={`Your portal will be: ${window.location.origin}/${formData.slug || 'slug'}/login`} />
+                  hint={`Your portal will be: ${window.location.origin} /${formData.slug || 'slug'}/login`} />
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -587,9 +601,9 @@ export default function CreateCompany() {
                     value={formData.adminPassword}
                     onChange={handleChange}
                     placeholder="Create a strong password"
-                    className={`w-full px-4 py-3 rounded-xl bg-white border text-gray-900 placeholder-gray-400 text-sm
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 transition
-                      ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'}`}
+                    className={`w - full px - 4 py - 3 rounded - xl bg - white border text - gray - 900 placeholder - gray - 400 text - sm
+focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
+                      ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'} `}
                   />
                   {fieldErrors.adminPassword && (
                     <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">⚠ {fieldErrors.adminPassword}</p>
@@ -617,15 +631,17 @@ export default function CreateCompany() {
                         key={plan}
                         type="button"
                         onClick={() => handleChange({ target: { name: 'subscriptionPlan', value: plan, type: 'select' } } as any)}
-                        className={`group relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-300 text-left
+                        className={`group relative flex flex - col items - start p - 5 rounded - 2xl border - 2 transition - all duration - 300 text - left
                           ${selected
                             ? 'border-blue-600 bg-blue-50/30'
-                            : 'border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-white'}`}
+                            : 'border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-white'
+                          } `}
                       >
-                        <div className={`text-[10px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
+                        <div className={`text - [10px] font - bold mb - 3 px - 2.5 py - 1 rounded - full uppercase tracking - widest
                           ${plan === 'FREE' ? 'bg-gray-200 text-gray-600' :
                             plan === 'PRO' ? 'bg-blue-600 text-white shadow-sm' :
-                              'bg-amber-100 text-amber-700'}`}>
+                              'bg-amber-100 text-amber-700'
+                          } `}>
                           {plan}
                         </div>
                         <p className="text-gray-900 font-bold text-lg mb-1">{info.price}</p>
@@ -655,8 +671,9 @@ export default function CreateCompany() {
                   value={formData.subscriptionDays} onChange={handleChange} error={fieldErrors.subscriptionDays}
                   hint="Account will be active for this period after creation." />
 
-                <div className="p-5 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-600 font-medium">
-                  🗓️ Renewal Date: <span className="font-bold text-gray-900">
+                <div className="p-5 rounded-2xl bg-gray-50 border border-gray-100 text-sm text-gray-600 font-medium flex items-center gap-2">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                  Renewal Date: <span className="font-bold text-gray-900">
                     {new Date(Date.now() + formData.subscriptionDays * 86400000).toLocaleDateString('en-US', {
                       year: 'numeric', month: 'long', day: 'numeric'
                     })}
@@ -678,7 +695,9 @@ export default function CreateCompany() {
                 </div>
 
                 <div className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100 shadow-sm relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 blur-[1px]">⚡</div>
+                  <div className="absolute top-0 right-0 p-4 opacity-10 blur-[1px]">
+                    <SparklesIcon className="h-12 w-12" />
+                  </div>
                   <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2 mb-4 uppercase tracking-wider">
                     AI Configuration (Required)
                   </h3>
@@ -690,7 +709,7 @@ export default function CreateCompany() {
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">Primary AI Provider</label>
                       <select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl bg-white border border-gray-200 text-gray-900 font-medium text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm">
+                        className="select-field w-full text-sm">
                         <option value="gemini">Google Gemini (Recommended)</option>
                         <option value="openai">OpenAI (GPT-4)</option>
                       </select>
@@ -705,12 +724,12 @@ export default function CreateCompany() {
                   </p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { label: 'Max Users', value: fmt(formData.maxUsers), icon: '👥' },
-                      { label: 'Max Tasks', value: fmt(formData.maxTasks), icon: '📋' },
-                      { label: 'Storage', value: `${fmt(formData.maxStorage)} GB`, icon: '☁️' },
+                      { label: 'Max Users', value: fmt(formData.maxUsers), icon: <UsersIcon className="h-6 w-6 text-blue-500" /> },
+                      { label: 'Max Tasks', value: fmt(formData.maxTasks), icon: <ClipboardDocumentCheckIcon className="h-6 w-6 text-emerald-500" /> },
+                      { label: 'Storage', value: `${fmt(formData.maxStorage)} GB`, icon: <CloudArrowUpIcon className="h-6 w-6 text-purple-500" /> },
                     ].map(({ label, value, icon }) => (
-                      <div key={label} className="flex flex-col items-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                        <span className="text-lg mb-1">{icon}</span>
+                      <div key={label} className="flex flex-col items-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-blue-200 transition-colors">
+                        <div className="mb-2 p-2 bg-gray-50 rounded-xl">{icon}</div>
                         <span className="text-lg font-black text-gray-900 tracking-tight">{value}</span>
                         <span className="text-[10px] font-bold text-gray-400 uppercase">{label}</span>
                       </div>
@@ -722,13 +741,13 @@ export default function CreateCompany() {
                 <div className="rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm">
                   <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/80">
                     <h3 className="text-xs font-bold text-gray-900 uppercase tracking-widest flex items-center gap-2">
-                      <span>📋</span> Registration Summary
+                      <ClipboardDocumentCheckIcon className="h-4 w-4" /> Registration Summary
                     </h3>
                   </div>
                   <div className="p-5 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
                     {[
                       { label: 'Organization', value: formData.name, required: true },
-                      { label: 'Portal Path', value: `/${formData.slug}`, required: true },
+                      { label: 'Portal Path', value: `/ ${formData.slug} `, required: true },
                       { label: 'Administrator', value: formData.adminName, required: true },
                       { label: 'Admin Email', value: formData.adminEmail, required: true },
                       { label: 'Tier', value: formData.subscriptionPlan, weight: 'font-black text-blue-600 uppercase' },
@@ -738,7 +757,7 @@ export default function CreateCompany() {
                     ].map(({ label, value, required, color, weight }) => (
                       <div key={label} className="flex flex-col border-b border-gray-50 pb-2">
                         <span className="text-gray-400 text-[10px] font-bold uppercase tracking-tight">{label}</span>
-                        <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800'} ${required && !value ? 'text-red-500' : ''}`}>
+                        <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800'} ${required && !value ? 'text-red-500' : ''} `}>
                           {value || (required ? '⚠ REQUIRED' : '—')}
                         </span>
                       </div>
@@ -753,17 +772,17 @@ export default function CreateCompany() {
               <button
                 type="button"
                 onClick={prevStep}
-                className={`px-6 py-3 text-sm font-bold rounded-xl border border-gray-200 text-gray-500
-                  hover:bg-gray-50 hover:text-gray-900 transition flex items-center gap-2
-                  ${step === 1 ? 'invisible' : ''}`}
+                className={`px - 6 py - 3 text - sm font - bold rounded - xl border border - gray - 200 text - gray - 500
+hover: bg - gray - 50 hover: text - gray - 900 transition flex items - center gap - 2
+                  ${step === 1 ? 'invisible' : ''} `}
               >
                 <span>←</span> Back
               </button>
 
               <div className="hidden sm:flex items-center gap-2.5">
                 {STEPS.map(s => (
-                  <div key={s.id} className={`h-2 rounded-full transition-all duration-300
-                    ${step === s.id ? 'w-8 bg-blue-600 shadow-sm' : step > s.id ? 'w-2 bg-blue-200' : 'w-2 bg-gray-100'}`} />
+                  <div key={s.id} className={`h - 2 rounded - full transition - all duration - 300
+                    ${step === s.id ? 'w-8 bg-blue-600 shadow-sm' : step > s.id ? 'w-2 bg-blue-200' : 'w-2 bg-gray-100'} `} />
                 ))}
               </div>
 

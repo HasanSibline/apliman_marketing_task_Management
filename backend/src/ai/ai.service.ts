@@ -114,6 +114,7 @@ export class AiService {
           max_length: maxLength,
           api_key: apiKey, // Pass company-specific API key
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
         }),
       );

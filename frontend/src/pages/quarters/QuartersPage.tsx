@@ -387,7 +387,7 @@ const QuartersPage: React.FC = () => {
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-base font-semibold text-gray-900">Year Overview</h2>
-                        <select value={selectedYear} onChange={e => setSelectedYear(+e.target.value)} className="select-field w-auto text-sm pr-8">
+                        <select value={selectedYear} onChange={e => setSelectedYear(+e.target.value)} className="select-field w-auto text-sm">
                             {years.map((y: number) => <option key={y} value={y}>{y}</option>)}
                         </select>
                     </div>
