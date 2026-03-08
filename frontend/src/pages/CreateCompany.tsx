@@ -56,8 +56,8 @@ function CredentialsModal({
               </div>
               {copyable && (
                 <button onClick={() => copy(value, label)}
-                  className={`ml - 3 px - 3 py - 1.5 rounded - lg text - xs font - medium shrink - 0 transition
-                    ${copied === label ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'} `}>
+                  className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition
+                    ${copied === label ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
                   {copied === label ? '✓ Copied' : 'Copy'}
                 </button>
               )}
@@ -67,13 +67,12 @@ function CredentialsModal({
         <div className="px-6 pb-5 flex gap-3">
           <button
             onClick={() => {
-              const all = data.filter(d => d.copyable).map(d => `${d.label}: ${d.value} `).join('\n');
+              const all = data.filter(d => d.copyable).map(d => `${d.label}: ${d.value}`).join('\n');
               navigator.clipboard.writeText(all);
               toast.success('All credentials copied!');
             }}
             className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition">
-            <ClipboardDocumentCheckIcon className="h-4 w-4 mr-2" />
-            Copy All
+            <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2 inline" /> Copy All
           </button>
           <button onClick={onClose}
             className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
@@ -131,9 +130,9 @@ function Field({
           value={value ?? ''}
           onChange={onChange}
           placeholder={placeholder}
-          className={`w - full px - 4 py - 2.5 rounded - xl bg - white border text - gray - 900 placeholder - gray - 400 text - sm
-focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
-            ${error ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'} `}
+          className={`w-full px-4 py-2.5 rounded-xl bg-white border text-gray-900 placeholder-gray-400 text-sm
+            focus:outline-none focus:ring-2 focus:ring-blue-500 transition
+            ${error ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'}`}
         />
       )}
       {error && (
@@ -181,10 +180,10 @@ function PasswordStrength({ password }: { password: string }) {
     <div className="mt-2 space-y-1">
       <div className="flex justify-between items-center">
         <span className="text-xs text-gray-500">Password strength</span>
-        <span className={`text - xs font - semibold ${level.text} `}>{level.label}</span>
+        <span className={`text-xs font-semibold ${level.text}`}>{level.label}</span>
       </div>
       <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-        <div className={`h - full rounded - full transition - all duration - 500 ${level.color} `} style={{ width }} />
+        <div className={`h-full rounded-full transition-all duration-500 ${level.color}`} style={{ width }} />
       </div>
       <p className="text-xs text-gray-400">Tip: mix uppercase, numbers & symbols</p>
     </div>
@@ -340,7 +339,7 @@ export default function CreateCompany() {
           { label: 'Admin Name', value: formData.adminName },
           { label: 'Admin Email', value: email, copyable: true },
           { label: 'Password', value: password, copyable: true },
-          { label: 'Login URL', value: `${window.location.origin} /${slug}/login`, copyable: true },
+          { label: 'Login URL', value: `${window.location.origin}/${slug}/login`, copyable: true },
         ]);
       } else {
         navigate('/admin/companies');
@@ -395,26 +394,28 @@ export default function CreateCompany() {
         </div>
 
         {/* Step list */}
-        <nav className="flex flex-col gap-2">
+        <nav className="flex flex-col gap-3">
           {STEPS.map((s) => {
             const isActive = step === s.id;
             const isCompleted = step > s.id;
             return (
               <div
                 key={s.id}
-                className={`flex items - center gap - 3 px - 4 py - 3 rounded - xl transition cursor -default
-                  ${isActive ? 'bg-blue-600 text-white shadow-md' : ''}
-                  ${isCompleted ? 'text-blue-700' : ''}
-                  ${!isActive && !isCompleted ? 'text-gray-400' : ''} `}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-default
+                  ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : ''}
+                  ${isCompleted ? 'text-blue-700 bg-blue-50/50' : ''}
+                  ${!isActive && !isCompleted ? 'text-gray-400' : ''}`}
               >
-                <div className={`w - 8 h - 8 rounded - full flex items - center justify - center text - xs font - bold shrink - 0
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0
                   ${isActive ? 'bg-white text-blue-600' : ''}
-                  ${isCompleted ? 'bg-blue-100 text-blue-700' : ''}
-                  ${!isActive && !isCompleted ? 'bg-gray-100 text-gray-400' : ''} `}>
+                  ${isCompleted ? 'bg-blue-600 text-white' : ''}
+                  ${!isActive && !isCompleted ? 'bg-gray-100 text-gray-400' : ''}`}>
                   {isCompleted ? '✓' : s.id}
                 </div>
-                <div>
-                  <div className={`text - sm font - semibold ${isActive ? 'text-white' : ''} `}>{s.label}</div>
+                <div className="min-w-0">
+                  <div className={`text-sm font-bold truncate ${isActive ? 'text-white' : isCompleted ? 'text-blue-900' : 'text-gray-500'}`}>
+                    {s.label}
+                  </div>
                 </div>
               </div>
             );
@@ -440,10 +441,10 @@ export default function CreateCompany() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className={`text - [10px] px - 2.5 py - 1 rounded - full font - bold uppercase tracking - wider
+                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
                   ${formData.subscriptionPlan === 'FREE' ? 'bg-gray-200 text-gray-600' : ''}
                   ${formData.subscriptionPlan === 'PRO' ? 'bg-blue-100 text-blue-700' : ''}
-                  ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' : ''} `}>
+                  ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' : ''}`}>
                   {formData.subscriptionPlan}
                 </span>
                 <span className="text-xs font-medium text-gray-400">{formData.subscriptionDays}d</span>
@@ -467,29 +468,27 @@ export default function CreateCompany() {
 
         <div className="flex-1 flex flex-col max-w-2xl mx-auto w-full px-6 py-12">
           {/* Progress bar */}
-          <div className="mb-10">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-12">
+            <div className="flex items-center justify-between">
               {STEPS.map((s, i) => (
-                <div key={s.id} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center">
-                    <div className={`w - 10 h - 10 rounded - full flex items - center justify - center text - sm font - bold transition - all duration - 300
+                <div key={s.id} className="flex-1 flex items-center group">
+                  <div className="flex flex-col items-center flex-1 relative">
+                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold transition-all duration-300 z-10
                       ${step > s.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : ''}
                       ${step === s.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/30 ring-4 ring-blue-600/10' : ''}
-                      ${step < s.id ? 'bg-white text-gray-400 border border-gray-200' : ''} `}>
-                      {step > s.id ? (
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>
-                      ) : s.id}
+                      ${step < s.id ? 'bg-white text-gray-300 border border-gray-100' : ''}`}>
+                      {step > s.id ? '✓' : s.id}
                     </div>
-                    <span className={`mt - 2 text - xs font - bold uppercase tracking - wider transition - colors
-                      ${step === s.id ? 'text-blue-600' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'} `}>
+                    <span className={`absolute -bottom-7 whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-colors
+                      ${step === s.id ? 'text-blue-600' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'}`}>
                       {s.label}
                     </span>
                   </div>
                   {i < STEPS.length - 1 && (
-                    <div className={`flex - 1 h - 1 mx - 4 mb - 6 rounded - full transition - colors duration - 500
-                      ${step > s.id ? 'bg-blue-600' : 'bg-gray-200'} `} />
+                    <div className="flex-1 px-2">
+                      <div className={`h-1 rounded-full transition-all duration-500
+                        ${step > s.id ? 'bg-blue-600' : 'bg-gray-100'}`} />
+                    </div>
                   )}
                 </div>
               ))}
@@ -517,7 +516,7 @@ export default function CreateCompany() {
 
                 <Field label="URL Slug" name="slug" placeholder="e.g. acme-corporation" required
                   value={formData.slug} onChange={handleChange} error={fieldErrors.slug}
-                  hint={`Your portal will be: ${window.location.origin} /${formData.slug || 'slug'}/login`} />
+                  hint={`Your portal will be: ${window.location.origin}/${formData.slug || 'slug'}/login`} />
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
@@ -601,9 +600,9 @@ export default function CreateCompany() {
                     value={formData.adminPassword}
                     onChange={handleChange}
                     placeholder="Create a strong password"
-                    className={`w - full px - 4 py - 3 rounded - xl bg - white border text - gray - 900 placeholder - gray - 400 text - sm
-focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
-                      ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'} `}
+                    className={`w-full px-4 py-3 rounded-xl bg-white border text-gray-900 placeholder-gray-400 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-blue-500 transition
+                      ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'}`}
                   />
                   {fieldErrors.adminPassword && (
                     <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">⚠ {fieldErrors.adminPassword}</p>
@@ -631,17 +630,15 @@ focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
                         key={plan}
                         type="button"
                         onClick={() => handleChange({ target: { name: 'subscriptionPlan', value: plan, type: 'select' } } as any)}
-                        className={`group relative flex flex - col items - start p - 5 rounded - 2xl border - 2 transition - all duration - 300 text - left
+                        className={`group relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-300 text-left
                           ${selected
                             ? 'border-blue-600 bg-blue-50/30'
-                            : 'border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-white'
-                          } `}
+                            : 'border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-white'}`}
                       >
-                        <div className={`text - [10px] font - bold mb - 3 px - 2.5 py - 1 rounded - full uppercase tracking - widest
+                        <div className={`text-[10px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
                           ${plan === 'FREE' ? 'bg-gray-200 text-gray-600' :
                             plan === 'PRO' ? 'bg-blue-600 text-white shadow-sm' :
-                              'bg-amber-100 text-amber-700'
-                          } `}>
+                              'bg-amber-100 text-amber-700'}`}>
                           {plan}
                         </div>
                         <p className="text-gray-900 font-bold text-lg mb-1">{info.price}</p>
@@ -747,7 +744,7 @@ focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
                   <div className="p-5 grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
                     {[
                       { label: 'Organization', value: formData.name, required: true },
-                      { label: 'Portal Path', value: `/ ${formData.slug} `, required: true },
+                      { label: 'Portal Path', value: `/${formData.slug}`, required: true },
                       { label: 'Administrator', value: formData.adminName, required: true },
                       { label: 'Admin Email', value: formData.adminEmail, required: true },
                       { label: 'Tier', value: formData.subscriptionPlan, weight: 'font-black text-blue-600 uppercase' },
@@ -757,7 +754,7 @@ focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
                     ].map(({ label, value, required, color, weight }) => (
                       <div key={label} className="flex flex-col border-b border-gray-50 pb-2">
                         <span className="text-gray-400 text-[10px] font-bold uppercase tracking-tight">{label}</span>
-                        <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800'} ${required && !value ? 'text-red-500' : ''} `}>
+                        <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800'} ${required && !value ? 'text-red-500' : ''}`}>
                           {value || (required ? '⚠ REQUIRED' : '—')}
                         </span>
                       </div>
@@ -772,17 +769,17 @@ focus: outline - none focus: ring - 2 focus: ring - blue - 500 transition
               <button
                 type="button"
                 onClick={prevStep}
-                className={`px - 6 py - 3 text - sm font - bold rounded - xl border border - gray - 200 text - gray - 500
-hover: bg - gray - 50 hover: text - gray - 900 transition flex items - center gap - 2
-                  ${step === 1 ? 'invisible' : ''} `}
+                className={`px-6 py-3 text-sm font-bold rounded-xl border border-gray-200 text-gray-500
+                  hover:bg-gray-50 hover:text-gray-900 transition flex items-center gap-2
+                  ${step === 1 ? 'invisible' : ''}`}
               >
                 <span>←</span> Back
               </button>
 
               <div className="hidden sm:flex items-center gap-2.5">
                 {STEPS.map(s => (
-                  <div key={s.id} className={`h - 2 rounded - full transition - all duration - 300
-                    ${step === s.id ? 'w-8 bg-blue-600 shadow-sm' : step > s.id ? 'w-2 bg-blue-200' : 'w-2 bg-gray-100'} `} />
+                  <div key={s.id} className={`h-2 rounded-full transition-all duration-300
+                    ${step === s.id ? 'w-8 bg-blue-600 shadow-sm' : step > s.id ? 'w-2 bg-blue-200' : 'w-2 bg-gray-100'}`} />
                 ))}
               </div>
 
