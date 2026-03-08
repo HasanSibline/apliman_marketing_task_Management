@@ -12,7 +12,13 @@ export class ChatService {
   constructor(
     private prisma: PrismaService,
     private httpService: HttpService,
-  ) {}
+  ) { }
+
+  /** Authorization headers sent with every AI service request */
+  private get aiServiceHeaders(): Record<string, string> {
+    const secret = process.env.AI_SERVICE_SECRET || '';
+    return secret ? { Authorization: `Bearer ${secret}` } : {};
+  }
 
   /**
    * Get or create a chat session for a user
@@ -82,7 +88,7 @@ export class ChatService {
    */
   async updateUserContext(userId: string, newContext: any) {
     const existing = await this.getUserContext(userId);
-    
+
     // Intelligently merge contexts - new values override old ones (for corrections)
     const updatedContext = this.mergeContextIntelligently(
       existing.context as any,
@@ -170,7 +176,7 @@ export class ChatService {
 
       // Get user's company ID for filtering
       const userCompanyId = user.companyId;
-      
+
       this.logger.log(`🏢 User company ID: ${userCompanyId}`);
 
       if (!userCompanyId) {
@@ -181,10 +187,10 @@ export class ChatService {
       // Get company's AI API key
       const company = await this.prisma.company.findUnique({
         where: { id: userCompanyId },
-        select: { 
-          aiApiKey: true, 
+        select: {
+          aiApiKey: true,
           aiEnabled: true,
-          name: true 
+          name: true
         },
       });
 
@@ -199,7 +205,7 @@ export class ChatService {
 
       // Get knowledge sources (COMPANY-SPECIFIC ONLY)
       const knowledgeSources = await this.prisma.knowledgeSource.findMany({
-        where: { 
+        where: {
           isActive: true,
           companyId: userCompanyId // CRITICAL: Only get this company's knowledge sources
         },
@@ -213,7 +219,7 @@ export class ChatService {
           metadata: true,
         },
       });
-      
+
       this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for company ${company.name}`);
       knowledgeSources.forEach(ks => {
         this.logger.log(`  - ${ks.name} (${ks.type}): ${ks.content ? `${ks.content.length} chars` : 'NO CONTENT'}`);
@@ -492,6 +498,7 @@ export class ChatService {
     try {
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/chat`, data, {
+          headers: this.aiServiceHeaders,
           timeout: 30000,
         }),
       );
@@ -499,7 +506,7 @@ export class ChatService {
       return response.data;
     } catch (error) {
       this.logger.error('Error calling AI chat service:', error.message);
-      
+
       // Fallback response if AI service is unavailable
       return {
         message: "I'm having trouble connecting to my AI brain right now. Please try again in a moment.",
@@ -598,7 +605,10 @@ export class ChatService {
           completedTasks,
           activeTasks,
         },
-        { timeout: 30000 }
+        {
+          headers: this.aiServiceHeaders,
+          timeout: 30000
+        }
       );
 
       // Update user context with learned insights
@@ -679,7 +689,10 @@ export class ChatService {
           userQuestions: questions,
           existingKnowledge: userContext.context,
         },
-        { timeout: 30000 }
+        {
+          headers: this.aiServiceHeaders,
+          timeout: 30000
+        }
       );
 
       if (aiResponse.data?.learnedInterests) {
