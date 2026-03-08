@@ -27,6 +27,13 @@ export class AppController {
     return this.appService.getHealth();
   }
 
+  @Get('api/health')
+  @ApiOperation({ summary: 'Detailed health check (backwards compatibility)' })
+  @ApiResponse({ status: 200, description: 'Detailed health information' })
+  getApiHealth() {
+    return this.appService.getHealth();
+  }
+
   @Get('keepalive')
   @ApiOperation({ summary: 'Keepalive endpoint to prevent service sleep' })
   @ApiResponse({ status: 200, description: 'Service is alive' })
@@ -40,6 +47,12 @@ export class AppController {
       timestamp: new Date().toISOString(),
       message: 'Service is awake and running'
     };
+  }
+
+  @Get('api/keepalive')
+  @ApiOperation({ summary: 'Keepalive endpoint (backwards compatibility)' })
+  getApiKeepalive() {
+    return this.getKeepalive();
   }
 
   @Get('keepalive/ai')
@@ -57,5 +70,11 @@ export class AppController {
       console.warn('AI keepalive error:', error.message);
       return { status: 'error', message: 'AI Service unreachable', timestamp: new Date().toISOString() };
     }
+  }
+
+  @Get('api/keepalive/ai')
+  @ApiOperation({ summary: 'Keepalive proxy for Python AI service (backwards compatibility)' })
+  async getApiAiKeepalive() {
+    return this.getAiKeepalive();
   }
 }
