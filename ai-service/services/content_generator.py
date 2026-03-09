@@ -244,18 +244,12 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                                 last_error = f"All API keys exhausted. Quota exceeded: {error_text}"
                                 break
                         
-                        # Other errors
+                        # Other errors (400, 401, 500 etc)
                         else:
                             error_text = await response.text()
-                            logger.error(f"Gemini API request failed with status {response.status}: {error_text}")
-                            last_error = f"Gemini API request failed: {error_text}"
-                            
-                            # Try next key for server errors (5xx)
-                            if response.status >= 500 and self._rotate_api_key():
-                                attempts += 1
-                                continue
-                            else:
-                                break
+                            last_error = f"Gemini API request failed with status {response.status}: {error_text}"
+                            logger.error(f"❌ {last_error}")
+                            break # Critical error, don't retry with same key
                         
             except aiohttp.ClientError as e:
                 logger.error(f"Gemini network error with key {self.current_key_index}: {str(e)}")

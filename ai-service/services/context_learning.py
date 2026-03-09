@@ -4,6 +4,8 @@ import google.generativeai as genai
 from datetime import datetime
 import json
 import re
+import aiohttp
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -11,11 +13,12 @@ class ContextLearningService:
     """Advanced AI-powered context learning service that learns and updates user information"""
 
     def __init__(self, api_key: str, model_name: str):
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(model_name)
+        self.api_key = api_key
+        self.model_name = model_name
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
         logger.info(f"✅ ContextLearningService initialized with {model_name}")
 
-    def extract_and_update_context(
+    async def extract_and_update_context(
         self,
         message: str,
         existing_context: Dict[str, Any],
@@ -80,8 +83,8 @@ Response format:
 
 JSON Response:"""
 
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
+            response_text = await self._generate_via_rest(prompt)
+            # Response already stripped in _generate_via_rest
             
             # Extract JSON from response
             learned_context = self._extract_json_from_response(response_text)
@@ -96,7 +99,7 @@ JSON Response:"""
             logger.error(f"Error extracting context: {e}")
             return None
 
-    def learn_from_tasks(
+    async def learn_from_tasks(
         self,
         completed_tasks: List[Dict[str, Any]],
         active_tasks: List[Dict[str, Any]],
@@ -154,8 +157,7 @@ Response format (JSON only):
 
 JSON Response:"""
 
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
+            response_text = await self._generate_via_rest(prompt)
             
             learned_context = self._extract_json_from_response(response_text)
             
@@ -169,7 +171,7 @@ JSON Response:"""
             logger.error(f"Error learning from tasks: {e}")
             return None
 
-    def learn_about_domain(
+    async def learn_about_domain(
         self,
         domain_topic: str,
         user_questions: List[str],
@@ -213,8 +215,7 @@ Return as JSON:
 
 JSON Response:"""
 
-            response = self.model.generate_content(prompt)
-            response_text = response.text.strip()
+            response_text = await self._generate_via_rest(prompt)
             
             learned = self._extract_json_from_response(response_text)
             
@@ -324,6 +325,29 @@ JSON Response:"""
             except:
                 pass
         
-        logger.warning(f"Could not extract JSON from response: {response_text[:200]}")
-        return None
+    async def _generate_via_rest(self, prompt: str) -> str:
+        """Make a stateless request to Gemini API via REST"""
+        url = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('candidates') and data['candidates'][0].get('content'):
+                            return data['candidates'][0]['content']['parts'][0]['text']
+                        else:
+                            logger.error(f"Empty Gemini response in learning: {data}")
+                            raise Exception("No response from AI")
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Gemini API failure in learning ({response.status}): {error_text}")
+                        raise Exception(f"AI service error during learning: {response.status}")
+        except Exception as e:
+            logger.error(f"REST AI learning request failed: {str(e)}")
+            raise e
 

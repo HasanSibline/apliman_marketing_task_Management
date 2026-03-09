@@ -4,6 +4,8 @@ import google.generativeai as genai
 from datetime import datetime
 import json
 import os
+import aiohttp
+import asyncio
 from .context_learning import ContextLearningService
 
 logger = logging.getLogger(__name__)
@@ -12,14 +14,14 @@ class ChatService:
     """Service for handling conversational AI chat with context and memory"""
 
     def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
+        self.api_key = api_key
         # Use the same model as content generation (from config)
-        model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-        self.model = genai.GenerativeModel(model_name)
-        self.learning_service = ContextLearningService(api_key, model_name)
-        logger.info(f"✅ ChatService initialized with {model_name}")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+        self.learning_service = ContextLearningService(api_key, self.model_name)
+        logger.info(f"✅ ChatService initialized with {self.model_name}")
 
-    def process_chat_message(
+    async def process_chat_message(
         self,
         message: str,
         user_context: Dict[str, Any],
@@ -70,12 +72,12 @@ class ChatService:
 User: {message}
 ApliChat:"""
 
-            # Generate response
-            response = self.model.generate_content(full_prompt)
-            response_text = response.text.strip()
+            # Generate response via REST API (stateless for multi-tenancy)
+            response_text = await self._generate_via_rest(full_prompt)
+            response_text = response_text.strip()
 
             # Use AI to intelligently extract and update context
-            learned_context = self.learning_service.extract_and_update_context(
+            learned_context = await self.learning_service.extract_and_update_context(
                 message=message,
                 existing_context=user_context,
                 conversation_history=conversation_history,
@@ -93,12 +95,38 @@ ApliChat:"""
             }
 
         except Exception as e:
-            logger.error(f"Error processing chat message: {e}")
+            logger.error(f"Error processing chat message: {str(e)}")
             return {
                 "message": "I'm having a bit of trouble understanding that. Could you rephrase?",
                 "contextUsed": False,
                 "learnedContext": None
             }
+
+    async def _generate_via_rest(self, prompt: str) -> str:
+        """Make a stateless request to Gemini API via REST"""
+        url = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}]
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('candidates') and data['candidates'][0].get('content'):
+                            return data['candidates'][0]['content']['parts'][0]['text']
+                        else:
+                            logger.error(f"Empty Gemini response: {data}")
+                            raise Exception("No response from AI")
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"Gemini API failure ({response.status}): {error_text}")
+                        raise Exception(f"AI service error: {response.status}")
+        except Exception as e:
+            logger.error(f"REST AI request failed: {str(e)}")
+            raise e
 
     def _build_system_prompt(
         self,
@@ -269,7 +297,7 @@ CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
 
         return history_text
 
-    def learn_from_task_history(
+    async def learn_from_task_history(
         self,
         user_context: Dict[str, Any],
         completed_tasks: List[Dict[str, Any]],
@@ -287,7 +315,7 @@ CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
             Learned context from tasks
         """
         try:
-            return self.learning_service.learn_from_tasks(
+            return await self.learning_service.learn_from_tasks(
                 completed_tasks=completed_tasks,
                 active_tasks=active_tasks,
                 existing_context=user_context
@@ -296,7 +324,7 @@ CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
             logger.error(f"Error learning from task history: {e}")
             return None
     
-    def learn_about_domain_interests(
+    async def learn_about_domain_interests(
         self,
         domain_topic: str,
         user_questions: List[str],
@@ -314,7 +342,7 @@ CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
             Updated knowledge about user's domain interests
         """
         try:
-            return self.learning_service.learn_about_domain(
+            return await self.learning_service.learn_about_domain(
                 domain_topic=domain_topic,
                 user_questions=user_questions,
                 existing_knowledge=existing_knowledge

@@ -342,9 +342,8 @@ async def chat(request: ChatRequest):
         # Create a temporary chat service with the provided API key
         temp_chat_service = ChatService(api_key_to_use)
         
-        # Run synchronous chat processing in a thread to avoid blocking the event loop
-        result = await asyncio.to_thread(
-            temp_chat_service.process_chat_message,
+        # Process chat message (now async)
+        result = await temp_chat_service.process_chat_message(
             message=request.message,
             user_context=request.userContext,
             user=request.user,

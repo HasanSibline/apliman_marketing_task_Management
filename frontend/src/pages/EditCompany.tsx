@@ -362,12 +362,33 @@ export default function EditCompany() {
                 name="subscriptionPlan"
                 value={formData.subscriptionPlan}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
               >
                 <option value="FREE">Free (5 users, 100 tasks, 1 GB)</option>
                 <option value="PRO">Pro (25 users, 5000 tasks, 10 GB) - $99/month</option>
                 <option value="ENTERPRISE">Enterprise (Unlimited) - $299/month</option>
               </select>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Users</label>
+                  <input type="number" name="maxUsers" value={formData.maxUsers} onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
+                  <p className="text-[10px] text-gray-400 mt-1">(-1 for unlimited)</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Tasks</label>
+                  <input type="number" name="maxTasks" value={formData.maxTasks} onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
+                  <p className="text-[10px] text-gray-400 mt-1">(-1 for unlimited)</p>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Storage (GB)</label>
+                  <input type="number" name="maxStorage" value={formData.maxStorage} onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
+                  <p className="text-[10px] text-gray-400 mt-1">(-1 for unlimited)</p>
+                </div>
+              </div>
             </div>
           </div>
 
