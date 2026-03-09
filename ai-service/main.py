@@ -284,13 +284,12 @@ async def generate_content(request: GenerateContentRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Content generation failed: {e}")
+        logger.error(f"AI content generation failed: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail={
                 "status": "error",
-                "message": f"Content generation failed: {str(e)}",
-                "ai_provider": "gemini"
+                "message": f"{str(e)}"
             }
         )
 
@@ -357,12 +356,12 @@ async def chat(request: ChatRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Chat processing failed: {e}")
+        logger.error(f"Chat processing failed: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail={
                 "status": "error",
-                "message": f"Chat processing failed: {str(e)}"
+                "message": str(e)
             }
         )
 

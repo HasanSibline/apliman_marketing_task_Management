@@ -218,7 +218,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             
             try:
                 async with aiohttp.ClientSession() as session:
-                    async with session.post(f"{url}?key={current_key}", headers=headers, json=payload) as response:
+                    async with session.post(url, headers=headers, json=payload) as response:
                         if response.status == 200:
                             data = await response.json()
                             if not data.get('candidates', []):
@@ -244,31 +244,38 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                                 last_error = f"All API keys exhausted. Quota exceeded: {error_text}"
                                 break
                         
-                        # Other errors (400, 401, 500 etc)
+                        # Handle other errors (400, 401, 403, 500 etc)
                         else:
                             error_text = await response.text()
-                            last_error = f"Gemini API request failed with status {response.status}: {error_text}"
+                            # Parse JSON error if possible
+                            try:
+                                error_json = json.loads(error_text)
+                                if 'error' in error_json:
+                                    last_error = f"Gemini API Error {response.status}: {error_json['error'].get('message', error_text)}"
+                                else:
+                                    last_error = f"Gemini API Error {response.status}: {error_text}"
+                            except:
+                                last_error = f"Gemini API Error {response.status}: {error_text}"
+                                
                             logger.error(f"❌ {last_error}")
                             break # Critical error, don't retry with same key
-                        
+                            
             except aiohttp.ClientError as e:
-                logger.error(f"Gemini network error with key {self.current_key_index}: {str(e)}")
-                last_error = f"Gemini network error: {str(e)}"
-                
-                # Try next key on network error
+                last_error = f"Connection error during AI request: {str(e)}"
+                logger.error(f"❌ {last_error}")
+                # Try another key for network errors
                 if self._rotate_api_key():
                     attempts += 1
                     continue
-                else:
-                    break
+                break
             
             except Exception as e:
-                logger.error(f"Error making Gemini request with key {self.current_key_index}: {str(e)}")
-                last_error = f"Error making Gemini request: {str(e)}"
+                last_error = f"Error making Gemini request with key {self.current_key_index}: {str(e)}"
+                logger.error(f"❌ {last_error}")
                 break
         
         # All attempts failed
-        raise ContentGeneratorError(last_error or "All API keys failed")
+        raise ContentGeneratorError(last_error or "AI generation failed for unknown reasons")
             
     async def _make_legacy_request(self, prompt: str) -> str:
         """Make a request to legacy AI system"""

@@ -21,7 +21,7 @@ interface EditCompanyForm {
 const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
   FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 'Free' },
   PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
-  ENTERPRISE: { maxUsers: 200, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
+  ENTERPRISE: { maxUsers: -1, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
 };
 
 export default function EditCompany() {
@@ -67,9 +67,9 @@ export default function EditCompany() {
         aiApiKey: company.aiEnabled ? '******' : '', // Show masking instead of removed
         aiProvider: company.aiProvider || 'gemini',
         aiEnabled: company.aiEnabled || false,
-        maxUsers: company.maxUsers || 50,
-        maxTasks: company.maxTasks || 5000,
-        maxStorage: company.maxStorage || 10,
+        maxUsers: company.maxUsers ?? 5,
+        maxTasks: company.maxTasks ?? 100,
+        maxStorage: company.maxStorage ?? 1,
         billingEmail: company.billingEmail || '',
       });
 
@@ -100,7 +100,13 @@ export default function EditCompany() {
         [name]: checked,
       }));
     } else {
-      const newValue = type === 'number' ? parseInt(value) || 0 : value;
+      let newValue: any = value;
+      if (type === 'number') {
+        const parsed = parseInt(value);
+        newValue = isNaN(parsed) ? 0 : parsed;
+        // For limits, we might want to allow -1, so 0 if empty is safe for now
+        if (value === '') newValue = 0;
+      }
       setFormData(prev => {
         const updated = { ...prev, [name]: newValue };
         if (name === 'subscriptionPlan') {

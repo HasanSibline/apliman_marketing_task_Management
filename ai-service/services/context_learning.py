@@ -327,8 +327,11 @@ JSON Response:"""
         
     async def _generate_via_rest(self, prompt: str) -> str:
         """Make a stateless request to Gemini API via REST"""
-        url = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
-        headers = {'Content-Type': 'application/json'}
+        url = f"{self.base_url}/models/{self.model_name}:generateContent"
+        headers = {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': self.api_key
+        }
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
         }
@@ -345,8 +348,13 @@ JSON Response:"""
                             raise Exception("No response from AI")
                     else:
                         error_text = await response.text()
-                        logger.error(f"Gemini API failure in learning ({response.status}): {error_text}")
-                        raise Exception(f"AI service error during learning: {response.status}")
+                        try:
+                            error_json = json.loads(error_text)
+                            msg = error_json.get('error', {}).get('message', error_text)
+                        except:
+                            msg = error_text
+                        logger.error(f"Gemini API failure in learning ({response.status}): {msg}")
+                        raise Exception(f"Gemini API Error {response.status}: {msg}")
         except Exception as e:
             logger.error(f"REST AI learning request failed: {str(e)}")
             raise e

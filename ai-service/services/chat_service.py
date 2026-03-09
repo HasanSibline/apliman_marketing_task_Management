@@ -104,29 +104,57 @@ ApliChat:"""
 
     async def _generate_via_rest(self, prompt: str) -> str:
         """Make a stateless request to Gemini API via REST"""
-        url = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
-        headers = {'Content-Type': 'application/json'}
+        url = f"{self.base_url}/models/{self.model_name}:generateContent"
+        headers = {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': self.api_key
+        }
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
         }
         
+        last_error = None
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
                     if response.status == 200:
                         data = await response.json()
                         if data.get('candidates') and data['candidates'][0].get('content'):
                             return data['candidates'][0]['content']['parts'][0]['text']
                         else:
-                            logger.error(f"Empty Gemini response: {data}")
-                            raise Exception("No response from AI")
+                            # Handle other errors (400, 401, 403, 500 etc)
+                            error_text = await response.text()
+                            # Parse JSON error if possible
+                            try:
+                                error_json = json.loads(error_text)
+                                if 'error' in error_json:
+                                    last_error = f"Gemini API Error {response.status}: {error_json['error'].get('message', error_text)}"
+                                else:
+                                    last_error = f"Gemini API Error {response.status}: {error_text}"
+                            except:
+                                last_error = f"Gemini API Error {response.status}: {error_text}"
+                            
+                            logger.error(f"❌ {last_error}")
+                            raise Exception(last_error) # Critical error, don't retry with same key
                     else:
                         error_text = await response.text()
-                        logger.error(f"Gemini API failure ({response.status}): {error_text}")
-                        raise Exception(f"AI service error: {response.status}")
+                        # Try to parse error message
+                        try:
+                            error_json = json.loads(error_text)
+                            msg = error_json.get('error', {}).get('message', error_text)
+                        except:
+                            msg = error_text
+                        last_error = f"Gemini API failure ({response.status}): {msg}"
+                        logger.error(f"❌ {last_error}")
+                        raise Exception(last_error)
+        except aiohttp.ClientError as e:
+            last_error = f"Connection error during AI request: {str(e)}"
+            logger.error(f"❌ {last_error}")
+            raise Exception(last_error)
         except Exception as e:
-            logger.error(f"REST AI request failed: {str(e)}")
-            raise e
+            last_error = f"REST AI request failed: {str(e)}"
+            logger.error(f"❌ {last_error}")
+            raise Exception(last_error)
 
     def _build_system_prompt(
         self,

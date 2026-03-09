@@ -39,19 +39,16 @@ export class UpdateCompanyDto {
   @ApiProperty({ example: 25, description: 'Maximum number of users', required: false })
   @IsOptional()
   @IsInt()
-  @Min(-1)
   maxUsers?: number;
 
   @ApiProperty({ example: 5000, description: 'Maximum number of tasks', required: false })
   @IsOptional()
   @IsInt()
-  @Min(-1)
   maxTasks?: number;
 
   @ApiProperty({ example: 10, description: 'Maximum storage in GB', required: false })
   @IsOptional()
   @IsInt()
-  @Min(-1)
   maxStorage?: number;
 
   @ApiProperty({ example: 'YOUR_NEW_API_KEY', description: 'AI API key', required: false })
