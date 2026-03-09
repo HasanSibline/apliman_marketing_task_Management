@@ -16,7 +16,7 @@ class ChatService:
     def __init__(self, api_key: str):
         self.api_key = api_key
         # Use the same model as content generation (from config)
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+        self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
         self.learning_service = ContextLearningService(api_key, self.model_name)
         logger.info(f"✅ ChatService initialized with {self.model_name}")
