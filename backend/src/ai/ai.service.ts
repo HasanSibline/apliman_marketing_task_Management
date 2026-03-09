@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, HttpException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -396,8 +396,21 @@ export class AiService {
       }
 
       // Re-throw with more context
-      const errorMessage = error.response?.data?.detail || error.message || 'AI content generation failed';
-      throw new Error(errorMessage);
+      let errorMessage = 'AI content generation failed';
+      if (error.response?.data?.detail) {
+        if (typeof error.response.data.detail === 'string') {
+          errorMessage = error.response.data.detail;
+        } else if (error.response.data.detail.message) {
+          errorMessage = error.response.data.detail.message;
+        } else {
+          errorMessage = JSON.stringify(error.response.data.detail);
+        }
+      } else {
+        errorMessage = error.message || 'AI service error';
+      }
+
+      this.logger.error(`   Returning error to client: ${errorMessage}`);
+      throw new HttpException(errorMessage, error.response?.status || 500);
     }
   }
 

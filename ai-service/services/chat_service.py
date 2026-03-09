@@ -122,23 +122,11 @@ ApliChat:"""
                         if data.get('candidates') and data['candidates'][0].get('content'):
                             return data['candidates'][0]['content']['parts'][0]['text']
                         else:
-                            # Handle other errors (400, 401, 403, 500 etc)
-                            error_text = await response.text()
-                            # Parse JSON error if possible
-                            try:
-                                error_json = json.loads(error_text)
-                                if 'error' in error_json:
-                                    last_error = f"Gemini API Error {response.status}: {error_json['error'].get('message', error_text)}"
-                                else:
-                                    last_error = f"Gemini API Error {response.status}: {error_text}"
-                            except:
-                                last_error = f"Gemini API Error {response.status}: {error_text}"
-                            
-                            logger.error(f"❌ {last_error}")
-                            raise Exception(last_error) # Critical error, don't retry with same key
+                            msg = "AI returned an empty response. This is usually caused by Google's safety filters blocking the content."
+                            logger.warning(f"⚠️ {msg}")
+                            raise Exception(msg)
                     else:
                         error_text = await response.text()
-                        # Try to parse error message
                         try:
                             error_json = json.loads(error_text)
                             msg = error_json.get('error', {}).get('message', error_text)

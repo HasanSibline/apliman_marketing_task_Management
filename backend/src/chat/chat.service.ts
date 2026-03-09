@@ -505,7 +505,10 @@ export class ChatService {
 
       return response.data;
     } catch (error) {
-      this.logger.error('Error calling AI chat service:', error.message);
+      const detailedError = error.response?.data?.detail
+        ? (typeof error.response.data.detail === 'string' ? error.response.data.detail : JSON.stringify(error.response.data.detail))
+        : error.message;
+      this.logger.error('Error calling AI chat service:', detailedError);
 
       // Fallback response if AI service is unavailable
       return {

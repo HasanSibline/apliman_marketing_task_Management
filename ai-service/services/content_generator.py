@@ -221,8 +221,8 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                     async with session.post(url, headers=headers, json=payload) as response:
                         if response.status == 200:
                             data = await response.json()
-                            if not data.get('candidates', []):
-                                raise ContentGeneratorError("No response from Gemini")
+                            if not data.get('candidates', []) or not data['candidates'][0].get('content'):
+                                raise ContentGeneratorError("AI returned an empty response. This is usually caused by safety filters.")
                             
                             # Success! Log which key worked
                             if attempts > 0:
