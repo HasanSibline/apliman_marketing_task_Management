@@ -370,10 +370,27 @@ async def detect_task_type(request: dict):
     """Detect task type from title"""
     try:
         title = request.get("title", "")
+        api_key = request.get("api_key", None)
+        
         if not title:
             raise HTTPException(status_code=400, detail="Title required")
         
-        task_type = await content_generator.detect_task_type(title)
+        # CRITICAL: Use company-provided API key if available
+        api_key_to_use = api_key
+        
+        # If no API key provided, check environment fallback
+        if not api_key_to_use:
+            api_keys = config.get_api_keys()
+            if not api_keys:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No API key provided. AI is not enabled for your company."
+                )
+            api_key_to_use = api_keys[0]
+        
+        # Create a temporary content generator with the provided API key
+        temp_generator = ContentGenerator(api_key_to_use)
+        task_type = await temp_generator.detect_task_type(title)
         
         return {
             "task_type": task_type,
@@ -441,6 +458,20 @@ async def generate_performance_insights(request: dict):
     """Generate performance insights from analytics data"""
     try:
         analytics_data = request.get("analytics", {})
+        api_key = request.get("api_key", None)
+        
+        # CRITICAL: Use company-provided API key if available
+        api_key_to_use = api_key
+        
+        # If no API key provided, check environment fallback
+        if not api_key_to_use:
+            api_keys = config.get_api_keys()
+            if not api_keys:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No API key provided. AI is not enabled for your company."
+                )
+            api_key_to_use = api_keys[0]
         
         # Create a prompt for performance insights
         prompt = f"""
@@ -459,8 +490,9 @@ async def generate_performance_insights(request: dict):
         Format the response as JSON with 'insights', 'recommendations', and 'trends' arrays.
         """
         
-        # Generate insights using Gemini
-        response = await content_generator._make_gemini_request(prompt)
+        # Use temp generator for insight generation with company key
+        temp_generator = ContentGenerator(api_key_to_use)
+        response = await temp_generator._make_gemini_request(prompt)
         
         # Try to parse as JSON, fallback to structured response
         try:
@@ -495,12 +527,29 @@ class LearnFromTasksRequest(BaseModel):
     userContext: Dict[str, Any]
     completedTasks: List[Dict[str, Any]]
     activeTasks: List[Dict[str, Any]]
+    api_key: Optional[str] = None  # Company-specific API key
 
 @app.post("/learn-from-tasks")
 async def learn_from_tasks(request: LearnFromTasksRequest):
     """Learn from user's task history to extract insights and patterns"""
     try:
-        learned_context = chat_service.learn_from_task_history(
+        # CRITICAL: Use company-provided API key if available
+        api_key_to_use = request.api_key
+        
+        # If no API key provided, check environment fallback
+        if not api_key_to_use:
+            api_keys = config.get_api_keys()
+            if not api_keys:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No API key provided. AI is not enabled for your company."
+                )
+            api_key_to_use = api_keys[0]
+        
+        # Create a temporary chat service with the provided API key
+        temp_chat_service = ChatService(api_key_to_use)
+        
+        learned_context = await temp_chat_service.learn_from_task_history(
             user_context=request.userContext,
             completed_tasks=request.completedTasks,
             active_tasks=request.activeTasks
@@ -525,12 +574,29 @@ class LearnDomainInterestsRequest(BaseModel):
     domainTopic: str
     userQuestions: List[str]
     existingKnowledge: Dict[str, Any]
+    api_key: Optional[str] = None  # Company-specific API key
 
 @app.post("/learn-domain-interests")
 async def learn_domain_interests(request: LearnDomainInterestsRequest):
     """Learn what the user is interested in regarding specific domains"""
     try:
-        learned_interests = chat_service.learn_about_domain_interests(
+        # CRITICAL: Use company-provided API key if available
+        api_key_to_use = request.api_key
+        
+        # If no API key provided, check environment fallback
+        if not api_key_to_use:
+            api_keys = config.get_api_keys()
+            if not api_keys:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No API key provided. AI is not enabled for your company."
+                )
+            api_key_to_use = api_keys[0]
+            
+        # Create a temporary chat service with the provided API key
+        temp_chat_service = ChatService(api_key_to_use)
+        
+        learned_interests = await temp_chat_service.learn_about_domain_interests(
             domain_topic=request.domainTopic,
             user_questions=request.userQuestions,
             existing_knowledge=request.existingKnowledge

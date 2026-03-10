@@ -17,6 +17,7 @@ import { CompaniesModule } from './companies/companies.module';
 import { SystemModule } from './system/system.module';
 import { QuartersModule } from './quarters/quarters.module';
 import { ObjectivesModule } from './objectives/objectives.module';
+import { PlansModule } from './plans/plans.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -43,6 +44,7 @@ import { AppService } from './app.service';
     SystemModule,
     QuartersModule,
     ObjectivesModule,
+    PlansModule,
   ],
   controllers: [AppController],
   providers: [AppService],

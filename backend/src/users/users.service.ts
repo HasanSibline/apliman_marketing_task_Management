@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Inject, forwardRef } from '@nestjs/common';
+import { CompaniesService } from '../companies/companies.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -9,10 +10,30 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => CompaniesService))
+    private companiesService: CompaniesService
+  ) { }
 
   async create(createUserDto: CreateUserDto) {
     try {
+      // Check user limits (skip for system admins)
+      if (createUserDto.companyId) {
+        const limits = await this.companiesService.getCompanyResourceLimits(createUserDto.companyId);
+        if (limits && limits.maxUsers !== -1) {
+          const currentUsers = await this.prisma.user.count({
+            where: {
+              companyId: createUserDto.companyId,
+              status: { not: UserStatus.RETIRED }
+            },
+          });
+
+          if (currentUsers >= limits.maxUsers) {
+            throw new BadRequestException(`User limit reached for this company (${limits.maxUsers} users). Please upgrade your plan.`);
+          }
+        }
+      }
       const user = await this.prisma.user.create({
         data: {
           ...createUserDto,

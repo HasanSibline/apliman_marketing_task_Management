@@ -327,7 +327,10 @@ JSON Response:"""
         
     async def _generate_via_rest(self, prompt: str) -> str:
         """Make a stateless request to Gemini API via REST"""
-        url = f"{self.base_url}/models/{self.model_name}:generateContent"
+        # Try both Header and Query Param for maximum compatibility
+        url_query = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
+        url_header = f"{self.base_url}/models/{self.model_name}:generateContent"
+        
         headers = {
             'Content-Type': 'application/json',
             'X-goog-api-key': self.api_key
@@ -336,16 +339,21 @@ JSON Response:"""
             "contents": [{"parts": [{"text": prompt}]}]
         }
         
+        last_error = None
+        
+        # Try Query Param first
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                async with session.post(url_query, headers={'Content-Type': 'application/json'}, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
                     if response.status == 200:
                         data = await response.json()
                         if data.get('candidates') and data['candidates'][0].get('content'):
                             return data['candidates'][0]['content']['parts'][0]['text']
                         else:
-                            logger.error(f"Empty Gemini response in learning: {data}")
-                            raise Exception("No response from AI")
+                            raise Exception("AI returned an empty response.")
+                    elif response.status == 400 and "API Key not found" in await response.text():
+                        # Fallback to header if query param rejected
+                        pass 
                     else:
                         error_text = await response.text()
                         try:
@@ -353,9 +361,35 @@ JSON Response:"""
                             msg = error_json.get('error', {}).get('message', error_text)
                         except:
                             msg = error_text
-                        logger.error(f"Gemini API failure in learning ({response.status}): {msg}")
-                        raise Exception(f"Gemini API Error {response.status}: {msg}")
+                        last_error = f"Gemini API failure in learning ({response.status}): {msg}"
+                        logger.error(f"❌ {last_error}")
+                        raise Exception(last_error)
         except Exception as e:
-            logger.error(f"REST AI learning request failed: {str(e)}")
+            if "Gemini API failure" in str(e):
+                raise e
+            logger.warning(f"Query param learning attempt failed: {str(e)}. Retrying with header auth...")
+
+        # Fallback to Header Auth
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url_header, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('candidates') and data['candidates'][0].get('content'):
+                            return data['candidates'][0]['content']['parts'][0]['text']
+                        else:
+                            raise Exception("AI returned an empty response (Header Auth).")
+                    else:
+                        error_text = await response.text()
+                        try:
+                            error_json = json.loads(error_text)
+                            msg = error_json.get('error', {}).get('message', error_text)
+                        except:
+                            msg = error_text
+                        last_error = f"Gemini API failure in learning ({response.status}): {msg}"
+                        logger.error(f"❌ {last_error}")
+                        raise Exception(last_error)
+        except Exception as e:
+            logger.error(f"❌ Both auth methods failed for AI learning: {str(e)}")
             raise e
 

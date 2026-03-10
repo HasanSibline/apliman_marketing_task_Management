@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  ServerIcon, 
+import {
+  ServerIcon,
   ShieldCheckIcon,
   ClockIcon,
   DocumentTextIcon,
@@ -89,6 +89,26 @@ const AdminSettings: React.FC = () => {
         },
       ],
     },
+    {
+      title: 'Plan & Billing Settings',
+      icon: ShieldCheckIcon,
+      settings: [],
+      isCustom: true,
+      render: () => (
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-900">Manage Subscription Plans</p>
+            <p className="text-xs text-gray-500">Configure global limits and pricing for all tiers</p>
+          </div>
+          <button
+            onClick={() => window.location.href = '/admin/plans'}
+            className="px-4 py-2 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            Go to Plan Settings
+          </button>
+        </div>
+      )
+    },
   ];
 
   if (loading) {
@@ -124,20 +144,24 @@ const AdminSettings: React.FC = () => {
               </div>
             </div>
             <div className="px-6 py-4 space-y-4">
-              {section.settings.map((setting) => (
-                <div key={setting.label}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {setting.label}
-                  </label>
-                  <input
-                    type={setting.type}
-                    value={setting.value}
-                    onChange={(e) => setting.onChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">{setting.description}</p>
-                </div>
-              ))}
+              {section.isCustom ? (
+                section.render()
+              ) : (
+                section.settings.map((setting) => (
+                  <div key={setting.label}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {setting.label}
+                    </label>
+                    <input
+                      type={setting.type}
+                      value={setting.value}
+                      onChange={(e) => setting.onChange(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">{setting.description}</p>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         ))}
@@ -236,7 +260,7 @@ const AdminSettings: React.FC = () => {
             <h3 className="text-sm font-medium text-yellow-800">Important Notice</h3>
             <div className="mt-2 text-sm text-yellow-700">
               <p>
-                Changes to system settings affect all companies on the platform. 
+                Changes to system settings affect all companies on the platform.
                 Use caution when modifying these values.
               </p>
             </div>

@@ -186,11 +186,13 @@ export class AiService {
     isComplete: boolean;
   }> {
     try {
+      const apiKey = await this.getCompanyAiApiKey(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/check-completeness`, {
           description: taskDescription,
           goals,
           phase: currentPhase,
+          api_key: apiKey,
         }, {
           headers: this.aiServiceHeaders,
         }),
@@ -212,15 +214,17 @@ export class AiService {
     }
   }
 
-  async generatePerformanceInsights(analyticsData: PerformanceInsightsDto): Promise<{
+  async generatePerformanceInsights(analyticsData: PerformanceInsightsDto, userId?: string): Promise<{
     insights: string[];
     recommendations: string[];
     trends: string[];
   }> {
     try {
+      const apiKey = await this.getCompanyAiApiKey(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/performance-insights`, {
           analytics: analyticsData,
+          api_key: apiKey,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000, // 15 second timeout for complex analysis
@@ -243,12 +247,14 @@ export class AiService {
     }
   }
 
-  async extractTextFromFile(filePath: string, mimeType: string): Promise<string> {
+  async extractTextFromFile(filePath: string, mimeType: string, userId?: string): Promise<string> {
     try {
+      const apiKey = await this.getCompanyAiApiKey(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/extract-text`, {
           file_path: filePath,
           mime_type: mimeType,
+          api_key: apiKey,
         }, {
           headers: this.aiServiceHeaders,
         }),
@@ -261,12 +267,14 @@ export class AiService {
     }
   }
 
-  async generateTaskDescription(title: string): Promise<string> {
+  async generateTaskDescription(title: string, userId?: string): Promise<string> {
     try {
+      const apiKey = await this.getCompanyAiApiKey(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
-          type: 'task'
+          type: 'task',
+          api_key: apiKey,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
@@ -284,12 +292,14 @@ export class AiService {
     }
   }
 
-  async generateTaskGoals(title: string): Promise<string> {
+  async generateTaskGoals(title: string, userId?: string): Promise<string> {
     try {
+      const apiKey = await this.getCompanyAiApiKey(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
-          type: 'task'
+          type: 'task',
+          api_key: apiKey,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
@@ -462,13 +472,15 @@ export class AiService {
     }
   }
 
-  async detectTaskType(title: string): Promise<{ task_type: string; ai_provider: string }> {
+  async detectTaskType(title: string, userId?: string): Promise<{ task_type: string; ai_provider: string }> {
     try {
       this.logger.log(`Detecting task type for: ${title}`);
 
+      const apiKey = await this.getCompanyAiApiKey(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
           title,
+          api_key: apiKey,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000,
@@ -550,7 +562,7 @@ export class AiService {
     }
   }
 
-  async generateContent(title: string): Promise<{
+  async generateContent(title: string, userId?: string): Promise<{
     description: string;
     goals: string;
     priority: number;
@@ -559,10 +571,12 @@ export class AiService {
     try {
       this.logger.log(`Generating content for: ${title}`);
 
+      const apiKey = await this.getCompanyAiApiKey(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
           type: 'task',
+          api_key: apiKey,
         }, {
           timeout: 15000,
         }),

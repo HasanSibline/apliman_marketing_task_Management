@@ -22,6 +22,23 @@ async function main() {
 
   console.log('✅ System settings created');
 
+  // Create default plans
+  console.log('📦 Seeding standard plans...');
+  const plans = [
+    { name: 'FREE', maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 0, aiEnabled: false },
+    { name: 'PRO', maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: 99.00, aiEnabled: true },
+    { name: 'ENTERPRISE', maxUsers: -1, maxTasks: -1, maxStorage: -1, price: 299.00, aiEnabled: true }
+  ];
+
+  for (const plan of plans) {
+    await (prisma as any).plan.upsert({
+      where: { name: plan.name },
+      update: plan,
+      create: plan
+    });
+  }
+  console.log('✅ Standard plans seeded');
+
   // Hash password for System Admin
   const saltRounds = 12;
   const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin123!';
@@ -30,7 +47,7 @@ async function main() {
   // Create System Admin (NO company association)
   // First, try to find existing System Admin
   const existingAdmin = await prisma.user.findFirst({
-    where: { 
+    where: {
       email: 'superadmin@apliman.com',
       companyId: null,
     }

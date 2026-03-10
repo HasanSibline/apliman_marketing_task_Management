@@ -35,6 +35,7 @@ import EditCompany from '@/pages/EditCompany'
 import CompanyDetails from '@/pages/CompanyDetails'
 import AdminAnalytics from '@/pages/admin/AdminAnalytics'
 import AdminSettings from '@/pages/admin/AdminSettings'
+import PlanSettings from '@/pages/admin/PlanSettings'
 
 // Company Login
 import CompanyLogin from '@/pages/CompanyLogin'
@@ -115,6 +116,7 @@ function App() {
         <Route path="companies/:id/edit" element={<EditCompany />} />
         <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="plans" element={<PlanSettings />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
 

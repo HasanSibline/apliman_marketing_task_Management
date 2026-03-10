@@ -40,7 +40,7 @@ export class CompaniesService {
       : null;
 
     // Set plan-based limits
-    const limits = this.getPlanLimits(createCompanyDto.subscriptionPlan);
+    const limits = await this.getPlanLimits(createCompanyDto.subscriptionPlan);
 
     // Encrypt AI API key if provided
     const aiApiKey = createCompanyDto.aiApiKey
@@ -60,9 +60,9 @@ export class CompaniesService {
           subscriptionStatus: subscriptionEnd ? 'ACTIVE' : 'TRIAL',
           subscriptionEnd,
           monthlyPrice: limits.price,
-          maxUsers: createCompanyDto.maxUsers || limits.maxUsers,
-          maxTasks: createCompanyDto.maxTasks || limits.maxTasks,
-          maxStorage: createCompanyDto.maxStorage || limits.maxStorage,
+          maxUsers: createCompanyDto.maxUsers, // Nullable override
+          maxTasks: createCompanyDto.maxTasks, // Nullable override
+          maxStorage: createCompanyDto.maxStorage, // Nullable override
           aiApiKey,
           aiProvider: createCompanyDto.aiProvider || 'gemini',
           aiEnabled: !!createCompanyDto.aiApiKey,
@@ -514,15 +514,54 @@ export class CompaniesService {
   }
 
   /**
-   * Get plan-based limits
+   * Get plan-based limits directly from database
    */
-  private getPlanLimits(plan: string) {
-    const plans = {
-      FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 0 },
-      PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: 99 },
-      ENTERPRISE: { maxUsers: -1, maxTasks: -1, maxStorage: 100, price: 299 },
+  private async getPlanLimits(planName: string) {
+    const plan = await (this.prisma as any).plan.findUnique({
+      where: { name: planName },
+    });
+
+    if (plan) {
+      return {
+        maxUsers: plan.maxUsers,
+        maxTasks: plan.maxTasks,
+        maxStorage: plan.maxStorage,
+        price: plan.price,
+      };
+    }
+
+    // Fallback and default for FREE if not found
+    return {
+      maxUsers: 5,
+      maxTasks: 100,
+      maxStorage: 1,
+      price: 0,
     };
-    return plans[plan] || plans.FREE;
+  }
+
+  /**
+   * Get effective resource limits for a company (handles overrides)
+   */
+  async getCompanyResourceLimits(companyId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: {
+        subscriptionPlan: true,
+        maxUsers: true,
+        maxTasks: true,
+        maxStorage: true,
+      },
+    });
+
+    if (!company) return null;
+
+    const planLimits = await this.getPlanLimits(company.subscriptionPlan);
+
+    return {
+      maxUsers: company.maxUsers ?? planLimits.maxUsers,
+      maxTasks: company.maxTasks ?? planLimits.maxTasks,
+      maxStorage: company.maxStorage ?? planLimits.maxStorage,
+    };
   }
 
   /**

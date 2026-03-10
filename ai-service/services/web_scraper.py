@@ -1,10 +1,12 @@
 import logging
 import aiohttp
 from bs4 import BeautifulSoup
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 import asyncio
 from urllib.parse import urlparse
 import re
+from playwright.async_api import async_playwright
+from playwright_stealth import stealth_async
 
 logger = logging.getLogger(__name__)
 
@@ -13,26 +15,20 @@ class WebScraperError(Exception):
     pass
 
 class WebScraper:
-    """Service for extracting content from websites"""
+    """Service for extracting content from websites with JS support"""
     
     def __init__(self):
-        self.timeout = aiohttp.ClientTimeout(total=30)  # 30 second timeout
+        self.timeout = aiohttp.ClientTimeout(total=45) 
         self.max_content_length = 50000  # Max characters to extract
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+        ]
         
     async def scrape_url(self, url: str) -> Dict[str, any]:
         """
-        Scrape content from a URL and extract relevant information
-        
-        Args:
-            url: The URL to scrape
-            
-        Returns:
-            Dict containing:
-                - content: Extracted text content
-                - title: Page title
-                - metadata: Additional metadata (description, keywords, etc.)
-                - success: Boolean indicating success
-                - error: Error message if failed
+        Scrape content from a URL. Tries fast method first, falls back to browser if needed.
         """
         try:
             # Validate URL
@@ -40,77 +36,29 @@ class WebScraper:
             if not parsed.scheme or not parsed.netloc:
                 raise WebScraperError(f"Invalid URL: {url}")
             
-            logger.info(f"Starting to scrape: {url}")
+            logger.info(f"🚀 Attempting fast scrape: {url}")
             
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                headers = {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-                    'Accept-Language': 'en-US,en;q=0.9',
-                    'Accept-Encoding': 'gzip, deflate, br',
-                    'DNT': '1',
-                    'Connection': 'keep-alive',
-                    'Upgrade-Insecure-Requests': '1',
-                    'Sec-Fetch-Dest': 'document',
-                    'Sec-Fetch-Mode': 'navigate',
-                    'Sec-Fetch-Site': 'none',
-                    'Sec-Fetch-User': '?1',
-                }
-                
-                async with session.get(url, headers=headers) as response:
-                    if response.status != 200:
-                        raise WebScraperError(f"HTTP {response.status}: Failed to fetch URL")
-                    
-                    # Check content type
-                    content_type = response.headers.get('Content-Type', '')
-                    if 'text/html' not in content_type:
-                        raise WebScraperError(f"Unsupported content type: {content_type}")
-                    
-                    html = await response.text()
-                    
-                    # Parse HTML
-                    soup = BeautifulSoup(html, 'html.parser')
-                    
-                    # Extract metadata
-                    title = self._extract_title(soup)
-                    description = self._extract_description(soup)
-                    keywords = self._extract_keywords(soup)
-                    
-                    # Extract main content
-                    content = self._extract_content(soup)
-                    
-                    # Truncate if too long
-                    if len(content) > self.max_content_length:
-                        content = content[:self.max_content_length] + "..."
-                        logger.warning(f"Content truncated to {self.max_content_length} characters")
-                    
-                    logger.info(f"Successfully scraped {len(content)} characters from {url}")
-                    
-                    return {
-                        'success': True,
-                        'content': content,
-                        'title': title,
-                        'metadata': {
-                            'description': description,
-                            'keywords': keywords,
-                            'url': url,
-                            'content_length': len(content)
-                        },
-                        'error': None
-                    }
-                    
-        except aiohttp.ClientError as e:
-            error_msg = f"Network error: {str(e)}"
-            logger.error(f"Failed to scrape {url}: {error_msg}")
-            return {
-                'success': False,
-                'content': None,
-                'title': None,
-                'metadata': None,
-                'error': error_msg
-            }
-        except WebScraperError as e:
-            logger.error(f"Scraping error for {url}: {str(e)}")
+            # 1. Try Fast Scrape (aiohttp)
+            fast_result = await self._scrape_fast(url)
+            
+            # 2. Decide if we need deep scrape (Playwright)
+            # Conditions for deep scrape:
+            # - Fast scrape failed
+            # - Content is very short (likely skeleton/SPA)
+            # - Common "blocked" markers found
+            
+            content_len = len(fast_result.get('content', '') or '')
+            is_suspiciously_short = content_len < 1000 
+            is_blocked = any(m in (fast_result.get('content', '') or '').lower() for m in ['enable javascript', 'access denied', 'please wait...', 'checking your browser'])
+            
+            if not fast_result.get('success') or is_suspiciously_short or is_blocked:
+                logger.info(f"🕵️ Fast scrape insufficient (len={content_len}, blocked={is_blocked}). Switching to Deep Scrape (Playwright)...")
+                return await self._scrape_with_playwright(url)
+            
+            return fast_result
+
+        except Exception as e:
+            logger.error(f"❌ Scraping failed at top level: {str(e)}")
             return {
                 'success': False,
                 'content': None,
@@ -118,129 +66,143 @@ class WebScraper:
                 'metadata': None,
                 'error': str(e)
             }
+
+    async def _scrape_fast(self, url: str) -> Dict[str, any]:
+        """Fast scrape using aiohttp and BeautifulSoup"""
+        try:
+            async with aiohttp.ClientSession(timeout=self.timeout) as session:
+                headers = {
+                    'User-Agent': self.user_agents[0],
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                }
+                
+                async with session.get(url, headers=headers) as response:
+                    if response.status != 200:
+                        return {'success': False, 'error': f"HTTP {response.status}"}
+                    
+                    html = await response.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    
+                    title = self._extract_title(soup)
+                    content = self._extract_content(soup)
+                    
+                    return {
+                        'success': True,
+                        'content': content,
+                        'title': title,
+                        'metadata': {
+                            'method': 'fast',
+                            'url': url,
+                            'content_length': len(content)
+                        },
+                        'error': None
+                    }
         except Exception as e:
-            error_msg = f"Unexpected error: {str(e)}"
-            logger.error(f"Failed to scrape {url}: {error_msg}")
-            return {
-                'success': False,
-                'content': None,
-                'title': None,
-                'metadata': None,
-                'error': error_msg
-            }
-    
+            return {'success': False, 'error': str(e)}
+
+    async def _scrape_with_playwright(self, url: str) -> Dict[str, any]:
+        """Deep scrape using headless browser (Playwright) to handle JS and anti-bot"""
+        async with async_playwright() as p:
+            # Use Chromium as it's the most reliable for scraping
+            browser = await p.chromium.launch(headless=True)
+            context = await browser.new_context(
+                user_agent=self.user_agents[0],
+                viewport={'width': 1280, 'height': 800}
+            )
+            
+            # Apply stealth to avoid detection
+            page = await context.new_page()
+            await stealth_async(page)
+            
+            try:
+                logger.info(f"🌐 Navigating to {url} via Headless Chromium...")
+                
+                # Navigate and wait for basic network idle
+                await page.goto(url, wait_until='networkidle', timeout=45000)
+                
+                # Small delay for dynamic content to settle
+                await asyncio.sleep(2)
+                
+                # Scroll a bit to trigger lazy loading
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight / 2)")
+                await asyncio.sleep(1)
+                
+                # Extract content
+                html = await page.content()
+                title = await page.title()
+                
+                # Use BS4 on the rendered HTML for better cleaning
+                soup = BeautifulSoup(html, 'html.parser')
+                content = self._extract_content(soup)
+                
+                logger.info(f"✅ Deep scrape successful: {len(content)} chars")
+                
+                return {
+                    'success': True,
+                    'content': content,
+                    'title': title,
+                    'metadata': {
+                        'method': 'deep_playwright',
+                        'url': url,
+                        'content_length': len(content)
+                    },
+                    'error': None
+                }
+            except Exception as e:
+                logger.error(f"❌ Deep scrape failed: {str(e)}")
+                return {
+                    'success': False,
+                    'error': f"Browser scraping failed: {str(e)}"
+                }
+            finally:
+                await browser.close()
+
     def _extract_title(self, soup: BeautifulSoup) -> str:
-        """Extract page title"""
-        # Try <title> tag
         if soup.title and soup.title.string:
             return soup.title.string.strip()
-        
-        # Try og:title meta tag
-        og_title = soup.find('meta', property='og:title')
-        if og_title and og_title.get('content'):
-            return og_title['content'].strip()
-        
-        # Try first h1
-        h1 = soup.find('h1')
-        if h1:
-            return h1.get_text().strip()
-        
         return "Untitled"
-    
-    def _extract_description(self, soup: BeautifulSoup) -> Optional[str]:
-        """Extract page description"""
-        # Try meta description
-        meta_desc = soup.find('meta', attrs={'name': 'description'})
-        if meta_desc and meta_desc.get('content'):
-            return meta_desc['content'].strip()
-        
-        # Try og:description
-        og_desc = soup.find('meta', property='og:description')
-        if og_desc and og_desc.get('content'):
-            return og_desc['content'].strip()
-        
-        # Try first paragraph
-        p = soup.find('p')
-        if p:
-            text = p.get_text().strip()
-            if len(text) > 50:
-                return text[:200] + "..." if len(text) > 200 else text
-        
-        return None
-    
-    def _extract_keywords(self, soup: BeautifulSoup) -> Optional[str]:
-        """Extract keywords"""
-        meta_keywords = soup.find('meta', attrs={'name': 'keywords'})
-        if meta_keywords and meta_keywords.get('content'):
-            return meta_keywords['content'].strip()
-        return None
-    
+
     def _extract_content(self, soup: BeautifulSoup) -> str:
-        """
-        Extract main content from the page
-        This removes scripts, styles, navigation, etc.
-        """
-        # Remove unwanted elements
+        """Extract main content from the page, cleaning up noise"""
+        # Remove noisy elements
         for element in soup(['script', 'style', 'nav', 'header', 'footer', 
-                           'aside', 'iframe', 'noscript']):
+                           'aside', 'iframe', 'noscript', 'svg', 'form']):
             element.decompose()
         
-        # Try to find main content area
+        # Priority content areas
         main_content = None
-        
-        # Look for common content containers
-        for selector in ['main', 'article', '[role="main"]', '.content', 
-                        '#content', '.main-content', '#main-content']:
+        for selector in ['main', 'article', '[role="main"]', '.content', '#content', '.post-content']:
             main_content = soup.select_one(selector)
-            if main_content:
-                break
-        
-        # If no main content found, use body
+            if main_content: break
+            
         if not main_content:
             main_content = soup.body if soup.body else soup
-        
-        # Extract text
+            
+        # Extract text with separator to preserve block structure
         text = main_content.get_text(separator='\n', strip=True)
         
-        # Clean up text
-        text = self._clean_text(text)
+        # Cleanup
+        text = re.sub(r'\n{3,}', '\n\n', text) # Normalize newlines
+        text = re.sub(r' +', ' ', text) # Normalize spaces
         
-        return text
-    
-    def _clean_text(self, text: str) -> str:
-        """Clean extracted text"""
-        # Remove multiple newlines
-        text = re.sub(r'\n\s*\n', '\n\n', text)
+        # Deduplication of lines (common in scraped menus/footers that slipped through)
+        lines = text.split('\n')
+        unique_lines = []
+        seen = set()
+        for line in lines:
+            trimmed = line.strip()
+            if not trimmed: continue
+            if trimmed not in seen:
+                unique_lines.append(trimmed)
+                seen.add(trimmed)
         
-        # Remove excessive whitespace
-        text = re.sub(r' +', ' ', text)
-        
-        # Remove lines with just whitespace
-        lines = [line.strip() for line in text.split('\n') if line.strip()]
-        
-        return '\n'.join(lines)
-    
-    async def scrape_multiple(self, urls: list) -> Dict[str, Dict]:
-        """
-        Scrape multiple URLs concurrently
-        
-        Args:
-            urls: List of URLs to scrape
-            
-        Returns:
-            Dict mapping URL to scraping results
-        """
-        tasks = [self.scrape_url(url) for url in urls]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        return {
-            url: result if not isinstance(result, Exception) else {
-                'success': False,
-                'content': None,
-                'title': None,
-                'metadata': None,
-                'error': str(result)
-            }
-            for url, result in zip(urls, results)
-        }
+        final_text = '\n'.join(unique_lines)
+        return final_text[:self.max_content_length]
+
+    async def scrape_multiple(self, urls: List[str]) -> Dict[str, Dict]:
+        results = {}
+        for url in urls:
+            results[url] = await self.scrape_url(url)
+        return results
 

@@ -95,16 +95,29 @@ ApliChat:"""
             }
 
         except Exception as e:
-            logger.error(f"Error processing chat message: {str(e)}")
+            error_msg = str(e)
+            logger.error(f"Error processing chat message: {error_msg}")
+            
+            # If it's a known AI error, pass it back so the user knows what's wrong
+            detailed_msg = "I'm having a bit of trouble understanding that. Could you rephrase?"
+            if "Gemini API failure" in error_msg or "AI service error" in error_msg:
+                detailed_msg = f"AI service error: {error_msg}. Please check your Gemini API key and quota."
+            elif "API key was reported as leaked" in error_msg:
+                detailed_msg = "Your Gemini API key has been revoked by Google because it was reported as leaked. Please generate a new key in Google AI Studio and update your company settings."
+            
             return {
-                "message": "I'm having a bit of trouble understanding that. Could you rephrase?",
+                "message": detailed_msg,
                 "contextUsed": False,
                 "learnedContext": None
             }
 
     async def _generate_via_rest(self, prompt: str) -> str:
         """Make a stateless request to Gemini API via REST"""
-        url = f"{self.base_url}/models/{self.model_name}:generateContent"
+        # Try both Header and Query Param for maximum compatibility
+        # v1beta often works better with query param for some regions/tiers
+        url_query = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
+        url_header = f"{self.base_url}/models/{self.model_name}:generateContent"
+        
         headers = {
             'Content-Type': 'application/json',
             'X-goog-api-key': self.api_key
@@ -114,15 +127,49 @@ ApliChat:"""
         }
         
         last_error = None
+        
+        # Try Query Param first (usually first choice for REST in docs)
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                async with session.post(url_query, headers={'Content-Type': 'application/json'}, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
                     if response.status == 200:
                         data = await response.json()
                         if data.get('candidates') and data['candidates'][0].get('content'):
                             return data['candidates'][0]['content']['parts'][0]['text']
                         else:
                             msg = "AI returned an empty response. This is usually caused by Google's safety filters blocking the content."
+                            logger.warning(f"⚠️ {msg}")
+                            raise Exception(msg)
+                    elif response.status == 400 and "API Key not found" in await response.text():
+                        # Fallback to header if query param rejected
+                        logger.warning("Query param auth failed with 400, falling back to header auth")
+                        pass 
+                    else:
+                        error_text = await response.text()
+                        try:
+                            error_json = json.loads(error_text)
+                            msg = error_json.get('error', {}).get('message', error_text)
+                        except:
+                            msg = error_text
+                        last_error = f"Gemini API failure ({response.status}): {msg}"
+                        logger.error(f"❌ {last_error}")
+                        raise Exception(last_error)
+        except Exception as e:
+            if "Gemini API failure" in str(e) or "empty response" in str(e):
+                raise e
+            last_error = str(e)
+            logger.warning(f"Query param attempt failed: {last_error}. Retrying with header auth...")
+
+        # Fallback to Header Auth
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url_header, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        if data.get('candidates') and data['candidates'][0].get('content'):
+                            return data['candidates'][0]['content']['parts'][0]['text']
+                        else:
+                            msg = "AI returned an empty response (Header Auth)."
                             logger.warning(f"⚠️ {msg}")
                             raise Exception(msg)
                     else:
@@ -135,14 +182,9 @@ ApliChat:"""
                         last_error = f"Gemini API failure ({response.status}): {msg}"
                         logger.error(f"❌ {last_error}")
                         raise Exception(last_error)
-        except aiohttp.ClientError as e:
-            last_error = f"Connection error during AI request: {str(e)}"
-            logger.error(f"❌ {last_error}")
-            raise Exception(last_error)
         except Exception as e:
-            last_error = f"REST AI request failed: {str(e)}"
-            logger.error(f"❌ {last_error}")
-            raise Exception(last_error)
+            logger.error(f"❌ Both auth methods failed for AI request: {str(e)}")
+            raise e
 
     def _build_system_prompt(
         self,

@@ -11,6 +11,7 @@ import {
   ArrowRightOnRectangleIcon,
   ShieldCheckIcon,
   UserCircleIcon,
+  CreditCardIcon,
 } from '@heroicons/react/24/outline';
 
 const AdminLayout: React.FC = () => {
@@ -20,27 +21,33 @@ const AdminLayout: React.FC = () => {
   const { user } = useSelector((state: RootState) => state.auth);
 
   const adminNavigation = [
-    { 
-      name: 'Companies', 
-      href: '/admin/companies', 
+    {
+      name: 'Companies',
+      href: '/admin/companies',
       icon: BuildingOfficeIcon,
       description: 'Manage all companies'
     },
-    { 
-      name: 'System Analytics', 
-      href: '/admin/analytics', 
+    {
+      name: 'System Analytics',
+      href: '/admin/analytics',
       icon: ChartBarIcon,
       description: 'Platform-wide statistics'
     },
-    { 
-      name: 'System Settings', 
-      href: '/admin/settings', 
+    {
+      name: 'System Settings',
+      href: '/admin/settings',
       icon: Cog6ToothIcon,
       description: 'Global configurations'
     },
-    { 
-      name: 'Profile', 
-      href: '/admin/profile', 
+    {
+      name: 'Plan Settings',
+      href: '/admin/plans',
+      icon: CreditCardIcon,
+      description: 'Manage subscription plans & limits'
+    },
+    {
+      name: 'Profile',
+      href: '/admin/profile',
       icon: UserCircleIcon,
       description: 'Change password & settings'
     },
@@ -93,16 +100,14 @@ const AdminLayout: React.FC = () => {
                   <NavLink
                     key={item.name}
                     to={item.href}
-                    className={`${
-                      isActive
+                    className={`${isActive
                         ? 'bg-indigo-100 text-indigo-900 border-l-4 border-indigo-600'
                         : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    } group flex items-start px-3 py-3 text-sm font-medium rounded-md transition-colors`}
+                      } group flex items-start px-3 py-3 text-sm font-medium rounded-md transition-colors`}
                   >
                     <item.icon
-                      className={`${
-                        isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'
-                      } flex-shrink-0 h-6 w-6`}
+                      className={`${isActive ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-500'
+                        } flex-shrink-0 h-6 w-6`}
                       aria-hidden="true"
                     />
                     <div className="ml-3">

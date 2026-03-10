@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WorkflowsService } from '../workflows/workflows.service';
 import { AiService } from '../ai/ai.service';
+import { CompaniesService } from '../companies/companies.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
@@ -16,6 +17,7 @@ export class TasksService {
     private readonly notificationsService: NotificationsService,
     private readonly workflowsService: WorkflowsService,
     private readonly aiService: AiService,
+    private readonly companiesService: CompaniesService,
   ) { }
 
   /**
@@ -65,17 +67,14 @@ export class TasksService {
 
       // Enforce company task limit (if configured)
       if (creator.companyId) {
-        const company = await this.prisma.company.findUnique({
-          where: { id: creator.companyId },
-          select: { maxTasks: true },
-        });
-        if (company?.maxTasks) {
+        const limits = await this.companiesService.getCompanyResourceLimits(creator.companyId);
+        if (limits && limits.maxTasks !== -1) {
           const currentTaskCount = await this.prisma.task.count({
             where: { companyId: creator.companyId, taskType: { not: 'SUBTASK' } },
           });
-          if (currentTaskCount >= company.maxTasks) {
+          if (currentTaskCount >= limits.maxTasks) {
             throw new BadRequestException(
-              `Task limit reached. Your plan allows a maximum of ${company.maxTasks} tasks. ` +
+              `Task limit reached. Your plan allows a maximum of ${limits.maxTasks} tasks. ` +
               `Please upgrade your plan or delete old tasks to continue.`
             );
           }

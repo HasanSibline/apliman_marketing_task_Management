@@ -215,7 +215,7 @@ export class KnowledgeService {
           url: source.url,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 30000, // 30 second timeout
+          timeout: 90000, // 90 second timeout for browser scraping
         }),
       );
 
