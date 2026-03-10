@@ -22,9 +22,9 @@ export class UpdateCompanyDto {
   @IsBoolean()
   isActive?: boolean;
 
-  @ApiProperty({ example: 'PRO', enum: ['FREE', 'PRO', 'ENTERPRISE'], description: 'Subscription plan', required: false })
+  @ApiProperty({ example: 'FREE_TRIAL', enum: ['FREE_TRIAL', 'PRO', 'ENTERPRISE'], description: 'Subscription plan', required: false })
   @IsOptional()
-  @IsEnum(['FREE', 'PRO', 'ENTERPRISE'])
+  @IsEnum(['FREE_TRIAL', 'PRO', 'ENTERPRISE'])
   subscriptionPlan?: string;
 
   @ApiProperty({ example: 'ACTIVE', enum: ['ACTIVE', 'TRIAL', 'EXPIRED', 'SUSPENDED'], description: 'Subscription status', required: false })

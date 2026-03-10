@@ -15,7 +15,7 @@ model Company {
   logo                String?
   primaryColor        String                @default("#3B82F6")
   isActive            Boolean               @default(true)
-  subscriptionPlan    String                @default("FREE")
+  subscriptionPlan    String                @default("FREE_TRIAL")
   subscriptionStatus  String                @default("ACTIVE")
   subscriptionStart   DateTime              @default(now())
   subscriptionEnd     DateTime?

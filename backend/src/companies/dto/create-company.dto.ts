@@ -23,8 +23,8 @@ export class CreateCompanyDto {
   @IsString()
   adminPassword?: string; // Auto-generated if not provided
 
-  @ApiProperty({ example: 'FREE', enum: ['FREE', 'PRO', 'ENTERPRISE'], description: 'Subscription plan' })
-  @IsEnum(['FREE', 'PRO', 'ENTERPRISE'])
+  @ApiProperty({ example: 'FREE_TRIAL', enum: ['FREE_TRIAL', 'PRO', 'ENTERPRISE'], description: 'Subscription plan' })
+  @IsEnum(['FREE_TRIAL', 'PRO', 'ENTERPRISE'])
   subscriptionPlan: string;
 
   @ApiProperty({ example: 30, description: 'Subscription duration in days', required: false })
