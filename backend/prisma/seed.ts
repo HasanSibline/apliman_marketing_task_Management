@@ -25,7 +25,7 @@ async function main() {
   // Create default plans
   console.log('📦 Seeding standard plans...');
   const plans = [
-    { name: 'FREE', maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 0, aiEnabled: false },
+    { name: 'FREE_TRIAL', maxUsers: 10, maxTasks: 500, maxStorage: 2, price: 0, aiEnabled: true },
     { name: 'PRO', maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: 99.00, aiEnabled: true },
     { name: 'ENTERPRISE', maxUsers: -1, maxTasks: -1, maxStorage: -1, price: 299.00, aiEnabled: true }
   ];
@@ -37,6 +37,14 @@ async function main() {
       create: plan
     });
   }
+
+  // Cleanup old plans
+  await (prisma as any).plan.deleteMany({
+    where: {
+      name: 'FREE'
+    }
+  }).catch(() => { }); // Ignore if it fails (e.g. if companies are still using it)
+
   console.log('✅ Standard plans seeded');
 
   // Hash password for System Admin

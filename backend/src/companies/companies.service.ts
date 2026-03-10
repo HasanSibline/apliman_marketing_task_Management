@@ -35,9 +35,14 @@ export class CompaniesService {
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
     // Determine subscription end date
-    const subscriptionEnd = createCompanyDto.subscriptionDays
+    let subscriptionEnd = createCompanyDto.subscriptionDays
       ? new Date(Date.now() + createCompanyDto.subscriptionDays * 24 * 60 * 60 * 1000)
       : null;
+
+    // MANDATORY: If Plan is FREE_TRIAL, force 7 days only
+    if (createCompanyDto.subscriptionPlan === 'FREE_TRIAL') {
+      subscriptionEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    }
 
     // Set plan-based limits
     const limits = await this.getPlanLimits(createCompanyDto.subscriptionPlan);
@@ -530,11 +535,11 @@ export class CompaniesService {
       };
     }
 
-    // Fallback and default for FREE if not found
+    // Fallback and default for FREE_TRIAL if not found
     return {
-      maxUsers: 5,
-      maxTasks: 100,
-      maxStorage: 1,
+      maxUsers: 10,
+      maxTasks: 500,
+      maxStorage: 2,
       price: 0,
     };
   }

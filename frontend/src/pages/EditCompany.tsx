@@ -8,7 +8,7 @@ interface EditCompanyForm {
   slug: string;
   logo?: string;
   primaryColor: string;
-  subscriptionPlan: 'FREE' | 'PRO' | 'ENTERPRISE';
+  subscriptionPlan: 'FREE_TRIAL' | 'PRO' | 'ENTERPRISE';
   aiApiKey?: string;
   aiProvider: string;
   aiEnabled: boolean;
@@ -19,7 +19,7 @@ interface EditCompanyForm {
 }
 
 const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
-  FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 'Free' },
+  FREE_TRIAL: { maxUsers: 10, maxTasks: 500, maxStorage: 2, price: '7-Day Trial' },
   PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
   ENTERPRISE: { maxUsers: -1, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
 };
@@ -370,7 +370,7 @@ export default function EditCompany() {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
               >
-                <option value="FREE">Free (5 users, 100 tasks, 1 GB)</option>
+                <option value="FREE_TRIAL">Free Trial (10 users, 500 tasks, 2 GB) - 7 Days</option>
                 <option value="PRO">Pro (25 users, 5000 tasks, 10 GB) - $99/month</option>
                 <option value="ENTERPRISE">Enterprise (Unlimited) - $299/month</option>
               </select>

@@ -67,6 +67,8 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
+    const company = user.companyId ? await this.usersService.findCompanyById(user.companyId) : null;
+
     return {
       user: {
         id: user.id,
@@ -75,7 +77,8 @@ export class AuthService {
         role: user.role,
         position: user.position,
         status: user.status,
-        companyId: user.companyId, // Include in response
+        companyId: user.companyId,
+        subscriptionPlan: company?.subscriptionPlan || null, // Include plan
       },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
@@ -235,6 +238,8 @@ export class AuthService {
 
     const accessToken = this.jwtService.sign(payload);
 
+    const company = fullUser.companyId ? await this.usersService.findCompanyById(fullUser.companyId) : null;
+
     return {
       user: {
         id: fullUser.id,
@@ -243,7 +248,8 @@ export class AuthService {
         role: fullUser.role,
         position: fullUser.position,
         status: fullUser.status,
-        companyId: fullUser.companyId, // Include in response
+        companyId: fullUser.companyId,
+        subscriptionPlan: company?.subscriptionPlan || null, // Include plan
       },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),

@@ -10,6 +10,7 @@ export interface User {
   position?: string
   status: 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED'
   companyId?: string | null
+  subscriptionPlan?: string | null
 }
 
 interface AuthState {
@@ -68,7 +69,7 @@ export const checkAuth = createAsyncThunk(
       if (!token) {
         return rejectWithValue('No token found')
       }
-      
+
       const response = await authApi.refreshToken()
       localStorage.setItem('token', response.accessToken)
       return response
@@ -137,7 +138,7 @@ const authSlice = createSlice({
         state.token = null
         state.error = action.payload as string
       })
-      
+
       // Logout
       .addCase(logout.fulfilled, (state) => {
         state.isAuthenticated = false
@@ -145,7 +146,7 @@ const authSlice = createSlice({
         state.token = null
         state.error = null
       })
-      
+
       // Check Auth
       .addCase(checkAuth.pending, (state) => {
         state.isLoading = true
@@ -164,7 +165,7 @@ const authSlice = createSlice({
         state.token = null
         state.error = null
       })
-      
+
       // Change Password
       .addCase(changePassword.pending, (state) => {
         state.isLoading = true

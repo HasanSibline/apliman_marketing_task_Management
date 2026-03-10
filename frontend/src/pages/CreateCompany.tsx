@@ -92,7 +92,7 @@ interface CreateCompanyForm {
   adminName: string;
   adminEmail: string;
   adminPassword: string;
-  subscriptionPlan: 'FREE' | 'PRO' | 'ENTERPRISE';
+  subscriptionPlan: 'FREE_TRIAL' | 'PRO' | 'ENTERPRISE';
   subscriptionDays: number;
   aiApiKey?: string;
   aiProvider: string;
@@ -144,7 +144,7 @@ function Field({
 }
 
 const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
-  FREE: { maxUsers: 5, maxTasks: 100, maxStorage: 1, price: 'Free' },
+  FREE_TRIAL: { maxUsers: 10, maxTasks: 500, maxStorage: 2, price: '7-Day Trial' },
   PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
   ENTERPRISE: { maxUsers: 200, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
 };
@@ -207,12 +207,12 @@ export default function CreateCompany() {
     adminName: '',
     adminEmail: '',
     adminPassword: '',
-    subscriptionPlan: 'PRO',
-    subscriptionDays: 30,
+    subscriptionPlan: 'FREE_TRIAL',
+    subscriptionDays: 7,
     aiProvider: 'gemini',
-    maxUsers: 25,
-    maxTasks: 5000,
-    maxStorage: 10,
+    maxUsers: 10,
+    maxTasks: 500,
+    maxStorage: 2,
   });
 
   const clearError = (field: string) =>
@@ -240,6 +240,11 @@ export default function CreateCompany() {
         updated.maxUsers = limits.maxUsers;
         updated.maxTasks = limits.maxTasks;
         updated.maxStorage = limits.maxStorage;
+
+        // Auto-set 7 days for FREE_TRIAL
+        if (value === 'FREE_TRIAL') {
+          updated.subscriptionDays = 7;
+        }
       }
 
       return updated;
@@ -442,10 +447,10 @@ export default function CreateCompany() {
               </div>
               <div className="flex items-center justify-between">
                 <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
-                  ${formData.subscriptionPlan === 'FREE' ? 'bg-gray-200 text-gray-600' : ''}
+                  ${formData.subscriptionPlan === 'FREE_TRIAL' ? 'bg-purple-100 text-purple-700' : ''}
                   ${formData.subscriptionPlan === 'PRO' ? 'bg-blue-100 text-blue-700' : ''}
                   ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' : ''}`}>
-                  {formData.subscriptionPlan}
+                  {formData.subscriptionPlan === 'FREE_TRIAL' ? 'TRIAL' : formData.subscriptionPlan}
                 </span>
                 <span className="text-xs font-medium text-gray-400">{formData.subscriptionDays}d</span>
               </div>
@@ -621,8 +626,8 @@ export default function CreateCompany() {
                 </div>
 
                 {/* Plan cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {(['FREE', 'PRO', 'ENTERPRISE'] as const).map(plan => {
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {(['FREE_TRIAL', 'PRO', 'ENTERPRISE'] as const).map(plan => {
                     const info = PLAN_LIMITS[plan];
                     const selected = formData.subscriptionPlan === plan;
                     return (
@@ -636,10 +641,10 @@ export default function CreateCompany() {
                             : 'border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-white'}`}
                       >
                         <div className={`text-[10px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
-                          ${plan === 'FREE' ? 'bg-gray-200 text-gray-600' :
+                          ${plan === 'FREE_TRIAL' ? 'bg-purple-600 text-white shadow-sm' :
                             plan === 'PRO' ? 'bg-blue-600 text-white shadow-sm' :
                               'bg-amber-100 text-amber-700'}`}>
-                          {plan}
+                          {plan === 'FREE_TRIAL' ? 'Free Trial' : plan}
                         </div>
                         <p className="text-gray-900 font-bold text-lg mb-1">{info.price}</p>
                         <div className="space-y-1 mt-2">

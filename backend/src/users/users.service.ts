@@ -164,6 +164,7 @@ export class UsersService {
         name: true,
         isActive: true,
         subscriptionStatus: true,
+        subscriptionPlan: true,
         subscriptionEnd: true,
         maxUsers: true,
       },
