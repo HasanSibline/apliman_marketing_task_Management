@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
     PlusIcon,
@@ -307,6 +308,7 @@ function QuarterCard({ quarter, onClick, onCloseQ }: { quarter: Quarter; onClick
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const QuartersPage: React.FC = () => {
+    const navigate = useNavigate()
     const { user } = useAppSelector(state => state.auth)
     const isAdmin = ['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role ?? '')
     const [quarters, setQuarters] = useState<Quarter[]>([])
@@ -430,7 +432,7 @@ const QuartersPage: React.FC = () => {
                         <QuarterCard
                             key={q.id}
                             quarter={q}
-                            onClick={() => { }}
+                            onClick={() => navigate(`/quarters/${q.id}`)}
                             onCloseQ={() => openCloseModal(q)}
                         />
                     ))}

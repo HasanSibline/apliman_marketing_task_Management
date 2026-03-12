@@ -23,8 +23,11 @@ import ProfilePage from '@/pages/ProfilePage'
 import ActivityPage from '@/pages/ActivityPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import KnowledgeSourcesPage from '@/pages/KnowledgeSourcesPage'
+import CalendarPage from '@/pages/CalendarPage'
 import QuartersPage from '@/pages/quarters/QuartersPage'
+import QuarterDetailPage from '@/pages/quarters/QuarterDetailPage'
 import ObjectivesPage from '@/pages/objectives/ObjectivesPage'
+import ObjectiveDetailPage from '@/pages/objectives/ObjectiveDetailPage'
 
 // Super Admin Pages
 import AdminLogin from '@/pages/AdminLogin'
@@ -143,6 +146,7 @@ function App() {
         <Route path="dashboard" element={<DashboardPage />} />
         <Route path="tasks" element={<TasksPage />} />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
+        <Route path="calendar" element={<CalendarPage />} />
         <Route
           path="workflows"
           element={
@@ -161,7 +165,9 @@ function App() {
         />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route path="quarters" element={<QuartersPage />} />
+        <Route path="quarters/:id" element={<QuarterDetailPage />} />
         <Route path="objectives" element={<ObjectivesPage />} />
+        <Route path="objectives/:id" element={<ObjectiveDetailPage />} />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route

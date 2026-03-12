@@ -22,6 +22,7 @@ const Sidebar: React.FC = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
+    { name: 'Calendar', href: '/calendar', icon: CalendarDaysIcon },
     { name: 'Quarters', href: '/quarters', icon: CalendarDaysIcon },
     { name: 'Objectives', href: '/objectives', icon: FlagIcon },
     { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },

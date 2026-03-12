@@ -39,7 +39,12 @@ export class ObjectivesService {
             include: {
                 keyResults: true,
                 quarter: { select: { id: true, name: true, year: true } },
-                tasks: { select: { id: true, title: true, phase: true } },
+                tasks: {
+                    include: {
+                        assignedTo: { select: { id: true, name: true, position: true } },
+                        currentPhase: { select: { id: true, name: true, color: true } }
+                    }
+                }
             },
         });
         if (!obj) throw new NotFoundException('Objective not found');

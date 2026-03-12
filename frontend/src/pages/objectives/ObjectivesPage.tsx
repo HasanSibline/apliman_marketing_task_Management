@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
     PlusIcon,
@@ -115,6 +116,7 @@ function ObjectiveCard({
 }: {
     obj: Objective; canEdit: boolean; onDelete: (id: string) => void; onRefresh: () => void
 }) {
+    const navigate = useNavigate()
     const [expanded, setExpanded] = useState(false)
     const [addingKR, setAddingKR] = useState(false)
     const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 })
@@ -139,9 +141,9 @@ function ObjectiveCard({
 
     return (
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:border-primary-300 transition-colors">
             {/* Header */}
-            <div className="p-5">
+            <div className="p-5 cursor-pointer" onClick={() => navigate(`/objectives/${obj.id}`)}>
                 <div className="flex items-start gap-4">
                     {/* Progress ring */}
                     <div className="relative shrink-0">
@@ -166,7 +168,7 @@ function ObjectiveCard({
                                     {cfg.label}
                                 </span>
                                 {canEdit && (
-                                    <button onClick={() => onDelete(obj.id)} className="text-gray-400 hover:text-red-500 transition">
+                                    <button onClick={(e) => { e.stopPropagation(); onDelete(obj.id) }} className="text-gray-400 hover:text-red-500 transition relative z-10">
                                         <TrashIcon className="h-4 w-4" />
                                     </button>
                                 )}
@@ -177,8 +179,8 @@ function ObjectiveCard({
 
                 {/* Toggle key results */}
                 {obj.keyResults.length > 0 && (
-                    <button onClick={() => setExpanded(p => !p)}
-                        className="flex items-center gap-1 mt-3 text-xs text-primary-600 hover:text-primary-700 font-medium transition">
+                    <button onClick={(e) => { e.stopPropagation(); setExpanded(p => !p) }}
+                        className="flex items-center gap-1 mt-3 text-xs text-primary-600 hover:text-primary-700 font-medium transition relative z-10">
                         {expanded ? <ChevronUpIcon className="h-3.5 w-3.5" /> : <ChevronDownIcon className="h-3.5 w-3.5" />}
                         {obj.keyResults.length} Key Result{obj.keyResults.length !== 1 ? 's' : ''}
                     </button>

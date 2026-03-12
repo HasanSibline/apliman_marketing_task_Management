@@ -8,26 +8,9 @@ export class QuartersService {
     constructor(private readonly prisma: PrismaService) { }
 
     async findAll(companyId: string) {
-        const quarters = await this.prisma.quarter.findMany({
+        return this.prisma.quarter.findMany({
             where: { companyId },
-            include: {
-                _count: { select: { tasks: true, objectives: true } },
-                objectives: {
-                    include: { keyResults: true },
-                },
-            },
-            orderBy: [{ year: 'desc' }, { name: 'asc' }],
-        });
-
-        return quarters.map(q => {
-            const totalTasks = q._count.tasks;
-            const completedTasks = 0; // will be calc'd from task data in analytics
-            return {
-                ...q,
-                totalTasks,
-                completedTasks,
-                objectivesCount: q._count.objectives,
-            };
+            orderBy: [{ year: 'desc' }, { name: 'desc' }],
         });
     }
 
@@ -37,8 +20,9 @@ export class QuartersService {
             include: {
                 tasks: {
                     include: {
-                        assignedTo: { select: { id: true, name: true } },
+                        assignedTo: { select: { id: true, name: true, position: true } },
                         createdBy: { select: { id: true, name: true } },
+                        currentPhase: { select: { id: true, name: true, color: true } },
                     },
                     orderBy: { createdAt: 'desc' },
                 },
@@ -145,7 +129,7 @@ export class QuartersService {
         });
 
         const avgObjectiveProgress = objectives.length > 0
-            ? Math.round(objectives.reduce((s, o) => s + (o as any).progress, 0) / objectives.length)
+            ? Math.round(objectives.reduce((sum, obj) => sum + (obj as any).progress, 0) / objectives.length)
             : 0;
 
         return {

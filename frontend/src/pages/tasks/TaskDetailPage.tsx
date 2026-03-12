@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeftIcon,
@@ -409,10 +409,18 @@ const TaskDetailPage: React.FC = () => {
 
                   {/* Quarter badge */}
                   {(currentTask as any).quarter && (
-                    <div className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg">
+                    <Link to={`/quarters/${(currentTask as any).quarter.id}`} className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 transition">
                       <CalendarDaysIcon className="h-4 w-4" />
                       <span className="text-sm font-medium">{(currentTask as any).quarter.name} {(currentTask as any).quarter.year}</span>
-                    </div>
+                    </Link>
+                  )}
+
+                  {/* Objective badge */}
+                  {(currentTask as any).objective && (
+                    <Link to={`/objectives/${(currentTask as any).objective.id}`} className="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition">
+                      <FlagIcon className="h-4 w-4" />
+                      <span className="text-sm font-medium">{(currentTask as any).objective.title}</span>
+                    </Link>
                   )}
 
                   {/* Rolled-over badge */}
