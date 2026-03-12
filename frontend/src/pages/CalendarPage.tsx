@@ -22,8 +22,8 @@ const CalendarPage: React.FC = () => {
     const fetchTasks = async () => {
         setLoading(true)
         try {
-            const { data } = await api.get('/tasks')
-            setTasks(data)
+            const { data } = await api.get('/tasks', { params: { limit: 1000 } })
+            setTasks(data.tasks || [])
         } catch {
             toast.error('Failed to load tasks for calendar')
         } finally {

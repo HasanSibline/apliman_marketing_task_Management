@@ -43,7 +43,8 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, onTaskClick }) => {
     }
 
     const { firstDay, daysInMonth } = getDays(viewDate)
-    const monthTasks = tasks.filter(t => {
+    const safeTasks = Array.isArray(tasks) ? tasks : []
+    const monthTasks = safeTasks.filter(t => {
         if (!t.dueDate) return false
         const d = new Date(t.dueDate)
         return d.getMonth() === viewDate.getMonth() && d.getFullYear() === viewDate.getFullYear()

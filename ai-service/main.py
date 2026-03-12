@@ -14,6 +14,7 @@ from services.web_scraper import WebScraper
 from services.chat_service import ChatService
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
+import traceback
 
 # Configure logging
 logger = logging.getLogger("ai_service")
@@ -285,6 +286,7 @@ async def generate_content(request: GenerateContentRequest):
         raise
     except Exception as e:
         logger.error(f"AI content generation failed: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail={
@@ -300,7 +302,8 @@ async def scrape_url(request: ScrapeUrlRequest):
         result = await web_scraper.scrape_url(request.url)
         return result
     except Exception as e:
-        logger.error(f"URL scraping failed: {e}")
+        logger.error(f"URL scraping failed: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail={
@@ -357,6 +360,7 @@ async def chat(request: ChatRequest):
         raise
     except Exception as e:
         logger.error(f"Chat processing failed: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(
             status_code=500,
             detail={
@@ -397,7 +401,8 @@ async def detect_task_type(request: dict):
             "ai_provider": "gemini"
         }
     except Exception as e:
-        logger.error(f"Task type detection failed: {e}")
+        logger.error(f"Task type detection failed: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/generate-subtasks", dependencies=[Depends(require_service_token)])
@@ -450,7 +455,8 @@ async def generate_subtasks(request: dict):
             "subtasks": subtasks
         }
     except Exception as e:
-        logger.error(f"Subtask generation failed: {e}")
+        logger.error(f"Subtask generation failed: {str(e)}")
+        logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/performance-insights", dependencies=[Depends(require_service_token)])

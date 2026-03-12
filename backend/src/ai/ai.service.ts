@@ -578,6 +578,7 @@ export class AiService {
           type: 'task',
           api_key: apiKey,
         }, {
+          headers: this.aiServiceHeaders,
           timeout: 15000,
         }),
       );
