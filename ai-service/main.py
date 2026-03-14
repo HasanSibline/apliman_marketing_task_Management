@@ -278,6 +278,7 @@ async def generate_content(request: GenerateContentRequest):
         
         return {
             "ai_provider": "gemini",
+            "gemini_model": config.GEMINI_MODEL,
             "description": description,
             "goals": goals,
             "priority": priority
@@ -398,7 +399,8 @@ async def detect_task_type(request: dict):
         
         return {
             "task_type": task_type,
-            "ai_provider": "gemini"
+            "ai_provider": "gemini",
+            "gemini_model": config.GEMINI_MODEL
         }
     except Exception as e:
         logger.error(f"Task type detection failed: {str(e)}")
@@ -452,6 +454,7 @@ async def generate_subtasks(request: dict):
         
         return {
             "ai_provider": "gemini",
+            "gemini_model": config.GEMINI_MODEL,
             "subtasks": subtasks
         }
     except Exception as e:
