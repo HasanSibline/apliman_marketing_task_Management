@@ -7,8 +7,10 @@ apt-get update && apt-get install -y tesseract-ocr tesseract-ocr-eng
 pip install -r requirements.txt
 
 # Install Playwright browsers for scraping
-playwright install chromium
-playwright install-deps chromium
+# Explicitly set the path for Render environments
+export PLAYWRIGHT_BROWSERS_PATH=/opt/render/.cache/ms-playwright
+python -m playwright install chromium
+python -m playwright install-deps chromium
 
 # Create models directory
 mkdir -p models

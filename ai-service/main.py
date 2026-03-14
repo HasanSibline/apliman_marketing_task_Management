@@ -57,9 +57,9 @@ def require_service_token(
 # Initialize services
 content_generator = ContentGenerator()
 web_scraper = WebScraper()
-# Get the first API key for chat service
-api_keys = config.get_api_keys()
-chat_service = ChatService(api_keys[0] if api_keys else config.GOOGLE_API_KEY)
+# Initialize chat service with all available API keys for rotation
+keys_to_use = api_keys if api_keys else [config.GOOGLE_API_KEY]
+chat_service = ChatService(keys_to_use)
 
 @app.get("/health")
 async def health_check():

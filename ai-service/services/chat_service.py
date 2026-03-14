@@ -13,13 +13,28 @@ logger = logging.getLogger(__name__)
 class ChatService:
     """Service for handling conversational AI chat with context and memory"""
 
-    def __init__(self, api_key: str):
-        self.api_key = api_key
+    def __init__(self, api_keys: List[str]):
+        self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
+        self.current_key_index = 0
+        self.api_key = self.api_keys[0] # For backwards compatibility with internal services
+        
         # Use the same model as content generation (from config)
         self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-        self.learning_service = ContextLearningService(api_key, self.model_name)
-        logger.info(f"✅ ChatService initialized with {self.model_name}")
+        self.learning_service = ContextLearningService(self.api_key, self.model_name)
+        logger.info(f"✅ ChatService initialized with {self.model_name} and {len(self.api_keys)} API keys")
+
+    def _rotate_api_key(self):
+        """Rotate to the next API key"""
+        if len(self.api_keys) > 1:
+            old_index = self.current_key_index
+            self.current_key_index = (self.current_key_index + 1) % len(self.api_keys)
+            self.api_key = self.api_keys[self.current_key_index]
+            # Update learning service with new key
+            self.learning_service.api_key = self.api_key
+            logger.warning(f"🔄 Rotating Chat API key from index {old_index} to {self.current_key_index}")
+            return True
+        return False
 
     async def process_chat_message(
         self,
@@ -112,79 +127,94 @@ ApliChat:"""
             }
 
     async def _generate_via_rest(self, prompt: str) -> str:
-        """Make a stateless request to Gemini API via REST"""
-        # Try both Header and Query Param for maximum compatibility
-        # v1beta often works better with query param for some regions/tiers
-        url_query = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
-        url_header = f"{self.base_url}/models/{self.model_name}:generateContent"
-        
-        headers = {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': self.api_key
-        }
-        payload = {
-            "contents": [{"parts": [{"text": prompt}]}]
-        }
-        
+        """Make a stateless request to Gemini API via REST with rotation support"""
+        attempts = 0
+        max_attempts = len(self.api_keys)
         last_error = None
         
-        # Try Query Param first (usually first choice for REST in docs)
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url_query, headers={'Content-Type': 'application/json'}, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get('candidates') and data['candidates'][0].get('content'):
-                            return data['candidates'][0]['content']['parts'][0]['text']
-                        else:
-                            msg = "AI returned an empty response. This is usually caused by Google's safety filters blocking the content."
-                            logger.warning(f"⚠️ {msg}")
-                            raise Exception(msg)
-                    elif response.status == 400 and "API Key not found" in await response.text():
-                        # Fallback to header if query param rejected
-                        logger.warning("Query param auth failed with 400, falling back to header auth")
-                        pass 
-                    else:
-                        error_text = await response.text()
-                        try:
-                            error_json = json.loads(error_text)
-                            msg = error_json.get('error', {}).get('message', error_text)
-                        except:
-                            msg = error_text
-                        last_error = f"Gemini API failure ({response.status}): {msg}"
-                        logger.error(f"❌ {last_error}")
-                        raise Exception(last_error)
-        except Exception as e:
-            if "Gemini API failure" in str(e) or "empty response" in str(e):
-                raise e
-            last_error = str(e)
-            logger.warning(f"Query param attempt failed: {last_error}. Retrying with header auth...")
-
-        # Fallback to Header Auth
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url_header, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get('candidates') and data['candidates'][0].get('content'):
-                            return data['candidates'][0]['content']['parts'][0]['text']
-                        else:
-                            msg = "AI returned an empty response (Header Auth)."
-                            logger.warning(f"⚠️ {msg}")
-                            raise Exception(msg)
-                    else:
-                        error_text = await response.text()
-                        try:
-                            error_json = json.loads(error_text)
-                            msg = error_json.get('error', {}).get('message', error_text)
-                        except:
-                            msg = error_text
-                        last_error = f"Gemini API failure ({response.status}): {msg}"
-                        logger.error(f"❌ {last_error}")
-                        raise Exception(last_error)
-        except Exception as e:
-            logger.error(f"❌ Both auth methods failed for AI request: {str(e)}")
-            raise e
+        while attempts < max_attempts:
+            current_key = self.api_key
+            url_query = f"{self.base_url}/models/{self.model_name}:generateContent?key={current_key}"
+            url_header = f"{self.base_url}/models/{self.model_name}:generateContent"
+            
+            headers = {
+                'Content-Type': 'application/json',
+                'X-goog-api-key': current_key
+            }
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            
+            try:
+                # Try both Query Param and Header Auth (loop over auth methods)
+                for auth_method, url in [("query", url_query), ("header", url_header)]:
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            request_headers = {'Content-Type': 'application/json'}
+                            if auth_method == "header":
+                                request_headers['X-goog-api-key'] = current_key
+                                
+                            async with session.post(url, headers=request_headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                                if response.status == 200:
+                                    data = await response.json()
+                                    if data.get('candidates') and data['candidates'][0].get('content'):
+                                        return data['candidates'][0]['content']['parts'][0]['text']
+                                    else:
+                                        msg = "AI returned an empty response (likely blocked by safety filters)."
+                                        logger.warning(f"⚠️ {msg}")
+                                        raise Exception(msg)
+                                
+                                error_text = await response.text()
+                                try:
+                                    error_json = json.loads(error_text)
+                                    error_msg = error_json.get('error', {}).get('message', error_text)
+                                except:
+                                    error_msg = error_text
+                                
+                                # CRITICAL: Rotate on key errors or quota exceed
+                                is_key_error = any(m in error_msg.lower() for m in ["api key expired", "invalid api key", "key not found", "api_key_invalid"])
+                                is_quota_error = response.status == 429
+                                
+                                if is_key_error or is_quota_error:
+                                    logger.warning(f"❌ Chat API key {self.current_key_index} error ({response.status}): {error_msg}")
+                                    if self._rotate_api_key():
+                                        # Key was rotated, break out of auth_method loop and retry while loop
+                                        raise StopIteration("rotate")
+                                    else:
+                                        raise Exception(f"All API keys exhausted: {error_msg}")
+                                
+                                # If just one auth method failed but not key error, try next auth method
+                                if auth_method == "query":
+                                    logger.warning(f"Query auth failed ({response.status}), trying header auth...")
+                                    continue
+                                else:
+                                    raise Exception(f"Gemini API failure ({response.status}): {error_msg}")
+                                    
+                    except StopIteration:
+                        # Signal to retry with new key
+                        break
+                    except Exception as e:
+                        if auth_method == "query":
+                            continue # Try header auth
+                        last_error = str(e)
+                        raise e
+                else:
+                    # If we finished auth_method loop without success/rotation
+                    attempts += 1
+                    continue
+                
+                # If we broke out of auth_method loop via StopIteration
+                attempts += 1
+                continue
+                
+            except Exception as e:
+                last_error = str(e)
+                attempts += 1
+                logger.warning(f"Attempt {attempts} failed: {last_error}")
+                if not self._rotate_api_key():
+                    break
+                    
+        raise Exception(last_error or "All AI generation attempts failed")
 
     def _build_system_prompt(
         self,

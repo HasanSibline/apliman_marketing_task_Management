@@ -250,15 +250,27 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                             # Parse JSON error if possible
                             try:
                                 error_json = json.loads(error_text)
-                                if 'error' in error_json:
-                                    last_error = f"Gemini API Error {response.status}: {error_json['error'].get('message', error_text)}"
-                                else:
-                                    last_error = f"Gemini API Error {response.status}: {error_text}"
+                                error_msg = error_json.get('error', {}).get('message', error_text)
                             except:
-                                last_error = f"Gemini API Error {response.status}: {error_text}"
-                                
-                            logger.error(f"❌ {last_error}")
-                            break # Critical error, don't retry with same key
+                                error_msg = error_text
+                            
+                            # CRITICAL: Detect expired or invalid keys and rotate!
+                            is_key_error = any(msg in error_msg.lower() for msg in ["api key expired", "invalid api key", "key not found", "api_key_invalid"])
+                            
+                            if (response.status in [400, 401, 403]) and is_key_error:
+                                logger.warning(f"❌ API key {self.current_key_index} is invalid or expired: {error_msg}")
+                                # Try next key if available
+                                if self._rotate_api_key():
+                                    attempts += 1
+                                    logger.info(f"🔄 Trying fallback API key {self.current_key_index} (attempt {attempts + 1}/{max_attempts})")
+                                    continue
+                                else:
+                                    last_error = f"All API keys are invalid or expired: {error_msg}"
+                                    break
+                            
+                            logger.error(f"❌ Gemini API failure ({response.status}): {error_msg}")
+                            last_error = f"Gemini API failure ({response.status}): {error_msg}"
+                            break
                             
             except aiohttp.ClientError as e:
                 last_error = f"Connection error during AI request: {str(e)}"
