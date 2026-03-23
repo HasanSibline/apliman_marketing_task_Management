@@ -7,7 +7,7 @@ import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private readonly aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+  private readonly aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
 
   constructor(
     private prisma: PrismaService,

@@ -81,8 +81,16 @@ export class AiService {
         companyName: company.name
       };
     } catch (error) {
+      // Re-throw intentional errors (e.g., "no userId", "no company")
+      // so the caller gets the actual error message
+      if (error instanceof Error && (
+        error.message.includes('User ID is required') ||
+        error.message.includes('not available for users without a company')
+      )) {
+        throw error;
+      }
       this.logger.error('Error fetching company AI info:', error);
-      return null; // AI disabled on error
+      return null; // AI disabled on unexpected error
     }
   }
 

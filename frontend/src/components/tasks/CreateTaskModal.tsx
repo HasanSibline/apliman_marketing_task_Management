@@ -135,7 +135,21 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       })
 
       if (!contentResponse.ok) {
-        throw new Error(`AI service error: ${contentResponse.status}`)
+        // Read the actual error message from the backend response
+        let errorDetail = `AI service error (${contentResponse.status})`
+        try {
+          const errorBody = await contentResponse.json()
+          if (errorBody?.message) {
+            errorDetail = errorBody.message
+          } else if (typeof errorBody?.detail === 'string') {
+            errorDetail = errorBody.detail
+          } else if (errorBody?.detail?.message) {
+            errorDetail = errorBody.detail.message
+          }
+        } catch {
+          // If we can't parse the error body, use the status code
+        }
+        throw new Error(errorDetail)
       }
 
       const contentData = await contentResponse.json()
@@ -184,15 +198,19 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     } catch (error: any) {
       console.error('Error generating AI content:', error)
 
-      // Show specific error messages
-      if (error.message.includes('AI service error')) {
-        toast.error('AI service is temporarily unavailable. Please try again later.')
-      } else if (error.response?.status === 401) {
+      // Show the actual error message from the backend
+      const errorMsg = error.message || 'Unknown error'
+      
+      if (error.response?.status === 401 || errorMsg.includes('Authentication required')) {
         toast.error('Session expired. Please refresh the page and log in again.')
         localStorage.removeItem('token')
         window.location.href = '/login'
+      } else if (errorMsg.includes('not enabled') || errorMsg.includes('API key')) {
+        toast.error(errorMsg)
+      } else if (errorMsg.includes('AI service error')) {
+        toast.error(`AI generation failed: ${errorMsg}`)
       } else {
-        toast.error('Failed to generate AI content. Please check your connection and try again.')
+        toast.error(errorMsg || 'Failed to generate AI content. Please check your connection and try again.')
       }
     } finally {
       setIsGeneratingContent(false)

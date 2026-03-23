@@ -59,7 +59,7 @@ export class AppController {
   @ApiOperation({ summary: 'Keepalive proxy for Python AI service' })
   async getAiKeepalive() {
     try {
-      const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+      const aiUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
       // Native fetch is available in Node 18+
       const response = await fetch(`${aiUrl}/health`);
       if (response.ok) {
