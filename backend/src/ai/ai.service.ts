@@ -379,7 +379,7 @@ export class AiService {
           company_name: companyInfo.companyName,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 30000,
+          timeout: 60000, // 60 seconds — AI service may need time for Gemini + knowledge sources
         }),
       );
 
@@ -401,21 +401,15 @@ export class AiService {
       this.logger.error('❌ Error generating content from AI:');
       this.logger.error(`   Error type: ${error.constructor.name}`);
       this.logger.error(`   Error message: ${error.message}`);
-      this.logger.error(`   Error stack: ${error.stack}`);
 
-      if (error.response) {
-        this.logger.error(`   HTTP Response status: ${error.response.status}`);
-        this.logger.error(`   HTTP Response statusText: ${error.response.statusText}`);
-        this.logger.error(`   HTTP Response data: ${JSON.stringify(error.response.data)}`);
-      }
-
-      if (error.code) {
-        this.logger.error(`   Error code: ${error.code}`);
-      }
-
-      // Re-throw with more context
+      // Provide a clear, user-friendly error
       let errorMessage = 'AI content generation failed';
-      if (error.response?.data?.detail) {
+
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        errorMessage = 'AI service timed out. The AI service may be starting up — please try again in 1-2 minutes.';
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = 'AI service is not reachable. Please check that the AI service is running.';
+      } else if (error.response?.data?.detail) {
         if (typeof error.response.data.detail === 'string') {
           errorMessage = error.response.data.detail;
         } else if (error.response.data.detail.message) {
