@@ -1,20 +1,24 @@
 #!/usr/bin/env node
 /**
- * Production startup script for Render deployment
- * Handles database migrations and seeding before starting the app
+ * Production startup script for Render deployment v5.0
+ * - Does NOT reset database by default (set FORCE_DB_RESET=true to reset)
+ * - Skips seed if System Admin already exists
+ * - Adds timeouts to prevent hangs on Render
  */
 
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
-console.log('🚀 Starting production deployment v4.0 (Multi-Tenant - Clean Start)...\n');
+const ROOT = path.join(__dirname, '..');
 
-// Helper function to run commands
-function runCommand(command, description, required = true) {
+console.log('🚀 Starting production deployment v5.0 (Multi-Tenant - Safe Start)...\n');
+
+// Helper function to run commands with a 2-minute timeout
+function run(command, description, required = true) {
   try {
     console.log(`${description}...`);
-    execSync(command, { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+    execSync(command, { stdio: 'inherit', cwd: ROOT, timeout: 120_000 });
     console.log(`✅ ${description} completed\n`);
     return true;
   } catch (error) {
@@ -27,83 +31,57 @@ function runCommand(command, description, required = true) {
   }
 }
 
-// ⚠️ WARNING: This will reset your database
-console.log('⚠️  IMPORTANT: This deployment will create a fresh database.\n');
-console.log('   NO default company will be created.');
-console.log('   System Admin must create companies via Admin Panel.\n');
-
-// Step 1: Reset database and create fresh schema
-console.log('🔄 Step 1: Creating fresh multi-tenant database...\n');
-const resetSuccess = runCommand(
-  'npx prisma db push --force-reset --skip-generate --accept-data-loss',
-  '🗄️  Applying schema to database',
-  true
-);
-
-if (!resetSuccess) {
-  console.error('❌ Failed to apply schema. Cannot continue.\n');
-  process.exit(1);
-}
-
-console.log('✅ Multi-tenant database schema applied!\n');
-
-// Step 2: Seed with System Admin ONLY
-console.log('🔄 Step 2: Creating System Administrator...\n');
-const seeded = runCommand(
-  'npx prisma db seed',
-  '🌱 Creating System Admin',
-  true // Required - we need the admin
-);
-
-if (!seeded) {
-  console.error('❌ Failed to create System Admin. Cannot continue.\n');
-  process.exit(1);
-}
-
-// Step 3: Generate Prisma Client
-console.log('\n📦 Step 3: Generating Prisma Client...\n');
-runCommand(
-  'npx prisma generate',
-  '⚙️  Building Prisma Client',
-  true
-);
-
-// Step 4: Verify Prisma Client
-console.log('\n🔍 Step 4: Verifying Prisma Client...\n');
-try {
-  const { PrismaClient } = require('@prisma/client');
-  const prisma = new PrismaClient();
-  
-  if (prisma.company && prisma.user) {
-    console.log('✅ Multi-tenant models verified in Prisma Client\n');
-  } else {
-    console.error('❌ Required models NOT found in Prisma Client');
-    console.error('🔄 Regenerating Prisma Client...');
-    execSync('npx prisma generate', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
+// Check if super admin already exists (returns true/false synchronously)
+function adminExists() {
+  try {
+    const out = execSync(
+      `node -e "const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.user.findFirst({where:{role:'SUPER_ADMIN'}}).then(u=>{console.log(u?'YES':'NO');p.\\$disconnect()}).catch(()=>{console.log('NO');p.\\$disconnect()})"`,
+      { cwd: ROOT, timeout: 30_000 }
+    ).toString().trim();
+    return out.includes('YES');
+  } catch {
+    return false;
   }
-  
-  prisma.$disconnect();
-} catch (error) {
-  console.error('⚠️  Could not verify Prisma Client:', error.message);
-  console.log('🔄 Attempting to regenerate...');
-  execSync('npx prisma generate', { stdio: 'inherit', cwd: path.join(__dirname, '..') });
 }
 
-// Step 5: Start the application
+// ─── Step 1: Sync schema ────────────────────────────────────────────────
+const forceReset = process.env.FORCE_DB_RESET === 'true';
+
+if (forceReset) {
+  console.log('⚠️  FORCE_DB_RESET=true — this will WIPE the database!\n');
+  run(
+    'npx prisma db push --force-reset --skip-generate --accept-data-loss',
+    '🗄️  Resetting + applying schema'
+  );
+} else {
+  console.log('🔄 Step 1: Syncing database schema (preserving existing data)...\n');
+  run(
+    'npx prisma db push --skip-generate --accept-data-loss',
+    '🗄️  Applying schema to database'
+  );
+}
+
+// ─── Step 2: Seed only when needed ──────────────────────────────────────
+console.log('🔄 Step 2: Checking if seeding is required...\n');
+
+const needsSeed = forceReset || !adminExists();
+
+if (needsSeed) {
+  console.log('🌱 System Admin not found (or force-reset). Running seed...\n');
+  run('npx prisma db seed', '🌱 Creating System Admin', true);
+} else {
+  console.log('✅ System Admin already exists — skipping seed.\n');
+}
+
+// ─── Step 3: Start the app ──────────────────────────────────────────────
 console.log('\n═══════════════════════════════════════════════════');
-console.log('✅ DATABASE READY - MULTI-TENANT SYSTEM');
+console.log('✅ DATABASE READY — MULTI-TENANT SYSTEM');
 console.log('═══════════════════════════════════════════════════');
 console.log('🚀 Starting NestJS application...\n');
 console.log('📋 SYSTEM ADMINISTRATOR LOGIN:');
 console.log('   URL:      /admin/login');
 console.log('   Email:    superadmin@apliman.com');
 console.log('   Password: SuperAdmin123! (or from SUPER_ADMIN_PASSWORD env)');
-console.log('\n📝 NEXT STEPS AFTER APP STARTS:');
-console.log('   1. Login as System Administrator');
-console.log('   2. Go to /admin/companies');
-console.log('   3. Create your first company (e.g., Apliman)');
-console.log('   4. Add company admin user');
-console.log('   5. Company users login at /{company-slug}/login');
 console.log('═══════════════════════════════════════════════════\n');
 
 try {
