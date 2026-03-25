@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, RefreshCw, Edit, Trash2, Globe, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import api from '@/services/api';
+import toast from 'react-hot-toast';
 
 interface KnowledgeSource {
   id: string;
@@ -81,7 +82,7 @@ export default function KnowledgeSourcesPage() {
       fetchSources();
     } catch (error) {
       console.error('Error saving knowledge source:', error);
-      alert('Failed to save knowledge source');
+      toast.error('Failed to save knowledge source');
     }
   };
 
@@ -106,7 +107,7 @@ export default function KnowledgeSourcesPage() {
       fetchSources();
     } catch (error) {
       console.error('Error deleting knowledge source:', error);
-      alert('Failed to delete knowledge source');
+      toast.error('Failed to delete knowledge source');
     }
   };
 
@@ -114,10 +115,11 @@ export default function KnowledgeSourcesPage() {
     try {
       setScraping(id);
       await api.post(`/knowledge-sources/${id}/scrape`);
+      toast.success('Source scraped successfully');
       fetchSources();
     } catch (error) {
       console.error('Error scraping knowledge source:', error);
-      alert('Failed to scrape knowledge source');
+      toast.error('Failed to scrape knowledge source');
     } finally {
       setScraping(null);
     }
@@ -127,11 +129,17 @@ export default function KnowledgeSourcesPage() {
     try {
       setScrapingAll(true);
       const response = await api.post('/knowledge-sources/scrape-all');
-      alert(`Scraping complete: ${response.data.successful} successful, ${response.data.failed} failed`);
+      if (response.data.failed === 0) {
+        toast.success(`Scraping complete: All sources successful!`);
+      } else {
+        toast(`Scraping complete: ${response.data.successful} successful, ${response.data.failed} failed`, {
+          icon: '📊',
+        });
+      }
       fetchSources();
     } catch (error) {
       console.error('Error scraping all sources:', error);
-      alert('Failed to scrape sources');
+      toast.error('Failed to scrape sources');
     } finally {
       setScrapingAll(false);
     }
