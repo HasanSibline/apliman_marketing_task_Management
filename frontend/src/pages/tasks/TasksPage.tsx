@@ -81,9 +81,10 @@ const TasksPage: React.FC = () => {
     dispatch(setFilters({}))
   }
 
-  // Separate completed and active tasks
-  const completedTasks = tasks.filter(task => task.completedAt)
-  const activeTasks = tasks.filter(task => !task.completedAt)
+  // Separate completed and active tasks accurately based on various completion conditions
+  const isTaskComplete = (t: Task) => Boolean(t.completedAt || t.phase === 'COMPLETED' || t.phase === 'ARCHIVED' || t.currentPhase?.isEndPhase);
+  const completedTasks = tasks.filter(isTaskComplete)
+  const activeTasks = tasks.filter(t => !isTaskComplete(t))
 
   // Group active tasks by workflow type
   const groupedTasks = activeTasks.reduce((acc, task) => {

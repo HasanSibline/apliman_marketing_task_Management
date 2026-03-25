@@ -64,6 +64,8 @@ const ObjectiveDetailPage: React.FC = () => {
     const [obj, setObj] = useState<ObjectiveDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [addingKR, setAddingKR] = useState(false)
+    const [updatingKR, setUpdatingKR] = useState<{ id: string, title: string, current: number, target: number, unit: string } | null>(null)
+    const [updatingValue, setUpdatingValue] = useState<string>('')
     const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 })
     const [showLinkTask, setShowLinkTask] = useState(false)
     const [availableTasks, setAvailableTasks] = useState<Task[]>([])
@@ -241,8 +243,8 @@ const ObjectiveDetailPage: React.FC = () => {
                                                 {isAdmin && (
                                                     <button
                                                         onClick={() => {
-                                                            const n = prompt(`Update value for ${kr.title} (Target: ${kr.targetValue})`, kr.currentValue.toString())
-                                                            if (n !== null && !isNaN(+n)) updateKR(kr.id, +n)
+                                                            setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit })
+                                                            setUpdatingValue(kr.currentValue.toString())
                                                         }}
                                                         className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
                                                     >
@@ -424,6 +426,47 @@ const ObjectiveDetailPage: React.FC = () => {
                             <div className="flex gap-3 pt-4">
                                 <button type="button" onClick={() => setAddingKR(false)} className="flex-1 px-4 py-3 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition">Cancel</button>
                                 <button type="submit" className="flex-1 px-4 py-3 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-200">Add KR</button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
+
+            {/* Update KR Modal */}
+            {updatingKR && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-gray-100">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-black text-gray-900 tracking-tight">Update Value</h3>
+                            <button onClick={() => setUpdatingKR(null)} className="text-gray-400 hover:text-gray-600">
+                                <XMarkIcon className="h-6 w-6" />
+                            </button>
+                        </div>
+                        <div className="mb-4 bg-gray-50 p-3 rounded-xl border border-gray-100">
+                            <p className="text-sm font-bold text-gray-700">{updatingKR.title}</p>
+                            <p className="text-xs text-gray-500 font-medium mt-0.5">Target: {updatingKR.target} {updatingKR.unit}</p>
+                        </div>
+                        <form onSubmit={(e) => { 
+                            e.preventDefault(); 
+                            if (!isNaN(+updatingValue)) {
+                                updateKR(updatingKR.id, +updatingValue);
+                                setUpdatingKR(null);
+                            }
+                        }} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1">Current Value</label>
+                                <input 
+                                    type="number" 
+                                    value={updatingValue} 
+                                    onChange={e => setUpdatingValue(e.target.value)}
+                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm font-medium"
+                                    required autoFocus 
+                                />
+                            </div>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setUpdatingKR(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-bold hover:bg-gray-200 transition">Cancel</button>
+                                <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-200">Save</button>
                             </div>
                         </form>
                     </motion.div>

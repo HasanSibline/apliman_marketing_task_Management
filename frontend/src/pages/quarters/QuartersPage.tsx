@@ -241,71 +241,7 @@ function CloseQuarterModal({
     )
 }
 
-// ─── Quarter Card ─────────────────────────────────────────────────────────────
-function QuarterCard({ quarter, onClick, onCloseQ }: { quarter: Quarter; onClick: () => void; onCloseQ: () => void }) {
-    const cfg = STATUS_CONFIG[quarter.status]
-    const completionPct = quarter.totalTasks > 0
-        ? Math.round((quarter.completedTasks / quarter.totalTasks) * 100)
-        : 0
-
-    return (
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={onClick}>
-            <div className="flex items-start justify-between mb-4">
-                <div>
-                    <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-bold text-gray-900">{quarter.name} {quarter.year}</h3>
-                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.bg}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                            {cfg.label}
-                        </span>
-                    </div>
-                    <p className="text-xs text-gray-400">
-                        {new Date(quarter.startDate).toLocaleDateString()} – {new Date(quarter.endDate).toLocaleDateString()}
-                    </p>
-                </div>
-                {quarter.status === 'ACTIVE' && (
-                    <button onClick={e => { e.stopPropagation(); onCloseQ() }}
-                        className="flex items-center gap-1 text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-50 transition font-medium">
-                        <LockClosedIcon className="h-3.5 w-3.5" />
-                        Close Q
-                    </button>
-                )}
-            </div>
-
-            <div className="mb-3">
-                <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-500">Task Completion</span>
-                    <span className="text-xs font-semibold text-gray-700">{completionPct}%</span>
-                </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-primary-500 rounded-full transition-all"
-                        style={{ width: `${completionPct}%` }} />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3">
-                {[
-                    { icon: ChartBarIcon, label: 'Tasks', value: quarter.totalTasks },
-                    { icon: CheckCircleIcon, label: 'Done', value: quarter.completedTasks },
-                    { icon: FlagIcon, label: 'Objectives', value: quarter.objectivesCount },
-                ].map(({ icon: Icon, label, value }) => (
-                    <div key={label} className="text-center p-2 bg-gray-50 rounded-lg">
-                        <Icon className="h-4 w-4 text-gray-400 mx-auto mb-1" />
-                        <p className="text-sm font-bold text-gray-800">{value}</p>
-                        <p className="text-xs text-gray-400">{label}</p>
-                    </div>
-                ))}
-            </div>
-
-            <div className="mt-3 flex items-center justify-end text-xs text-primary-600 font-medium">
-                View details <ChevronRightIcon className="h-3.5 w-3.5 ml-1" />
-            </div>
-        </motion.div>
-    )
-}
-
+// (QuarterCard removed in favor of table view)
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const QuartersPage: React.FC = () => {
     const navigate = useNavigate()
@@ -412,7 +348,7 @@ const QuartersPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Quarter cards */}
+            {/* Quarters Table */}
             {loading ? (
                 <div className="flex justify-center py-12">
                     <div className="spinner h-8 w-8" />
@@ -427,15 +363,86 @@ const QuartersPage: React.FC = () => {
                     )}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {quarters.map(q => (
-                        <QuarterCard
-                            key={q.id}
-                            quarter={q}
-                            onClick={() => navigate(`/quarters/${q.id}`)}
-                            onCloseQ={() => openCloseModal(q)}
-                        />
-                    ))}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Quarter</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Duration</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Objectives</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-64">Task Progress</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {quarters.map(q => {
+                                    const cfg = STATUS_CONFIG[q.status];
+                                    const completionPct = q.totalTasks > 0 ? Math.round((q.completedTasks / q.totalTasks) * 100) : 0;
+                                    return (
+                                        <motion.tr 
+                                            key={q.id} 
+                                            initial={{ opacity: 0, y: 10 }} 
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                                            onClick={() => navigate(`/quarters/${q.id}`)}
+                                        >
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center">
+                                                    <div className="h-10 w-10 shrink-0 rounded-lg bg-primary-50 flex items-center justify-center border border-primary-100">
+                                                        <CalendarIcon className="h-5 w-5 text-primary-600" />
+                                                    </div>
+                                                    <div className="ml-4">
+                                                        <div className="text-sm font-bold text-gray-900">{q.name} {q.year}</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${cfg.bg}`}>
+                                                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                                                    {cfg.label}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="text-sm text-gray-900">{new Date(q.startDate).toLocaleDateString()}</div>
+                                                <div className="text-xs text-gray-500">to {new Date(q.endDate).toLocaleDateString()}</div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                <div className="flex items-center gap-1.5 font-medium">
+                                                    <FlagIcon className="h-4 w-4 text-gray-400" />
+                                                    {q.objectivesCount} Objective{q.objectivesCount !== 1 ? 's' : ''}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center justify-between text-xs mb-1">
+                                                    <span className="font-medium text-gray-700">{q.completedTasks} / {q.totalTasks} Tasks</span>
+                                                    <span className="font-bold text-primary-700">{completionPct}%</span>
+                                                </div>
+                                                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden w-full">
+                                                    <div className={`h-full rounded-full transition-all ${completionPct === 100 ? 'bg-green-500' : 'bg-primary-500'}`}
+                                                        style={{ width: `${completionPct}%` }} />
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                                <div className="flex items-center justify-end gap-3">
+                                                    {q.status === 'ACTIVE' && (
+                                                        <button 
+                                                            onClick={(e) => { e.stopPropagation(); openCloseModal(q); }}
+                                                            className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition font-medium flex items-center gap-1.5"
+                                                        >
+                                                            <LockClosedIcon className="h-3.5 w-3.5" /> Close
+                                                        </button>
+                                                    )}
+                                                    <ChevronRightIcon className="h-5 w-5 text-gray-400 group-hover:text-primary-600 transition-colors" />
+                                                </div>
+                                            </td>
+                                        </motion.tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

@@ -318,56 +318,56 @@ const QuarterDetailPage: React.FC = () => {
                     </div>
                 )}
 
-                {activeTab === 'tasks' && (
-                    <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                        <table className="w-full text-left">
-                            <thead className="bg-gray-50 text-[10px] font-black uppercase text-gray-400 border-b border-gray-100">
-                                <tr>
-                                    <th className="px-6 py-4">Task Name</th>
-                                    <th className="px-6 py-4">Phase</th>
-                                    <th className="px-6 py-4">Assignee</th>
-                                    <th className="px-6 py-4">Due Date</th>
-                                    <th className="px-6 py-4"></th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
+            {activeTab === 'tasks' && (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
+                    <table className="min-w-full w-full text-left table-fixed">
+                        <thead className="bg-gray-50 text-[10px] font-black uppercase text-gray-400 border-b border-gray-100 tracking-widest">
+                            <tr>
+                                <th className="px-6 py-4 w-[40%]">Task Name</th>
+                                <th className="px-6 py-4 w-[20%]">Phase</th>
+                                <th className="px-6 py-4 w-[25%]">Assignee</th>
+                                <th className="px-6 py-4 w-[15%]">Due Date</th>
+                                <th className="px-6 py-4 w-[5%] whitespace-nowrap"></th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
                                 {quarter.tasks.map(task => (
                                     <tr key={task.id} className="hover:bg-gray-50/50 transition">
-                                        <td className="px-6 py-4 text-sm font-bold text-gray-900">{task.title}</td>
-                                        <td className="px-6 py-4">
-                                            {task.currentPhase ? (
-                                                <span 
-                                                    className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider"
-                                                    style={{ backgroundColor: `${task.currentPhase.color}15`, color: task.currentPhase.color, border: `1px solid ${task.currentPhase.color}30` }}
-                                                >
-                                                    {task.currentPhase.name}
-                                                </span>
-                                            ) : (
-                                                <span className="text-[10px] font-bold px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full uppercase tracking-wider">
-                                                    {task.phase.replace(/_/g, ' ')}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            {task.assignedTo ? (
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-6 w-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
-                                                        <UserCircleIcon className="h-4 w-4" />
-                                                    </div>
-                                                    <span className="text-xs text-gray-700 font-bold">{task.assignedTo.name}</span>
+                                    <td className="px-6 py-4 truncate text-sm font-bold text-gray-900" title={task.title}>{task.title}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {task.currentPhase ? (
+                                            <span 
+                                                className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider block w-max"
+                                                style={{ backgroundColor: `${task.currentPhase.color}15`, color: task.currentPhase.color, border: `1px solid ${task.currentPhase.color}30` }}
+                                            >
+                                                {task.currentPhase.name}
+                                            </span>
+                                        ) : (
+                                            <span className="text-[10px] font-bold px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full uppercase tracking-wider block w-max">
+                                                {task.phase.replace(/_/g, ' ')}
+                                            </span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        {task.assignedTo ? (
+                                            <div className="flex items-center gap-2">
+                                                <div className="h-6 w-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 shrink-0">
+                                                    <UserCircleIcon className="h-4 w-4" />
                                                 </div>
-                                            ) : (
-                                                <span className="text-xs text-gray-400">-</span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 text-xs text-gray-500 font-black">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
-                                        <td className="px-6 py-4">
-                                            <Link to={`/tasks/${task.id}`} className="p-2 text-gray-300 hover:text-primary-600 transition block">
-                                                <ChevronRightIcon className="h-4 w-4" />
-                                            </Link>
-                                        </td>
-                                    </tr>
-                                ))}
+                                                <span className="text-xs text-gray-700 font-bold truncate">{task.assignedTo.name}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-xs text-gray-400">-</span>
+                                        )}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-black">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                                        <Link to={`/tasks/${task.id}`} className="p-2 text-gray-300 hover:text-primary-600 transition inline-block">
+                                            <ChevronRightIcon className="h-4 w-4" />
+                                        </Link>
+                                    </td>
+                                </tr>
+                            ))}
                             </tbody>
                         </table>
                     </div>

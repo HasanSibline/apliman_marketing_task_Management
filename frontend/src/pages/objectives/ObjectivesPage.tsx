@@ -12,10 +12,14 @@ import {
     ExclamationTriangleIcon,
     XCircleIcon,
     FlagIcon,
+    ChevronRightIcon,
+    ChartBarIcon,
+    ListBulletIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
+import ObjectiveAnalyticsDashboard from '@/components/analytics/ObjectiveAnalyticsDashboard'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface KeyResult {
@@ -110,131 +114,7 @@ function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string
     )
 }
 
-// ─── Objective Card ───────────────────────────────────────────────────────────
-function ObjectiveCard({
-    obj, canEdit, onDelete, onRefresh,
-}: {
-    obj: Objective; canEdit: boolean; onDelete: (id: string) => void; onRefresh: () => void
-}) {
-    const navigate = useNavigate()
-    const [expanded, setExpanded] = useState(false)
-    const [addingKR, setAddingKR] = useState(false)
-    const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 })
-    const cfg = STATUS_CFG[obj.status]
-
-    const updateKR = async (krId: string, currentValue: number) => {
-        try {
-            await api.patch(`/objectives/key-results/${krId}`, { currentValue })
-            onRefresh()
-        } catch { toast.error('Failed to update') }
-    }
-
-    const addKR = async () => {
-        try {
-            await api.post(`/objectives/${obj.id}/key-results`, krForm)
-            setAddingKR(false)
-            setKrForm({ title: '', unit: 'number', startValue: 0, targetValue: 100 })
-            onRefresh()
-            toast.success('Key result added')
-        } catch (err: any) { toast.error(err.response?.data?.message || 'Failed') }
-    }
-
-    return (
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:border-primary-300 transition-colors">
-            {/* Header */}
-            <div className="p-5 cursor-pointer" onClick={() => navigate(`/objectives/${obj.id}`)}>
-                <div className="flex items-start gap-4">
-                    {/* Progress ring */}
-                    <div className="relative shrink-0">
-                        <ProgressRing pct={obj.progress} />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <span className="text-xs font-bold text-gray-700">{obj.progress}%</span>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                            <div>
-                                <h3 className="text-base font-semibold text-gray-900">{obj.title}</h3>
-                                {obj.description && <p className="text-sm text-gray-400 mt-0.5 line-clamp-2">{obj.description}</p>}
-                                {obj.quarter && (
-                                    <p className="text-xs text-gray-400 mt-1">{obj.quarter.name} {obj.quarter.year}</p>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-1.5 shrink-0">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.bg} ${cfg.text}`}>
-                                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                                    {cfg.label}
-                                </span>
-                                {canEdit && (
-                                    <button onClick={(e) => { e.stopPropagation(); onDelete(obj.id) }} className="text-gray-400 hover:text-red-500 transition relative z-10">
-                                        <TrashIcon className="h-4 w-4" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Toggle key results */}
-                {obj.keyResults.length > 0 && (
-                    <button onClick={(e) => { e.stopPropagation(); setExpanded(p => !p) }}
-                        className="flex items-center gap-1 mt-3 text-xs text-primary-600 hover:text-primary-700 font-medium transition relative z-10">
-                        {expanded ? <ChevronUpIcon className="h-3.5 w-3.5" /> : <ChevronDownIcon className="h-3.5 w-3.5" />}
-                        {obj.keyResults.length} Key Result{obj.keyResults.length !== 1 ? 's' : ''}
-                    </button>
-                )}
-            </div>
-
-            {/* Key results */}
-            {expanded && (
-                <div className="px-5 pb-4 border-t border-gray-100 pt-4 space-y-3 bg-gray-50">
-                    {obj.keyResults.map(kr => (
-                        <KRBar key={kr.id} kr={kr} canEdit={canEdit} onUpdate={updateKR} />
-                    ))}
-                    {canEdit && !addingKR && (
-                        <button onClick={() => setAddingKR(true)}
-                            className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium pt-1">
-                            <PlusIcon className="h-3.5 w-3.5" /> Add key result
-                        </button>
-                    )}
-                    {addingKR && (
-                        <div className="space-y-2 pt-1 border-t border-gray-200 mt-2">
-                            <input placeholder="Key result title" value={krForm.title} onChange={e => setKrForm(p => ({ ...p, title: e.target.value }))}
-                                className="input-field text-sm" />
-                            <div className="grid grid-cols-3 gap-2">
-                                <input type="number" placeholder="Start" value={krForm.startValue} onChange={e => setKrForm(p => ({ ...p, startValue: +e.target.value }))}
-                                    className="input-field text-sm" />
-                                <input type="number" placeholder="Target" value={krForm.targetValue} onChange={e => setKrForm(p => ({ ...p, targetValue: +e.target.value }))}
-                                    className="input-field text-sm" />
-                                <select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))} className="select-field text-sm">
-                                    <option value="number">Number</option>
-                                    <option value="percent">%</option>
-                                    <option value="currency">$</option>
-                                </select>
-                            </div>
-                            <div className="flex gap-2">
-                                <button onClick={addKR} className="btn-primary text-xs py-1.5 px-3">Add</button>
-                                <button onClick={() => setAddingKR(false)} className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
-                            </div>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {canEdit && obj.keyResults.length === 0 && (
-                <div className="px-5 pb-4">
-                    <button onClick={() => { setExpanded(true); setAddingKR(true) }}
-                        className="flex items-center gap-1 text-xs text-gray-400 hover:text-primary-600 font-medium transition">
-                        <PlusIcon className="h-3.5 w-3.5" /> Add first key result
-                    </button>
-                </div>
-            )}
-        </motion.div>
-    )
-}
-
+// (ObjectiveCard replaced by expandable table row)
 // ─── Create Objective Modal ───────────────────────────────────────────────────
 function CreateObjectiveModal({
     quarters, onClose, onCreated,
@@ -309,6 +189,7 @@ const ObjectivesPage: React.FC = () => {
     const [showCreate, setShowCreate] = useState(false)
     const [filterQuarter, setFilterQuarter] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
+    const [viewMode, setViewMode] = useState<'list' | 'analytics'>('list')
 
     useEffect(() => { fetchAll() }, [])
 
@@ -324,6 +205,23 @@ const ObjectivesPage: React.FC = () => {
         } catch { toast.error('Failed to load') }
         finally { setLoading(false) }
     }
+
+    const updateKR = async (krId: string, currentValue: number) => {
+        try {
+            await api.patch(`/objectives/key-results/${krId}`, { currentValue });
+            fetchAll();
+        } catch { toast.error('Failed to update Key Result'); }
+    };
+
+    const addKR = async (objId: string, form: any) => {
+        try {
+            await api.post(`/objectives/${objId}/key-results`, form);
+            toast.success('Key result added');
+            fetchAll();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || 'Failed to add Key Result');
+        }
+    };
 
     const deleteObjective = async (id: string) => {
         if (!confirm('Delete this objective and all its key results?')) return
@@ -348,6 +246,111 @@ const ObjectivesPage: React.FC = () => {
         avgProgress: objectives.length > 0 ? Math.round(objectives.reduce((s, o) => s + o.progress, 0) / objectives.length) : 0,
     }
 
+    // ─── Expandable Row Component ───────────────────────────────────────────
+    const ExpanderRow = ({ obj }: { obj: Objective }) => {
+        const navigate = useNavigate();
+        const [expanded, setExpanded] = useState(false);
+        const [addingKR, setAddingKR] = useState(false);
+        const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 });
+        const cfg = STATUS_CFG[obj.status];
+
+        const handleAddKR = () => {
+            addKR(obj.id, krForm);
+            setAddingKR(false);
+            setKrForm({ title: '', unit: 'number', startValue: 0, targetValue: 100 });
+        };
+
+        return (
+            <>
+                <motion.tr 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                    className="hover:bg-gray-50 transition-colors group border-b border-gray-100"
+                >
+                    <td className="px-6 py-4 cursor-pointer" onClick={() => navigate(`/objectives/${obj.id}`)}>
+                        <div className="flex items-center gap-4">
+                            <div className="relative shrink-0 w-10">
+                                <ProgressRing pct={obj.progress} size={40} stroke={4} />
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-[10px] font-bold text-gray-700">{obj.progress}%</span>
+                                </div>
+                            </div>
+                            <div className="min-w-0">
+                                <div className="text-sm font-bold text-gray-900 truncate">{obj.title}</div>
+                                {obj.description && <div className="text-xs text-gray-500 truncate max-w-xs">{obj.description}</div>}
+                            </div>
+                        </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {obj.quarter ? (
+                            <span className="font-medium">{obj.quarter.name} {obj.quarter.year}</span>
+                        ) : (
+                            <span className="text-gray-400 italic">No Quarter</span>
+                        )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                            {cfg.label}
+                        </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <button onClick={(e) => { e.stopPropagation(); setExpanded(p => !p); }} className="flex items-center gap-1 font-medium hover:text-primary-600 transition-colors">
+                            {expanded ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+                            {obj.keyResults.length} KR{obj.keyResults.length !== 1 ? 's' : ''}
+                        </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex items-center justify-end gap-3">
+                            {isAdmin && (
+                                <button onClick={() => deleteObjective(obj.id)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete Objective">
+                                    <TrashIcon className="h-4 w-4" />
+                                </button>
+                            )}
+                            <button onClick={() => navigate(`/objectives/${obj.id}`)} className="text-gray-400 hover:text-primary-600 transition-colors">
+                                <ChevronRightIcon className="h-5 w-5" />
+                            </button>
+                        </div>
+                    </td>
+                </motion.tr>
+                {(expanded || (isAdmin && obj.keyResults.length === 0)) && (
+                    <tr className="bg-gray-50/50">
+                        <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100">
+                            <div className="pl-14 pr-8 space-y-3">
+                                {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Key Results</h4>}
+                                {obj.keyResults.map(kr => (
+                                    <KRBar key={kr.id} kr={kr} canEdit={isAdmin} onUpdate={updateKR} />
+                                ))}
+                                {isAdmin && !addingKR && (
+                                    <button onClick={() => setAddingKR(true)} className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium pt-1">
+                                        <PlusIcon className="h-3.5 w-3.5" /> {obj.keyResults.length === 0 ? 'Add first key result' : 'Add key result'}
+                                    </button>
+                                )}
+                                {addingKR && (
+                                    <div className="bg-white p-3 rounded-lg border border-gray-200 mt-2 space-y-2 shadow-sm">
+                                        <input placeholder="Key result title" value={krForm.title} onChange={e => setKrForm(p => ({ ...p, title: e.target.value }))} className="input-field text-sm" />
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <input type="number" placeholder="Start" value={krForm.startValue} onChange={e => setKrForm(p => ({ ...p, startValue: +e.target.value }))} className="input-field text-sm" />
+                                            <input type="number" placeholder="Target" value={krForm.targetValue} onChange={e => setKrForm(p => ({ ...p, targetValue: +e.target.value }))} className="input-field text-sm" />
+                                            <select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))} className="select-field text-sm">
+                                                <option value="number">Number</option>
+                                                <option value="percent">%</option>
+                                                <option value="currency">$</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex gap-2 pt-1">
+                                            <button onClick={handleAddKR} className="btn-primary text-xs py-1.5 px-3">Add</button>
+                                            <button onClick={() => setAddingKR(false)} className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </td>
+                    </tr>
+                )}
+            </>
+        );
+    };
+
     return (
         <div className="space-y-6">
             {showCreate && (
@@ -365,30 +368,46 @@ const ObjectivesPage: React.FC = () => {
                         <h1 className="text-3xl font-bold mb-1">Objectives</h1>
                         <p className="text-primary-100">Track company goals and key results (OKRs)</p>
                     </div>
-                    {isAdmin && (
-                        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white text-primary-700 rounded-lg font-semibold text-sm hover:bg-primary-50 transition">
-                            <PlusIcon className="h-4 w-4" />
-                            New Objective
-                        </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white/10 p-1 rounded-xl flex">
+                            <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'list' ? 'bg-white text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
+                                <ListBulletIcon className="h-4 w-4" />
+                                List
+                            </button>
+                            <button onClick={() => setViewMode('analytics')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'analytics' ? 'bg-white text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
+                                <ChartBarIcon className="h-4 w-4" />
+                                Analytics
+                            </button>
+                        </div>
+                        {isAdmin && (
+                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 transition shadow-sm border border-primary-200">
+                                <PlusIcon className="h-4 w-4 stroke-2" />
+                                New Objective
+                            </button>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                {[
-                    { label: 'Total', value: stats.total, color: 'text-gray-900' },
-                    { label: 'On Track', value: stats.onTrack, color: 'text-green-700' },
-                    { label: 'At Risk', value: stats.atRisk, color: 'text-yellow-700' },
-                    { label: 'Completed', value: stats.completed, color: 'text-blue-700' },
-                    { label: 'Avg Progress', value: `${stats.avgProgress}%`, color: 'text-primary-700' },
-                ].map(s => (
-                    <div key={s.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                        <p className="text-xs text-gray-500 mb-1">{s.label}</p>
-                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            {viewMode === 'analytics' ? (
+                <ObjectiveAnalyticsDashboard objectives={filtered} />
+            ) : (
+                <>
+                    {/* Stats row */}
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+                        {[
+                            { label: 'Total', value: stats.total, color: 'text-gray-900' },
+                            { label: 'On Track', value: stats.onTrack, color: 'text-green-700' },
+                            { label: 'At Risk', value: stats.atRisk, color: 'text-yellow-700' },
+                            { label: 'Completed', value: stats.completed, color: 'text-blue-700' },
+                            { label: 'Avg Progress', value: `${stats.avgProgress}%`, color: 'text-primary-700' },
+                        ].map(s => (
+                            <div key={s.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
+                                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">{s.label}</p>
+                                <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
 
             {/* Filters */}
             <div className="flex gap-3 flex-wrap">
@@ -404,7 +423,7 @@ const ObjectivesPage: React.FC = () => {
                 </select>
             </div>
 
-            {/* Objectives list */}
+            {/* Objectives Table */}
             {loading ? (
                 <div className="flex justify-center py-12"><div className="spinner h-8 w-8" /></div>
             ) : filtered.length === 0 ? (
@@ -417,11 +436,28 @@ const ObjectivesPage: React.FC = () => {
                     )}
                 </div>
             ) : (
-                <div className="space-y-4">
-                    {filtered.map(obj => (
-                        <ObjectiveCard key={obj.id} obj={obj} canEdit={isAdmin} onDelete={deleteObjective} onRefresh={fetchAll} />
-                    ))}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Objective & Progress</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Quarter</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Key Results</th>
+                                    <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-100">
+                                {filtered.map(obj => (
+                                    <ExpanderRow key={obj.id} obj={obj} />
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            )}
+                </>
             )}
         </div>
     )
