@@ -21,6 +21,9 @@ COPY requirements.txt .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install Playwright and its dependencies (for chromium)
+RUN playwright install --with-deps chromium
+
 # Copy application code
 COPY . .
 
