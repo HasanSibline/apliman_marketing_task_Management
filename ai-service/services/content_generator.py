@@ -258,18 +258,26 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                     else:
                         error_text = await response.text()
                         logger.error(f"❌ Groq API error ({response.status}): {error_text}")
-                        # Fallback to Gemini if Groq fails
-                        logger.info("🔄 Falling back to Gemini...")
-                        self.api_type = "gemini"
-                        self._initialize_gemini()
-                        return await self._make_gemini_request(prompt)
+                        # ONLY fallback to Gemini if we have Gemini keys AND the user didn't explicitly force Groq
+                        if self.config.get_api_keys() and not self.provided_api_key:
+                            logger.info("🔄 Falling back to Gemini...")
+                            self.api_type = "gemini"
+                            self._initialize_gemini()
+                            return await self._make_gemini_request(prompt)
+                        else:
+                            raise ContentGeneratorError(f"Groq API failure ({response.status}): {error_text}")
         except Exception as e:
+            if isinstance(e, ContentGeneratorError):
+                raise
             logger.error(f"❌ Groq request failed: {str(e)}")
-            # Fallback to Gemini
-            logger.info("🔄 Falling back to Gemini...")
-            self.api_type = "gemini"
-            self._initialize_gemini()
-            return await self._make_gemini_request(prompt)
+            # ONLY fallback if appropriate
+            if self.config.get_api_keys() and not self.provided_api_key:
+                logger.info("🔄 Falling back to Gemini...")
+                self.api_type = "gemini"
+                self._initialize_gemini()
+                return await self._make_gemini_request(prompt)
+            else:
+                raise ContentGeneratorError(f"Groq request failed: {str(e)}")
 
     async def _make_gemini_request(self, prompt: str) -> str:
         """Make a request to Gemini API with dynamic company-specific system prompt"""

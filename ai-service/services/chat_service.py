@@ -164,14 +164,12 @@ ApliChat:"""
                     else:
                         error_text = await response.text()
                         logger.error(f"❌ Groq Chat API error ({response.status}): {error_text}")
-                        # Fallback to Gemini if Groq fails
-                        logger.info("🔄 Falling back to Gemini for chat...")
-                        return await self._generate_via_rest(prompt)
+                        # Fallback ONLY if we have environment keys AND this wasn't a specific company key
+                        # But for now, just fail to avoid key leakage to different providers
+                        raise Exception(f"Groq API failure ({response.status}): {error_text}")
         except Exception as e:
             logger.error(f"❌ Groq Chat request failed: {str(e)}")
-            # Fallback to Gemini
-            logger.info("🔄 Falling back to Gemini for chat...")
-            return await self._generate_via_rest(prompt)
+            raise e
 
     async def _generate_via_rest(self, prompt: str) -> str:
         """Make a stateless request to Gemini API via REST with rotation support"""

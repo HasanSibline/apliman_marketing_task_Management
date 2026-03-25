@@ -279,8 +279,8 @@ async def generate_content(request: GenerateContentRequest):
         priority = await temp_generator.analyze_priority(request.title, description)
         
         return {
-            "ai_provider": "gemini",
-            "gemini_model": config.GEMINI_MODEL,
+            "ai_provider": temp_generator.provider,
+            "model": temp_generator.model,
             "description": description,
             "goals": goals,
             "priority": priority
