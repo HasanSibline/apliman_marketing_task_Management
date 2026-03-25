@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
     container_name: taskmanagement-backend-dev
     environment:
-      DATABASE_URL: postgresql://marketing_system_user:1vACneXxnqKAZR3eBNwNPrWl4s1ZXyLH@dpg-d3d7f7i4d50c73d560qg-a.oregon-postgres.render.com/marketing_system?sslmode=require
+      DATABASE_URL: ${DATABASE_URL}
       JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
       JWT_EXPIRES_IN: 7d
       AI_SERVICE_URL: http://ai-service:8001
@@ -36,7 +36,7 @@ services:
       PORT: 8001
       ENVIRONMENT: development
       AI_PROVIDER: gemini
-      GOOGLE_API_KEY: AIzaSyBlMmpWp0EeZnb4D0NECDeP073DPGodhso
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       GEMINI_MODEL: gemini-3-flash-preview
       MODEL_CACHE_DIR: ./models
       MAX_SUMMARY_LENGTH: 150

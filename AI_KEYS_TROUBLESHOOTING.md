@@ -56,18 +56,18 @@ You have **two options** to configure multiple API keys:
 
 #### Option 1: Comma-Separated (Recommended)
 ```
-GOOGLE_API_KEYS=AIzaSyDXXXXXXXXXXXXXXXXXXXXXXXXXXXXX,AIzaSyBNRvRcBKbn7cbbktAxWIvh7quIAx4I7Ms
+GOOGLE_API_KEYS=key1_here,key2_here
 ```
 
 #### Option 2: Single Key (Fallback)
 ```
-GOOGLE_API_KEY=AIzaSyDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+GOOGLE_API_KEY=key_here
 ```
 
 ## Current Configuration
 Based on your messages, you have:
-- **Key 1**: `AIzaSyDXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` (Main - likely quota exceeded)
-- **Key 2**: `AIzaSyBNRvRcBKbn7cbbktAxWIvh7quIAx4I7Ms` (Fallback)
+- **Key 1**: `key1_here` (Main - likely quota exceeded)
+- **Key 2**: `key2_here` (Fallback)
 
 ## How Automatic Fallback Works
 

@@ -565,31 +565,72 @@ export class CompaniesService {
     return {
       maxUsers: company.maxUsers ?? planLimits.maxUsers,
       maxTasks: company.maxTasks ?? planLimits.maxTasks,
-      maxStorage: company.maxStorage ?? planLimits.maxStorage,
-    };
-  }
-
-  /**
-   * Generate random password
+   * Generate random password using cryptographically secure random bytes
    */
   private generatePassword(): string {
     return crypto.randomBytes(12).toString('base64').slice(0, 16);
   }
 
   /**
-   * Encrypt API key (simple encryption - use proper encryption in production)
+   * Encrypt API key using AES-256-CBC
    */
   private encryptApiKey(apiKey: string): string {
-    // TODO: Implement proper encryption with process.env.ENCRYPTION_KEY
-    return Buffer.from(apiKey).toString('base64');
+    try {
+      const encryptionKey = process.env.ENCRYPTION_KEY;
+      if (!encryptionKey) {
+        this.logger.warn('ENCRYPTION_KEY not found in environment, falling back to Base64 (INSECURE)');
+        return Buffer.from(apiKey).toString('base64');
+      }
+
+      // Key must be exactly 32 bytes for aes-256-cbc
+      const key = crypto.scryptSync(encryptionKey, 'salt', 32);
+      const iv = crypto.randomBytes(16);
+      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
+      
+      let encrypted = cipher.update(apiKey, 'utf8', 'hex');
+      encrypted += cipher.final('hex');
+      
+      // Store IV with encrypted data (iv:encryptedContent)
+      return `${iv.toString('hex')}:${encrypted}`;
+    } catch (error) {
+      this.logger.error(`Encryption failed: ${error.message}`);
+      return Buffer.from(apiKey).toString('base64'); // Emergency fallback
+    }
   }
 
   /**
    * Decrypt API key
    */
   decryptApiKey(encryptedKey: string): string {
-    // TODO: Implement proper decryption
-    return Buffer.from(encryptedKey, 'base64').toString('utf-8');
+    try {
+      if (!encryptedKey) return null;
+
+      // Handle legacy Base64 or non-IV format
+      if (!encryptedKey.includes(':')) {
+        return Buffer.from(encryptedKey, 'base64').toString('utf-8');
+      }
+
+      const encryptionKey = process.env.ENCRYPTION_KEY;
+      if (!encryptionKey) {
+        this.logger.error('ENCRYPTION_KEY missing during decryption');
+        return '[DECRYPTION_FAILED_MISSING_KEY]';
+      }
+
+      const [ivHex, encryptedText] = encryptedKey.split(':');
+      const iv = Buffer.from(ivHex, 'hex');
+      const key = crypto.scryptSync(encryptionKey, 'salt', 32);
+      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
+      
+      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
+      
+      return decrypted;
+    } catch (error) {
+      this.logger.error(`Decryption failed: ${error.message}`);
+      // If decryption fails, it might be a legacy Base64 key that looks like it has a colon 
+      // or just genuine failure. For safety, return indicator.
+      return '[DECRYPTION_FAILED]';
+    }
   }
 
   /**

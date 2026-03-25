@@ -48,7 +48,7 @@ Go to: https://dashboard.render.com → apliman-marketing-task-management → En
 Ensure this variable exists:
 
 ```bash
-GOOGLE_API_KEY=AIzaSyBlMmpWp0EeZnb4D0NECDeP073DPGodhso
+GOOGLE_API_KEY=your_google_gemini_api_key_here
 ```
 
 ### 3. Frontend (Cloudflare Pages Dashboard)

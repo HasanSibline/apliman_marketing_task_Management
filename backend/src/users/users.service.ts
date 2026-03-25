@@ -7,6 +7,7 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Prisma } from '@prisma/client';
 import { UserRole, UserStatus } from '../types/prisma';
 import * as bcrypt from 'bcrypt';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
@@ -315,8 +316,8 @@ export class UsersService {
   }
 
   async resetPassword(id: string) {
-    // Generate a random temporary password
-    const tempPassword = Math.random().toString(36).slice(-8);
+    // Generate a random temporary password using cryptographically secure random bytes
+    const tempPassword = crypto.randomBytes(6).toString('hex'); // 12 chars
     const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
     try {

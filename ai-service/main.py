@@ -87,7 +87,7 @@ async def health_check():
             "gemini_model": config.GEMINI_MODEL,
             "gemini_error": error_message,
             "api_keys_configured": len(api_keys),
-            "api_keys_preview": [f"{key[:10]}...{key[-4:]}" for key in api_keys] if api_keys else []
+            "api_keys_preview": [f"{key[:6]}..." for key in api_keys] if api_keys else []
         }
         
         return {
@@ -131,7 +131,7 @@ async def api_keys_status():
         
         keys_status = []
         for i, key in enumerate(api_keys):
-            key_preview = f"{key[:10]}...{key[-4:]}"
+            key_preview = f"{key[:6]}..."
             
             # Try a simple test request with this key
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{config.GEMINI_MODEL}:generateContent"
@@ -318,6 +318,7 @@ async def scrape_url(request: ScrapeUrlRequest):
 class ChatRequest(BaseModel):
     message: str
     userContext: Dict[str, Any]
+    user: Dict[str, Any]  # Added missing user field
     companyName: Optional[str] = None
     conversationHistory: List[dict] = []
     knowledgeSources: List[dict] = []

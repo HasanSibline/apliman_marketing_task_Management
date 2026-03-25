@@ -107,18 +107,8 @@ class ContentGenerator:
         self.company_name = company_name
         logger.info(f"✅ Set company name: {company_name}")
             
-    async def _make_request(self, prompt: str) -> str:
-        """Make a request to Gemini API"""
-        return await self._make_gemini_request(prompt)
-            
-    async def _make_gemini_request(self, prompt: str) -> str:
-        """Make a request to Gemini API with dynamic company-specific system prompt"""
-        url = f"{self.base_url}/models/{self.model}:generateContent"
-        
-        # Check if this is a social media post
-        social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
-        is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
-        
+    def _get_system_prompt(self, is_social_media: bool = False) -> str:
+        """Generate a dynamic company-aware system prompt"""
         # Extract company name (use provided name, or fall back to knowledge sources, or generic)
         company_name = self.company_name or "this company"
         
@@ -135,7 +125,7 @@ IMPORTANT: {company_name} is a business/organization. When generating task descr
 CONTENT GENERATION RULES:
 1. Always reference specific {company_name} products, services, and business operations based on the knowledge provided below
 2. Highlight industry-specific applications relevant to {company_name}'s actual business
-3. Emphasize key differentiators and unique value propositions of {company_name}'s offerings
+3. Emphasize key differentiators and unique value propositions of {company_name} offerings
 4. Include appropriate depth for the target audience
 5. Focus on business outcomes: revenue growth, customer engagement, efficiency for {company_name}'s business
 6. Use accurate industry terminology relevant to {company_name}'s industry
@@ -227,6 +217,12 @@ Caption:
 Hashtags: #hashtag1 #hashtag2 #hashtag3
 """
         return system_prompt
+
+    async def _make_request(self, prompt: str) -> str:
+        """Make a request to the appropriate AI API"""
+        if self.api_type == "groq":
+            return await self._make_groq_request(prompt)
+        return await self._make_gemini_request(prompt)
 
     async def _make_groq_request(self, prompt: str) -> str:
         """Make a request to Groq cloud API (OpenAI compatible)"""
