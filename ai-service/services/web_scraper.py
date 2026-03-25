@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 import re
 from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
+import subprocess
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +112,6 @@ class WebScraper:
         async with async_playwright() as p:
             # Use Chromium as it's the most reliable for scraping
             # Search for available browser in standard and custom paths
-            # To avoid hardcoding version numbers (like 1105), we search dynamically
             executable_path = None
             search_paths = [
                 "/ms-playwright",
@@ -133,12 +133,21 @@ class WebScraper:
             if executable_path:
                 logger.info(f"📍 Using Playwright executable found at: {executable_path}")
             else:
-                logger.warning("⚠️ No hardcoded Playwright executable found, letting Playwright use defaults.")
+                logger.warning("⚠️ No hardcoded Playwright executable found. Attempting runtime installation...")
+                try:
+                    # CRITICAL FAILSAFE: If browser is missing, install it right now
+                    subprocess.run(["playwright", "install", "chromium"], check=True)
+                    logger.info("✅ Runtime Playwright installation completed.")
+                except Exception as e:
+                    logger.error(f"❌ Runtime Playwright installation failed: {e}")
 
-            browser = await p.chromium.launch(
-                headless=True,
-                executable_path=executable_path
-            )
+            # Note: We let Playwright use its default path if executable_path is still None
+            # because the runtime install above puts it in the default location.
+            kwargs = {"headless": True}
+            if executable_path:
+                kwargs["executable_path"] = executable_path
+
+            browser = await p.chromium.launch(**kwargs)
             context = await browser.new_context(
                 user_agent=self.user_agents[0],
                 viewport={'width': 1280, 'height': 800}
