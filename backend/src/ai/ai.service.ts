@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 import { PerformanceInsightsDto } from './dto/performance-insights.dto';
+import { CompaniesService } from '../companies/companies.service';
 
 @Injectable()
 export class AiService {
@@ -14,6 +15,8 @@ export class AiService {
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    @Inject(forwardRef(() => CompaniesService))
+    private readonly companiesService: CompaniesService,
   ) {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
@@ -75,7 +78,12 @@ export class AiService {
       this.logger.log(`Using AI (${company.aiProvider || 'gemini'}) for company: ${company.name}`);
 
       // CRITICAL: Decrypt the API key before using it
-      const decryptedApiKey = Buffer.from(company.aiApiKey, 'base64').toString('utf-8');
+      const decryptedApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
+      
+      if (!decryptedApiKey || decryptedApiKey.includes('[DECRYPTION_FAILED]')) {
+        this.logger.error(`❌ Failed to decrypt API key for company: ${company.name}`);
+        return null;
+      }
 
       return {
         apiKey: decryptedApiKey,

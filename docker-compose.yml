@@ -40,7 +40,7 @@ services:
       ENVIRONMENT: production
       AI_PROVIDER: gemini
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
-      GEMINI_MODEL: gemini-3-flash-preview
+      GEMINI_MODEL: gemini-1.5-flash
       MODEL_CACHE_DIR: ./models
       MAX_SUMMARY_LENGTH: 150
       LOG_LEVEL: INFO
