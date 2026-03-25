@@ -105,49 +105,24 @@ class WebScraper:
 
     async def _scrape_with_playwright(self, url: str) -> Dict[str, any]:
         """Deep scrape using headless browser (Playwright) to handle JS and anti-bot"""
-        # Ensure Playwright knows where to look for browsers (for Docker/Render)
-        if "/ms-playwright" not in os.environ.get("PLAYWRIGHT_BROWSERS_PATH", ""):
-            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "/ms-playwright"
+        
+        # In a Native Python environment (like Render), Playwright needs to install the browser
+        # into its default user cache. By running the install command here dynamically,
+        # we bypass the need for root permissions or complex Dockerfile modifications.
+        try:
+            # We don't overwrite environment variables here; we let Playwright use its defaults.
+            # Running this command is practically instant if already installed.
+            subprocess.run(
+                ["playwright", "install", "chromium"], 
+                check=True, 
+                stdout=subprocess.DEVNULL, 
+                stderr=subprocess.DEVNULL
+            )
+        except Exception as e:
+            logger.error(f"⚠️ Runtime Playwright update warning: {e}")
 
         async with async_playwright() as p:
-            # Use Chromium as it's the most reliable for scraping
-            # Search for available browser in standard and custom paths
-            executable_path = None
-            search_paths = [
-                "/ms-playwright",
-                "/opt/render/.cache/ms-playwright",
-                os.path.expanduser("~/.cache/ms-playwright")
-            ]
-            
-            for base_path in search_paths:
-                if os.path.exists(base_path):
-                    # Find any chromium subdirectory and look for the executable
-                    for root, dirs, files in os.walk(base_path):
-                        if "chrome" in files and ("chrome-linux" in root or "chromium" in root):
-                            potential_path = os.path.join(root, "chrome")
-                            if os.path.exists(potential_path):
-                                executable_path = potential_path
-                                break
-                    if executable_path: break
-            
-            if executable_path:
-                logger.info(f"📍 Using Playwright executable found at: {executable_path}")
-            else:
-                logger.warning("⚠️ No hardcoded Playwright executable found. Attempting runtime installation...")
-                try:
-                    # CRITICAL FAILSAFE: If browser is missing, install it right now
-                    subprocess.run(["playwright", "install", "chromium"], check=True)
-                    logger.info("✅ Runtime Playwright installation completed.")
-                except Exception as e:
-                    logger.error(f"❌ Runtime Playwright installation failed: {e}")
-
-            # Note: We let Playwright use its default path if executable_path is still None
-            # because the runtime install above puts it in the default location.
-            kwargs = {"headless": True}
-            if executable_path:
-                kwargs["executable_path"] = executable_path
-
-            browser = await p.chromium.launch(**kwargs)
+            browser = await p.chromium.launch(headless=True)
             context = await browser.new_context(
                 user_agent=self.user_agents[0],
                 viewport={'width': 1280, 'height': 800}
