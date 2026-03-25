@@ -104,21 +104,37 @@ class WebScraper:
 
     async def _scrape_with_playwright(self, url: str) -> Dict[str, any]:
         """Deep scrape using headless browser (Playwright) to handle JS and anti-bot"""
+        # Ensure Playwright knows where to look for browsers (for Docker/Render)
+        if "/ms-playwright" not in os.environ.get("PLAYWRIGHT_BROWSERS_PATH", ""):
+            os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "/ms-playwright"
+
         async with async_playwright() as p:
             # Use Chromium as it's the most reliable for scraping
-            # Check for Docker/Render specific paths first
-            docker_chromium = "/ms-playwright/chromium-1105/chrome-linux/chrome"
-            render_path = "/opt/render/.cache/ms-playwright/chromium-1105/chrome-linux/chrome"
-            
+            # Search for available browser in standard and custom paths
+            # To avoid hardcoding version numbers (like 1105), we search dynamically
             executable_path = None
-            if os.path.exists(docker_chromium):
-                executable_path = docker_chromium
-            elif os.path.exists(render_path):
-                executable_path = render_path
+            search_paths = [
+                "/ms-playwright",
+                "/opt/render/.cache/ms-playwright",
+                os.path.expanduser("~/.cache/ms-playwright")
+            ]
+            
+            for base_path in search_paths:
+                if os.path.exists(base_path):
+                    # Find any chromium subdirectory and look for the executable
+                    for root, dirs, files in os.walk(base_path):
+                        if "chrome" in files and ("chrome-linux" in root or "chromium" in root):
+                            potential_path = os.path.join(root, "chrome")
+                            if os.path.exists(potential_path):
+                                executable_path = potential_path
+                                break
+                    if executable_path: break
             
             if executable_path:
-                logger.info(f"📍 Using Playwright executable at: {executable_path}")
-            
+                logger.info(f"📍 Using Playwright executable found at: {executable_path}")
+            else:
+                logger.warning("⚠️ No hardcoded Playwright executable found, letting Playwright use defaults.")
+
             browser = await p.chromium.launch(
                 headless=True,
                 executable_path=executable_path
