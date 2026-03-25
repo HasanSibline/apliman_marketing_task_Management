@@ -2,6 +2,8 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { Inject, forwardRef } from '@nestjs/common';
+import { CompaniesService } from '../companies/companies.service';
 import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from './dto/chat.dto';
 
 @Injectable()
@@ -12,6 +14,8 @@ export class ChatService {
   constructor(
     private prisma: PrismaService,
     private httpService: HttpService,
+    @Inject(forwardRef(() => CompaniesService))
+    private companiesService: CompaniesService,
   ) { }
 
   /** Authorization headers sent with every AI service request */
@@ -184,24 +188,30 @@ export class ChatService {
         throw new Error('Your account is not associated with a company. Please contact support.');
       }
 
-      // Get company's AI API key
+      // Get company's AI API key and provider info
       const company = await this.prisma.company.findUnique({
         where: { id: userCompanyId },
         select: {
           aiApiKey: true,
           aiEnabled: true,
+          aiProvider: true,
           name: true
         },
       });
 
-      this.logger.log(`🏢 Company found: ${company?.name}, AI Enabled: ${company?.aiEnabled}, Has API Key: ${!!company?.aiApiKey}`);
+      this.logger.log(`🏢 Company found: ${company?.name}, AI Enabled: ${company?.aiEnabled}, Provider: ${company?.aiProvider}`);
 
       if (!company || !company.aiEnabled || !company.aiApiKey) {
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
       }
 
-      // Decrypt the AI API key
-      const aiApiKey = Buffer.from(company.aiApiKey, 'base64').toString('utf-8');
+      // CRITICAL: Decrypt the AI API key using centralized decryption
+      const aiApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
+      
+      if (!aiApiKey || aiApiKey.includes('[DECRYPTION_FAILED]')) {
+        this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
+        throw new Error('Internal error decrypting your AI key. Please contact support.');
+      }
 
       // Get knowledge sources (COMPANY-SPECIFIC ONLY)
       const knowledgeSources = await this.prisma.knowledgeSource.findMany({
@@ -254,6 +264,7 @@ export class ChatService {
         additionalContext,
         isDeepAnalysis,
         api_key: aiApiKey, // CRITICAL: Pass company-specific API key (snake_case for Python)
+        provider: company.aiProvider || 'gemini', // CRITICAL: Pass company provider
         companyName: company.name, // CRITICAL: Pass actual company name
       });
 

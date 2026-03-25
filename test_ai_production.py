@@ -11,8 +11,7 @@ logger = logging.getLogger(__name__)
 # PRODUCTION CONFIGURATION
 AI_SERVICE_URL = "https://apliman-marketing-task-management.onrender.com"
 
-# SECURITY: These should be provided via environment variables or entered manually
-# DO NOT COMMIT ACTUAL KEYS TO GITHUB
+# SECURITY: Use environment variables or enter manually. PUSH BLOCKED IF KEYS ARE HARDCODED.
 AI_SERVICE_SECRET = os.getenv("AI_SERVICE_SECRET", "ENTER_YOUR_SECRET_HERE")
 AI_API_KEY = os.getenv("AI_API_KEY", "ENTER_YOUR_GROQ_OR_GEMINI_KEY_HERE")
 AI_PROVIDER = os.getenv("AI_PROVIDER", "groq") # "groq" or "gemini"

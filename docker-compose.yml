@@ -41,6 +41,7 @@ services:
       AI_PROVIDER: gemini
       GOOGLE_API_KEY: ${GOOGLE_API_KEY}
       GEMINI_MODEL: gemini-1.5-flash
+      GROQ_MODEL: llama-3.3-70b-versatile
       MODEL_CACHE_DIR: ./models
       MAX_SUMMARY_LENGTH: 150
       LOG_LEVEL: INFO

@@ -21,7 +21,7 @@ class ChatService:
         
         # Use the same model as content generation (from config)
         if self.provider == "groq":
-            self.model_name = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+            self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
             self.base_url = "https://api.groq.com/openai/v1"
         else:
             self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
