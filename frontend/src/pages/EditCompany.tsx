@@ -425,10 +425,10 @@ export default function EditCompany() {
                   name="aiApiKey"
                   value={formData.aiApiKey || ''}
                   onChange={handleChange}
-                  placeholder="Enter new AI API key (leave blank to keep current)"
+                  placeholder="Enter Gemini or Groq API key"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <p className="text-sm text-gray-500 mt-1">Only enter a new key if you want to update it</p>
+                <p className="text-sm text-gray-500 mt-1">Only enter a new key if you want to update it. Supported: Gemini, Groq.</p>
               </div>
 
               <div>

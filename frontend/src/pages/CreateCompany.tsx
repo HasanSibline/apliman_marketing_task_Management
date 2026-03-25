@@ -704,9 +704,9 @@ export default function CreateCompany() {
                     AI Configuration (Required)
                   </h3>
                   <div className="space-y-5">
-                    <Field label="Gemini API Key" name="aiApiKey" placeholder="AIza..." required
+                    <Field label="Company AI API Key" name="aiApiKey" placeholder="Enter API Key..." required
                       value={formData.aiApiKey ?? ''} onChange={handleChange} error={fieldErrors.aiApiKey}
-                      hint="Paste your Google Gemini legacy or standard API key here." />
+                      hint="Paste your Gemini or Groq API key here depending on the selected provider." />
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">Primary AI Provider</label>
