@@ -8,10 +8,11 @@ class Config:
     """Base configuration"""
     # AI Provider Configuration (Gemini with multiple API keys support)
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    GROQ_API_KEY = os.getenv("GROQ_API_KEY")
     
     @classmethod
     def get_api_keys(cls):
-        """Get list of API keys (supports multiple keys with fallback)"""
+        """Get list of Gemini API keys (supports multiple keys with fallback)"""
         if not hasattr(cls, '_api_keys_cached'):
             keys = []
             
@@ -48,6 +49,7 @@ class Config:
     
     # AI Model Configuration
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
     LEGACY_MODEL = os.getenv("LEGACY_MODEL", "gpt-3.5-turbo")  # For legacy system
 
     @classmethod
@@ -60,11 +62,11 @@ class Config:
                 "Must be one of: development, production, testing"
             )
         
-        # Validate Gemini API keys (supports multiple keys)
+        # Validate at least one AI key is present (Gemini or Groq)
         api_keys = cls.get_api_keys()
-        if not api_keys:
+        if not api_keys and not cls.GROQ_API_KEY:
             raise ValueError(
-                "No Google API keys found. Please set GOOGLE_API_KEY or GOOGLE_API_KEYS "
+                "No AI API keys found. Please set GOOGLE_API_KEY or GROQ_API_KEY "
                 "in your .env file or environment variables."
             )
 

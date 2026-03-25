@@ -28,7 +28,7 @@ export class AiService {
    * Get company's AI API key and name by user ID
    * Returns null if company has no AI key (AI will be disabled)
    */
-  private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string } | null> {
+  private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string; provider: string } | null> {
     if (!userId) {
       // No user context - AI disabled
       this.logger.error('❌ No userId provided - AI disabled');
@@ -56,7 +56,8 @@ export class AiService {
         select: {
           name: true,
           aiApiKey: true,
-          aiEnabled: true
+          aiEnabled: true,
+          aiProvider: true
         },
       });
 
@@ -71,14 +72,15 @@ export class AiService {
         return null;
       }
 
-      this.logger.log(`Using AI for company: ${company.name}`);
+      this.logger.log(`Using AI (${company.aiProvider || 'gemini'}) for company: ${company.name}`);
 
       // CRITICAL: Decrypt the API key before using it
       const decryptedApiKey = Buffer.from(company.aiApiKey, 'base64').toString('utf-8');
 
       return {
         apiKey: decryptedApiKey,
-        companyName: company.name
+        companyName: company.name,
+        provider: company.aiProvider || 'gemini'
       };
     } catch (error) {
       // Re-throw intentional errors (e.g., "no userId", "no company")
@@ -106,11 +108,11 @@ export class AiService {
     try {
       this.logger.log(`Summarizing text: ${text.length} characters`);
 
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
 
-      if (!apiKey) {
+      if (!info) {
         // AI not available for this company
-        this.logger.warn('AI key not available - returning truncated text');
+        this.logger.warn('AI info not available - returning truncated text');
         return text.length > maxLength
           ? text.substring(0, maxLength - 3) + '...'
           : text;
@@ -120,7 +122,8 @@ export class AiService {
         this.httpService.post(`${this.aiServiceUrl}/summarize`, {
           text,
           max_length: maxLength,
-          api_key: apiKey, // Pass company-specific API key
+          api_key: info.apiKey,
+          provider: info.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
@@ -146,11 +149,11 @@ export class AiService {
     try {
       this.logger.log(`Analyzing priority for: ${taskTitle}`);
 
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
 
-      if (!apiKey) {
+      if (!info) {
         // AI not available - return default
-        this.logger.warn('AI key not available - returning default priority');
+        this.logger.warn('AI info not available - returning default priority');
         return {
           suggestedPriority: 3,
           reasoning: 'AI not available. Please add an AI API key to enable AI features.',
@@ -161,7 +164,8 @@ export class AiService {
         this.httpService.post(`${this.aiServiceUrl}/analyze-priority`, {
           title: taskTitle,
           description: taskDescription,
-          api_key: apiKey, // Pass company-specific API key
+          api_key: info.apiKey,
+          provider: info.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
@@ -194,13 +198,14 @@ export class AiService {
     isComplete: boolean;
   }> {
     try {
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/check-completeness`, {
           description: taskDescription,
           goals,
           phase: currentPhase,
-          api_key: apiKey,
+          api_key: info?.apiKey,
+          provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
         }),
@@ -228,11 +233,12 @@ export class AiService {
     trends: string[];
   }> {
     try {
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/performance-insights`, {
           analytics: analyticsData,
-          api_key: apiKey,
+          api_key: info?.apiKey,
+          provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000, // 15 second timeout for complex analysis
@@ -257,12 +263,13 @@ export class AiService {
 
   async extractTextFromFile(filePath: string, mimeType: string, userId?: string): Promise<string> {
     try {
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/extract-text`, {
           file_path: filePath,
           mime_type: mimeType,
-          api_key: apiKey,
+          api_key: info?.apiKey,
+          provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
         }),
@@ -277,12 +284,13 @@ export class AiService {
 
   async generateTaskDescription(title: string, userId?: string): Promise<string> {
     try {
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
           type: 'task',
-          api_key: apiKey,
+          api_key: info?.apiKey,
+          provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
@@ -302,12 +310,13 @@ export class AiService {
 
   async generateTaskGoals(title: string, userId?: string): Promise<string> {
     try {
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
           type: 'task',
-          api_key: apiKey,
+          api_key: info?.apiKey,
+          provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000, // 10 second timeout
@@ -377,6 +386,7 @@ export class AiService {
           knowledge_sources: knowledgeSources,
           api_key: companyInfo.apiKey,
           company_name: companyInfo.companyName,
+          provider: companyInfo.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 60000, // 60 seconds — AI service may need time for Gemini + knowledge sources
@@ -478,11 +488,12 @@ export class AiService {
     try {
       this.logger.log(`Detecting task type for: ${title}`);
 
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
           title,
-          api_key: apiKey,
+          api_key: info?.apiKey,
+          provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000,
@@ -532,6 +543,7 @@ export class AiService {
           knowledgeSources,
           api_key: companyInfo.apiKey,
           company_name: companyInfo.companyName,
+          provider: companyInfo.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000,
@@ -573,12 +585,13 @@ export class AiService {
     try {
       this.logger.log(`Generating content for: ${title}`);
 
-      const apiKey = await this.getCompanyAiApiKey(userId);
+      const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
           type: 'task',
-          api_key: apiKey,
+          api_key: info?.apiKey,
+          provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000,
@@ -632,6 +645,38 @@ export class AiService {
         status: 'error',
         error: error.message,
       };
+    }
+  }
+
+  async chat(
+    message: string,
+    user: any,
+    conversationHistory: any[],
+    knowledgeSources: any[],
+    additionalContext: any,
+    userId: string,
+  ): Promise<any> {
+    try {
+      const info = await this.getCompanyAiInfo(userId);
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/chat`, {
+          message,
+          user,
+          conversationHistory,
+          knowledgeSources,
+          additionalContext,
+          api_key: info?.apiKey,
+          provider: info?.provider,
+          companyName: info?.companyName,
+        }, {
+          headers: this.aiServiceHeaders,
+          timeout: 45000,
+        }),
+      );
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error in AI chat:', error);
+      throw error;
     }
   }
 }

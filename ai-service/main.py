@@ -60,7 +60,7 @@ web_scraper = WebScraper()
 # Initialize chat service with all available API keys for rotation
 available_keys = config.get_api_keys()
 keys_to_use = available_keys if available_keys else [config.GOOGLE_API_KEY]
-chat_service = ChatService(keys_to_use)
+chat_service = ChatService(keys_to_use, provider=os.getenv("AI_PROVIDER", "gemini"))
 
 @app.get("/health")
 async def health_check():
@@ -239,6 +239,7 @@ class GenerateContentRequest(BaseModel):
     knowledge_sources: Optional[List[dict]] = None  # Optional knowledge sources
     company_name: Optional[str] = None  # Company name for personalized AI responses
     api_key: Optional[str] = None  # Company-specific API key
+    provider: Optional[str] = "gemini"  # Selected AI provider
 
 class ScrapeUrlRequest(BaseModel):
     url: str
@@ -261,8 +262,8 @@ async def generate_content(request: GenerateContentRequest):
             api_key_to_use = api_keys[0]
             logger.warning("Using fallback environment API key - company should provide their own key")
         
-        # Create a temporary content generator with the provided API key
-        temp_generator = ContentGenerator(api_key_to_use)
+        # Create a temporary content generator with the provided API key and provider
+        temp_generator = ContentGenerator(api_key_to_use, provider=request.provider)
         
         # Set knowledge sources if provided
         if request.knowledge_sources:
@@ -317,13 +318,13 @@ async def scrape_url(request: ScrapeUrlRequest):
 class ChatRequest(BaseModel):
     message: str
     userContext: Dict[str, Any]
-    user: Dict[str, Any]
-    conversationHistory: List[Dict[str, Any]]
-    knowledgeSources: List[Dict[str, Any]]
-    additionalContext: Dict[str, Any]
+    companyName: Optional[str] = None
+    conversationHistory: List[dict] = []
+    knowledgeSources: List[dict] = []
+    additionalContext: Dict[str, Any] = {}
     isDeepAnalysis: bool = False
-    companyName: Optional[str] = None  # Company name for personalized responses
     api_key: Optional[str] = None  # Company-specific API key
+    provider: Optional[str] = "gemini"  # Selected AI provider
 
 @app.post("/chat", dependencies=[Depends(require_service_token)])
 async def chat(request: ChatRequest):
@@ -343,8 +344,8 @@ async def chat(request: ChatRequest):
             api_key_to_use = api_keys[0]
             logger.warning("Using fallback environment API key - company should provide their own key")
         
-        # Create a temporary chat service with the provided API key
-        temp_chat_service = ChatService(api_key_to_use)
+        # Create a temporary chat service with the provided API key and provider
+        temp_chat_service = ChatService(api_key_to_use, provider=request.provider)
         
         # Process chat message (now async)
         result = await temp_chat_service.process_chat_message(
@@ -394,8 +395,9 @@ async def detect_task_type(request: dict):
                 )
             api_key_to_use = api_keys[0]
         
-        # Create a temporary content generator with the provided API key
-        temp_generator = ContentGenerator(api_key_to_use)
+        # Create a temporary content generator with the provided API key and provider
+        provider = request.get("provider", "gemini")
+        temp_generator = ContentGenerator(api_key_to_use, provider=provider)
         task_type = await temp_generator.detect_task_type(title)
         
         return {
@@ -438,8 +440,9 @@ async def generate_subtasks(request: dict):
             api_key_to_use = api_keys[0]
             logger.warning("Using fallback environment API key - company should provide their own key")
         
-        # Create a temporary content generator with the provided API key
-        temp_generator = ContentGenerator(api_key_to_use)
+        # Create a temporary content generator with the provided API key and provider
+        provider = request.get('provider', 'gemini')
+        temp_generator = ContentGenerator(api_key_to_use, provider=provider)
         
         # Set knowledge sources if provided
         if knowledge_sources:
@@ -501,8 +504,9 @@ async def generate_performance_insights(request: dict):
         """
         
         # Use temp generator for insight generation with company key
-        temp_generator = ContentGenerator(api_key_to_use)
-        response = await temp_generator._make_gemini_request(prompt)
+        provider = request.get("provider", "gemini")
+        temp_generator = ContentGenerator(api_key_to_use, provider=provider)
+        response = await temp_generator._make_request(prompt)
         
         # Try to parse as JSON, fallback to structured response
         try:

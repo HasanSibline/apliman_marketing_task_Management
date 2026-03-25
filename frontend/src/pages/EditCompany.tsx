@@ -444,6 +444,7 @@ export default function EditCompany() {
                   <option value="gemini">Google Gemini</option>
                   <option value="openai">OpenAI</option>
                   <option value="anthropic">Anthropic Claude</option>
+                  <option value="groq">Groq (High Performance)</option>
                 </select>
               </div>
             </div>

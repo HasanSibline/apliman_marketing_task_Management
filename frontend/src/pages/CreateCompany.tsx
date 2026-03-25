@@ -714,6 +714,7 @@ export default function CreateCompany() {
                         className="select-field w-full text-sm">
                         <option value="gemini">Google Gemini (Recommended)</option>
                         <option value="openai">OpenAI (GPT-4)</option>
+                        <option value="groq">Groq (High Speed)</option>
                       </select>
                     </div>
                   </div>

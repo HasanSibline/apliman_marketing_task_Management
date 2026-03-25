@@ -13,16 +13,22 @@ logger = logging.getLogger(__name__)
 class ChatService:
     """Service for handling conversational AI chat with context and memory"""
 
-    def __init__(self, api_keys: List[str]):
+    def __init__(self, api_keys: List[str], provider: str = "gemini"):
         self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
         self.current_key_index = 0
         self.api_key = self.api_keys[0] # For backwards compatibility with internal services
+        self.provider = provider.lower()
         
         # Use the same model as content generation (from config)
-        self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
-        self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+        if self.provider == "groq":
+            self.model_name = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
+            self.base_url = "https://api.groq.com/openai/v1"
+        else:
+            self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+            self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+            
         self.learning_service = ContextLearningService(self.api_key, self.model_name)
-        logger.info(f"✅ ChatService initialized with {self.model_name} and {len(self.api_keys)} API keys")
+        logger.info(f"✅ ChatService initialized with {self.provider} ({self.model_name}) and {len(self.api_keys)} API keys")
 
     def _rotate_api_key(self):
         """Rotate to the next API key"""
@@ -87,8 +93,12 @@ class ChatService:
 User: {message}
 ApliChat:"""
 
-            # Generate response via REST API (stateless for multi-tenancy)
-            response_text = await self._generate_via_rest(full_prompt)
+            # Generate response via appropriate provider
+            if self.provider == "groq":
+                response_text = await self._generate_via_groq(full_prompt)
+            else:
+                response_text = await self._generate_via_rest(full_prompt)
+                
             response_text = response_text.strip()
 
             # Use AI to intelligently extract and update context
@@ -115,16 +125,53 @@ ApliChat:"""
             
             # If it's a known AI error, pass it back so the user knows what's wrong
             detailed_msg = "I'm having a bit of trouble understanding that. Could you rephrase?"
-            if "Gemini API failure" in error_msg or "AI service error" in error_msg:
-                detailed_msg = f"AI service error: {error_msg}. Please check your Gemini API key and quota."
+            if any(p in error_msg for p in ["Gemini", "Groq", "AI service"]):
+                detailed_msg = f"AI service error: {error_msg}. Please check your AI API key and provider settings."
             elif "API key was reported as leaked" in error_msg:
-                detailed_msg = "Your Gemini API key has been revoked by Google because it was reported as leaked. Please generate a new key in Google AI Studio and update your company settings."
+                detailed_msg = "Your AI API key has been revoked by the provider. Please update your company settings with a new key."
             
             return {
                 "message": detailed_msg,
                 "contextUsed": False,
                 "learnedContext": None
             }
+
+    async def _generate_via_groq(self, prompt: str) -> str:
+        """Make a request to Groq API (OpenAI compatible)"""
+        url = f"{self.base_url}/chat/completions"
+        
+        payload = {
+            "model": self.model_name,
+            "messages": [
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.5,
+            "max_tokens": 2048,
+            "stream": False
+        }
+        
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {self.api_key}'
+        }
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data['choices'][0]['message']['content']
+                    else:
+                        error_text = await response.text()
+                        logger.error(f"❌ Groq Chat API error ({response.status}): {error_text}")
+                        # Fallback to Gemini if Groq fails
+                        logger.info("🔄 Falling back to Gemini for chat...")
+                        return await self._generate_via_rest(prompt)
+        except Exception as e:
+            logger.error(f"❌ Groq Chat request failed: {str(e)}")
+            # Fallback to Gemini
+            logger.info("🔄 Falling back to Gemini for chat...")
+            return await self._generate_via_rest(prompt)
 
     async def _generate_via_rest(self, prompt: str) -> str:
         """Make a stateless request to Gemini API via REST with rotation support"""

@@ -66,9 +66,9 @@ export class CreateCompanyDto {
   @IsString()
   aiApiKey?: string;
 
-  @ApiProperty({ example: 'gemini', enum: ['gemini', 'openai'], description: 'AI provider', required: false })
+  @ApiProperty({ example: 'gemini', enum: ['gemini', 'openai', 'groq'], description: 'AI provider', required: false })
   @IsOptional()
-  @IsEnum(['gemini', 'openai'])
+  @IsEnum(['gemini', 'openai', 'groq'])
   aiProvider?: string;
 
   @ApiProperty({ example: 'billing@company.com', description: 'Billing email', required: false })
