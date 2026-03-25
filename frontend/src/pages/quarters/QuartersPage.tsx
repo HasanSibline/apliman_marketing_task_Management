@@ -7,7 +7,6 @@ import {
     CheckCircleIcon,
     XMarkIcon,
     FlagIcon,
-    ChartBarIcon,
     CalendarIcon,
     LockClosedIcon,
 } from '@heroicons/react/24/outline'
