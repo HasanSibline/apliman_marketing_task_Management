@@ -24,7 +24,7 @@ class ChatService:
             self.model_name = os.getenv("GROQ_MODEL", "llama-3.1-70b-versatile")
             self.base_url = "https://api.groq.com/openai/v1"
         else:
-            self.model_name = os.getenv("GEMINI_MODEL", "gemini-3-flash-preview")
+            self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
             
         self.learning_service = ContextLearningService(self.api_key, self.model_name)
