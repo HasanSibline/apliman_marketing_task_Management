@@ -21,8 +21,8 @@ export class UsersService {
     try {
       // Check user limits (skip for system admins)
       if (createUserDto.companyId) {
-        const limits = await this.companiesService.getCompanyResourceLimits(createUserDto.companyId);
-        if (limits && limits.maxUsers !== -1) {
+        const limits = await this.companiesService.getCompanyResourceLimits(createUserDto.companyId) as any;
+        if (limits && (limits.maxUsers as number) !== -1) {
           const currentUsers = await this.prisma.user.count({
             where: {
               companyId: createUserDto.companyId,

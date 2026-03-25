@@ -521,17 +521,17 @@ export class CompaniesService {
   /**
    * Get plan-based limits directly from database
    */
-  private async getPlanLimits(planName: string) {
+  private async getPlanLimits(planName: string): Promise<{ maxUsers: number, maxTasks: number, maxStorage: number, price: number }> {
     const plan = await (this.prisma as any).plan.findUnique({
       where: { name: planName },
     });
 
     if (plan) {
       return {
-        maxUsers: plan.maxUsers,
-        maxTasks: plan.maxTasks,
-        maxStorage: plan.maxStorage,
-        price: plan.price,
+        maxUsers: Number(plan.maxUsers),
+        maxTasks: Number(plan.maxTasks),
+        maxStorage: Number(plan.maxStorage),
+        price: Number(plan.price),
       };
     }
 
@@ -547,7 +547,7 @@ export class CompaniesService {
   /**
    * Get effective resource limits for a company (handles overrides)
    */
-  async getCompanyResourceLimits(companyId: string) {
+  async getCompanyResourceLimits(companyId: string): Promise<{ maxUsers: number, maxTasks: number, maxStorage: number } | null> {
     const company = await this.prisma.company.findUnique({
       where: { id: companyId },
       select: {
@@ -563,8 +563,13 @@ export class CompaniesService {
     const planLimits = await this.getPlanLimits(company.subscriptionPlan);
 
     return {
-      maxUsers: company.maxUsers ?? planLimits.maxUsers,
-      maxTasks: company.maxTasks ?? planLimits.maxTasks,
+      maxUsers: company.maxUsers !== null ? Number(company.maxUsers) : planLimits.maxUsers,
+      maxTasks: company.maxTasks !== null ? Number(company.maxTasks) : planLimits.maxTasks,
+      maxStorage: company.maxStorage !== null ? Number(company.maxStorage) : planLimits.maxStorage,
+    };
+  }
+
+  /**
    * Generate random password using cryptographically secure random bytes
    */
   private generatePassword(): string {

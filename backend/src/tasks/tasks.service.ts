@@ -67,8 +67,8 @@ export class TasksService {
 
       // Enforce company task limit (if configured)
       if (creator.companyId) {
-        const limits = await this.companiesService.getCompanyResourceLimits(creator.companyId);
-        if (limits && limits.maxTasks !== -1) {
+        const limits = await this.companiesService.getCompanyResourceLimits(creator.companyId) as any;
+        if (limits && (limits.maxTasks as number) !== -1) {
           const currentTaskCount = await this.prisma.task.count({
             where: { companyId: creator.companyId, taskType: { not: 'SUBTASK' } },
           });
