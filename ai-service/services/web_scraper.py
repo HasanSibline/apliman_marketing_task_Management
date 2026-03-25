@@ -106,9 +106,15 @@ class WebScraper:
         """Deep scrape using headless browser (Playwright) to handle JS and anti-bot"""
         async with async_playwright() as p:
             # Use Chromium as it's the most reliable for scraping
-            # On Render, browsers are often in a specific cache directory
+            # Check for Docker/Render specific paths first
+            docker_chromium = "/ms-playwright/chromium-1105/chrome-linux/chrome"
             render_path = "/opt/render/.cache/ms-playwright/chromium-1105/chrome-linux/chrome"
-            executable_path = render_path if os.path.exists(render_path) else None
+            
+            executable_path = None
+            if os.path.exists(docker_chromium):
+                executable_path = docker_chromium
+            elif os.path.exists(render_path):
+                executable_path = render_path
             
             if executable_path:
                 logger.info(f"📍 Using Playwright executable at: {executable_path}")
