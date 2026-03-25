@@ -1,4 +1,5 @@
 import logging
+import os
 import aiohttp
 from bs4 import BeautifulSoup
 from typing import Dict, Optional, List
