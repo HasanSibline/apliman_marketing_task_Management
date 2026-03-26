@@ -4,7 +4,6 @@ import {
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline'
-import Logo from './Logo'
 import NotificationBell from '../notifications/NotificationBell'
 import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -62,9 +61,6 @@ const Header: React.FC = () => {
           >
             <Bars3Icon className="h-5 w-5" />
           </button>
-
-          {/* Logo */}
-          <Logo size="md" className="flex" />
         </div>
 
         {/* Right side */}

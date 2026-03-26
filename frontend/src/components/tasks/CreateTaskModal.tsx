@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon, MapPinIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
@@ -1018,18 +1018,18 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                           <div className="flex flex-wrap gap-2 text-xs">
                             {subtask.phaseName && (
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                📍 {subtask.phaseName}
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                                <MapPinIcon className="w-3 h-3" /> {subtask.phaseName}
                               </span>
                             )}
                             {(subtask.suggestedUserName || subtask.suggestedRole) && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                                👤 {subtask.suggestedUserName || subtask.suggestedRole}
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                                <UserIcon className="w-3 h-3" /> {subtask.suggestedUserName || subtask.suggestedRole}
                               </span>
                             )}
                             {subtask.estimatedHours && (
-                              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded">
-                                ⏱️ {subtask.estimatedHours}h
+                              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                                <ClockIcon className="w-3 h-3" /> {subtask.estimatedHours}h
                               </span>
                             )}
                           </div>

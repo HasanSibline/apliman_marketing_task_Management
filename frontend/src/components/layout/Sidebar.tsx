@@ -13,6 +13,7 @@ import {
   FlagIcon,
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
+import Logo from './Logo'
 
 const Sidebar: React.FC = () => {
   const { sidebarOpen } = useAppSelector((state) => state.ui)
@@ -49,18 +50,24 @@ const Sidebar: React.FC = () => {
     >
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center justify-center h-16 px-4 border-b border-gray-200">
+        <div className="flex flex-col items-center justify-center py-4 border-b border-gray-200 min-h-[5rem]">
           {sidebarOpen ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="flex items-center space-x-2"
+              className="flex flex-col items-center space-y-2 pt-1"
             >
-              <span className="text-lg font-bold text-gray-900">TaskFlow</span>
+              <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white leading-none">TaskFlow</span>
+              <Logo size="sm" />
             </motion.div>
           ) : (
-            <span className="text-lg font-bold text-gray-900">TF</span>
+            <div className="flex flex-col items-center space-y-3 pt-1">
+              <span className="text-lg font-bold text-gray-900">TF</span>
+              <div className="w-8 overflow-hidden flex items-center justify-center">
+                 <Logo size="sm" className="opacity-75 transform scale-75" />
+              </div>
+            </div>
           )}
         </div>
 

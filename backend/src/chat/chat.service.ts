@@ -419,6 +419,77 @@ export class ChatService {
       return context; // No company, no context
     }
 
+    // ALWAYS fetch the user's active tasks
+    const activeTasks = await this.prisma.task.findMany({
+      where: {
+        companyId: user.companyId,
+        completedAt: null,
+        OR: [
+          { assignedToId: userId },
+          { assignments: { some: { userId } } },
+        ]
+      },
+      select: {
+        id: true,
+        title: true,
+        priority: true,
+        dueDate: true,
+        currentPhase: { select: { name: true } },
+      },
+      take: 20
+    });
+    context.userActiveTasks = activeTasks;
+
+    // ALWAYS fetch the user's latest stats (optional but helpful)
+    const completedTasksCount = await this.prisma.task.count({
+      where: {
+        companyId: user.companyId,
+        completedAt: { not: null },
+        OR: [
+          { assignedToId: userId },
+          { assignments: { some: { userId } } },
+        ]
+      }
+    });
+
+    context.userAnalytics = {
+      activeTaskCount: activeTasks.length,
+      completedTaskCount: completedTasksCount
+    };
+
+    // ALWAYS fetch company active Objectives (for general queries about goals)
+    const activeObjectives = await this.prisma.objective.findMany({
+      where: {
+        companyId: user.companyId,
+        status: { in: ['ON_TRACK', 'AT_RISK', 'OFF_TRACK'] }
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+      },
+      take: 10
+    });
+    context.companyObjectives = activeObjectives;
+
+    // ALWAYS fetch active/upcoming quarters
+    const activeQuarters = await this.prisma.quarter.findMany({
+      where: {
+        companyId: user.companyId,
+        status: { in: ['ACTIVE', 'UPCOMING'] }
+      },
+      select: {
+        id: true,
+        name: true,
+        year: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+      },
+      take: 4
+    });
+    context.companyQuarters = activeQuarters;
+
     // Fetch mentioned users (SAME COMPANY ONLY)
     if (mentions.length > 0) {
       const users = await this.prisma.user.findMany({

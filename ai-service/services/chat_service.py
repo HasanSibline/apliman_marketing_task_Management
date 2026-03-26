@@ -359,18 +359,39 @@ COMPETITIVE STRATEGY GUIDELINES:
 - Never directly attack or disparage competitors - focus on {company_name}'s strengths
 """
 
-        # Add task references
+        # Add task references (explicitly asked about via slash commands)
         if additional_context.get('referencedTasks'):
-            prompt += "\n=== Referenced Tasks ===\n"
+            prompt += "\n=== Specifically Referenced Tasks ===\n"
             for task in additional_context['referencedTasks']:
                 prompt += f"""
 Task: {task['title']}
 Status: {task.get('currentPhase', {}).get('name', 'Unknown')}
 Priority: {task.get('priority', 'N/A')}
-Assigned to: {task.get('assignedTo', {}).get('name', 'Unassigned')}
 Due: {task.get('dueDate', 'No due date')}
-Description: {task.get('description', 'No description')[:200]}
 """
+        
+        # Give AI the user's workload context natively
+        if additional_context.get('userAnalytics'):
+            analytics = additional_context['userAnalytics']
+            prompt += f"\n=== Current User Statistics ===\n"
+            prompt += f"- Total Active Tasks: {analytics.get('activeTaskCount', 0)}\n"
+            prompt += f"- Total Completed Tasks: {analytics.get('completedTaskCount', 0)}\n"
+
+        if additional_context.get('userActiveTasks'):
+            prompt += "\n=== User's Active Tasks ===\n"
+            for task in additional_context['userActiveTasks']:
+                phase_name = task.get('currentPhase', {}).get('name', 'Unknown') if task.get('currentPhase') else 'Unknown'
+                prompt += f"- Task: {task.get('title', 'Untitled')} | Phase: {phase_name} | Priority: {task.get('priority', 'N/A')} | Due: {task.get('dueDate', 'No due date')}\n"
+
+        if additional_context.get('companyObjectives'):
+            prompt += "\n=== Active Company Objectives ===\n"
+            for obj in additional_context['companyObjectives']:
+                prompt += f"- Objective: {obj.get('title')} | Status: {obj.get('status')}\n"
+
+        if additional_context.get('companyQuarters'):
+            prompt += "\n=== Active/Upcoming Quarters ===\n"
+            for q in additional_context['companyQuarters']:
+                prompt += f"- Quarter: {q.get('name')} {q.get('year')} | Status: {q.get('status')} | Period: {q.get('startDate')} to {q.get('endDate')}\n"
 
         # Add mentioned users
         if additional_context.get('mentionedUsers'):
