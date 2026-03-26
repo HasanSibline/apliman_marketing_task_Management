@@ -14,6 +14,7 @@ import { keepAliveService } from '@/services/keepalive'
 // Pages
 import GenericLogin from '@/pages/auth/GenericLogin'
 import DashboardPage from '@/pages/DashboardPage'
+import DayTasksPage from '@/pages/DayTasksPage'
 import TasksPage from '@/pages/tasks/TasksPage'
 import TaskDetailPage from '@/pages/tasks/TaskDetailPage'
 import WorkflowsPage from '@/pages/workflows/WorkflowsPage'
@@ -147,6 +148,7 @@ function App() {
         <Route path="tasks" element={<TasksPage />} />
         <Route path="tasks/:id" element={<TaskDetailPage />} />
         <Route path="calendar" element={<CalendarPage />} />
+        <Route path="calendar/:date" element={<DayTasksPage />} />
         <Route
           path="workflows"
           element={

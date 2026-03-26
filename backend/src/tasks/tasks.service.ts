@@ -166,6 +166,7 @@ export class TasksService {
           priority,
           workflowId: workflow.id,
           currentPhaseId: startPhase.id,
+          phase: 'ASSIGNED', // Automatically set to ASSIGNED (To do) instead of PENDING_APPROVAL
           dueDate: createTaskDto.dueDate ? new Date(createTaskDto.dueDate) : null,
           createdById: creatorId,
           assignedToId: createTaskDto.assignedToId,
@@ -274,6 +275,7 @@ export class TasksService {
                 taskType: 'SUBTASK',
                 workflowId: workflow.id,
                 currentPhaseId: subtaskPhase.id,
+                phase: 'ASSIGNED',
                 assignedToId: suggestedAssignee.id,
                 createdById: creatorId,
                 dueDate: task.dueDate, // Inherit due date from parent

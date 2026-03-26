@@ -98,7 +98,7 @@ export class QuartersService {
             where: { id, companyId },
             include: {
                 tasks: {
-                    select: { phase: true, isRolledOver: true, createdAt: true, completedAt: true },
+                    select: { phase: true, isRolledOver: true, createdAt: true, completedAt: true, currentPhase: { select: { isEndPhase: true } } },
                 },
                 objectives: {
                     include: { keyResults: true },
@@ -109,10 +109,10 @@ export class QuartersService {
 
         const tasks = quarter.tasks;
         const total = tasks.length;
-        const completed = tasks.filter(t => t.phase === 'COMPLETED').length;
-        const rolledOver = tasks.filter(t => t.isRolledOver).length;
-        const inProgress = tasks.filter(t => t.phase === 'IN_PROGRESS').length;
-        const pending = tasks.filter(t => ['PENDING_APPROVAL', 'APPROVED', 'ASSIGNED'].includes(t.phase)).length;
+        const completed = tasks.filter((t: any) => Boolean(t.completedAt) || t.phase === 'COMPLETED' || t.phase === 'ARCHIVED' || t.currentPhase?.isEndPhase).length;
+        const rolledOver = tasks.filter((t: any) => t.isRolledOver).length;
+        const inProgress = tasks.filter((t: any) => t.phase === 'IN_PROGRESS' || (!Boolean(t.completedAt) && t.phase !== 'COMPLETED' && t.phase !== 'ARCHIVED' && !t.currentPhase?.isEndPhase)).length;
+        const pending = tasks.filter((t: any) => ['PENDING_APPROVAL', 'APPROVED', 'ASSIGNED'].includes(t.phase)).length;
         const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
         const rolloverRate = total > 0 ? Math.round((rolledOver / total) * 100) : 0;
 
@@ -146,7 +146,7 @@ export class QuartersService {
         const quarters = await this.prisma.quarter.findMany({
             where: { companyId, year },
             include: {
-                tasks: { select: { phase: true, isRolledOver: true } },
+                tasks: { select: { phase: true, isRolledOver: true, completedAt: true, currentPhase: { select: { isEndPhase: true } } } },
                 objectives: { include: { keyResults: true } },
             },
             orderBy: { name: 'asc' },
@@ -154,8 +154,8 @@ export class QuartersService {
 
         const data = quarters.map(q => {
             const total = q.tasks.length;
-            const completed = q.tasks.filter(t => t.phase === 'COMPLETED').length;
-            const rolledOver = q.tasks.filter(t => t.isRolledOver).length;
+            const completed = q.tasks.filter((t: any) => Boolean(t.completedAt) || t.phase === 'COMPLETED' || t.phase === 'ARCHIVED' || t.currentPhase?.isEndPhase).length;
+            const rolledOver = q.tasks.filter((t: any) => t.isRolledOver).length;
             const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
             const rolloverRate = total > 0 ? Math.round((rolledOver / total) * 100) : 0;
 

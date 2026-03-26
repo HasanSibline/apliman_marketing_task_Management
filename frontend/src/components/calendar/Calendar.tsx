@@ -1,11 +1,11 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
     CalendarIcon,
     ArrowPathIcon,
-    SparklesIcon,
 } from '@heroicons/react/24/outline'
 
 interface Task {
@@ -30,10 +30,10 @@ const PRIORITY_COLORS: Record<number, string> = {
     5: 'bg-red-50/80 text-red-700 border-red-100/50 hover:bg-red-50',
 }
 
-const Calendar: React.FC<CalendarProps> = ({ tasks, onTaskClick }) => {
+export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
+    const navigate = useNavigate()
     const [viewDate, setViewDate] = useState(new Date())
     const [isRefreshing, setIsRefreshing] = useState(false)
-    const [selectedDay, setSelectedDay] = useState<{ day: number, tasks: Task[] } | null>(null)
 
     const getDays = (date: Date) => {
         const year = date.getFullYear()
@@ -131,16 +131,19 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, onTaskClick }) => {
 
                         return (
                             <div
-                                key={day}
+                                key={i}
                                 onClick={() => {
-                                    if (dayTasks.length > 0 && onTaskClick) {
-                                        setSelectedDay({ day, tasks: dayTasks });
+                                    if (dayTasks.length > 0) {
+                                        const y = viewDate.getFullYear()
+                                        const m = String(viewDate.getMonth() + 1).padStart(2, '0')
+                                        const d = String(day).padStart(2, '0')
+                                        navigate(`/calendar/${y}-${m}-${d}`)
                                     }
                                 }}
-                                className={`h-40 p-4 rounded-2xl border transition-all relative group flex flex-col cursor-pointer ${
-                                    isToday 
-                                        ? 'border-primary-400 bg-primary-50/20 ring-2 ring-primary-100' 
-                                        : 'border-gray-200 bg-white hover:border-primary-300 hover:bg-gray-50'
+                                className={`min-h-[140px] p-2 border-b border-r border-gray-100 flex flex-col gap-1 transition-all ${
+                                    dayTasks.length > 0 ? 'bg-white hover:bg-gray-50 cursor-pointer shadow-[inset_0_0_0_1px_rgba(0,0,0,0.02)]' : 'bg-gray-50/30 text-gray-400'
+                                } ${
+                                    isToday ? 'ring-2 ring-primary-500 ring-inset bg-blue-50/30' : ''
                                 }`}
                             >
                                 <div className="flex items-center justify-between mb-3 shrink-0">
@@ -192,56 +195,6 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, onTaskClick }) => {
                 </div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Marketing Inteligence Dashboard</p>
             </div>
-
-            {/* Day Modal */}
-            <AnimatePresence>
-                {selectedDay && (
-                    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.95, y: 10 }} 
-                            animate={{ opacity: 1, scale: 1, y: 0 }} 
-                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                            className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-gray-100 flex flex-col max-h-[80vh]"
-                        >
-                            <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
-                                <div>
-                                    <h3 className="text-xl font-bold text-gray-900">
-                                        {viewDate.toLocaleDateString('en-US', { month: 'long' })} {selectedDay.day}, {viewDate.getFullYear()}
-                                    </h3>
-                                    <p className="text-xs text-gray-500 font-medium mt-1 uppercase tracking-widest">{selectedDay.tasks.length} Task{selectedDay.tasks.length !== 1 ? 's' : ''} Due</p>
-                                </div>
-                                <button onClick={() => setSelectedDay(null)} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600 transition-colors">
-                                    <SparklesIcon className="h-5 w-5" />
-                                </button>
-                            </div>
-                            <div className="p-6 overflow-y-auto flex-1 space-y-3">
-                                {selectedDay.tasks.map(t => (
-                                    <div 
-                                        key={t.id} 
-                                        onClick={() => { setSelectedDay(null); onTaskClick?.(t.id); }}
-                                        className={`p-4 rounded-xl border flex flex-col gap-2 cursor-pointer transition-all hover:ring-2 hover:ring-offset-1 ring-black/5 ${PRIORITY_COLORS[t.priority || 1]}`}
-                                    >
-                                        <div className="flex items-start justify-between gap-3">
-                                            <span className="font-bold text-sm tracking-tight">{t.title}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3 text-xs opacity-75 font-medium mt-1">
-                                            <span>Phase: {t.phase.replace(/_/g, ' ')}</span>
-                                            {t.assignedTo && <span>• {t.assignedTo.name}</span>}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="p-4 border-t border-gray-100 bg-gray-50 shrink-0 text-right">
-                                <button onClick={() => setSelectedDay(null)} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 font-medium text-sm rounded-lg hover:bg-gray-50 transition-colors">
-                                    Close
-                                </button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
         </div>
     )
 }
-
-export default Calendar

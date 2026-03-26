@@ -573,11 +573,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                       <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
                         {phase.name}
                   </h3>
-                      {phase.requiresApproval && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded">
-                          Approval
-                        </span>
-                      )}
+                      {/* Approvals disabled globally */}
                     </div>
                     <span className="text-xs font-bold text-gray-700 bg-white/80 px-2.5 py-1 rounded-full shadow-sm">
                       {phaseTasks.length}

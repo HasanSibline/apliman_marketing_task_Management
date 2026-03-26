@@ -243,7 +243,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     const textBeforeCursor = value.substring(0, cursorPos)
     
     // Check for @ mention (inline autocomplete)
-    const atMatch = textBeforeCursor.match(/@([\w]*)$/)
+    const atMatch = textBeforeCursor.match(/@([\w\s]*)$/)
     if (atMatch) {
       const query = atMatch[1].toLowerCase()
       
@@ -561,7 +561,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               onChange={handleInputChange}
               onKeyDown={handleKeyPress}
                     placeholder="Type your message... (@user or /task)"
-                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400 bg-transparent relative z-10 pr-20"
+                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400 bg-transparent relative z-10"
               disabled={isTyping}
                     style={{ caretColor: 'auto' }}
                   />

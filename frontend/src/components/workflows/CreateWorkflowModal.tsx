@@ -471,19 +471,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                           </p>
                         </div>
 
-                        <div className="mt-4 flex items-center">
-                          <label className="flex items-center">
-                            <input
-                              type="checkbox"
-                              checked={phase.requiresApproval}
-                              onChange={(e) => updatePhase(index, 'requiresApproval', e.target.checked)}
-                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">
-                              Requires admin approval to move to this phase
-                            </span>
-                          </label>
-                        </div>
+                        {/* Approvals requirement disabled globally */}
                       </div>
                     ))}
                   </div>
