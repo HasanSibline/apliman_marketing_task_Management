@@ -66,8 +66,13 @@ export class ObjectivesController {
     // Task links
     @Post(':id/tasks/:taskId')
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
-    linkTask(@Param('id') id: string, @Param('taskId') taskId: string, @Request() req) {
-        return this.objectivesService.linkTask(id, req.user.companyId, taskId);
+    linkTask(
+        @Param('id') id: string, 
+        @Param('taskId') taskId: string, 
+        @Body() body: { keyResultId?: string },
+        @Request() req
+    ) {
+        return this.objectivesService.linkTask(id, req.user.companyId, taskId, body?.keyResultId);
     }
 
     @Delete(':id/tasks/:taskId')

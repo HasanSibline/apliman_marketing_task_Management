@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { TasksService } from '../tasks/tasks.service';
 import { CreateObjectiveDto } from './dto/create-objective.dto';
 import { CreateKeyResultDto, UpdateKeyResultDto } from './dto/key-result.dto';
 
@@ -14,7 +15,11 @@ function calcProgress(keyResults: any[]): number {
 
 @Injectable()
 export class ObjectivesService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        @Inject(forwardRef(() => TasksService))
+        private readonly tasksService: TasksService,
+    ) { }
 
     private withProgress(obj: any) {
         const progress = calcProgress(obj.keyResults ?? []);
@@ -113,19 +118,77 @@ export class ObjectivesService {
         return this.prisma.keyResult.delete({ where: { id: krId } });
     }
 
-    async linkTask(objectiveId: string, companyId: string, taskId: string) {
+    async linkTask(objectiveId: string, companyId: string, taskId: string, keyResultId?: string) {
         await this.findOne(objectiveId, companyId);
-        return this.prisma.task.update({
+        
+        if (keyResultId) {
+            const kr = await this.prisma.keyResult.findUnique({
+                where: { id: keyResultId, objectiveId }
+            });
+            if (!kr) throw new NotFoundException('Key result not found in this objective');
+        }
+
+        const task = await this.prisma.task.update({
             where: { id: taskId },
-            data: { objectiveId },
+            data: { 
+                objectiveId,
+                keyResultId: keyResultId || null
+            },
         });
+
+        // Trigger calculation in case the task is already completed
+        if (keyResultId) {
+            await this.tasksService.calculateKeyResultProgress(taskId).catch(console.error);
+        }
+
+        return task;
     }
 
     async unlinkTask(objectiveId: string, companyId: string, taskId: string) {
         await this.findOne(objectiveId, companyId);
-        return this.prisma.task.update({
+        
+        // Find existing to know if we need to recalculate a key result
+        const existingTask = await this.prisma.task.findUnique({ where: { id: taskId }, select: { keyResultId: true }});
+        
+        const task = await this.prisma.task.update({
             where: { id: taskId, objectiveId },
-            data: { objectiveId: null },
+            data: { objectiveId: null, keyResultId: null },
         });
+
+        // If it was linked to a key result, we must recalculate since it's unlinked
+        if (existingTask?.keyResultId) {
+            // Because it no longer has keyResultId, we pass in a mock object with keyResultId or fake calculation logic.
+            // Wait, calculateKeyResultProgress expects the task to STILL have keyResultId so it can find the KR.
+            // Instead, we recalculate manually for the old krId here.
+            this.recalculateKrDirect(existingTask.keyResultId).catch(console.error);
+        }
+        
+        return task;
+    }
+
+    private async recalculateKrDirect(krId: string) {
+        const totalTasks = await this.prisma.task.count({ where: { keyResultId: krId } });
+        const completedTasks = await this.prisma.task.count({
+            where: {
+                keyResultId: krId,
+                OR: [
+                    { completedAt: { not: null } },
+                    { phase: { in: ['COMPLETED', 'ARCHIVED'] } },
+                    { currentPhase: { isEndPhase: true } }
+                ]
+            }
+        });
+        
+        const kr = await this.prisma.keyResult.findUnique({ where: { id: krId } });
+        if (kr) {
+            const rawProgress = totalTasks > 0 ? (completedTasks / totalTasks) : 0;
+            const range = kr.targetValue - kr.startValue;
+            const newCurrentValue = kr.startValue + (range * rawProgress);
+            
+            await this.prisma.keyResult.update({
+                where: { id: krId },
+                data: { currentValue: newCurrentValue }
+            });
+        }
     }
 }

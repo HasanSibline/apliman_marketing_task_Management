@@ -1767,17 +1767,17 @@ export class TasksService {
     }
   }
 
-  private async calculateKeyResultProgress(taskId: string) {
+  async calculateKeyResultProgress(taskId: string) {
     try {
       const task = await this.prisma.task.findUnique({
         where: { id: taskId },
         select: { keyResultId: true }
       });
-      
+
       if (!task?.keyResultId) return;
 
       const krId = task.keyResultId;
-      
+
       const totalTasks = await this.prisma.task.count({ where: { keyResultId: krId } });
       const completedTasks = await this.prisma.task.count({
         where: {
@@ -1793,10 +1793,10 @@ export class TasksService {
       if (totalTasks > 0) {
         const kr = await this.prisma.keyResult.findUnique({ where: { id: krId } });
         if (kr) {
-          const rawProgress = completedTasks / totalTasks; 
+          const rawProgress = completedTasks / totalTasks;
           const range = kr.targetValue - kr.startValue;
           const newCurrentValue = kr.startValue + (range * rawProgress);
-          
+
           await this.prisma.keyResult.update({
             where: { id: krId },
             data: { currentValue: newCurrentValue }
