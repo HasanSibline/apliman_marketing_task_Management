@@ -48,6 +48,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     autoAssign: false,
     quarterId: '',
     objectiveId: '',
+    keyResultId: '',
   })
   const [quarters, setQuarters] = useState<any[]>([])
   const [objectives, setObjectives] = useState<any[]>([])
@@ -306,6 +307,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           autoAssign: false,
           quarterId: '',
           objectiveId: '',
+          keyResultId: '',
         })
         setAiGeneratedSubtasks([]) // Clear AI subtasks
 
@@ -539,7 +541,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 </div>
 
                 {/* Quarter and Objective */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
                     <label htmlFor="quarterId" className="block text-sm font-medium text-gray-700 mb-2">
                       Quarter
@@ -566,7 +568,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       id="objectiveId"
                       name="objectiveId"
                       value={formData.objectiveId}
-                      onChange={handleChange}
+                      onChange={(e) => {
+                        handleChange(e);
+                        // Reset keyResultId whenever objective changes
+                        setFormData(prev => ({ ...prev, keyResultId: '' }));
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="">No Objective</option>
@@ -577,6 +583,27 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         ))}
                     </select>
                   </div>
+
+                  {formData.objectiveId && (
+                    <div>
+                      <label htmlFor="keyResultId" className="block text-sm font-medium text-gray-700 mb-2">
+                        Track a Key Result
+                      </label>
+                      <select
+                        id="keyResultId"
+                        name="keyResultId"
+                        value={formData.keyResultId}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-blue-300 bg-blue-50/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
+                      >
+                        <option value="">Overall Objective</option>
+                        {objectives
+                          .find(o => o.id === formData.objectiveId)?.keyResults?.map((kr: any) => (
+                            <option key={kr.id} value={kr.id}>{kr.title}</option>
+                          ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Assign To */}

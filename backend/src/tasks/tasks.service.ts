@@ -1163,6 +1163,12 @@ export class TasksService {
             title: true,
           },
         },
+        keyResult: {
+          select: {
+            id: true,
+            title: true,
+          },
+        },
         blockedBy: {
           include: {
             blocker: {

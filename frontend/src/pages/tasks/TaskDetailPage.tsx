@@ -423,6 +423,14 @@ const TaskDetailPage: React.FC = () => {
                     </Link>
                   )}
 
+                  {/* Key Result badge */}
+                  {(currentTask as any).keyResult && (
+                    <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg">
+                      <ArrowUpIcon className="h-4 w-4" />
+                      <span className="text-sm font-medium">Tracking: {(currentTask as any).keyResult.title}</span>
+                    </div>
+                  )}
+
                   {/* Rolled-over badge */}
                   {(currentTask as any).isRolledOver && (
                     <div className="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg">

@@ -21,6 +21,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
     assignedUserIds: [] as string[],
     quarterId: '',
     objectiveId: '',
+    keyResultId: '',
   })
   const [users, setUsers] = useState<any[]>([])
   const [quarters, setQuarters] = useState<any[]>([])
@@ -41,6 +42,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
         assignedUserIds: assignedIds,
         quarterId: task.quarterId || '',
         objectiveId: task.objectiveId || '',
+        keyResultId: task.keyResultId || '',
       })
     }
   }, [task])
@@ -191,7 +193,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
               </div>
 
               {/* Quarter and Objective Row */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Quarter */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -216,7 +218,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   </label>
                   <select
                     value={formData.objectiveId}
-                    onChange={(e) => setFormData({ ...formData, objectiveId: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, objectiveId: e.target.value, keyResultId: '' })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">No Objective</option>
@@ -227,6 +229,26 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                       ))}
                   </select>
                 </div>
+
+                {/* Key Result */}
+                {formData.objectiveId && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Track a Key Result
+                    </label>
+                    <select
+                      value={formData.keyResultId}
+                      onChange={(e) => setFormData({ ...formData, keyResultId: e.target.value })}
+                      className="w-full px-4 py-2 border border-blue-300 bg-blue-50/50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+                    >
+                      <option value="">Overall Objective</option>
+                      {objectives
+                        .find(o => o.id === formData.objectiveId)?.keyResults?.map((kr: any) => (
+                          <option key={kr.id} value={kr.id}>{kr.title}</option>
+                        ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Assigned Users (Multiple Selection) */}
