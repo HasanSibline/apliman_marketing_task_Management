@@ -161,6 +161,7 @@ model Task {
   subtaskId      String?          @unique
   quarterId      String?
   objectiveId    String?
+  keyResultId    String?
   rolledOverFrom String?
   isRolledOver   Boolean          @default(false)
   notifications  Notification[]
@@ -177,6 +178,7 @@ model Task {
   createdBy      User             @relation("TaskCreator", fields: [createdById], references: [id])
   currentPhase   Phase?           @relation(fields: [currentPhaseId], references: [id])
   objective      Objective?       @relation(fields: [objectiveId], references: [id])
+  keyResult      KeyResult?       @relation(fields: [keyResultId], references: [id])
   parentTask     Task?            @relation("ParentChildTasks", fields: [parentTaskId], references: [id])
   childTasks     Task[]           @relation("ParentChildTasks")
   quarter        Quarter?         @relation(fields: [quarterId], references: [id])
@@ -501,6 +503,7 @@ model KeyResult {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   objective    Objective @relation(fields: [objectiveId], references: [id], onDelete: Cascade)
+  tasks        Task[]
 
   @@map("key_results")
 }

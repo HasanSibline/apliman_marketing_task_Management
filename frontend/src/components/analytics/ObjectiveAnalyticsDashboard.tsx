@@ -169,19 +169,24 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-wrap gap-4">
                 <h2 className="text-xl font-black text-gray-900">Objectives Analytics</h2>
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200">
-                        <FunnelIcon className="h-4 w-4 text-gray-500" />
-                        <select 
-                            value={selectedQuarter} 
-                            onChange={e => setSelectedQuarter(e.target.value)}
-                            className="bg-transparent text-sm font-bold text-gray-700 focus:outline-none cursor-pointer"
-                        >
-                            <option value="ALL">All Quarters</option>
-                            {availableQuarters.map(q => (
-                                <option key={q} value={q}>{q}</option>
-                            ))}
-                        </select>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3 bg-gray-50/50 px-2 py-1.5 rounded-xl border border-gray-100 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                        <FunnelIcon className="h-5 w-5 text-gray-400 ml-1" />
+                        <div className="relative">
+                            <select 
+                                value={selectedQuarter} 
+                                onChange={e => setSelectedQuarter(e.target.value)}
+                                className="appearance-none bg-white border border-gray-300 text-gray-700 font-bold text-sm py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm min-w-[140px]"
+                            >
+                                <option value="ALL">All Quarters</option>
+                                {availableQuarters.map(q => (
+                                    <option key={q} value={q}>{q}</option>
+                                ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
+                        </div>
                     </div>
                     <button
                         onClick={exportData}

@@ -146,4 +146,13 @@ export class CreateTaskDto {
   @IsOptional()
   @IsString()
   objectiveId?: string;
+
+  @ApiProperty({
+    description: 'Key Result ID this task contributes to',
+    example: 'uuid-string',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  keyResultId?: string;
 }

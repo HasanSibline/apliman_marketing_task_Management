@@ -173,6 +173,7 @@ export class TasksService {
           companyId: creator.companyId, // Add company isolation
           quarterId: createTaskDto.quarterId || null,
           objectiveId: createTaskDto.objectiveId || null,
+          keyResultId: createTaskDto.keyResultId || null,
         },
         include: {
           workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
@@ -545,6 +546,9 @@ export class TasksService {
         });
       }
     }
+
+    // Trigger Key Result progress auto-calculation
+    await this.calculateKeyResultProgress(taskId);
 
     return this.findOne(taskId, userId, UserRole.SUPER_ADMIN);
   }
@@ -1301,6 +1305,9 @@ export class TasksService {
         },
       });
 
+      // Recalculate Key Result Progress in case phase or completation was altered
+      await this.calculateKeyResultProgress(id);
+
       return updatedTask;
     } catch (error) {
       if (error && typeof error === 'object' && 'code' in error) {
@@ -1601,6 +1608,9 @@ export class TasksService {
       });
     }
 
+    // Trigger Key Result progress auto-calculation
+    await this.calculateKeyResultProgress(approval.taskId);
+
     return this.findOne(approval.taskId, userId, userRole);
   }
 
@@ -1754,6 +1764,47 @@ export class TasksService {
       });
     } catch (error) {
       console.error('Failed to update user lastActiveAt:', error);
+    }
+  }
+
+  private async calculateKeyResultProgress(taskId: string) {
+    try {
+      const task = await this.prisma.task.findUnique({
+        where: { id: taskId },
+        select: { keyResultId: true }
+      });
+      
+      if (!task?.keyResultId) return;
+
+      const krId = task.keyResultId;
+      
+      const totalTasks = await this.prisma.task.count({ where: { keyResultId: krId } });
+      const completedTasks = await this.prisma.task.count({
+        where: {
+          keyResultId: krId,
+          OR: [
+            { completedAt: { not: null } },
+            { phase: { in: ['COMPLETED', 'ARCHIVED'] } },
+            { currentPhase: { isEndPhase: true } }
+          ]
+        }
+      });
+
+      if (totalTasks > 0) {
+        const kr = await this.prisma.keyResult.findUnique({ where: { id: krId } });
+        if (kr) {
+          const rawProgress = completedTasks / totalTasks; 
+          const range = kr.targetValue - kr.startValue;
+          const newCurrentValue = kr.startValue + (range * rawProgress);
+          
+          await this.prisma.keyResult.update({
+            where: { id: krId },
+            data: { currentValue: newCurrentValue }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error auto-calculating key result progress:', error);
     }
   }
 
