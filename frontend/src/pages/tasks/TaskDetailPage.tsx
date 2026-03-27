@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ArrowLeftIcon,
@@ -20,11 +20,11 @@ import {
   ChevronUpIcon,
   ChevronDownIcon,
   XMarkIcon,
-  CalendarDaysIcon,
-  ArrowPathIcon,
   ExclamationTriangleIcon,
   CogIcon,
   PlusIcon,
+  InformationCircleIcon,
+  XCircleIcon,
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
@@ -60,32 +60,26 @@ const TaskDetailPage: React.FC = () => {
     }
   }, [dispatch, id])
 
-  // Update current time from Redux state
+  // Update time display in real-time
   useEffect(() => {
-    if (isThisTaskTracking) {
-      let baseTime = timeTracking.elapsedTime
-      if (timeTracking.isRunning && timeTracking.startTime) {
+    const updateTime = () => {
+      if (!id) {
+        setCurrentTime(0)
+        return
+      }
+      let baseTime = timeTracking.taskTimes[id] || 0
+      if (isThisTaskTracking && timeTracking.isRunning && timeTracking.startTime) {
         const elapsed = Math.floor((Date.now() - timeTracking.startTime) / 1000)
         setCurrentTime(baseTime + elapsed)
       } else {
         setCurrentTime(baseTime)
       }
-    } else {
-      setCurrentTime(0)
     }
-  }, [isThisTaskTracking, timeTracking.elapsedTime, timeTracking.isRunning, timeTracking.startTime])
 
-  // Real-time timer tick
-  useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (isTimerRunning) {
-      interval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - timeTracking.startTime!) / 1000)
-        setCurrentTime(timeTracking.elapsedTime + elapsed)
-      }, 1000)
-    }
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
     return () => clearInterval(interval)
-  }, [isTimerRunning, timeTracking.elapsedTime, timeTracking.startTime])
+  }, [id, isThisTaskTracking, timeTracking.taskTimes, timeTracking.isRunning, timeTracking.startTime])
 
   const handleStartTimer = () => {
     if (id) {
@@ -108,12 +102,39 @@ const TaskDetailPage: React.FC = () => {
 
     try {
       await tasksApi.moveToPhase(id, newPhaseId, 'Phase changed by user')
+      
+      // Timer automation
+      const targetPhase = currentTask?.workflow?.phases.find(p => p.id === newPhaseId);
+      if (targetPhase) {
+        const name = targetPhase.name.toLowerCase();
+        const isInProgress = name.includes('progress') || name.includes('working') || name.includes('active') || name.includes('doing');
+        const isCompleted = name.includes('completed') || name.includes('done') || name.includes('finished');
+
+        if (isInProgress) {
+          if (!isTimerRunning) {
+            dispatch(startTimer(id));
+            toast('Timer started automatically', { 
+              icon: <PlayIcon className="h-5 w-5 text-green-500" /> 
+            });
+          }
+        } else if (isCompleted) {
+          if (isThisTaskTracking && timeTracking.isRunning) {
+            dispatch(stopTimer());
+            toast('Timer stopped automatically', { 
+              icon: <CheckCircleIcon className="h-5 w-5 text-blue-500" /> 
+            });
+          }
+        }
+      }
+
       dispatch(fetchTaskById(id))
       toast.success('Phase updated successfully!')
     } catch (error: any) {
       console.error('Failed to change phase:', error)
       if (error.response?.data?.pendingApproval) {
-        toast('Approval request sent to admin', { icon: 'ℹ️' })
+        toast('Approval request sent to admin', { 
+          icon: <InformationCircleIcon className="h-5 w-5 text-blue-500" /> 
+        })
       } else {
         toast.error(error.response?.data?.message || 'Failed to change phase')
       }
@@ -270,7 +291,9 @@ const TaskDetailPage: React.FC = () => {
   if (!currentTask) {
     return (
       <div className="text-center py-16">
-        <div className="text-6xl mb-4">❌</div>
+        <div className="flex justify-center mb-4">
+          <XCircleIcon className="h-16 w-16 text-red-500" />
+        </div>
         <h3 className="text-xl font-semibold text-gray-900 mb-2">Task not found</h3>
         <p className="text-gray-500 mb-6">The task you're looking for doesn't exist or has been deleted.</p>
         <button
@@ -350,94 +373,6 @@ const TaskDetailPage: React.FC = () => {
                     <span className="text-sm font-semibold">{priorityConfig.label}</span>
                   </div>
 
-                  {/* Workflow Phase Tag */}
-                  {currentTask.currentPhase && (
-                    <div
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-                      style={{
-                        backgroundColor: `${currentTask.currentPhase.color}20`,
-                        color: currentTask.currentPhase.color,
-                        border: `1px solid ${currentTask.currentPhase.color}40`
-                      }}
-                    >
-                      <span
-                        className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: currentTask.currentPhase.color }}
-                      />
-                      {currentTask.workflow?.name && (
-                        <span className="opacity-75">{currentTask.workflow.name} •</span>
-                      )}
-                      {currentTask.currentPhase.name}
-                    </div>
-                  )}
-
-                  {/* Task Type Badge */}
-                  {currentTask.taskType && currentTask.taskType !== 'GENERAL' && (
-                    <span className={`px-3 py-1.5 text-sm font-medium rounded-lg ${currentTask.taskType === 'COORDINATION'
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : currentTask.taskType === 'SUBTASK'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-blue-100 text-blue-700'
-                      }`}>
-                      {currentTask.taskType}
-                    </span>
-                  )}
-
-                  {/* Due Date */}
-                  {currentTask.dueDate && (
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg ${new Date(currentTask.dueDate) < new Date() && !currentTask.completedAt
-                      ? 'bg-red-100 text-red-700'
-                      : 'bg-gray-100 text-gray-700'
-                      }`}>
-                      <CalendarIcon className="h-4 w-4" />
-                      <span className="text-sm font-medium">
-                        Due {new Date(currentTask.dueDate).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric'
-                        })}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Completed Badge */}
-                  {currentTask.completedAt && (
-                    <div className="inline-flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1.5 rounded-lg">
-                      <CheckCircleIcon className="h-4 w-4" />
-                      <span className="text-sm font-semibold">Completed</span>
-                    </div>
-                  )}
-
-                  {/* Quarter badge */}
-                  {(currentTask as any).quarter && (
-                    <Link to={`/quarters/${(currentTask as any).quarter.id}`} className="inline-flex items-center gap-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200 transition">
-                      <CalendarDaysIcon className="h-4 w-4" />
-                      <span className="text-sm font-medium">{(currentTask as any).quarter.name} {(currentTask as any).quarter.year}</span>
-                    </Link>
-                  )}
-
-                  {/* Objective badge */}
-                  {(currentTask as any).objective && (
-                    <Link to={`/objectives/${(currentTask as any).objective.id}`} className="inline-flex items-center gap-1.5 bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition">
-                      <FlagIcon className="h-4 w-4" />
-                      <span className="text-sm font-medium">{(currentTask as any).objective.title}</span>
-                    </Link>
-                  )}
-
-                  {/* Key Result badge */}
-                  {(currentTask as any).keyResult && (
-                    <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg">
-                      <ArrowUpIcon className="h-4 w-4" />
-                      <span className="text-sm font-medium">Tracking: {(currentTask as any).keyResult.title}</span>
-                    </div>
-                  )}
-
-                  {/* Rolled-over badge */}
-                  {(currentTask as any).isRolledOver && (
-                    <div className="inline-flex items-center gap-1.5 bg-orange-100 text-orange-700 px-3 py-1.5 rounded-lg">
-                      <ArrowPathIcon className="h-4 w-4" />
-                      <span className="text-sm font-medium">Rolled over</span>
-                    </div>
-                  )}
                   {/* Compact Time Tracking */}
                   <div className="flex items-center gap-2">
                     {isTimerRunning ? (

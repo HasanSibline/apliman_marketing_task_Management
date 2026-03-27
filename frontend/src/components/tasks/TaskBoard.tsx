@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { Menu } from '@headlessui/react'
-import { 
-  EllipsisVerticalIcon, 
-  PencilIcon, 
+import {
+  EllipsisVerticalIcon,
+  PencilIcon,
   TrashIcon,
   CalendarIcon,
   ChatBubbleLeftIcon,
@@ -15,16 +15,20 @@ import {
   FireIcon,
   ChevronUpIcon,
   ArrowUpIcon,
-  ArrowDownIcon
+  ArrowDownIcon,
+  PlayIcon,
+  CheckCircleIcon
 } from '@heroicons/react/24/outline'
-import { 
+import {
   ExclamationTriangleIcon,
-  SparklesIcon
+  SparklesIcon,
+  ClipboardIcon,
 } from '@heroicons/react/24/solid'
 import type { DraggableProvided, DroppableProvided, DraggableStateSnapshot, DroppableStateSnapshot, DropResult } from '@hello-pangea/dnd'
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTasks } from '@/store/slices/tasksSlice'
+import { startTimer, stopTimer } from '@/store/slices/timeTrackingSlice'
 import { tasksApi, workflowsApi } from '@/services/api'
 import { Task, Phase } from '@/types/task'
 import toast from 'react-hot-toast'
@@ -37,6 +41,7 @@ interface TaskBoardProps {
 const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
+  const timeTracking = useAppSelector((state) => state.timeTracking)
   const [phases, setPhases] = useState<Phase[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -48,11 +53,11 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     try {
       setIsLoading(true)
       const workflows = await workflowsApi.getAll()
-      
+
       // Extract all unique phases from all workflows
       const allPhases: Phase[] = []
       const phaseMap = new Map<string, Phase>()
-      
+
       workflows.forEach(workflow => {
         workflow.phases?.forEach((phase: Phase) => {
           if (!phaseMap.has(phase.id)) {
@@ -61,7 +66,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
           }
         })
       })
-      
+
       // Sort phases by workflow order
       allPhases.sort((a, b) => a.order - b.order)
       setPhases(allPhases)
@@ -77,7 +82,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 
   // Fallback legacy phases for backward compatibility
   const getLegacyPhases = (): Phase[] => [
-    { 
+    {
       id: 'legacy-pending',
       name: 'PENDING APPROVAL',
       order: 0,
@@ -88,7 +93,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       requiresApproval: false,
       workflowId: 'legacy'
     },
-    { 
+    {
       id: 'legacy-approved',
       name: 'APPROVED',
       order: 1,
@@ -99,7 +104,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       requiresApproval: false,
       workflowId: 'legacy'
     },
-    { 
+    {
       id: 'legacy-rejected',
       name: 'REJECTED',
       order: 2,
@@ -110,7 +115,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       requiresApproval: false,
       workflowId: 'legacy'
     },
-    { 
+    {
       id: 'legacy-assigned',
       name: 'ASSIGNED',
       order: 3,
@@ -121,7 +126,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       requiresApproval: false,
       workflowId: 'legacy'
     },
-    { 
+    {
       id: 'legacy-progress',
       name: 'IN PROGRESS',
       order: 4,
@@ -132,7 +137,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       requiresApproval: false,
       workflowId: 'legacy'
     },
-    { 
+    {
       id: 'legacy-completed',
       name: 'COMPLETED',
       order: 5,
@@ -143,7 +148,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       requiresApproval: false,
       workflowId: 'legacy'
     },
-    { 
+    {
       id: 'legacy-archived',
       name: 'ARCHIVED',
       order: 6,
@@ -174,7 +179,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       }
       // Fallback to legacy phase matching
       if (task.phase) {
-        const legacyPhase = phases.find((p: Phase) => 
+        const legacyPhase = phases.find((p: Phase) =>
           p.name.toLowerCase().replace(/\s+/g, '_') === task.phase?.toLowerCase()
         )
         return legacyPhase?.id === phaseId
@@ -185,48 +190,48 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 
   const getPriorityConfig = (priority: number) => {
     switch (priority) {
-      case 1: 
-        return { 
+      case 1:
+        return {
           color: '#6B7280',
           bg: 'bg-gray-100',
           text: 'text-gray-700',
           icon: ArrowDownIcon,
           label: 'Low'
         }
-      case 2: 
-        return { 
+      case 2:
+        return {
           color: '#3B82F6',
           bg: 'bg-blue-100',
           text: 'text-blue-700',
           icon: ChevronUpIcon,
           label: 'Medium'
         }
-      case 3: 
-        return { 
+      case 3:
+        return {
           color: '#F59E0B',
           bg: 'bg-amber-100',
           text: 'text-amber-700',
           icon: ArrowUpIcon,
           label: 'High'
         }
-      case 4: 
-        return { 
+      case 4:
+        return {
           color: '#EF4444',
           bg: 'bg-red-100',
           text: 'text-red-700',
           icon: BoltIcon,
           label: 'Urgent'
         }
-      case 5: 
-        return { 
+      case 5:
+        return {
           color: '#DC2626',
           bg: 'bg-red-200',
           text: 'text-red-800',
           icon: FireIcon,
           label: 'Critical'
         }
-      default: 
-        return { 
+      default:
+        return {
           color: '#6B7280',
           bg: 'bg-gray-100',
           text: 'text-gray-700',
@@ -265,7 +270,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 
     // Admins can move any task to any allowed phase
     if (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') return true
-    
+
     // Employees can only move their assigned tasks
     if (task.assignedToId !== user?.id) return false
 
@@ -279,18 +284,40 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     }
 
     try {
+      const targetPhase = phases.find(p => p.id === toPhaseId);
+      const phaseName = (targetPhase?.name || '').toLowerCase();
+      const isInProgress = phaseName.includes('progress') || phaseName.includes('working') || phaseName.includes('active') || phaseName.includes('doing');
+      const isCompleted = phaseName.includes('completed') || phaseName.includes('done') || phaseName.includes('finished');
+
       // Use new workflow API if task has workflow info
       if (task.currentPhaseId && task.workflowId) {
         await tasksApi.moveToPhase(task.id, toPhaseId)
+        
+        // Automated timer logic on board drag
+        if (isInProgress) {
+          if (timeTracking.activeTaskId !== task.id || !timeTracking.isRunning) {
+            dispatch(startTimer(task.id));
+            toast('Timer started automatically', { 
+              icon: <PlayIcon className="h-5 w-5 text-green-500" /> 
+            });
+          }
+        } else if (isCompleted) {
+          if (timeTracking.activeTaskId === task.id && timeTracking.isRunning) {
+            dispatch(stopTimer());
+            toast('Timer stopped automatically', { 
+              icon: <CheckCircleIcon className="h-5 w-5 text-blue-500" /> 
+            });
+          }
+        }
       } else {
         // Fallback: For tasks without workflow, we can't move them
         toast.error('Cannot move tasks without a workflow. Please assign a workflow first.')
         return
       }
-      
+
       toast.success('Task moved successfully')
       dispatch(fetchTasks({})) // Refresh tasks
-      
+
       // Dispatch custom event to notify NotificationBell
       window.dispatchEvent(new CustomEvent('taskUpdated'))
     } catch (error) {
@@ -319,220 +346,14 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     handleTaskMove(task, destination.droppableId)
   }
 
-  const renderTask = (task: Task, index: number) => {
-    const priorityConfig = getPriorityConfig(task.priority)
-    const PriorityIcon = priorityConfig.icon
-    const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completedAt
-    const subtaskProgress = task.subtasks ? 
-      `${task.subtasks.filter(s => s.isCompleted).length}/${task.subtasks.length}` : null
-    
-    return (
-      <Draggable key={task.id} draggableId={task.id} index={index}>
-        {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
-          <div
-            ref={provided.innerRef}
-            {...provided.draggableProps}
-            {...provided.dragHandleProps}
-            className={`group relative bg-white rounded-2xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${
-              snapshot.isDragging 
-                ? 'shadow-2xl scale-105 rotate-2 border-blue-300 ring-2 ring-blue-200' 
-                : 'shadow-md hover:shadow-xl border-gray-200 hover:border-blue-300'
-            }`}
-            style={{
-              ...provided.draggableProps.style,
-            }}
-          >
-            {/* Priority Indicator Bar */}
-            <div 
-              className="absolute top-0 left-0 right-0 h-1"
-              style={{ backgroundColor: priorityConfig.color }}
-            />
-
-            {/* Task Type Badge */}
-            {task.taskType && task.taskType !== 'GENERAL' && (
-              <div className="absolute top-3 right-3">
-                <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${
-                  task.taskType === 'SUBTASK' 
-                    ? 'bg-purple-100 text-purple-700' 
-                    : 'bg-blue-100 text-blue-700'
-                }`}>
-                  {task.taskType === 'SUBTASK' && <SparklesIcon className="h-3 w-3 mr-1" />}
-                  {task.taskType}
-                </span>
-              </div>
-            )}
-
-            <div className="p-6">
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 min-w-0">
-                  <h4 
-                    className="text-lg font-semibold text-gray-900 line-clamp-2 leading-tight hover:text-blue-600 transition-colors cursor-pointer mb-2"
-                        onClick={() => onTaskClick(task)}
-                  title={task.title}
-                      >
-                        {task.title}
-                      </h4>
-                  
-                  {/* Task Meta Info */}
-                  <div className="flex items-center space-x-3 text-sm text-gray-500">
-                    <div className="flex items-center space-x-1">
-                      <UserIcon className="h-4 w-4" />
-                      <span>{task.createdBy?.name || 'Unknown'}</span>
-                    </div>
-                    <div className="flex items-center space-x-1">
-                      <ClockIcon className="h-4 w-4" />
-                      <span>{getPhaseDuration(task)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions Menu */}
-                <Menu as="div" className="relative flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <Menu.Button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                    <EllipsisVerticalIcon className="h-5 w-5 text-gray-500" />
-                        </Menu.Button>
-                  <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 ring-1 ring-black ring-opacity-5">
-                          <Menu.Item>
-                            {({ active }) => (
-                              <button
-                                onClick={() => onTaskClick(task)}
-                                className={`${
-                            active ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                          } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
-                              >
-                          <PencilIcon className="h-4 w-4 mr-3" />
-                                Edit Task
-                              </button>
-                            )}
-                          </Menu.Item>
-                          {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
-                      <>
-                        <div className="my-1 border-t border-gray-100" />
-                            <Menu.Item>
-                              {({ active }) => (
-                                <button
-                                  onClick={async () => {
-                                    if (window.confirm('Are you sure you want to delete this task?')) {
-                                      try {
-                                        await tasksApi.delete(task.id)
-                                        toast.success('Task deleted successfully')
-                                        dispatch(fetchTasks({}))
-                                      } catch (error: any) {
-                                        toast.error(error.response?.data?.message || 'Failed to delete task')
-                                      }
-                                    }
-                                  }}
-                                  className={`${
-                                active ? 'bg-red-50 text-red-700' : 'text-red-600'
-                              } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
-                                >
-                              <TrashIcon className="h-4 w-4 mr-3" />
-                                  Delete Task
-                                </button>
-                              )}
-                            </Menu.Item>
-                      </>
-                          )}
-                        </Menu.Items>
-                      </Menu>
-                    </div>
-
-                {/* Assigned To */}
-                {task.assignedTo && (
-                <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-xl">
-                  <UserCircleIconOutline className="h-5 w-5 text-blue-600" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-900">{task.assignedTo.name}</p>
-                    {task.assignedTo.position && (
-                      <p className="text-xs text-blue-600">{task.assignedTo.position}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Progress & Metrics */}
-              <div className="flex flex-wrap items-center gap-2 mb-4">
-                {/* Priority */}
-                <div className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg ${priorityConfig.bg} ${priorityConfig.text}`}>
-                  <PriorityIcon className="h-4 w-4" />
-                  <span className="text-xs font-semibold">{priorityConfig.label}</span>
-                    </div>
-
-                {/* Subtasks Progress */}
-                {subtaskProgress && (
-                  <div className="inline-flex items-center space-x-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg">
-                    <FlagIcon className="h-4 w-4" />
-                    <span className="text-xs font-semibold">{subtaskProgress}</span>
-                  </div>
-                )}
-
-                {/* Workflow Phase */}
-                {task.currentPhase && (
-                  <div 
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    style={{ 
-                      backgroundColor: `${task.currentPhase.color}20`,
-                      color: task.currentPhase.color
-                    }}
-                  >
-                    <div 
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: task.currentPhase.color }}
-                    />
-                    {task.currentPhase.name}
-                  </div>
-                )}
-              </div>
-
-              {/* Due Date Warning */}
-              {isOverdue && (
-                <div className="flex items-center space-x-2 mb-4 p-3 bg-red-50 rounded-xl border border-red-200">
-                  <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
-                  <div>
-                    <p className="text-sm font-medium text-red-900">Overdue</p>
-                    <p className="text-xs text-red-600">
-                      Due {new Date(task.dueDate!).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {/* Task Footer */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                <div className="flex items-center space-x-4">
-                  {/* Comments */}
-                  {task.comments && task.comments.length > 0 && (
-                    <div className="flex items-center space-x-1 text-gray-500">
-                      <ChatBubbleLeftIcon className="w-4 h-4" />
-                      <span className="text-sm font-medium">{task.comments.length}</span>
-                    </div>
-                  )}
-
-                  {/* Files */}
-                  {task.files && task.files.length > 0 && (
-                    <div className="flex items-center space-x-1 text-gray-500">
-                      <PaperClipIcon className="w-4 h-4" />
-                      <span className="text-sm font-medium">{task.files.length}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Due Date */}
-                {task.dueDate && !isOverdue && (
-                  <div className="flex items-center space-x-1 text-gray-500">
-                    <CalendarIcon className="w-4 h-4" />
-                    <span className="text-sm font-medium">
-                      {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </span>
-            </div>
-                        )}
-                      </div>
-                    </div>
-          </div>
-        )}
-      </Draggable>
-    )
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
   }
 
   if (isLoading) {
@@ -572,7 +393,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                       />
                       <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
                         {phase.name}
-                  </h3>
+                      </h3>
                       {/* Approvals disabled globally */}
                     </div>
                     <span className="text-xs font-bold text-gray-700 bg-white/80 px-2.5 py-1 rounded-full shadow-sm">
@@ -595,15 +416,26 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                       }`}
                       style={{ backgroundColor: snapshot.isDraggingOver ? '#DEEBFF' : phase.color }}
                     >
-                        {phaseTasks.map((task, index) => renderTask(task, index))}
+                      {phaseTasks.map((task, index) => (
+                        <TaskBoardItem 
+                          key={task.id} 
+                          task={task} 
+                          index={index} 
+                          onTaskClick={onTaskClick}
+                          getPriorityConfig={getPriorityConfig}
+                          getPhaseDuration={getPhaseDuration}
+                        />
+                      ))}
 
-                        {/* Empty State */}
-                        {phaseTasks.length === 0 && (
-                          <div className="text-center py-8 text-gray-500">
-                            <div className="text-2xl mb-2">📋</div>
-                            <p className="text-sm">No tasks in {phase.name}</p>
+                      {/* Empty State */}
+                      {phaseTasks.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <div className="flex justify-center mb-2">
+                            <ClipboardIcon className="h-8 w-8 text-gray-400 opacity-50" />
                           </div>
-                        )}
+                          <p className="text-sm">No tasks in {phase.name}</p>
+                        </div>
+                      )}
                       {provided.placeholder}
                     </div>
                   )}
@@ -614,6 +446,282 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
         </div>
       </div>
     </DragDropContext>
+  )
+}
+
+interface TaskBoardItemProps {
+  task: Task
+  index: number
+  onTaskClick: (task: Task) => void
+  getPriorityConfig: (priority: number) => any
+  getPhaseDuration: (task: Task) => string
+}
+
+const TaskBoardItem: React.FC<TaskBoardItemProps> = ({ 
+  task, 
+  index, 
+  onTaskClick,
+  getPriorityConfig,
+  getPhaseDuration
+}) => {
+  const dispatch = useAppDispatch()
+  const { user } = useAppSelector((state) => state.auth)
+  const timeTracking = useAppSelector((state) => state.timeTracking)
+  const isThisTaskTracking = timeTracking.activeTaskId === task.id
+  const isTimerRunning = isThisTaskTracking && timeTracking.isRunning
+  const [currentTime, setCurrentTime] = useState(0)
+
+  useEffect(() => {
+    const updateTime = () => {
+      let baseTime = timeTracking.taskTimes[task.id] || 0
+      if (isThisTaskTracking && timeTracking.isRunning && timeTracking.startTime) {
+        const elapsed = Math.floor((Date.now() - timeTracking.startTime) / 1000)
+        setCurrentTime(baseTime + elapsed)
+      } else {
+        setCurrentTime(baseTime)
+      }
+    }
+
+    updateTime()
+    const interval = setInterval(updateTime, 1000)
+    return () => clearInterval(interval)
+  }, [task.id, isThisTaskTracking, timeTracking.taskTimes, timeTracking.isRunning, timeTracking.startTime])
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`
+  }
+
+  const priorityConfig = getPriorityConfig(task.priority)
+  const PriorityIcon = priorityConfig.icon
+  const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completedAt
+  const subtaskProgress = task.subtasks ? 
+    `${task.subtasks.filter(s => s.isCompleted).length}/${task.subtasks.length}` : null
+
+  return (
+    <Draggable key={task.id} draggableId={task.id} index={index}>
+      {(provided: DraggableProvided, snapshot: DraggableStateSnapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          className={`group relative bg-white rounded-2xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${
+            snapshot.isDragging 
+              ? 'shadow-2xl scale-105 rotate-2 border-blue-300 ring-2 ring-blue-200' 
+              : 'shadow-md hover:shadow-xl border-gray-200 hover:border-blue-300'
+          }`}
+          style={{
+            ...provided.draggableProps.style,
+          }}
+        >
+          {/* Priority Indicator Bar */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-1"
+            style={{ backgroundColor: priorityConfig.color }}
+          />
+
+          {/* Task Type Badge */}
+          {task.taskType && task.taskType !== 'GENERAL' && (
+            <div className="absolute top-3 right-3">
+              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${
+                task.taskType === 'SUBTASK' 
+                  ? 'bg-purple-100 text-purple-700' 
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {task.taskType === 'SUBTASK' && <SparklesIcon className="h-3 w-3 mr-1" />}
+                {task.taskType}
+              </span>
+            </div>
+          )}
+
+          <div className="p-6">
+            {/* Header */}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1 min-w-0">
+                <h4 
+                  className="text-lg font-semibold text-gray-900 line-clamp-2 leading-tight hover:text-blue-600 transition-colors cursor-pointer mb-2"
+                  onClick={() => onTaskClick(task)}
+                  title={task.title}
+                >
+                  {task.title}
+                </h4>
+                
+                {/* Task Meta Info */}
+                <div className="flex items-center space-x-3 text-sm text-gray-500">
+                  <div className="flex items-center space-x-1">
+                    <UserIcon className="h-4 w-4" />
+                    <span>{task.createdBy?.name || 'Unknown'}</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <ClockIcon className="h-4 w-4" />
+                    <span>{getPhaseDuration(task)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions Menu */}
+              <Menu as="div" className="relative flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Menu.Button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                  <EllipsisVerticalIcon className="h-5 w-5 text-gray-500" />
+                </Menu.Button>
+                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 ring-1 ring-black ring-opacity-5">
+                  <Menu.Item>
+                    {({ active }) => (
+                      <button
+                        onClick={() => onTaskClick(task)}
+                        className={`${
+                          active ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                        } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
+                      >
+                        <PencilIcon className="h-4 w-4 mr-3" />
+                        Edit Task
+                      </button>
+                    )}
+                  </Menu.Item>
+                  {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
+                    <>
+                      <div className="my-1 border-t border-gray-100" />
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={async () => {
+                              if (window.confirm('Are you sure you want to delete this task?')) {
+                                try {
+                                  await tasksApi.delete(task.id)
+                                  toast.success('Task deleted successfully')
+                                  dispatch(fetchTasks({}))
+                                } catch (error: any) {
+                                  toast.error(error.response?.data?.message || 'Failed to delete task')
+                                }
+                              }
+                            }}
+                            className={`${
+                              active ? 'bg-red-50 text-red-700' : 'text-red-600'
+                            } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
+                          >
+                            <TrashIcon className="h-4 w-4 mr-3" />
+                            Delete Task
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </>
+                  )}
+                </Menu.Items>
+              </Menu>
+            </div>
+
+            {/* Assigned To */}
+            {task.assignedTo && (
+              <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-xl">
+                <UserCircleIconOutline className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">{task.assignedTo.name}</p>
+                  {task.assignedTo.position && (
+                    <p className="text-xs text-blue-600">{task.assignedTo.position}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Progress & Metrics */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {/* Priority */}
+              <div className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg ${priorityConfig.bg} ${priorityConfig.text}`}>
+                <PriorityIcon className="h-4 w-4" />
+                <span className="text-xs font-semibold">{priorityConfig.label}</span>
+              </div>
+
+              {/* Subtasks Progress */}
+              {subtaskProgress && (
+                <div className="inline-flex items-center space-x-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg">
+                  <FlagIcon className="h-4 w-4" />
+                  <span className="text-xs font-semibold">{subtaskProgress}</span>
+                </div>
+              )}
+
+              {/* Workflow Phase */}
+              {task.currentPhase && (
+                <div 
+                  className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
+                  style={{ 
+                    backgroundColor: `${task.currentPhase.color}20`,
+                    color: task.currentPhase.color
+                  }}
+                >
+                  <div 
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: task.currentPhase.color }}
+                  />
+                  {task.currentPhase.name}
+                </div>
+              )}
+            </div>
+
+            {/* Due Date Warning */}
+            {isOverdue && (
+              <div className="flex items-center space-x-2 mb-4 p-3 bg-red-50 rounded-xl border border-red-200">
+                <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
+                <div>
+                  <p className="text-sm font-medium text-red-900">Overdue</p>
+                  <p className="text-xs text-red-600">
+                    Due {new Date(task.dueDate!).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Task Footer */}
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+              <div className="flex items-center space-x-4">
+                {/* Comments */}
+                {task.comments && task.comments.length > 0 && (
+                  <div className="flex items-center space-x-1 text-gray-500">
+                    <ChatBubbleLeftIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{task.comments.length}</span>
+                  </div>
+                )}
+
+                {/* Files */}
+                {task.files && task.files.length > 0 && (
+                  <div className="flex items-center space-x-1 text-gray-500">
+                    <PaperClipIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">{task.files.length}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Time Tracking / Due Date */}
+              <div className="flex items-center space-x-3">
+                {currentTime > 0 && (
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
+                    isTimerRunning 
+                      ? 'bg-green-100 text-green-700 animate-pulse' 
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    <ClockIcon className="h-3.5 w-3.5" />
+                    <span>{formatTime(currentTime)}</span>
+                  </div>
+                )}
+
+                {task.dueDate && !isOverdue && (
+                  <div className="flex items-center space-x-1 text-gray-500">
+                    <CalendarIcon className="w-4 h-4" />
+                    <span className="text-sm font-medium">
+                      {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </Draggable>
   )
 }
 

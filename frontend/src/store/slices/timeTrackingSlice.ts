@@ -3,15 +3,15 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 interface TimeTrackingState {
   activeTaskId: string | null
   startTime: number | null
-  elapsedTime: number
   isRunning: boolean
+  taskTimes: Record<string, number> // Map of taskId -> seconds
 }
 
 const initialState: TimeTrackingState = {
   activeTaskId: null,
   startTime: null,
-  elapsedTime: 0,
   isRunning: false,
+  taskTimes: {},
 }
 
 // Load from localStorage if available
@@ -20,13 +20,18 @@ const loadFromStorage = (): TimeTrackingState => {
     const stored = localStorage.getItem('timeTracking')
     if (stored) {
       const data = JSON.parse(stored)
-      // If timer was running, calculate elapsed time since last save
-      if (data.isRunning && data.startTime) {
+      // If timer was running, calculate elapsed time since last save for the active task
+      if (data.isRunning && data.activeTaskId && data.startTime) {
         const now = Date.now()
         const additionalTime = Math.floor((now - data.startTime) / 1000)
+        const currentElapsed = data.taskTimes[data.activeTaskId] || 0
+        
         return {
           ...data,
-          elapsedTime: data.elapsedTime + additionalTime,
+          taskTimes: {
+            ...data.taskTimes,
+            [data.activeTaskId]: currentElapsed + additionalTime
+          },
           startTime: now,
         }
       }
@@ -43,20 +48,23 @@ const timeTrackingSlice = createSlice({
   initialState: loadFromStorage(),
   reducers: {
     startTimer: (state, action: PayloadAction<string>) => {
-      // If starting a different task, reset elapsed time
-      // If resuming same task, keep elapsed time
-      if (state.activeTaskId !== action.payload) {
-        state.elapsedTime = 0
+      // If another task was running, pause it first
+      if (state.isRunning && state.activeTaskId && state.activeTaskId !== action.payload) {
+        if (state.startTime) {
+          const elapsed = Math.floor((Date.now() - state.startTime) / 1000)
+          state.taskTimes[state.activeTaskId] = (state.taskTimes[state.activeTaskId] || 0) + elapsed
+        }
       }
+
       state.activeTaskId = action.payload
       state.startTime = Date.now()
       state.isRunning = true
       saveToStorage(state)
     },
     pauseTimer: (state) => {
-      if (state.startTime) {
+      if (state.startTime && state.activeTaskId) {
         const elapsed = Math.floor((Date.now() - state.startTime) / 1000)
-        state.elapsedTime += elapsed
+        state.taskTimes[state.activeTaskId] = (state.taskTimes[state.activeTaskId] || 0) + elapsed
       }
       state.startTime = null
       state.isRunning = false
@@ -68,26 +76,34 @@ const timeTrackingSlice = createSlice({
       saveToStorage(state)
     },
     stopTimer: (state) => {
-      // Save elapsed time before stopping (don't reset it)
-      if (state.startTime && state.isRunning) {
+      if (state.startTime && state.isRunning && state.activeTaskId) {
         const elapsed = Math.floor((Date.now() - state.startTime) / 1000)
-        state.elapsedTime += elapsed
+        state.taskTimes[state.activeTaskId] = (state.taskTimes[state.activeTaskId] || 0) + elapsed
       }
-      // Keep the activeTaskId and elapsedTime, only stop the timer
       state.startTime = null
       state.isRunning = false
       saveToStorage(state)
     },
-    updateElapsedTime: (state, action: PayloadAction<number>) => {
-      state.elapsedTime = action.payload
+    updateElapsedTime: (state, action: PayloadAction<{ taskId: string; seconds: number }>) => {
+      state.taskTimes[action.payload.taskId] = action.payload.seconds
       saveToStorage(state)
     },
-    resetTimer: (state) => {
-      // New action to completely reset timer (when needed)
-      state.activeTaskId = null
-      state.startTime = null
-      state.elapsedTime = 0
-      state.isRunning = false
+    resetTimer: (state, action: PayloadAction<string | undefined>) => {
+      if (action.payload) {
+        // Reset specific task
+        state.taskTimes[action.payload] = 0
+        if (state.activeTaskId === action.payload) {
+          state.startTime = null
+          state.isRunning = false
+          state.activeTaskId = null
+        }
+      } else {
+        // Full reset
+        state.activeTaskId = null
+        state.startTime = null
+        state.isRunning = false
+        state.taskTimes = {}
+      }
       saveToStorage(state)
     },
   },

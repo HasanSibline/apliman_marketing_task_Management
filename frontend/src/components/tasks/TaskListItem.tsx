@@ -4,7 +4,6 @@ import {
   UserCircleIcon, 
   CalendarIcon,
   FlagIcon,
-  CheckCircleIcon,
   ExclamationTriangleIcon,
   ArrowDownIcon,
   ArrowUpIcon,
@@ -32,14 +31,9 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
 
   // Update time display in real-time
   useEffect(() => {
-    if (!isThisTaskTracking) {
-      setCurrentTime(0)
-      return
-    }
-
     const updateTime = () => {
-      let baseTime = timeTracking.elapsedTime
-      if (timeTracking.isRunning && timeTracking.startTime) {
+      let baseTime = timeTracking.taskTimes[task.id] || 0
+      if (isThisTaskTracking && timeTracking.isRunning && timeTracking.startTime) {
         const elapsed = Math.floor((Date.now() - timeTracking.startTime) / 1000)
         setCurrentTime(baseTime + elapsed)
       } else {
@@ -50,7 +44,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
     updateTime()
     const interval = setInterval(updateTime, 1000)
     return () => clearInterval(interval)
-  }, [isThisTaskTracking, timeTracking.elapsedTime, timeTracking.isRunning, timeTracking.startTime])
+  }, [task.id, isThisTaskTracking, timeTracking.taskTimes, timeTracking.isRunning, timeTracking.startTime])
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
@@ -222,14 +216,6 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
               <span className="text-xs font-semibold">Late</span>
             </div>
           )}
-
-          {/* Completed Badge */}
-          {task.completedAt && (
-            <div className="inline-flex items-center gap-1 bg-green-100 text-green-700 px-2 py-0.5 rounded">
-              <CheckCircleIcon className="h-3 w-3" />
-              <span className="text-xs font-semibold">Done</span>
-            </div>
-          )}
         </div>
 
         {/* Footer - Activity Indicators */}
@@ -258,7 +244,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
           </div>
 
           {/* Time Tracking Display - Bottom Right */}
-          {isThisTaskTracking && currentTime > 0 && (
+          {currentTime > 0 && (
             <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
               isTimerRunning 
                 ? 'bg-green-100 text-green-700 animate-pulse' 
