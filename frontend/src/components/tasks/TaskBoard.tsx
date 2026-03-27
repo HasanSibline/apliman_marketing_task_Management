@@ -292,20 +292,20 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       // Use new workflow API if task has workflow info
       if (task.currentPhaseId && task.workflowId) {
         await tasksApi.moveToPhase(task.id, toPhaseId)
-        
+
         // Automated timer logic on board drag
         if (isInProgress) {
           if (timeTracking.activeTaskId !== task.id || !timeTracking.isRunning) {
             dispatch(startTimer(task.id));
-            toast('Timer started automatically', { 
-              icon: <PlayIcon className="h-5 w-5 text-green-500" /> 
+            toast('Timer started automatically', {
+              icon: <PlayIcon className="h-5 w-5 text-green-500" />
             });
           }
         } else if (isCompleted) {
           if (timeTracking.activeTaskId === task.id && timeTracking.isRunning) {
             dispatch(stopTimer());
-            toast('Timer stopped automatically', { 
-              icon: <CheckCircleIcon className="h-5 w-5 text-blue-500" /> 
+            toast('Timer stopped automatically', {
+              icon: <CheckCircleIcon className="h-5 w-5 text-blue-500" />
             });
           }
         }
@@ -346,16 +346,6 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     handleTaskMove(task, destination.droppableId)
   }
 
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    }
-    return `${minutes}:${secs.toString().padStart(2, '0')}`
-  }
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -371,23 +361,23 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
         <div className="flex space-x-6 min-w-max pb-4">
           {visiblePhases.map((phase: Phase) => {
             const phaseTasks = getTasksByPhase(phase.id)
-            
+
             return (
-              <div 
-                key={phase.id} 
+              <div
+                key={phase.id}
                 className="flex flex-col w-80 flex-shrink-0"
               >
                 {/* Column Header - Enhanced Workflow Style */}
-                <div 
+                <div
                   className="px-4 py-3 mb-2 rounded-t-lg border-b-2"
-                  style={{ 
+                  style={{
                     backgroundColor: phase.color,
                     borderBottomColor: phase.color
                   }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <div 
+                      <div
                         className="h-3 w-3 rounded-full"
                         style={{ backgroundColor: phase.color === '#FFFFFF' ? '#6B7280' : '#FFFFFF' }}
                       />
@@ -411,16 +401,15 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`px-3 pb-2 min-h-[500px] max-h-[calc(100vh-200px)] overflow-y-auto ${
-                        snapshot.isDraggingOver ? 'bg-blue-50' : ''
-                      }`}
+                      className={`px-3 pb-2 min-h-[500px] max-h-[calc(100vh-200px)] overflow-y-auto ${snapshot.isDraggingOver ? 'bg-blue-50' : ''
+                        }`}
                       style={{ backgroundColor: snapshot.isDraggingOver ? '#DEEBFF' : phase.color }}
                     >
                       {phaseTasks.map((task, index) => (
-                        <TaskBoardItem 
-                          key={task.id} 
-                          task={task} 
-                          index={index} 
+                        <TaskBoardItem
+                          key={task.id}
+                          task={task}
+                          index={index}
                           onTaskClick={onTaskClick}
                           getPriorityConfig={getPriorityConfig}
                           getPhaseDuration={getPhaseDuration}
@@ -457,9 +446,9 @@ interface TaskBoardItemProps {
   getPhaseDuration: (task: Task) => string
 }
 
-const TaskBoardItem: React.FC<TaskBoardItemProps> = ({ 
-  task, 
-  index, 
+const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
+  task,
+  index,
   onTaskClick,
   getPriorityConfig,
   getPhaseDuration
@@ -500,7 +489,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
   const priorityConfig = getPriorityConfig(task.priority)
   const PriorityIcon = priorityConfig.icon
   const isOverdue = task.dueDate && new Date(task.dueDate) < new Date() && !task.completedAt
-  const subtaskProgress = task.subtasks ? 
+  const subtaskProgress = task.subtasks ?
     `${task.subtasks.filter(s => s.isCompleted).length}/${task.subtasks.length}` : null
 
   return (
@@ -510,17 +499,16 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`group relative bg-white rounded-2xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${
-            snapshot.isDragging 
-              ? 'shadow-2xl scale-105 rotate-2 border-blue-300 ring-2 ring-blue-200' 
+          className={`group relative bg-white rounded-2xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${snapshot.isDragging
+              ? 'shadow-2xl scale-105 rotate-2 border-blue-300 ring-2 ring-blue-200'
               : 'shadow-md hover:shadow-xl border-gray-200 hover:border-blue-300'
-          }`}
+            }`}
           style={{
             ...provided.draggableProps.style,
           }}
         >
           {/* Priority Indicator Bar */}
-          <div 
+          <div
             className="absolute top-0 left-0 right-0 h-1"
             style={{ backgroundColor: priorityConfig.color }}
           />
@@ -528,11 +516,10 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
           {/* Task Type Badge */}
           {task.taskType && task.taskType !== 'GENERAL' && (
             <div className="absolute top-3 right-3">
-              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${
-                task.taskType === 'SUBTASK' 
-                  ? 'bg-purple-100 text-purple-700' 
+              <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${task.taskType === 'SUBTASK'
+                  ? 'bg-purple-100 text-purple-700'
                   : 'bg-blue-100 text-blue-700'
-              }`}>
+                }`}>
                 {task.taskType === 'SUBTASK' && <SparklesIcon className="h-3 w-3 mr-1" />}
                 {task.taskType}
               </span>
@@ -543,14 +530,14 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1 min-w-0">
-                <h4 
+                <h4
                   className="text-lg font-semibold text-gray-900 line-clamp-2 leading-tight hover:text-blue-600 transition-colors cursor-pointer mb-2"
                   onClick={() => onTaskClick(task)}
                   title={task.title}
                 >
                   {task.title}
                 </h4>
-                
+
                 {/* Task Meta Info */}
                 <div className="flex items-center space-x-3 text-sm text-gray-500">
                   <div className="flex items-center space-x-1">
@@ -574,9 +561,8 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                     {({ active }) => (
                       <button
                         onClick={() => onTaskClick(task)}
-                        className={`${
-                          active ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
-                        } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
+                        className={`${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                          } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
                       >
                         <PencilIcon className="h-4 w-4 mr-3" />
                         Edit Task
@@ -600,9 +586,8 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                                 }
                               }
                             }}
-                            className={`${
-                              active ? 'bg-red-50 text-red-700' : 'text-red-600'
-                            } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
+                            className={`${active ? 'bg-red-50 text-red-700' : 'text-red-600'
+                              } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
                           >
                             <TrashIcon className="h-4 w-4 mr-3" />
                             Delete Task
@@ -646,14 +631,14 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
               {/* Workflow Phase */}
               {task.currentPhase && (
-                <div 
+                <div
                   className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold"
-                  style={{ 
+                  style={{
                     backgroundColor: `${task.currentPhase.color}20`,
                     color: task.currentPhase.color
                   }}
                 >
-                  <div 
+                  <div
                     className="h-2 w-2 rounded-full"
                     style={{ backgroundColor: task.currentPhase.color }}
                   />
@@ -698,11 +683,10 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
               {/* Time Tracking / Due Date */}
               <div className="flex items-center space-x-3">
                 {currentTime > 0 && (
-                  <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
-                    isTimerRunning 
-                      ? 'bg-green-100 text-green-700 animate-pulse' 
+                  <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isTimerRunning
+                      ? 'bg-green-100 text-green-700 animate-pulse'
                       : 'bg-gray-100 text-gray-700'
-                  }`}>
+                    }`}>
                     <ClockIcon className="h-3.5 w-3.5" />
                     <span>{formatTime(currentTime)}</span>
                   </div>
