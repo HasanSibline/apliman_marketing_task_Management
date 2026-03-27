@@ -232,43 +232,64 @@ const ObjectiveDetailPage: React.FC = () => {
                                     <p className="mt-2 text-sm font-medium text-gray-500">No Key Results yet.</p>
                                 </div>
                             ) : (
-                                obj.keyResults.map(kr => (
-                                    <div key={kr.id} className="space-y-3 group">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex flex-col gap-0.5">
-                                                <span className="font-bold text-gray-900">{kr.title}</span>
-                                                <span className="text-xs text-gray-400 font-medium">Target: {kr.targetValue} {kr.unit}</span>
-                                            </div>
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex flex-col items-end">
-                                                    <span className="text-lg font-black text-gray-900">{kr.currentValue} <span className="text-xs font-medium text-gray-400">{kr.unit}</span></span>
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">Current Value</span>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {obj.keyResults.map(kr => {
+                                        const progressPct = Math.min((kr.currentValue / kr.targetValue) * 100, 100);
+                                        const isDone = progressPct >= 100;
+                                        
+                                        return (
+                                            <div key={kr.id} className="relative group bg-white p-6 rounded-[28px] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-primary-100/30 transition-all duration-300 flex flex-col gap-5 overflow-hidden">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="space-y-1">
+                                                        <h4 className="text-sm font-black text-gray-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight leading-tight">{kr.title}</h4>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target: {kr.targetValue} {kr.unit}</p>
+                                                    </div>
+                                                    {isAdmin && (
+                                                        <button
+                                                            onClick={() => {
+                                                                setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit })
+                                                                setUpdatingValue(kr.currentValue.toString())
+                                                            }}
+                                                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-2xl transition-all"
+                                                        >
+                                                            <PencilIcon className="h-3.5 w-3.5" />
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                {isAdmin && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit })
-                                                            setUpdatingValue(kr.currentValue.toString())
-                                                        }}
-                                                        className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition"
-                                                    >
-                                                        <PencilIcon className="h-4 w-4" />
-                                                    </button>
-                                                )}
+
+                                                <div className="flex items-center gap-4 mt-auto">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className={`text-[11px] font-black uppercase tracking-tighter ${isDone ? 'text-green-600' : 'text-primary-600'}`}>
+                                                                {isDone ? 'Goal Achieved' : `${Math.round(progressPct)}% Progress`}
+                                                            </span>
+                                                            <span className="text-lg font-black text-gray-900">
+                                                                {kr.currentValue} <span className="text-[10px] font-bold text-gray-400 tracking-tight">{kr.unit}</span>
+                                                            </span>
+                                                        </div>
+                                                        <div className="h-3 bg-gray-100/50 rounded-full overflow-hidden p-[2px] border border-gray-50/50">
+                                                            <motion.div
+                                                                initial={{ width: 0 }}
+                                                                animate={{ width: `${progressPct}%` }}
+                                                                transition={{ duration: 1.5, ease: "easeOut" }}
+                                                                className={`h-full rounded-full shadow-sm relative overflow-hidden ${
+                                                                    isDone 
+                                                                    ? 'bg-gradient-to-r from-green-400 to-green-500' 
+                                                                    : 'bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600'
+                                                                }`}
+                                                            >
+                                                                <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent)] bg-[length:20px_20px] animate-[pulse_2s_infinite]" />
+                                                            </motion.div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Background Decorative Element */}
+                                                <div className={`absolute -right-4 -bottom-4 h-24 w-24 rounded-full opacity-[0.03] pointer-events-none transition-all duration-500 group-hover:scale-150 ${isDone ? 'bg-green-600' : 'bg-primary-600'}`} />
                                             </div>
-                                        </div>
-                                        {/* Progress Bar */}
-                                        <div className="relative h-2.5 bg-gray-100 rounded-full overflow-hidden shadow-inner">
-                                            <motion.div
-                                                initial={{ width: 0 }}
-                                                animate={{ width: `${Math.min((kr.currentValue / kr.targetValue) * 100, 100)}%` }}
-                                                className={`absolute h-full rounded-full transition-all ${
-                                                    (kr.currentValue / kr.targetValue) >= 1 ? 'bg-gradient-to-r from-green-400 to-green-500' : 'bg-gradient-to-r from-primary-400 to-primary-600'
-                                                }`}
-                                            />
-                                        </div>
-                                    </div>
-                                ))
+                                        );
+                                    })}
+                                </div>
                             )}
                         </div>
                     </section>

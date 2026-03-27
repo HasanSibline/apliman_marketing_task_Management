@@ -170,16 +170,15 @@ export class WorkflowsService {
   }
 
   async validatePhaseTransition(fromPhaseId: string, toPhaseId: string): Promise<boolean> {
-    const transition = await this.prisma.transition.findUnique({
-      where: {
-        fromPhaseId_toPhaseId: {
-          fromPhaseId,
-          toPhaseId,
-        },
-      },
-    });
+    const [fromPhase, toPhase] = await Promise.all([
+      this.prisma.phase.findUnique({ where: { id: fromPhaseId } }),
+      this.prisma.phase.findUnique({ where: { id: toPhaseId } }),
+    ]);
 
-    return !!transition;
+    if (!fromPhase || !toPhase) return false;
+
+    // Allow transition if both phases belong to the same workflow
+    return fromPhase.workflowId === toPhase.workflowId;
   }
 
   async updateWorkflow(id: string, dto: Partial<CreateWorkflowDto>) {

@@ -22,7 +22,7 @@ export class QuartersService {
                     include: {
                         assignedTo: { select: { id: true, name: true, position: true } },
                         createdBy: { select: { id: true, name: true } },
-                        currentPhase: { select: { id: true, name: true, color: true } },
+                        currentPhase: { select: { id: true, name: true, color: true, isEndPhase: true } },
                     },
                     orderBy: { createdAt: 'desc' },
                 },
@@ -32,7 +32,35 @@ export class QuartersService {
             },
         });
         if (!quarter) throw new NotFoundException('Quarter not found');
-        return quarter;
+
+        // Calculate stats for frontend accuracy
+        const totalTasks = quarter.tasks.length;
+        const completedTasks = quarter.tasks.filter(t => 
+            t.completedAt !== null || 
+            (t as any).phase === 'COMPLETED' || 
+            t.currentPhase?.isEndPhase
+        ).length;
+        const objectivesCount = quarter.objectives.length;
+
+        // Calculate progress for each objective
+        const objectivesWithProgress = quarter.objectives.map(obj => {
+            const krs = obj.keyResults;
+            const progress = krs.length > 0
+                ? Math.round(krs.reduce((sum, kr) => {
+                    const pct = kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0;
+                    return sum + Math.min(pct, 100);
+                }, 0) / krs.length)
+                : 0;
+            return { ...obj, progress };
+        });
+
+        return {
+            ...quarter,
+            totalTasks,
+            completedTasks,
+            objectivesCount,
+            objectives: objectivesWithProgress
+        };
     }
 
     async create(dto: CreateQuarterDto, companyId: string) {

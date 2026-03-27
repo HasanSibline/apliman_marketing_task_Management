@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import {
     ChevronLeftIcon,
     ChartBarIcon,
@@ -58,7 +59,6 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
     const end = new Date(endDate)
     const [viewDate, setViewDate] = useState(new Date(start))
 
-    // Helper to get days in month
     const getDays = (date: Date) => {
         const year = date.getFullYear()
         const month = date.getMonth()
@@ -83,47 +83,71 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
     }
 
     return (
-        <div className="bg-white rounded-[24px] border border-gray-100 overflow-hidden shadow-xl shadow-gray-200/40">
-            <div className="p-6 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
-                <div>
-                    <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
-                        {viewDate.toLocaleDateString('en-US', { month: 'long' })}
-                        <span className="text-primary-600 ml-2">{viewDate.getFullYear()}</span>
-                    </h3>
+        <div className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-2xl shadow-gray-200/50">
+            <div className="p-8 border-b border-gray-50 bg-white flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600">
+                        <CalendarDaysIcon className="h-6 w-6" />
+                    </div>
+                    <div>
+                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+                            {viewDate.toLocaleDateString('en-US', { month: 'long' })}
+                            <span className="text-primary-600 ml-2">{viewDate.getFullYear()}</span>
+                        </h3>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Quarterly Schedule</p>
+                    </div>
                 </div>
-                <div className="flex gap-2 p-1 bg-white rounded-xl border border-gray-100">
-                    <button onClick={prevMonth} className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-400 hover:text-primary-600"><ChevronLeftIconSolid className="h-4 w-4" /></button>
-                    <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition text-gray-400 hover:text-primary-600"><ChevronRightIcon className="h-4 w-4" /></button>
+                <div className="flex gap-2 p-1.5 bg-gray-50 rounded-2xl border border-gray-100">
+                    <button onClick={prevMonth} className="p-2.5 hover:bg-white hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
+                    <button onClick={nextMonth} className="p-2.5 hover:bg-white hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
                 </div>
             </div>
-            <div className="p-6">
-                <div className="grid grid-cols-7 gap-6 mb-4">
+            <div className="p-8">
+                <div className="grid grid-cols-7 gap-4 mb-6">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] text-center">{d}</div>
+                        <div key={d} className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">{d}</div>
                     ))}
                 </div>
                 <div className="grid grid-cols-7 gap-4">
                     {Array.from({ length: firstDay }).map((_, i) => (
-                        <div key={`empty-${i}`} className="h-32 bg-gray-50/30 rounded-2xl border border-dashed border-gray-100/50" />
+                        <div key={`empty-${i}`} className="h-40 bg-gray-50/20 rounded-[24px] border border-dashed border-gray-100" />
                     ))}
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1
+                        const dayDate = new Date(viewDate.getFullYear(), viewDate.getMonth(), day)
+                        const isToday = new Date().toDateString() === dayDate.toDateString()
                         const dayTasks = monthTasks.filter(t => t.dueDate && new Date(t.dueDate).getDate() === day)
+                        
                         return (
-                            <div key={day} className="h-32 p-3 bg-white border border-gray-50 rounded-[20px] shadow-sm hover:border-primary-100 transition-all flex flex-col group">
-                                <span className="text-xs font-black text-gray-400 group-hover:text-primary-600 mb-2">{day.toString().padStart(2, '0')}</span>
-                                <div className="space-y-1.5 flex-1 overflow-y-auto scrollbar-hide">
+                            <div key={day} className={`h-40 p-4 rounded-[28px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${
+                                isToday 
+                                ? 'bg-primary-50/30 border-primary-100' 
+                                : 'bg-white border-gray-50 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-100/20'
+                            }`}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className={`text-sm font-black ${isToday ? 'text-primary-600' : 'text-gray-400 group-hover:text-primary-600'}`}>
+                                        {day.toString().padStart(2, '0')}
+                                    </span>
+                                    {dayTasks.length > 0 && (
+                                        <div className="h-1.5 w-1.5 rounded-full bg-primary-500 shadow-sm" />
+                                    )}
+                                </div>
+                                <div className="space-y-2 flex-1 overflow-y-auto scrollbar-hide">
                                     {dayTasks.map(t => (
-                                        <div 
-                                            key={t.id} 
-                                            className="text-[9px] font-black leading-none p-2 bg-primary-50 text-primary-700 rounded-lg border border-primary-100/50 truncate hover:bg-primary-100 transition shadow-sm"
+                                        <motion.div 
+                                            key={t.id}
+                                            whileHover={{ x: 2 }}
+                                            className="text-[10px] font-bold leading-tight p-2.5 bg-white text-gray-700 rounded-xl border border-gray-100 shadow-sm hover:border-primary-200 hover:text-primary-700 transition"
                                             title={t.title}
                                         >
-                                            <span className="opacity-50 mr-1">●</span>
-                                            {t.title}
-                                        </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <div className="h-1 w-1 rounded-full bg-primary-500 shrink-0" />
+                                                <span className="truncate">{t.title}</span>
+                                            </div>
+                                        </motion.div>
                                     ))}
                                 </div>
+                                {isToday && <div className="absolute top-0 right-0 p-1 bg-primary-500 text-[8px] font-black text-white rounded-bl-xl uppercase tracking-tighter">Today</div>}
                             </div>
                         )
                     })}

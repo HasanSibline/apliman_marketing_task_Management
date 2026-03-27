@@ -55,7 +55,7 @@ export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
     const [currentDate, setCurrentDate] = useState(new Date())
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedDate, setSelectedDate] = useState(new Date())
-    const [viewType, setViewType] = useState<ViewType>('workWeek')
+    const [viewType, setViewType] = useState<ViewType>('week')
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [filterType, setFilterType] = useState<'all' | 'milestone'>('all')
     const scrollContainerRef = useRef<HTMLDivElement>(null)
