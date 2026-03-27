@@ -26,6 +26,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
     status: '' as 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED',
     departmentId: '',
     managerId: '',
+    isTicketApprover: false,
   })
 
   const [departments, setDepartments] = useState<any[]>([])
@@ -59,6 +60,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         status: user.status,
         departmentId: user.departmentId || '',
         managerId: user.managerId || '',
+        isTicketApprover: user.isTicketApprover || false,
       })
     }
   }, [user])
@@ -101,6 +103,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         status: formData.status,
         departmentId: formData.departmentId || null,
         managerId: formData.managerId || null,
+        isTicketApprover: formData.isTicketApprover,
       })
       
       toast.success('User updated successfully!')
@@ -116,10 +119,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+    const { name, value, type } = e.target as HTMLInputElement
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }))
     
     if (errors[name]) {
@@ -352,6 +355,22 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       <option key={m.id} value={m.id}>{m.name} ({m.position || 'No Position'})</option>
                     ))}
                   </select>
+                </div>
+
+                {/* Is Ticket Approver */}
+                <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-xl border border-primary-100">
+                  <input
+                    type="checkbox"
+                    id="isTicketApprover"
+                    name="isTicketApprover"
+                    checked={formData.isTicketApprover}
+                    onChange={handleChange}
+                    className="h-5 w-5 rounded border-primary-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
+                  />
+                  <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
+                    <span className="text-sm font-bold text-gray-900">Ticket Approver / Manager Role</span>
+                    <span className="text-xs text-gray-500">Allow this user to approve inter-departmental tickets</span>
+                  </label>
                 </div>
 
                 {/* Status */}

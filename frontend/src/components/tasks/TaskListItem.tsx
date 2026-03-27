@@ -152,8 +152,13 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
         {/* Header */}
         <div className="flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors flex-1">
-              {task.title}
+            <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors flex-1 flex items-center gap-2">
+              {task.taskNumber && (
+                <span className="text-primary-600 font-mono text-xs border border-primary-200 px-1.5 rounded bg-primary-50 flex-shrink-0">
+                  {task.taskNumber}
+                </span>
+              )}
+              <span className="truncate">{task.title}</span>
             </h3>
             {taskTypeBadge && (
               <span className={`ml-2 px-2 py-0.5 text-xs font-medium rounded ${taskTypeBadge.bg} ${taskTypeBadge.text} flex-shrink-0`}>

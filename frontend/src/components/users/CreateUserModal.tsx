@@ -25,6 +25,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
     position: '',
     departmentId: '',
     managerId: '',
+    isTicketApprover: false,
   })
 
   const [departments, setDepartments] = useState<any[]>([])
@@ -108,6 +109,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         position: '',
         departmentId: '',
         managerId: '',
+        isTicketApprover: false,
       })
       setErrors({})
     } catch (error: any) {
@@ -119,10 +121,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target
+    const { name, value, type } = e.target as HTMLInputElement
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     }))
     
     // Clear error when user starts typing

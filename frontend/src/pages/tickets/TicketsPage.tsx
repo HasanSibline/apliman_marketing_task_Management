@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
 import { 
   PlusIcon, 
   TicketIcon, 
@@ -11,21 +10,15 @@ import {
 import api from '@/services/api'
 import { useAppSelector } from '@/hooks/redux'
 import { toast } from 'react-hot-toast'
+import CreateTicketModal from '@/components/tickets/CreateTicketModal'
 
 type TicketStatus = 'PENDING_REQ_MGR' | 'PENDING_REC_MGR' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED'
 
 const TicketsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [tickets, setTickets] = useState<any[]>([])
-  const [departments, setDepartments] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
-  
-  // Create ticket state
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [receiverDeptId, setReceiverDeptId] = useState('')
-  const [priority, setPriority] = useState('MEDIUM')
 
   useEffect(() => {
     fetchData()
@@ -34,12 +27,8 @@ const TicketsPage: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [ticketsRes, deptsRes] = await Promise.all([
-        api.get('/tickets'),
-        api.get('/departments')
-      ])
+      const ticketsRes = await api.get('/tickets')
       setTickets(ticketsRes.data)
-      setDepartments(deptsRes.data)
     } catch (error) {
       toast.error('Failed to fetch tickets')
     } finally {
@@ -47,27 +36,8 @@ const TicketsPage: React.FC = () => {
     }
   }
 
-  const handleCreate = async () => {
-    if (!title || !receiverDeptId) {
-      toast.error('Please fill all required fields')
-      return
-    }
-    try {
-      await api.post('/tickets', {
-        title,
-        description,
-        receiverDeptId,
-        priority
-      })
-      toast.success('Ticket submitted for approval')
-      setShowCreateModal(false)
-      setTitle('')
-      setDescription('')
-      setReceiverDeptId('')
-      fetchData()
-    } catch (error) {
-      toast.error('Failed to create ticket')
-    }
+  const handleCreateSuccess = () => {
+    fetchData()
   }
 
   const handleApprove = async (id: string) => {
@@ -198,79 +168,12 @@ const TicketsPage: React.FC = () => {
         )}
       </div>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg"
-          >
-            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center">
-              <PlusIcon className="h-6 w-6 mr-2 text-primary-600" />
-              Create Cross-Department Ticket
-            </h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Target Department</label>
-                <select 
-                  className="input"
-                  value={receiverDeptId}
-                  onChange={(e) => setReceiverDeptId(e.target.value)}
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(d => (
-                    <option key={d.id} value={d.id}>{d.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Ticket Title</label>
-                <input 
-                  type="text" 
-                  className="input" 
-                  placeholder="What do you need help with?"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Description</label>
-                <textarea 
-                  className="input min-h-[100px]" 
-                  placeholder="Provide details about your request..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                ></textarea>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Priority</label>
-                <div className="flex space-x-2">
-                  {['LOW', 'MEDIUM', 'HIGH', 'URGENT'].map(p => (
-                    <button
-                      key={p}
-                      onClick={() => setPriority(p)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
-                        priority === p ? 'bg-primary-600 border-primary-600 text-white' : 'border-gray-200 text-gray-500 hover:border-primary-400'
-                      }`}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="mt-8 flex justify-end space-x-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-6 py-2 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors">Cancel</button>
-              <button 
-                onClick={handleCreate}
-                className="btn-primary px-8"
-              >
-                Submit Ticket
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+      {/* Create Ticket Modal */}
+      <CreateTicketModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={handleCreateSuccess}
+      />
     </div>
   )
 }
