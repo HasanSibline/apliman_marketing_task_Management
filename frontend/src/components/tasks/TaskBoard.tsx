@@ -462,7 +462,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
   useEffect(() => {
     const updateTime = () => {
-      let baseTime = timeTracking.taskTimes[task.id] || 0
+      let baseTime = (timeTracking.taskTimes && task.id ? timeTracking.taskTimes[task.id] : 0) || 0
       if (isThisTaskTracking && timeTracking.isRunning && timeTracking.startTime) {
         const elapsed = Math.floor((Date.now() - timeTracking.startTime) / 1000)
         setCurrentTime(baseTime + elapsed)

@@ -20,22 +20,30 @@ const loadFromStorage = (): TimeTrackingState => {
     const stored = localStorage.getItem('timeTracking')
     if (stored) {
       const data = JSON.parse(stored)
+      
+      // Ensure essential fields exist, merge with initialState for robustness
+      const state = {
+        ...initialState,
+        ...data,
+        taskTimes: data.taskTimes || {}
+      }
+
       // If timer was running, calculate elapsed time since last save for the active task
-      if (data.isRunning && data.activeTaskId && data.startTime) {
+      if (state.isRunning && state.activeTaskId && state.startTime) {
         const now = Date.now()
-        const additionalTime = Math.floor((now - data.startTime) / 1000)
-        const currentElapsed = data.taskTimes[data.activeTaskId] || 0
+        const additionalTime = Math.floor((now - state.startTime) / 1000)
+        const currentElapsed = state.taskTimes[state.activeTaskId] || 0
         
         return {
-          ...data,
+          ...state,
           taskTimes: {
-            ...data.taskTimes,
-            [data.activeTaskId]: currentElapsed + additionalTime
+            ...state.taskTimes,
+            [state.activeTaskId]: currentElapsed + additionalTime
           },
           startTime: now,
         }
       }
-      return data
+      return state
     }
   } catch (error) {
     console.error('Failed to load time tracking from storage:', error)

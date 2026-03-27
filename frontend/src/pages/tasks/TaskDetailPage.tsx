@@ -67,7 +67,7 @@ const TaskDetailPage: React.FC = () => {
         setCurrentTime(0)
         return
       }
-      let baseTime = timeTracking.taskTimes[id] || 0
+      let baseTime = (timeTracking.taskTimes && id ? timeTracking.taskTimes[id] : 0) || 0
       if (isThisTaskTracking && timeTracking.isRunning && timeTracking.startTime) {
         const elapsed = Math.floor((Date.now() - timeTracking.startTime) / 1000)
         setCurrentTime(baseTime + elapsed)
