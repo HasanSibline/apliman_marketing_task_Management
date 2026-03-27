@@ -1,17 +1,35 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useMemo, useRef, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
-    CalendarIcon,
+    MagnifyingGlassIcon,
+    ClockIcon,
+    PlusIcon,
     ArrowPathIcon,
 } from '@heroicons/react/24/outline'
+import { 
+    format, 
+    startOfWeek, 
+    addDays, 
+    startOfMonth, 
+    endOfMonth, 
+    endOfWeek, 
+    isSameMonth, 
+    isSameDay, 
+    addMonths, 
+    subMonths,
+    eachDayOfInterval,
+    isToday,
+    setHours,
+} from 'date-fns'
 
 interface Task {
     id: string
     title: string
     phase: string
+    taskType?: string
     dueDate?: string
     priority?: number
     assignedTo?: { name: string }
@@ -23,177 +41,344 @@ interface CalendarProps {
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
-    1: 'bg-white/60 text-gray-700 border-gray-100/50 hover:bg-white',
-    2: 'bg-blue-50/80 text-blue-700 border-blue-100/50 hover:bg-blue-50',
-    3: 'bg-amber-50/80 text-amber-700 border-amber-100/50 hover:bg-amber-50',
-    4: 'bg-orange-50/80 text-orange-700 border-orange-100/50 hover:bg-orange-50',
-    5: 'bg-red-50/80 text-red-700 border-red-100/50 hover:bg-red-50',
+    1: 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50',
+    2: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
+    3: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
+    4: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100',
+    5: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
 }
+
+type ViewType = 'workWeek' | 'week' | 'day'
 
 export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
     const navigate = useNavigate()
-    const [viewDate, setViewDate] = useState(new Date())
+    const [currentDate, setCurrentDate] = useState(new Date())
+    const [searchQuery, setSearchQuery] = useState('')
+    const [selectedDate, setSelectedDate] = useState(new Date())
+    const [viewType, setViewType] = useState<ViewType>('workWeek')
     const [isRefreshing, setIsRefreshing] = useState(false)
+    const [filterType, setFilterType] = useState<'all' | 'milestone'>('all')
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
 
-    const getDays = (date: Date) => {
-        const year = date.getFullYear()
-        const month = date.getMonth()
-        const firstDay = new Date(year, month, 1).getDay()
-        const daysInMonth = new Date(year, month + 1, 0).getDate()
-        return { firstDay, daysInMonth }
+    // Center scroll on business hours initially
+    useEffect(() => {
+        if (scrollContainerRef.current) {
+            const currentHour = new Date().getHours()
+            const scrollHour = currentHour > 6 ? currentHour - 2 : 0
+            scrollContainerRef.current.scrollTop = scrollHour * 60
+        }
+    }, [])
+
+    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
+    
+    const displayDays = useMemo(() => {
+        if (viewType === 'day') return [currentDate]
+        if (viewType === 'workWeek') return eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
+        return eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 6) })
+    }, [currentDate, weekStart, viewType])
+
+    const hours = Array.from({ length: 24 }, (_, i) => i)
+
+    const filteredTasks = useMemo(() => {
+        const safeTasks = Array.isArray(tasks) ? tasks : []
+        return safeTasks.filter(task => {
+            const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase())
+            const matchesFilter = filterType === 'all' || task.taskType === 'MILESTONE'
+            return matchesSearch && matchesFilter
+        })
+    }, [tasks, searchQuery, filterType])
+
+    const nextInterval = () => {
+        if (viewType === 'day') setCurrentDate(addDays(currentDate, 1))
+        else setCurrentDate(addDays(currentDate, 7))
+    }
+    
+    const prevInterval = () => {
+        if (viewType === 'day') setCurrentDate(addDays(currentDate, -1))
+        else setCurrentDate(addDays(currentDate, -7))
     }
 
-    const { firstDay, daysInMonth } = getDays(viewDate)
-    const safeTasks = Array.isArray(tasks) ? tasks : []
-    const monthTasks = safeTasks.filter(t => {
-        if (!t.dueDate) return false
-        const d = new Date(t.dueDate)
-        return d.getMonth() === viewDate.getMonth() && d.getFullYear() === viewDate.getFullYear()
-    })
-
-    const nextMonth = () => {
-        const next = new Date(viewDate)
-        next.setMonth(next.getMonth() + 1)
-        setViewDate(next)
+    const goToToday = () => {
+        setCurrentDate(new Date())
+        setSelectedDate(new Date())
     }
 
-    const prevMonth = () => {
-        const prev = new Date(viewDate)
-        prev.setMonth(prev.getMonth() - 1)
-        setViewDate(prev)
-    }
-
-    const refresh = () => {
+    const handleRefresh = () => {
         setIsRefreshing(true)
-        setTimeout(() => setIsRefreshing(false), 1000)
+        setTimeout(() => setIsRefreshing(false), 800)
     }
 
-    const today = new Date()
+    const renderMiniCalendar = () => {
+        const monthStart = startOfMonth(selectedDate)
+        const monthEnd = endOfMonth(monthStart)
+        const miniStart = startOfWeek(monthStart)
+        const miniEnd = endOfWeek(monthEnd)
+        const calendarDays = eachDayOfInterval({ start: miniStart, end: miniEnd })
 
-    return (
-        <div className="bg-white rounded-[32px] shadow-2xl shadow-primary-500/10 border border-gray-100 overflow-hidden backdrop-blur-sm">
-            <div className="p-8 border-b border-gray-200 bg-white flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-                <div className="flex items-center gap-5">
-                    <div className="relative">
-                        <div className="p-3.5 bg-gradient-to-tr from-primary-600 to-indigo-600 rounded-2xl text-white">
-                            <CalendarIcon className="h-7 w-7" />
-                        </div>
-                    </div>
-                    <div>
-                        <h2 className="text-2xl font-black text-gray-900 tracking-tight leading-none mb-1.5 uppercase">
-                            {viewDate.toLocaleDateString('en-US', { month: 'long' })}
-                            <span className="text-primary-600 ml-2">{viewDate.getFullYear()}</span>
-                        </h2>
-                        <div className="flex items-center gap-2">
-                            <div className="h-1.5 w-1.5 rounded-full bg-success-500" />
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">{monthTasks.length} Scheduled Deadlines</p>
-                        </div>
+        return (
+            <div className="p-4 select-none">
+                <div className="flex items-center justify-between mb-4 px-1 text-gray-900 border-b border-gray-50 pb-2">
+                    <span className="text-sm font-bold">{format(selectedDate, 'MMMM yyyy')}</span>
+                    <div className="flex space-x-1">
+                        <button onClick={() => setSelectedDate(subMonths(selectedDate, 1))} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+                            <ChevronLeftIcon className="h-4 w-4" />
+                        </button>
+                        <button onClick={() => setSelectedDate(addMonths(selectedDate, 1))} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+                            <ChevronRightIcon className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <div className="flex p-1 bg-gray-50 rounded-xl border border-gray-200">
-                        <button onClick={prevMonth} className="p-2.5 hover:bg-white rounded-lg transition-all text-gray-500 hover:text-primary-600 active:scale-95"><ChevronLeftIcon className="h-5 w-5" /></button>
-                        <button onClick={() => setViewDate(new Date())} className="px-4 py-1 text-xs font-black text-gray-700 hover:text-primary-700 transition-colors">TODAY</button>
-                        <button onClick={nextMonth} className="p-2.5 hover:bg-white rounded-lg transition-all text-gray-500 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
-                    </div>
-                    
-                    <button 
-                        onClick={refresh}
-                        className="p-3 bg-white border border-gray-200 text-gray-500 hover:text-primary-600 hover:border-primary-200 rounded-xl transition-all active:scale-95 group"
-                    >
-                        <ArrowPathIcon className={`h-5 w-5 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-                    </button>
+                <div className="grid grid-cols-7 gap-y-1 text-center font-bold text-gray-400 text-[10px] mb-2">
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d}>{d}</div>)}
                 </div>
-            </div>
-
-            {/* Calendar Grid */}
-            <div className="p-8 bg-white relative z-0">
-                <div className="grid grid-cols-7 gap-6 mb-4">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="text-left pl-4 pb-2 border-b border-gray-100">
-                            <span className="text-[12px] font-bold text-gray-400 uppercase tracking-widest">{d}</span>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="grid grid-cols-7 gap-6">
-                    {/* Empty slots for previous month's days */}
-                    {Array.from({ length: firstDay }).map((_, i) => (
-                        <div key={`empty-${i}`} className="h-40 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 opacity-50" />
-                    ))}
-
-                    {/* Days of the month */}
-                    {Array.from({ length: daysInMonth }).map((_, i) => {
-                        const day = i + 1
-                        const isToday = today.getDate() === day && today.getMonth() === viewDate.getMonth() && today.getFullYear() === viewDate.getFullYear()
-                        const dayTasks = monthTasks.filter(t => new Date(t.dueDate!).getDate() === day)
-
+                <div className="grid grid-cols-7 gap-y-1 text-center">
+                    {calendarDays.map((day, i) => {
+                        const isSelected = isSameDay(day, selectedDate)
+                        const isInMonth = isSameMonth(day, monthStart)
+                        const isTodayDate = isToday(day)
+                        
                         return (
-                            <div
+                            <div 
                                 key={i}
                                 onClick={() => {
-                                    if (dayTasks.length > 0) {
-                                        const y = viewDate.getFullYear()
-                                        const m = String(viewDate.getMonth() + 1).padStart(2, '0')
-                                        const d = String(day).padStart(2, '0')
-                                        navigate(`/calendar/${y}-${m}-${d}`)
-                                    }
+                                    setSelectedDate(day)
+                                    setCurrentDate(day)
                                 }}
-                                className={`min-h-[140px] p-2 border-b border-r border-gray-100 flex flex-col gap-1 transition-all ${
-                                    dayTasks.length > 0 ? 'bg-white hover:bg-gray-50 cursor-pointer shadow-[inset_0_0_0_1px_rgba(0,0,0,0.02)]' : 'bg-gray-50/30 text-gray-400'
-                                } ${
-                                    isToday ? 'ring-2 ring-primary-500 ring-inset bg-blue-50/30' : ''
-                                }`}
+                                className={`
+                                    text-[11px] py-1.5 rounded-md cursor-pointer transition-all
+                                    ${isSelected ? 'bg-primary-600 text-white font-bold' : 'hover:bg-gray-100 text-gray-700'}
+                                    ${!isInMonth ? 'opacity-30' : ''}
+                                    ${isTodayDate && !isSelected ? 'text-primary-600 font-bold' : ''}
+                                `}
                             >
-                                <div className="flex items-center justify-between mb-3 shrink-0">
-                                    <span className={`text-base font-bold ${isToday ? 'text-primary-700' : 'text-gray-900 group-hover:text-primary-600 transition-colors'}`}>
-                                        {day.toString().padStart(2, '0')}
-                                    </span>
-                                    {dayTasks.length > 0 && (
-                                        <div className="h-2 w-2 rounded-full bg-primary-500" />
-                                    )}
-                                </div>
-
-                                <div className="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
-                                    <AnimatePresence>
-                                        {dayTasks.map(t => (
-                                            <motion.button
-                                                initial={{ opacity: 0, scale: 0.95 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                whileHover={{ scale: 1.02 }}
-                                                key={t.id}
-                                                onClick={(e) => { e.stopPropagation(); onTaskClick?.(t.id); }}
-                                                className={`w-full text-left p-2 rounded-lg border text-[11px] font-medium transition-colors flex items-start gap-1.5 hover:ring-1 ring-black/5 ${
-                                                    PRIORITY_COLORS[t.priority || 1]
-                                                }`}
-                                                title={t.title}
-                                            >
-                                                <div className="w-1 h-3 rounded-full bg-current opacity-40 shrink-0 mt-0.5" />
-                                                <span className="line-clamp-2 leading-tight break-words whitespace-normal">{t.title}</span>
-                                            </motion.button>
-                                        ))}
-                                    </AnimatePresence>
-                                </div>
+                                {format(day, 'd')}
                             </div>
                         )
                     })}
                 </div>
             </div>
+        )
+    }
 
-            {/* Legend / Footer */}
-            <div className="px-8 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between z-10 relative rounded-b-3xl">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Urgent</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-full bg-blue-400" />
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">High</span>
+    return (
+        <div className="flex h-full bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200">
+            {/* Sidebar like Teams */}
+            <div className="w-64 flex-shrink-0 bg-gray-50/10 border-r border-gray-200 flex flex-col pt-4">
+                <div className="px-6 flex items-center justify-between mb-2">
+                    <h2 className="text-xl font-bold text-gray-900">Calendar</h2>
+                    <button onClick={handleRefresh} className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors">
+                        <ArrowPathIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto overflow-x-hidden">
+                    {renderMiniCalendar()}
+                    
+                    <div className="px-5 mt-4 space-y-6">
+                        {/* Search & Filter */}
+                        <div className="space-y-3">
+                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Search Tasks</p>
+                            <div className="relative">
+                                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                                <input 
+                                    type="text" 
+                                    placeholder="Keywords..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full pl-9 pr-3 py-2 text-xs bg-white border border-gray-200 rounded-lg focus:ring-1 focus:ring-primary-500 focus:border-primary-500 transition-all placeholder:text-gray-300"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Category Checklist */}
+                        <div className="space-y-2">
+                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Calendars</p>
+                            <div className="space-y-1">
+                                <button 
+                                    onClick={() => setFilterType('all')}
+                                    className={`w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg text-left transition-all ${
+                                        filterType === 'all' ? 'bg-white shadow-sm border border-gray-100 ring-1 ring-primary-500/10' : 'text-gray-500 hover:bg-white/50'
+                                    }`}
+                                >
+                                    <div className={`h-3 w-3 rounded-full ${filterType === 'all' ? 'bg-primary-600 shadow-sm' : 'border-2 border-gray-200'}`} />
+                                    <span className={filterType === 'all' ? 'font-bold text-gray-900' : 'font-medium'}>My Tasks</span>
+                                </button>
+                                <button 
+                                    onClick={() => setFilterType('milestone')}
+                                    className={`w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg text-left transition-all ${
+                                        filterType === 'milestone' ? 'bg-white shadow-sm border border-gray-100 ring-1 ring-primary-500/10' : 'text-gray-500 hover:bg-white/50'
+                                    }`}
+                                >
+                                    <div className={`h-3 w-3 rounded-full ${filterType === 'milestone' ? 'bg-amber-500 shadow-sm' : 'border-2 border-gray-200'}`} />
+                                    <span className={filterType === 'milestone' ? 'font-bold text-gray-900' : 'font-medium'}>Milestones</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Marketing Inteligence Dashboard</p>
+            </div>
+
+            {/* Main Area */}
+            <div className="flex-1 flex flex-col bg-white">
+                {/* Control Header */}
+                <div className="h-14 flex items-center justify-between px-6 border-b border-gray-100 bg-white shrink-0">
+                    <div className="flex items-center space-x-6">
+                        <div className="flex items-center space-x-4">
+                            <button 
+                                onClick={goToToday}
+                                className="px-4 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100 border border-gray-200 rounded-md transition-colors"
+                            >
+                                Today
+                            </button>
+                            <div className="flex items-center space-x-0.5">
+                                <button onClick={prevInterval} className="p-1.5 hover:bg-gray-100 rounded-md text-gray-500">
+                                    <ChevronLeftIcon className="h-4 w-4" />
+                                </button>
+                                <button onClick={nextInterval} className="p-1.5 hover:bg-gray-100 rounded-md text-gray-500">
+                                    <ChevronRightIcon className="h-4 w-4" />
+                                </button>
+                            </div>
+                        </div>
+                        <h3 className="text-base font-bold text-gray-900 border-l border-gray-200 pl-6">
+                            {format(displayDays[0], 'MMMM d')} – {format(displayDays[displayDays.length-1], isSameMonth(displayDays[0], displayDays[displayDays.length-1]) ? 'd, yyyy' : 'MMMM d, yyyy')}
+                        </h3>
+                    </div>
+                    
+                    <div className="flex items-center space-x-3">
+                        <div className="flex items-center bg-gray-100 p-1 rounded-lg">
+                            {(['day', 'workWeek', 'week'] as ViewType[]).map((v) => (
+                                <button
+                                    key={v}
+                                    onClick={() => setViewType(v)}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                                        viewType === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                                    }`}
+                                >
+                                    {v === 'workWeek' ? 'Work week' : v.charAt(0).toUpperCase() + v.slice(1)}
+                                </button>
+                            ))}
+                        </div>
+                        <button 
+                            onClick={() => navigate('/tasks')}
+                            className="flex items-center space-x-2 px-4 py-1.5 bg-primary-600 text-white text-sm font-bold rounded-lg hover:bg-primary-700 transition-colors"
+                        >
+                            <PlusIcon className="h-4 w-4" />
+                            <span>New Task</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Day Header Bar */}
+                <div className="grid grid-cols-[64px_1fr] bg-white border-b border-gray-100 shrink-0">
+                    <div className="flex items-end justify-center pb-2 border-r border-gray-50">
+                        <span className="text-[10px] font-black text-gray-300 mb-2">GMT</span>
+                    </div>
+                    <div 
+                        className="grid"
+                        style={{ gridTemplateColumns: `repeat(${displayDays.length}, 1fr)` }}
+                    >
+                        {displayDays.map((day: Date) => (
+                            <div key={day.toString()} className="flex flex-col items-center py-4 border-r border-gray-50 last:border-r-0">
+                                <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isToday(day) ? 'text-primary-600' : 'text-gray-400'}`}>
+                                    {format(day, 'EEE')}
+                                </span>
+                                <div className={`flex items-center justify-center h-10 w-10 rounded-full text-2xl font-light ${
+                                    isToday(day) ? 'bg-primary-600 text-white font-bold' : 'text-gray-900 hover:bg-gray-100'
+                                }`}>
+                                    {format(day, 'd')}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Main Scrollable Grid */}
+                <div 
+                    ref={scrollContainerRef}
+                    className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 bg-white"
+                >
+                    <div className="grid grid-cols-[64px_1fr] relative min-h-[1440px]">
+                        {/* Hour markers */}
+                        <div className="bg-white border-r border-gray-100">
+                            {hours.map(h => (
+                                <div key={h} className="h-[60px] flex items-start justify-center pt-1 border-b border-gray-50 border-r-0">
+                                    <span className="text-[11px] font-bold text-gray-300">
+                                        {format(setHours(new Date(), h), 'h a')}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Task columns grid */}
+                        <div 
+                            className="grid relative h-full"
+                            style={{ gridTemplateColumns: `repeat(${displayDays.length}, 1fr)` }}
+                        >
+                            {/* Horizontal separators */}
+                            <div className="absolute inset-0 z-0">
+                                {hours.map(h => (
+                                    <div key={h} className="h-[60px] border-b border-gray-50 bg-white" />
+                                ))}
+                            </div>
+
+                            {/* Column content */}
+                            {displayDays.map((day: Date) => {
+                                const dayTasks = filteredTasks.filter((t: Task) => t.dueDate && isSameDay(new Date(t.dueDate), day))
+                                const isCurrentDay = isToday(day)
+
+                                return (
+                                    <div key={day.toString()} className="relative border-r border-gray-100 last:border-r-0 h-full group">
+                                        {/* Current Time Line like Teams (Purple/Blue) */}
+                                        {isCurrentDay && (
+                                            <div 
+                                                className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
+                                                style={{ top: `${(new Date().getHours() * 60) + new Date().getMinutes()}px` }}
+                                            >
+                                                <div className="h-2 w-2 rounded-full bg-primary-600 -ml-1 shadow-sm" />
+                                                <div className="h-[2px] flex-1 bg-primary-500 shadow-sm" />
+                                            </div>
+                                        )}
+
+                                        {dayTasks.map((task: Task) => {
+                                            const date = new Date(task.dueDate!)
+                                            const topPos = (date.getHours() * 60) + date.getMinutes()
+                                            
+                                            return (
+                                                <motion.div
+                                                    key={task.id}
+                                                    initial={{ opacity: 0, scale: 0.95 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    whileHover={{ scale: 1.01, zIndex: 10 }}
+                                                    onClick={() => onTaskClick?.(task.id)}
+                                                    style={{ 
+                                                        position: 'absolute',
+                                                        top: `${topPos}px`,
+                                                        height: '52px',
+                                                        left: '6px',
+                                                        right: '6px',
+                                                    }}
+                                                    className={`
+                                                        z-10 rounded-lg border-l-4 shadow-md p-3 cursor-pointer
+                                                        flex flex-col justify-center overflow-hidden border border-gray-200/50
+                                                        ${PRIORITY_COLORS[task.priority || 1]}
+                                                    `}
+                                                >
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="text-xs font-bold truncate leading-tight tracking-tight uppercase">{task.title}</span>
+                                                        <ClockIcon className="h-3 w-3 opacity-30 shrink-0" />
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
+                                                        <span className="text-[10px] font-black">{format(date, 'h:mm a')}</span>
+                                                    </div>
+                                                </motion.div>
+                                            )
+                                        })}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     )

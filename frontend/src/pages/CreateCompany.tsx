@@ -6,7 +6,11 @@ import {
   CheckBadgeIcon,
   InformationCircleIcon,
   CalendarIcon,
-  SparklesIcon
+  SparklesIcon,
+  BuildingOfficeIcon,
+  UserCircleIcon,
+  CreditCardIcon,
+  CpuChipIcon
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -143,17 +147,17 @@ function Field({
   );
 }
 
-const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
-  FREE_TRIAL: { maxUsers: 10, maxTasks: 500, maxStorage: 2, price: '7-Day Trial' },
-  PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
-  ENTERPRISE: { maxUsers: 200, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
+const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string; defaultDays: number }> = {
+  FREE_TRIAL: { maxUsers: 10, maxTasks: 500, maxStorage: 2, price: '7-Day Trial', defaultDays: 7 },
+  PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo', defaultDays: 30 },
+  ENTERPRISE: { maxUsers: -1, maxTasks: -1, maxStorage: -1, price: '$299/mo', defaultDays: 30 },
 };
 
 const STEPS = [
-  { id: 1, label: 'Company Info', icon: '🏢' },
-  { id: 2, label: 'Admin Account', icon: '👤' },
-  { id: 3, label: 'Subscription', icon: '💳' },
-  { id: 4, label: 'AI & Limits', icon: '🤖' },
+  { id: 1, label: 'Company Info', icon: BuildingOfficeIcon },
+  { id: 2, label: 'Admin Account', icon: UserCircleIcon },
+  { id: 3, label: 'Subscription', icon: CreditCardIcon },
+  { id: 4, label: 'AI & Limits', icon: CpuChipIcon },
 ];
 
 function PasswordStrength({ password }: { password: string }) {
@@ -241,10 +245,8 @@ export default function CreateCompany() {
         updated.maxTasks = limits.maxTasks;
         updated.maxStorage = limits.maxStorage;
 
-        // Auto-set 7 days for FREE_TRIAL
-        if (value === 'FREE_TRIAL') {
-          updated.subscriptionDays = 7;
-        }
+        // Auto-set duration based on plan
+        updated.subscriptionDays = limits.defaultDays || 30;
       }
 
       return updated;
@@ -415,7 +417,7 @@ export default function CreateCompany() {
                   ${isActive ? 'bg-white text-blue-600' : ''}
                   ${isCompleted ? 'bg-blue-600 text-white' : ''}
                   ${!isActive && !isCompleted ? 'bg-gray-100 text-gray-400' : ''}`}>
-                  {isCompleted ? '✓' : s.id}
+                  {isCompleted ? '✓' : <s.icon className="h-4 w-4" />}
                 </div>
                 <div className="min-w-0">
                   <div className={`text-sm font-bold truncate ${isActive ? 'text-white' : isCompleted ? 'text-blue-900' : 'text-gray-500'}`}>
@@ -482,7 +484,7 @@ export default function CreateCompany() {
                       ${step > s.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : ''}
                       ${step === s.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/30 ring-4 ring-blue-600/10' : ''}
                       ${step < s.id ? 'bg-white text-gray-300 border border-gray-100' : ''}`}>
-                      {step > s.id ? '✓' : s.id}
+                      {step > s.id ? '✓' : <s.icon className="h-5 w-5" />}
                     </div>
                     <span className={`absolute -bottom-7 whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-colors
                       ${step === s.id ? 'text-blue-600' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'}`}>

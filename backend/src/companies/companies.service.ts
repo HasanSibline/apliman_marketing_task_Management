@@ -34,15 +34,28 @@ export class CompaniesService {
     const adminPassword = createCompanyDto.adminPassword || this.generatePassword();
     const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
-    // Determine subscription end date
-    let subscriptionEnd = createCompanyDto.subscriptionDays
-      ? new Date(Date.now() + createCompanyDto.subscriptionDays * 24 * 60 * 60 * 1000)
+    // Determine subscription duration in days
+    let days = createCompanyDto.subscriptionDays;
+
+    // Set default duration if not provided
+    if (days === undefined || days === null) {
+      if (createCompanyDto.subscriptionPlan === 'FREE_TRIAL') {
+        days = 7;
+      } else {
+        // PRO, ENTERPRISE or any other plan defaults to 30 days
+        days = 30;
+      }
+    }
+
+    // MANDATORY overrides: FREE_TRIAL is ALWAYS forced to 7 days
+    if (createCompanyDto.subscriptionPlan === 'FREE_TRIAL') {
+      days = 7;
+    }
+
+    let subscriptionEnd = days
+      ? new Date(Date.now() + days * 24 * 60 * 60 * 1000)
       : null;
 
-    // MANDATORY: If Plan is FREE_TRIAL, force 7 days only
-    if (createCompanyDto.subscriptionPlan === 'FREE_TRIAL') {
-      subscriptionEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    }
 
     // Set plan-based limits
     const limits = await this.getPlanLimits(createCompanyDto.subscriptionPlan);
