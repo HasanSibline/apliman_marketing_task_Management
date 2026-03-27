@@ -56,5 +56,28 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   companyId?: string;
+
+  @ApiProperty({
+    description: 'User department ID',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  departmentId?: string;
+
+  @ApiProperty({
+    description: 'User manager ID (reports to)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  managerId?: string;
+
+  @ApiProperty({
+    description: 'Whether the user can approve tickets',
+    required: false,
+  })
+  @IsOptional()
+  isTicketApprover?: boolean;
 }
 

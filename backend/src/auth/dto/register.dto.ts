@@ -65,4 +65,20 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   companyId?: string;
+
+  @ApiProperty({
+    description: 'Associated department ID',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  departmentId?: string;
+
+  @ApiProperty({
+    description: 'Direct manager user ID',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  managerId?: string;
 }

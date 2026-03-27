@@ -92,6 +92,9 @@ export class UsersService {
         position: true,
         status: true,
         companyId: true,
+        departmentId: true,
+        managerId: true,
+        isTicketApprover: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
@@ -118,11 +121,16 @@ export class UsersService {
         role: true,
         position: true,
         status: true,
-        companyId: true, // CRITICAL: Include companyId
+        companyId: true,
+        departmentId: true,
+        managerId: true,
+        isTicketApprover: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
-        password: true, // Include password for authentication
+        password: true,
+        department: { select: { id: true, name: true } },
+        manager: { select: { id: true, name: true } },
       },
     });
 
@@ -134,8 +142,6 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    // Email is not unique alone (compound unique with companyId)
-    // Use findFirst to get any user with this email
     return this.prisma.user.findFirst({
       where: { email },
       select: {
@@ -146,10 +152,14 @@ export class UsersService {
         position: true,
         status: true,
         companyId: true,
+        departmentId: true,
+        managerId: true,
+        isTicketApprover: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
-        password: true, // Include password for authentication
+        password: true,
+        department: { select: { id: true, name: true } },
       },
     });
   }

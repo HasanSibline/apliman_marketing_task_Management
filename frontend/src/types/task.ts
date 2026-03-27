@@ -59,6 +59,7 @@ export interface Subtask {
 
 export interface Task {
   id: string
+  taskNumber?: string
   title: string
   description: string
   priority: number

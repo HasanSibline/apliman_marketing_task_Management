@@ -11,6 +11,8 @@ export interface User {
   status: 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED'
   companyId?: string | null
   subscriptionPlan?: string | null
+  departmentId?: string | null
+  managerId?: string | null
 }
 
 interface AuthState {

@@ -11,6 +11,10 @@ export class SendMessageDto {
   @IsOptional()
   @IsObject()
   metadata?: any;
+
+  @IsOptional()
+  @IsArray()
+  files?: any[];
 }
 
 export class CreateSessionDto {

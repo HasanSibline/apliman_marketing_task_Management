@@ -62,6 +62,8 @@ export interface RegisterData {
   role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE'
   position?: string
   companyId?: string
+  departmentId?: string
+  managerId?: string
 }
 
 import { Task } from '@/types/task'
@@ -155,8 +157,15 @@ export const usersApi = {
     password: string
     role: string
     position: string
+    departmentId?: string
+    managerId?: string
   }): Promise<any> => {
     const response = await api.post('/auth/register', data)
+    return response.data
+  },
+
+  getDepartments: async (): Promise<any> => {
+    const response = await api.get('/departments')
     return response.data
   },
 

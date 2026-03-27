@@ -21,6 +21,9 @@ import { ObjectivesModule } from './objectives/objectives.module';
 import { PlansModule } from './plans/plans.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { DepartmentsModule } from './departments/departments.module';
+import { TeamsModule } from './teams/teams.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -56,6 +59,9 @@ import { AppService } from './app.service';
     QuartersModule,
     ObjectivesModule,
     PlansModule,
+    DepartmentsModule,
+    TeamsModule,
+    TicketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

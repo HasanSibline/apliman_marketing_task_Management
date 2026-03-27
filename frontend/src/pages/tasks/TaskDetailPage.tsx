@@ -336,7 +336,10 @@ const TaskDetailPage: React.FC = () => {
             {/* Title & Actions */}
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-3">
+                <h1 className="text-3xl font-bold text-gray-900 mb-3 flex items-center gap-3">
+                  {currentTask.taskNumber && (
+                    <span className="text-primary-600 font-mono text-2xl">{currentTask.taskNumber}</span>
+                  )}
                   {currentTask.title}
                 </h1>
 

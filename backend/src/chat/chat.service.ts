@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { Prisma } from '@prisma/client';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Inject, forwardRef } from '@nestjs/common';
@@ -160,7 +161,16 @@ export class ChatService {
       // Get user details (including companyId for filtering)
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, name: true, email: true, role: true, position: true, companyId: true },
+        select: { 
+          id: true, 
+          name: true, 
+          email: true, 
+          role: true, 
+          position: true, 
+          companyId: true,
+          department: { select: { name: true } },
+          manager: { select: { name: true } },
+        },
       });
 
       // Save user message
@@ -266,6 +276,7 @@ export class ChatService {
         api_key: aiApiKey, // CRITICAL: Pass company-specific API key (snake_case for Python)
         provider: company.aiProvider || 'gemini', // CRITICAL: Pass company provider
         companyName: company.name, // CRITICAL: Pass actual company name
+        files: dto.files, // Pass files for multimodal support
       });
 
       // Save assistant message
@@ -388,11 +399,17 @@ export class ChatService {
    */
   private extractTaskReferences(message: string): string[] {
     const taskRegex = /\/([^\s]+)/g;
+    const codeRegex = /\b(TSK|TKT)-(\d+)\b/gi;
     const tasks: string[] = [];
     let match;
 
     while ((match = taskRegex.exec(message)) !== null) {
       tasks.push(match[1]);
+    }
+    
+    // Reset regex index and find codes like TSK-1001
+    while ((match = codeRegex.exec(message)) !== null) {
+      tasks.push(match[0].toUpperCase());
     }
 
     return tasks;
@@ -524,50 +541,41 @@ export class ChatService {
 
     // Fetch referenced tasks (SAME COMPANY ONLY)
     if (taskRefs.length > 0) {
+      // Split into number codes (TSK-1001) and text slugs
+      const codes = taskRefs.filter(r => r.startsWith('TSK-'));
+      const ticketCodes = taskRefs.filter(r => r.startsWith('TKT-'));
+      const slugs = taskRefs.filter(r => !r.includes('-'));
+
       const tasks = await this.prisma.task.findMany({
         where: {
-          companyId: user.companyId, // CRITICAL: Same company only
-          OR: taskRefs.map(ref => ({
-            title: {
-              contains: ref,
-              mode: 'insensitive',
-            },
-          })),
+          companyId: user.companyId,
+          OR: [
+            ...(codes.length > 0 ? [{ taskNumber: { in: codes } }] : []),
+            ...(slugs.length > 0 ? slugs.map(ref => ({ title: { contains: ref, mode: Prisma.QueryMode.insensitive } })) : []),
+          ],
         },
         include: {
-          assignedTo: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          assignments: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-          workflow: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          currentPhase: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+          assignedTo: { select: { id: true, name: true, email: true } },
+          currentPhase: { select: { id: true, name: true } },
         },
       });
       context.referencedTasks = tasks;
+
+      // Also fetch referenced tickets
+      if (ticketCodes.length > 0) {
+        const tickets = await this.prisma.ticket.findMany({
+          where: {
+            companyId: user.companyId,
+            ticketNumber: { in: ticketCodes },
+          },
+          include: {
+            requester: { select: { name: true } },
+            receiverDept: { select: { name: true } },
+            assignee: { select: { name: true } },
+          },
+        });
+        context.referencedTickets = tickets;
+      }
     }
 
     return context;

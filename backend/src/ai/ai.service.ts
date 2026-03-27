@@ -663,19 +663,25 @@ export class AiService {
     knowledgeSources: any[],
     additionalContext: any,
     userId: string,
+    files?: any[],
   ): Promise<any> {
     try {
       const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/chat`, {
           message,
-          user,
+          user: {
+            ...user,
+            position: user.position,
+            department: user.department,
+          },
           conversationHistory,
           knowledgeSources,
           additionalContext,
           api_key: info?.apiKey,
           provider: info?.provider,
           companyName: info?.companyName,
+          files,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 45000,

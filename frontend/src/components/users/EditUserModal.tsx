@@ -23,8 +23,31 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
     email: '',
     role: '' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE',
     position: '',
-    status: '' as 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED'
+    status: '' as 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED',
+    departmentId: '',
+    managerId: '',
   })
+
+  const [departments, setDepartments] = useState<any[]>([])
+  const [potentialManagers, setPotentialManagers] = useState<any[]>([])
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchData = async () => {
+        try {
+          const [deptsRes, usersRes] = await Promise.all([
+            usersApi.getDepartments?.() || Promise.resolve([]),
+            usersApi.getAll?.() || Promise.resolve([])
+          ])
+          if (deptsRes) setDepartments(deptsRes)
+          if (usersRes) setPotentialManagers(usersRes)
+        } catch (error) {
+          console.error('Error fetching modal data:', error)
+        }
+      }
+      fetchData()
+    }
+  }, [isOpen])
 
   useEffect(() => {
     if (user) {
@@ -33,7 +56,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         email: user.email,
         role: user.role,
         position: user.position,
-        status: user.status
+        status: user.status,
+        departmentId: user.departmentId || '',
+        managerId: user.managerId || '',
       })
     }
   }, [user])
@@ -73,7 +98,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         email: formData.email.trim(),
         role: formData.role,
         position: formData.position.trim(),
-        status: formData.status
+        status: formData.status,
+        departmentId: formData.departmentId || null,
+        managerId: formData.managerId || null,
       })
       
       toast.success('User updated successfully!')
@@ -287,6 +314,44 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   {errors.position && (
                     <p className="mt-1 text-sm text-red-600">{errors.position}</p>
                   )}
+                </div>
+
+                {/* Department */}
+                <div>
+                  <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Department
+                  </label>
+                  <select
+                    id="departmentId"
+                    name="departmentId"
+                    value={formData.departmentId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">No Department</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Manager */}
+                <div>
+                  <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 mb-1">
+                    Direct Manager
+                  </label>
+                  <select
+                    id="managerId"
+                    name="managerId"
+                    value={formData.managerId}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  >
+                    <option value="">No Manager</option>
+                    {potentialManagers.filter(m => m.id !== user.id).map((m) => (
+                      <option key={m.id} value={m.id}>{m.name} ({m.position || 'No Position'})</option>
+                    ))}
+                  </select>
                 </div>
 
                 {/* Status */}

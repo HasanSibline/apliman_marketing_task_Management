@@ -29,6 +29,7 @@ import QuartersPage from '@/pages/quarters/QuartersPage'
 import QuarterDetailPage from '@/pages/quarters/QuarterDetailPage'
 import ObjectivesPage from '@/pages/objectives/ObjectivesPage'
 import ObjectiveDetailPage from '@/pages/objectives/ObjectiveDetailPage'
+import TicketsPage from '@/pages/tickets/TicketsPage'
 
 // Super Admin Pages
 import AdminLogin from '@/pages/AdminLogin'
@@ -180,6 +181,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="tickets" element={<TicketsPage />} />
       </Route>
 
       {/* 404 Route */}

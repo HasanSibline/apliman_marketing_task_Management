@@ -156,30 +156,33 @@ export class TasksService {
 
       // 3. Create the task in the starting phase
       const startPhase = workflow.phases[0];
+      // Generate sequential task number
+      const taskNumber = await this.generateTaskNumber(creator.companyId);
 
+      // Create task
       const task = await this.prisma.task.create({
         data: {
           title: createTaskDto.title,
           description,
-          goals,
+          taskNumber,
           taskType,
+          goals,
+          workflowId: workflow?.id,
+          currentPhaseId: startPhase?.id,
           priority,
-          workflowId: workflow.id,
-          currentPhaseId: startPhase.id,
-          phase: 'ASSIGNED', // Automatically set to ASSIGNED (To do) instead of PENDING_APPROVAL
           dueDate: createTaskDto.dueDate ? new Date(createTaskDto.dueDate) : null,
+          companyId: creator.companyId,
           createdById: creatorId,
-          assignedToId: createTaskDto.assignedToId,
-          companyId: creator.companyId, // Add company isolation
+          assignedToId: createTaskDto.assignedToId || null,
           quarterId: createTaskDto.quarterId || null,
           objectiveId: createTaskDto.objectiveId || null,
           keyResultId: createTaskDto.keyResultId || null,
         },
         include: {
-          workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
-          currentPhase: true,
-          createdBy: { select: { id: true, name: true, email: true, position: true } },
           assignedTo: { select: { id: true, name: true, email: true, position: true } },
+          createdBy: { select: { id: true, name: true, email: true, position: true } },
+          currentPhase: true,
+          workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
         },
       });
 
@@ -1868,5 +1871,21 @@ export class TasksService {
       where: { id: taskId },
       data: { quarterId },
     });
+  }
+
+  private async generateTaskNumber(companyId: string): Promise<string> {
+    const lastTask = await this.prisma.task.findFirst({
+      where: { companyId, taskNumber: { startsWith: 'TSK-' } },
+      orderBy: { createdAt: 'desc' },
+      select: { taskNumber: true },
+    });
+
+    if (!lastTask || !lastTask.taskNumber) {
+      return 'TSK-1001';
+    }
+
+    const lastNum = parseInt(lastTask.taskNumber.split('-')[1]);
+    if (isNaN(lastNum)) return 'TSK-1001';
+    return `TSK-${lastNum + 1}`;
   }
 }

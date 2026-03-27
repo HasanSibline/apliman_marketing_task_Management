@@ -51,7 +51,8 @@ class ChatService:
         knowledge_sources: List[Dict[str, Any]],
         additional_context: Dict[str, Any],
         is_deep_analysis: bool = False,
-        company_name: str = None  # Add company_name parameter
+        company_name: str = None,  # Add company_name parameter
+        files: Optional[List[Dict[str, Any]]] = None  # Added for multimodal
     ) -> Dict[str, Any]:
         """
         Process a chat message and generate a response
@@ -79,7 +80,8 @@ class ChatService:
                 knowledge_sources,
                 additional_context,
                 is_deep_analysis,
-                company_name  # Pass company name
+                company_name,
+                files is not None
             )
 
             # Build conversation history
@@ -97,7 +99,7 @@ ApliChat:"""
             if self.provider == "groq":
                 response_text = await self._generate_via_groq(full_prompt)
             else:
-                response_text = await self._generate_via_rest(full_prompt)
+                response_text = await self._generate_via_rest(full_prompt, files=files)
                 
             response_text = response_text.strip()
 
@@ -186,8 +188,21 @@ ApliChat:"""
                 'Content-Type': 'application/json',
                 'X-goog-api-key': current_key
             }
+            
+            # Prepare parts for multimodal
+            parts = [{"text": prompt}]
+            if files:
+                for f in files:
+                    if f.get('data') and f.get('mime_type'):
+                        parts.append({
+                            "inline_data": {
+                                "mime_type": f['mime_type'],
+                                "data": f['data']
+                            }
+                        })
+            
             payload = {
-                "contents": [{"parts": [{"text": prompt}]}]
+                "contents": [{"parts": parts}]
             }
             
             try:
@@ -268,7 +283,8 @@ ApliChat:"""
         knowledge_sources: List[Dict[str, Any]],
         additional_context: Dict[str, Any],
         is_deep_analysis: bool,
-        company_name: str = None  # Add company_name parameter
+        company_name: str = None,
+        has_files: bool = False
     ) -> str:
         """Build the system prompt with all context"""
         
@@ -302,6 +318,14 @@ Your personality:
 
 Current user: {user.get('name', 'User')} ({user.get('role', 'Unknown role')})
 Position: {user.get('position', 'Not specified')}
+Department: {user.get('department', {}).get('name', 'Not assigned')}
+
+=== ENTERPRISE CAPABILITIES ===
+- You are aware of the company hierarchy and departments.
+- You can reference tasks using TSK-XXXX numbers and tickets using TKT-XXXX numbers.
+- If a user mentions a code like TKT-1001, they are referring to a specific ticket.
+- You can analyze files and images if they are provided in the chat.
+{"- (IMAGE ANALYST MODE: ACTIVE) The user has attached files/images. Analyze them carefully to answer their query." if has_files else ""}
 
 """
 

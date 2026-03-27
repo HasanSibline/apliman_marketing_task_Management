@@ -531,11 +531,16 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1 min-w-0">
                 <h4
-                  className="text-lg font-semibold text-gray-900 line-clamp-2 leading-tight hover:text-blue-600 transition-colors cursor-pointer mb-2"
+                  className="text-lg font-semibold text-gray-900 line-clamp-1 leading-tight hover:text-blue-600 transition-colors cursor-pointer mb-2 flex items-center gap-2"
                   onClick={() => onTaskClick(task)}
                   title={task.title}
                 >
-                  {task.title}
+                  {task.taskNumber && (
+                    <span className="text-primary-600 font-mono text-sm border border-primary-200 px-1.5 rounded bg-primary-50 flex-shrink-0">
+                      {task.taskNumber}
+                    </span>
+                  )}
+                  <span className="truncate">{task.title}</span>
                 </h4>
 
                 {/* Task Meta Info */}

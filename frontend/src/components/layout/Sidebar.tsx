@@ -11,6 +11,7 @@ import {
   GlobeAltIcon,
   CalendarDaysIcon,
   FlagIcon,
+  TicketIcon,
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 import Logo from './Logo'
@@ -26,6 +27,7 @@ const Sidebar: React.FC = () => {
     { name: 'Calendar', href: '/calendar', icon: CalendarDaysIcon },
     { name: 'Quarters', href: '/quarters', icon: CalendarDaysIcon },
     { name: 'Objectives', href: '/objectives', icon: FlagIcon },
+    { name: 'Tickets', href: '/tickets', icon: TicketIcon },
     { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
     { name: 'Knowledge Sources', href: '/knowledge-sources', icon: GlobeAltIcon, adminOnly: true },
