@@ -27,6 +27,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
     departmentId: '',
     managerId: '',
     isTicketApprover: false,
+    canAccessStrategy: false,
   })
 
   const [departments, setDepartments] = useState<any[]>([])
@@ -61,6 +62,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         departmentId: user.departmentId || '',
         managerId: user.managerId || '',
         isTicketApprover: user.isTicketApprover || false,
+        canAccessStrategy: user.canAccessStrategy || false,
       })
     }
   }, [user])
@@ -104,6 +106,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         departmentId: formData.departmentId || null,
         managerId: formData.managerId || null,
         isTicketApprover: formData.isTicketApprover,
+        canAccessStrategy: formData.canAccessStrategy,
       })
       
       toast.success('User updated successfully!')
@@ -357,20 +360,41 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   </select>
                 </div>
 
-                {/* Is Ticket Approver */}
-                <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-xl border border-primary-100">
-                  <input
-                    type="checkbox"
-                    id="isTicketApprover"
-                    name="isTicketApprover"
-                    checked={formData.isTicketApprover}
-                    onChange={handleChange}
-                    className="h-5 w-5 rounded border-primary-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
-                  />
-                  <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
-                    <span className="text-sm font-bold text-gray-900">Ticket Approver / Manager Role</span>
-                    <span className="text-xs text-gray-500">Allow this user to approve inter-departmental tickets</span>
-                  </label>
+                {/* Additional Permissions */}
+                <div className="space-y-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Permissions</h3>
+                  
+                  {/* Ticket Approver */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="isTicketApprover"
+                      name="isTicketApprover"
+                      checked={formData.isTicketApprover}
+                      onChange={handleChange}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
+                    />
+                    <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
+                      <span className="text-sm font-semibold text-gray-900 leading-none">Ticket Approver / Manager Role</span>
+                      <span className="text-[10px] text-gray-500 mt-1">Allow this user to approve departmental tickets</span>
+                    </label>
+                  </div>
+
+                  {/* Strategy Access */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="canAccessStrategy"
+                      name="canAccessStrategy"
+                      checked={formData.canAccessStrategy}
+                      onChange={handleChange}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
+                    />
+                    <label htmlFor="canAccessStrategy" className="flex flex-col cursor-pointer">
+                      <span className="text-sm font-semibold text-gray-900 leading-none">Can Access Strategy</span>
+                      <span className="text-[10px] text-gray-500 mt-1">View/Manage Quarters and Objectives</span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Status */}

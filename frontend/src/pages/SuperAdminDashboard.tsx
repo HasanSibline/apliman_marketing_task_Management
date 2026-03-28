@@ -359,7 +359,19 @@ export default function SuperAdminDashboard() {
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           {logoUrl ? (
-                            <img src={logoUrl} alt={company.name} className="h-9 w-9 rounded-lg object-cover" />
+                            <img 
+                              src={logoUrl} 
+                              alt={company.name} 
+                              className="h-9 w-9 rounded-lg object-cover" 
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                const fallback = document.createElement('div');
+                                fallback.className = 'h-9 w-9 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0';
+                                fallback.style.backgroundColor = company.primaryColor || '#6366f1';
+                                fallback.innerText = company.name?.charAt(0) || 'C';
+                                target.replaceWith(fallback);
+                              }}
+                            />
                           ) : (
                             <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white text-sm font-bold"
                               style={{ backgroundColor: company.primaryColor }}>

@@ -15,6 +15,12 @@ import { UserRole } from '../types/prisma';
 export class QuartersController {
     constructor(private readonly quartersService: QuartersService) { }
 
+    @Get('active')
+    @ApiOperation({ summary: 'Get current active quarter' })
+    findActive(@Request() req) {
+        return this.quartersService.findActive(req.user.companyId);
+    }
+
     @Get()
     @ApiOperation({ summary: 'List quarters for the current company' })
     findAll(@Request() req) {

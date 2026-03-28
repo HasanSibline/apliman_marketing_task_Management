@@ -107,8 +107,20 @@ const TaskDetailPage: React.FC = () => {
       const targetPhase = currentTask?.workflow?.phases.find(p => p.id === newPhaseId);
       if (targetPhase) {
         const name = targetPhase.name.toLowerCase();
-        const isInProgress = name.includes('progress') || name.includes('working') || name.includes('active') || name.includes('doing');
-        const isCompleted = name.includes('completed') || name.includes('done') || name.includes('finished');
+        // Broader matching for "In Progress"
+        const isInProgress = name.includes('progress') || 
+                            name.includes('working') || 
+                            name.includes('active') || 
+                            name.includes('doing') ||
+                            name.includes('started') ||
+                            name.includes('production');
+                            
+        // Broader matching for "Completed"
+        const isCompleted = name.includes('completed') || 
+                           name.includes('done') || 
+                           name.includes('finished') ||
+                           name.includes('shipped') ||
+                           name.includes('archived');
 
         if (isInProgress) {
           if (!isTimerRunning) {
@@ -118,7 +130,7 @@ const TaskDetailPage: React.FC = () => {
             });
           }
         } else if (isCompleted) {
-          if (isThisTaskTracking && timeTracking.isRunning) {
+          if (isThisTaskTracking) {
             dispatch(stopTimer());
             toast('Timer stopped automatically', { 
               icon: <CheckCircleIcon className="h-5 w-5 text-blue-500" /> 
@@ -343,28 +355,27 @@ const TaskDetailPage: React.FC = () => {
                   {currentTask.title}
                 </h1>
 
-                {/* Meta Info */}
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
-                  <div className="flex items-center gap-1.5">
-                    <UserIcon className="h-4 w-4" />
-                    <span>Created by <strong>{currentTask.createdBy?.name || 'Unknown'}</strong></span>
+                {/* Meta Info - Simplified */}
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 mb-6 py-3 border-y border-gray-50 bg-gray-50/30 px-4 rounded-xl">
+                  <div className="flex items-center gap-2 group">
+                    <UserIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <span>Assignee: <strong className="text-gray-900">{currentTask.assignedTo?.name || 'Unassigned'}</strong></span>
                   </div>
-                  {currentTask.assignedTo && (
-                    <div className="flex items-center gap-1.5">
-                      <UserIcon className="h-4 w-4" />
-                      <span>Assigned to <strong>{currentTask.assignedTo.name}</strong></span>
-                      {currentTask.assignedTo.position && (
-                        <span className="text-xs text-gray-500">• {currentTask.assignedTo.position}</span>
-                      )}
+                  
+                  {currentTask.dueDate && (
+                    <div className="flex items-center gap-2 group">
+                      <CalendarIcon className="h-4 w-4 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                      <span>Due: <strong className="text-gray-900">{new Date(currentTask.dueDate).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}</strong></span>
                     </div>
                   )}
-                  <div className="flex items-center gap-1.5">
-                    <CalendarIcon className="h-4 w-4" />
-                    <span>Created {new Date(currentTask.createdAt).toLocaleDateString('en-US', {
-                      month: 'long',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}</span>
+
+                  <div className="flex items-center gap-2 group">
+                    <UserIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <span>Owner: <strong className="text-gray-700 font-medium">{currentTask.createdBy?.name || 'Unknown'}</strong></span>
                   </div>
                 </div>
 

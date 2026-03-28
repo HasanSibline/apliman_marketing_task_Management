@@ -26,6 +26,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
     departmentId: '',
     managerId: '',
     isTicketApprover: false,
+    canAccessStrategy: false,
   })
 
   const [departments, setDepartments] = useState<any[]>([])
@@ -95,6 +96,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         password: formData.password,
         role: formData.role,
         position: formData.position.trim(),
+        departmentId: formData.departmentId || undefined,
+        managerId: formData.managerId || undefined,
+        isTicketApprover: formData.isTicketApprover,
+        canAccessStrategy: formData.canAccessStrategy,
       })
       
       console.log('User created successfully!')
@@ -110,6 +115,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         departmentId: '',
         managerId: '',
         isTicketApprover: false,
+        canAccessStrategy: false,
       })
       setErrors({})
     } catch (error: any) {
@@ -246,6 +252,43 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     )}
                     {canCreateRole('SUPER_ADMIN') && <option value="SUPER_ADMIN">Platform Administrator</option>}
                   </select>
+                </div>
+
+                {/* Additional Permissions */}
+                <div className="space-y-3 p-4 bg-gray-50 rounded-xl border border-gray-200">
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Permissions</h3>
+                  
+                  {/* Ticket Approver */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="isTicketApprover"
+                      name="isTicketApprover"
+                      checked={formData.isTicketApprover}
+                      onChange={handleChange}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
+                    />
+                    <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
+                      <span className="text-sm font-semibold text-gray-900 leading-none">Ticket Approver</span>
+                      <span className="text-[10px] text-gray-500 mt-1">Can approve departmental requests</span>
+                    </label>
+                  </div>
+
+                  {/* Strategy Access */}
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      id="canAccessStrategy"
+                      name="canAccessStrategy"
+                      checked={formData.canAccessStrategy}
+                      onChange={handleChange}
+                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
+                    />
+                    <label htmlFor="canAccessStrategy" className="flex flex-col cursor-pointer">
+                      <span className="text-sm font-semibold text-gray-900 leading-none">Can Access Strategy</span>
+                      <span className="text-[10px] text-gray-500 mt-1">View/Manage Quarters and Objectives</span>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Position */}

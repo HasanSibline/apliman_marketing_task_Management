@@ -25,8 +25,8 @@ const Sidebar: React.FC = () => {
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
     { name: 'Calendar', href: '/calendar', icon: CalendarDaysIcon },
-    { name: 'Quarters', href: '/quarters', icon: CalendarDaysIcon },
-    { name: 'Objectives', href: '/objectives', icon: FlagIcon },
+    { name: 'Quarters', href: '/quarters', icon: CalendarDaysIcon, strategyOnly: true },
+    { name: 'Objectives', href: '/objectives', icon: FlagIcon, strategyOnly: true },
     { name: 'Tickets', href: '/tickets', icon: TicketIcon },
     { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
@@ -35,11 +35,13 @@ const Sidebar: React.FC = () => {
     { name: 'Profile', href: '/profile', icon: UserCircleIcon },
   ]
 
-  const isAdmin = user?.role === 'ADMIN' || user?.role === 'COMPANY_ADMIN'
+  const isAdmin = user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
 
-  const filteredNavigation = navigation.filter(item =>
-    !item.adminOnly || isAdmin
-  )
+  const filteredNavigation = navigation.filter(item => {
+    if (item.adminOnly && !isAdmin) return false
+    if (item.strategyOnly && !isAdmin && !user?.canAccessStrategy) return false
+    return true
+  })
 
   return (
     <motion.div

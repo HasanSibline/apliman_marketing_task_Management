@@ -79,5 +79,12 @@ export class CreateUserDto {
   })
   @IsOptional()
   isTicketApprover?: boolean;
+
+  @ApiProperty({
+    description: 'Whether the user can access strategy features',
+    required: false,
+  })
+  @IsOptional()
+  canAccessStrategy?: boolean;
 }
 

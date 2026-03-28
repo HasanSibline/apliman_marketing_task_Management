@@ -263,6 +263,11 @@ const UsersPage: React.FC = () => {
                     <span className={`status-badge ${statusColors[userItem.status as keyof typeof statusColors]}`}>
                       {userItem.status}
                     </span>
+                    {userItem.canAccessStrategy && (
+                      <span className="status-badge bg-amber-100 text-amber-800">
+                        Strategy Access
+                      </span>
+                    )}
                   </div>
                   
                   <div className="text-sm text-gray-500">

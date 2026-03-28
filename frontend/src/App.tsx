@@ -167,10 +167,38 @@ function App() {
           }
         />
         <Route path="analytics" element={<AnalyticsPage />} />
-        <Route path="quarters" element={<QuartersPage />} />
-        <Route path="quarters/:id" element={<QuarterDetailPage />} />
-        <Route path="objectives" element={<ObjectivesPage />} />
-        <Route path="objectives/:id" element={<ObjectiveDetailPage />} />
+        <Route
+          path="quarters"
+          element={
+            <ProtectedRoute checkStrategy>
+              <QuartersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="quarters/:id"
+          element={
+            <ProtectedRoute checkStrategy>
+              <QuarterDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="objectives"
+          element={
+            <ProtectedRoute checkStrategy>
+              <ObjectivesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="objectives/:id"
+          element={
+            <ProtectedRoute checkStrategy>
+              <ObjectiveDetailPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="activity" element={<ActivityPage />} />
         <Route path="profile" element={<ProfilePage />} />
         <Route

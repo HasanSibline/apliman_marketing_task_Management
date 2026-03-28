@@ -78,6 +78,7 @@ export class AuthService {
         position: user.position,
         status: user.status,
         companyId: user.companyId,
+        canAccessStrategy: user.canAccessStrategy,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
       },
       accessToken,
@@ -114,6 +115,7 @@ export class AuthService {
         position: user.position,
         status: user.status,
         companyId: null,
+        canAccessStrategy: user.canAccessStrategy,
       },
       access_token,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
@@ -249,6 +251,7 @@ export class AuthService {
         position: fullUser.position,
         status: fullUser.status,
         companyId: fullUser.companyId,
+        canAccessStrategy: fullUser.canAccessStrategy,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
       },
       accessToken,

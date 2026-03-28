@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon, MapPinIcon, UserIcon, ClockIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon, MapPinIcon, UserIcon, ClockIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
-import { workflowsApi, quartersApi, objectivesApi } from '@/services/api'
+import { workflowsApi, quartersApi, objectivesApi, aiApi } from '@/services/api'
 import { Workflow } from '@/types/task'
 import ContentSuggester from '../ai/ContentSuggester'
 import toast from 'react-hot-toast'
@@ -118,75 +118,38 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     try {
       setIsGeneratingContent(true)
       setLoadingStage('🤖 AI is thinking about your task...')
-      const preview: any = {}
-
-      // Generate basic content
+      
+      // AI Content Generation
       setLoadingStage('✍️ Writing detailed description and goals...')
-      const token = localStorage.getItem('token')
-      const contentResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-content`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`, // CRITICAL: Include auth token
-        },
-        body: JSON.stringify({
-          title: formData.title,
-          type: selectedWorkflow?.taskType || 'GENERAL'
-        }),
-      })
+      const contentData = await aiApi.generateContent(
+        formData.title,
+        selectedWorkflow?.taskType || 'GENERAL'
+      );
 
-      if (!contentResponse.ok) {
-        // Read the actual error message from the backend response
-        let errorDetail = `AI service error (${contentResponse.status})`
-        try {
-          const errorBody = await contentResponse.json()
-          if (errorBody?.message) {
-            errorDetail = errorBody.message
-          } else if (typeof errorBody?.detail === 'string') {
-            errorDetail = errorBody.detail
-          } else if (errorBody?.detail?.message) {
-            errorDetail = errorBody.detail.message
-          }
-        } catch {
-          // If we can't parse the error body, use the status code
-        }
-        throw new Error(errorDetail)
-      }
-
-      const contentData = await contentResponse.json()
-      preview.description = contentData.description
-      preview.goals = contentData.goals
-      preview.priority = contentData.priority
-      preview.aiProvider = contentData.ai_provider
+      const preview: any = {
+        description: contentData.description,
+        goals: contentData.goals,
+        priority: contentData.priority,
+        aiProvider: contentData.ai_provider || contentData.aiProvider
+      };
 
       // Generate subtasks if workflow is selected
       if (selectedWorkflow && formData.generateSubtasks) {
         setLoadingStage('📝 Creating smart subtasks for your workflow...')
-
-        const subtasksResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3001/api'}/ai/generate-subtasks`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-          },
-          body: JSON.stringify({
-            title: formData.title,
-            description: formData.description || preview.description,
-            taskType: selectedWorkflow.taskType,
-            workflowPhases: selectedWorkflow.phases.map(p => p.name),
-            availableUsers: users.map(user => ({
-              id: user.id,
-              name: user.name,
-              position: user.position,
-              role: user.role
-            }))
-          }),
-        })
-
-        if (subtasksResponse.ok) {
-          const subtasksData = await subtasksResponse.json()
-          preview.subtasks = subtasksData.subtasks || []
-        }
+        const subtasksData = await aiApi.generateSubtasks({
+          title: formData.title,
+          description: formData.description || preview.description,
+          taskType: selectedWorkflow.taskType,
+          workflowPhases: selectedWorkflow.phases.map((p: any) => p.name),
+          availableUsers: users.map((u: any) => ({
+            id: u.id,
+            name: u.name,
+            position: u.position,
+            role: u.role
+          }))
+        });
+        
+        preview.subtasks = subtasksData.subtasks || []
       }
 
       setLoadingStage('✨ Finalizing your AI-generated content...')
@@ -338,9 +301,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <div key="create-task-modal" className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
+      <>
+        {isOpen && (
+        <div key="create-task-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="w-full max-w-2xl relative">
             {/* Backdrop */}
             <motion.div
               initial={{ opacity: 0 }}
@@ -350,26 +314,30 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               onClick={onClose}
             />
 
-            {/* Modal */}
+            {/* Modal Container */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl"
+              className="relative w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Create New Task</h2>
+              {/* Header - Fixed */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white z-10">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Create New Task</h2>
+                  <p className="text-xs text-gray-500 mt-1">Fill in the details to create a new task in your workflow</p>
+                </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all duration-200"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
               </div>
 
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Form - Body Scrollable, Footer Fixed */}
+              <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Workflow Selection */}
                 <div>
                   <label htmlFor="workflowId" className="block text-sm font-medium text-gray-700 mb-2">
@@ -594,7 +562,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         name="keyResultId"
                         value={formData.keyResultId}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-blue-300 bg-blue-50/50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
+                        className="w-full px-3 py-2 border border-blue-200 bg-blue-50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
                       >
                         <option value="">Overall Objective</option>
                         {objectives
@@ -625,9 +593,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       >
                         <option value="">Select primary assignee</option>
-                        {users.map(userItem => (
-                          <option key={userItem.id} value={userItem.id}>
-                            {userItem.name} ({userItem.email}) {userItem.id === user?.id ? '(You)' : ''}
+                        {users.map((u: any) => (
+                          <option key={u.id} value={u.id}>
+                            {u.name} ({u.email}) {u.id === user?.id ? '(You)' : ''}
                           </option>
                         ))}
                       </select>
@@ -642,28 +610,28 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         You are automatically assigned. Select additional team members to collaborate.
                       </p>
                       <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {users.map(userItem => (
-                          <label key={userItem.id} className="flex items-center space-x-2">
+                        {users.map((u: any) => (
+                          <label key={u.id} className="flex items-center space-x-2">
                             <input
                               type="checkbox"
-                              checked={formData.assignedUserIds.includes(userItem.id)}
+                              checked={formData.assignedUserIds.includes(u.id)}
                               onChange={(e) => {
                                 if (e.target.checked) {
                                   setFormData(prev => ({
                                     ...prev,
-                                    assignedUserIds: [...prev.assignedUserIds, userItem.id]
+                                    assignedUserIds: [...prev.assignedUserIds, u.id]
                                   }))
                                 } else {
                                   setFormData(prev => ({
                                     ...prev,
-                                    assignedUserIds: prev.assignedUserIds.filter(id => id !== userItem.id)
+                                    assignedUserIds: prev.assignedUserIds.filter(id => id !== u.id)
                                   }))
                                 }
                               }}
                               className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                             />
                             <span className="text-sm text-gray-700">
-                              {userItem.name} ({userItem.email}) {userItem.id === user?.id ? '(You)' : ''}
+                              {u.name} ({u.email}) {u.id === user?.id ? '(You)' : ''}
                             </span>
                           </label>
                         ))}
@@ -744,7 +712,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {aiGeneratedSubtasks.map((subtask, index) => (
                         <div
-                          key={`subtask-${index}-${Date.now()}`}
+                          key={`ai-st-${index}`}
                           className="bg-gray-50 border border-gray-200 rounded-lg p-4 relative group"
                         >
                           <button
@@ -834,23 +802,34 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     </div>
                   </div>
                 )}
+              </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                {/* Footer - Fixed */}
+                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-100 bg-gray-50/50">
                   <button
                     type="button"
                     onClick={onClose}
-                    className="btn-secondary"
+                    className="btn-secondary px-6"
                     disabled={isLoading}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="btn-primary"
+                    className="btn-primary px-8"
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Creating...' : 'Create Task'}
+                    {isLoading ? (
+                      <div className="flex items-center">
+                        <ArrowPathIcon className="h-4 w-4 animate-spin mr-2" />
+                        <span>Creating...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <PlusIcon className="h-4 w-4 mr-2" />
+                        <span>Create Task</span>
+                      </div>
+                    )}
                   </button>
                 </div>
               </form>
@@ -949,7 +928,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     </h3>
                     <div className="space-y-4">
                       {aiPreview.subtasks.map((subtask, index) => (
-                        <div key={`preview-subtask-${index}-${subtask.title || index}-${Date.now()}`} className="bg-gray-50 p-4 rounded-lg border">
+                        <div key={`preview-st-${index}`} className="bg-gray-50 p-4 rounded-lg border">
                           <div className="flex items-start justify-between mb-3">
                             <h4 className="font-medium text-gray-900 flex-1">{subtask.title}</h4>
                             <button
@@ -1007,9 +986,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                               >
                                 <option value="">Unassigned</option>
-                                {users.map(user => (
-                                  <option key={user.id} value={user.id}>
-                                    {user.name} ({user.position})
+                                {users.map((u: any) => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.name} ({u.position})
                                   </option>
                                 ))}
                               </select>
@@ -1098,7 +1077,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
             </motion.div>
           </div>
         </div>
-      )}
+        )}
+      </>
     </AnimatePresence>
   )
 }

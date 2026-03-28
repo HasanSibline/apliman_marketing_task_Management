@@ -207,6 +207,14 @@ const CompanyLogin: React.FC = () => {
               src={logoUrl}
               alt={`${company?.name || 'Company'} logo`}
               className="mx-auto h-16 w-auto object-contain"
+              onError={(e) => {
+                const target = e.currentTarget;
+                const fallback = document.createElement('div');
+                fallback.className = 'mx-auto h-20 w-20 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg';
+                fallback.style.backgroundColor = accentColor;
+                fallback.innerText = company?.name?.charAt(0).toUpperCase() || 'C';
+                target.replaceWith(fallback);
+              }}
             />
           ) : (
             <div 

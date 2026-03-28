@@ -215,6 +215,7 @@ model User {
   departmentId       String?           // LINKED DEPARTMENT
   managerId          String?           // REPORTING STRUCTURE
   isTicketApprover   Boolean           @default(false)
+  canAccessStrategy  Boolean           @default(false)
   status             UserStatus        @default(OFFLINE)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt

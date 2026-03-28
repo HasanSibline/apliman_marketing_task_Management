@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ChartBarIcon,
@@ -11,20 +12,27 @@ import { fetchDashboardAnalytics } from '@/store/slices/analyticsSlice'
 import { fetchPhaseCount } from '@/store/slices/tasksSlice'
 import StatsCard from '@/components/dashboard/StatsCard'
 import TaskPhaseChart from '@/components/dashboard/TaskPhaseChart'
-import { usersApi } from '@/services/api'
+import { usersApi, quartersApi } from '@/services/api'
+import { FlagIcon, CalendarIcon } from '@heroicons/react/24/outline'
 
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()
+  const navigate = useNavigate()
   const { user } = useAppSelector((state) => state.auth)
   const { dashboard, isLoading } = useAppSelector((state) => state.analytics)
   const { phaseCount } = useAppSelector((state) => state.tasks)
   const { teamMembers: presenceTeamMembers } = useAppSelector((state) => state.presence)
   const [allTeamMembers, setAllTeamMembers] = useState<any[]>([])
+  const [activeQuarter, setActiveQuarter] = useState<any>(null)
+
+  const isAdmin = user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
+  const hasStrategyAccess = isAdmin || user?.canAccessStrategy
 
   useEffect(() => {
     dispatch(fetchDashboardAnalytics())
     dispatch(fetchPhaseCount())
     loadTeamMembers()
+    loadActiveQuarter()
     
     // Refresh workflow counts periodically to catch new/deleted workflows
     const intervalId = setInterval(() => {
@@ -40,6 +48,15 @@ const DashboardPage: React.FC = () => {
       setAllTeamMembers(members)
     } catch (error) {
       console.error('Failed to load team members:', error)
+    }
+  }
+
+  const loadActiveQuarter = async () => {
+    try {
+      const quarter = await quartersApi.getActive()
+      setActiveQuarter(quarter)
+    } catch (error) {
+      console.error('Failed to load active quarter:', error)
     }
   }
 
@@ -119,6 +136,103 @@ const DashboardPage: React.FC = () => {
           </motion.div>
         ))}
       </div>
+
+      {/* Active Quarter Summary */}
+      {activeQuarter && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${hasStrategyAccess ? 'hover:shadow-md cursor-pointer transition-shadow' : ''}`}
+          onClick={() => hasStrategyAccess && navigate('/quarters')}
+        >
+          <div className="p-1 bg-primary-600"></div>
+          <div className="p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="p-3 bg-primary-50 rounded-lg">
+                  <CalendarIcon className="h-6 w-6 text-primary-600" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-900">Active Strategic Quarter</h2>
+                  <p className="text-sm text-gray-500">{activeQuarter.name} {activeQuarter.year} • Ends {new Date(activeQuarter.endDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-col items-end">
+                  <div className="text-2xl font-bold text-primary-600">{activeQuarter.avgProgress}%</div>
+                  <div className="text-xs text-gray-500 font-medium uppercase tracking-wider">Overall Objective Progress</div>
+                </div>
+                {hasStrategyAccess && (
+                  <button className="text-xs font-bold text-primary-600 bg-primary-50 px-2.5 py-1 rounded-full hover:bg-primary-100 transition-colors">
+                    Full Report →
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Left Side: Stats */}
+              <div className="space-y-6">
+                <div>
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-gray-600 font-medium">Task Completion</span>
+                    <span className="text-gray-900 font-bold">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</span>
+                  </div>
+                  <div className="h-3 w-full bg-gray-100 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${activeQuarter.totalTasksCount > 0 ? (activeQuarter.completedTasksCount / activeQuarter.totalTasksCount) * 100 : 0}%` }}
+                      transition={{ duration: 1, delay: 0.4 }}
+                      className="h-full bg-primary-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="text-sm text-gray-500 mb-1">Total Objectives</div>
+                    <div className="text-2xl font-bold text-gray-900">{activeQuarter.objectives?.length || 0}</div>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="text-sm text-gray-500 mb-1">Key Results</div>
+                    <div className="text-2xl font-bold text-gray-900">
+                      {activeQuarter.objectives?.reduce((acc: number, obj: any) => acc + (obj.keyResults?.length || 0), 0) || 0}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Side: Key Objectives */}
+              <div className="space-y-4">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center">
+                  <FlagIcon className="h-3 w-3 mr-1" />
+                  Key Objectives
+                </h3>
+                <div className="space-y-3">
+                  {activeQuarter.objectives?.slice(0, 3).map((obj: any) => (
+                    <div key={obj.id} className="space-y-1.5">
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="text-gray-800 font-medium truncate pr-4">{obj.title}</span>
+                        <span className="text-xs font-bold text-primary-600">{obj.progress}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-primary-400 rounded-full transition-all duration-500"
+                          style={{ width: `${obj.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {activeQuarter.objectives?.length === 0 && (
+                    <p className="text-sm text-gray-500 italic">No objectives set for this quarter</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Task Phase Chart */}
       <div className="grid grid-cols-1 gap-6">

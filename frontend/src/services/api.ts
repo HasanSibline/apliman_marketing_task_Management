@@ -159,6 +159,8 @@ export const usersApi = {
     position: string
     departmentId?: string
     managerId?: string
+    isTicketApprover?: boolean
+    canAccessStrategy?: boolean
   }): Promise<any> => {
     const response = await api.post('/auth/register', data)
     return response.data
@@ -564,6 +566,16 @@ export const aiApi = {
     const response = await api.post('/ai/check-completeness', { description, goals, phase })
     return response.data
   },
+  generateSubtasks: async (data: {
+    title: string
+    description?: string
+    taskType: string
+    workflowPhases: string[]
+    availableUsers: any[]
+  }): Promise<any> => {
+    const response = await api.post('/ai/generate-subtasks', data)
+    return response.data
+  },
 }
 
 // Notifications API
@@ -600,6 +612,10 @@ export const notificationsApi = {
 }
 
 export const quartersApi = {
+  getActive: async (): Promise<any> => {
+    const response = await api.get('/quarters/active')
+    return response.data
+  },
   getAll: async (): Promise<any[]> => {
     const response = await api.get('/quarters')
     return response.data

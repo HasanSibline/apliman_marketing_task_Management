@@ -14,6 +14,57 @@ export class QuartersService {
         });
     }
 
+    async findActive(companyId: string) {
+        const quarter = await this.prisma.quarter.findFirst({
+            where: { companyId, status: 'ACTIVE' },
+            include: {
+                _count: {
+                    select: { tasks: true }
+                },
+                objectives: {
+                    include: {
+                        keyResults: true
+                    }
+                }
+            }
+        });
+
+        if (!quarter) return null;
+
+        // Get completed tasks count separately to be accurate
+        const completedTasksCount = await this.prisma.task.count({
+            where: {
+                quarterId: quarter.id,
+                companyId,
+                completedAt: { not: null }
+            }
+        });
+
+        // Calculate progress
+        const objectives = quarter.objectives.map(obj => {
+            const krs = obj.keyResults;
+            const progress = krs.length > 0
+                ? Math.round(krs.reduce((sum, kr) => {
+                    const pct = kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0;
+                    return sum + Math.min(pct, 100);
+                }, 0) / krs.length)
+                : 0;
+            return { ...obj, progress };
+        });
+
+        const avgProgress = objectives.length > 0
+            ? Math.round(objectives.reduce((sum, obj) => sum + obj.progress, 0) / objectives.length)
+            : 0;
+
+        return {
+            ...quarter,
+            completedTasksCount,
+            totalTasksCount: quarter._count.tasks,
+            avgProgress,
+            objectives
+        };
+    }
+
     async findOne(id: string, companyId: string) {
         const quarter = await this.prisma.quarter.findFirst({
             where: { id, companyId },

@@ -13,6 +13,7 @@ export interface User {
   subscriptionPlan?: string | null
   departmentId?: string | null
   managerId?: string | null
+  canAccessStrategy?: boolean
 }
 
 interface AuthState {

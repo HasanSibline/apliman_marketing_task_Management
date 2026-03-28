@@ -81,4 +81,11 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   managerId?: string;
+  @ApiProperty({
+    description: 'Grant access to Quarters and Objectives',
+    required: false,
+    default: false,
+  })
+  @IsOptional()
+  canAccessStrategy?: boolean;
 }
