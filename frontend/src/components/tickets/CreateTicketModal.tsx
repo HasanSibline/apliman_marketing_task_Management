@@ -90,7 +90,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50"
           />
 
           {/* Modal Content */}
@@ -98,13 +98,13 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden border border-white/50"
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-gray-200"
           >
             {/* Header */}
             <div className="p-8 border-b border-gray-100">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary-600 rounded-2xl shadow-lg shadow-primary-200">
+                  <div className="p-3 bg-primary-600 rounded-xl shadow-lg shadow-primary-200">
                     <PaperAirplaneIcon className="h-6 w-6 text-white" />
                   </div>
                   <div>
@@ -114,7 +114,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-400 group"
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 group"
                 >
                   <XMarkIcon className="h-6 w-6 group-hover:text-gray-600" />
                 </button>
@@ -133,7 +133,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   <select
                     value={receiverDeptId}
                     onChange={(e) => setReceiverDeptId(e.target.value)}
-                    className="w-full pl-4 pr-10 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-primary-600/10 focus:border-primary-600 focus:bg-white transition-all appearance-none text-gray-900 font-medium"
+                    className="w-full pl-4 pr-10 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-4 focus:ring-primary-600/10 focus:border-primary-600 focus:bg-white transition-all appearance-none text-gray-900 font-medium"
                   >
                     <option value="">Choose a department...</option>
                     {departments.map((dept) => (
@@ -157,7 +157,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   placeholder="e.g. Need assistance with server migration"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-primary-600/10 focus:border-primary-600 focus:bg-white transition-all text-gray-900 font-medium placeholder:text-gray-400"
+                  className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-4 focus:ring-primary-600/10 focus:border-primary-600 focus:bg-white transition-all text-gray-900 font-medium placeholder:text-gray-400"
                 />
               </div>
 
@@ -172,7 +172,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-2xl focus:ring-4 focus:ring-primary-600/10 focus:border-primary-600 focus:bg-white transition-all text-gray-900 font-medium placeholder:text-gray-400 resize-none"
+                  className="w-full px-4 py-3.5 bg-gray-50 border-2 border-gray-100 rounded-xl focus:ring-4 focus:ring-primary-600/10 focus:border-primary-600 focus:bg-white transition-all text-gray-900 font-medium placeholder:text-gray-400 resize-none"
                 />
               </div>
 
@@ -187,7 +187,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     <button
                       key={opt.id}
                       onClick={() => setPriority(opt.id)}
-                      className={`py-3 rounded-2xl text-xs font-bold border-2 transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
+                      className={`py-3 rounded-xl text-xs font-bold border-2 transition-all duration-300 flex flex-col items-center justify-center gap-1 ${
                         priority === opt.id 
                           ? `${opt.color.replace('bg-opacity-50', 'bg-opacity-100')} border-transparent scale-105 shadow-md` 
                           : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'
@@ -201,17 +201,17 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             </div>
 
             {/* Footer */}
-            <div className="p-8 bg-gray-50/80 border-t border-gray-100 flex justify-end gap-3">
+            <div className="p-8 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
               <button
                 onClick={onClose}
-                className="px-8 py-3.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-2xl transition-all"
+                className="px-8 py-3.5 text-sm font-bold text-gray-600 hover:bg-gray-100 rounded-xl transition-all"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="px-10 py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-2xl font-bold shadow-lg shadow-primary-200 transition-all disabled:opacity-50 flex items-center gap-2 hover:scale-[1.02] active:scale-95"
+                className="px-10 py-3.5 bg-primary-600 hover:bg-primary-700 text-white rounded-xl font-bold shadow-lg shadow-primary-200 transition-all disabled:opacity-50 flex items-center gap-2 hover:scale-[1.02] active:scale-95"
               >
                 {isSubmitting ? (
                   <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
