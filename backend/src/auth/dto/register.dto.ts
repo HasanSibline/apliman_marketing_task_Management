@@ -7,7 +7,7 @@ import {
   Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { UserRole } from '../../types/prisma';
+import { UserRole, StrategyAccess } from '../../types/prisma';
 
 export class RegisterDto {
   @ApiProperty({
@@ -81,11 +81,14 @@ export class RegisterDto {
   @IsOptional()
   @IsString()
   managerId?: string;
+
   @ApiProperty({
     description: 'Grant access to Quarters and Objectives',
+    enum: StrategyAccess,
     required: false,
-    default: false,
+    default: StrategyAccess.NONE,
   })
   @IsOptional()
-  canAccessStrategy?: boolean;
+  @IsEnum(StrategyAccess, { message: 'Strategy access must be NONE, READ, or EDIT' })
+  strategyAccess?: StrategyAccess;
 }

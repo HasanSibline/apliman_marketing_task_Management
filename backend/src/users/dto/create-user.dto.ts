@@ -6,7 +6,7 @@ import {
   IsOptional,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { UserRole } from '../../types/prisma';
+import { UserRole, StrategyAccess } from '../../types/prisma';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -81,10 +81,13 @@ export class CreateUserDto {
   isTicketApprover?: boolean;
 
   @ApiProperty({
-    description: 'Whether the user can access strategy features',
+    description: 'Strategy access level',
+    enum: StrategyAccess,
     required: false,
+    default: StrategyAccess.NONE,
   })
   @IsOptional()
-  canAccessStrategy?: boolean;
+  @IsEnum(StrategyAccess, { message: 'Strategy access must be NONE, READ, or EDIT' })
+  strategyAccess?: StrategyAccess;
 }
 

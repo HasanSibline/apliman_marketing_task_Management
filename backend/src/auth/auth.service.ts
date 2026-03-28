@@ -78,7 +78,7 @@ export class AuthService {
         position: user.position,
         status: user.status,
         companyId: user.companyId,
-        canAccessStrategy: user.canAccessStrategy,
+        strategyAccess: user.strategyAccess,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
       },
       accessToken,
@@ -115,7 +115,7 @@ export class AuthService {
         position: user.position,
         status: user.status,
         companyId: null,
-        canAccessStrategy: user.canAccessStrategy,
+        strategyAccess: user.strategyAccess,
       },
       access_token,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
@@ -193,7 +193,7 @@ export class AuthService {
       const existingUsers = await this.usersService.findAll(undefined, undefined, targetCompanyId);
       const companyRecord = await this.usersService.findCompanyById(targetCompanyId);
       if (companyRecord && (companyRecord as any).maxUsers) {
-        const activeUserCount = existingUsers.filter(u => u.status !== 'RETIRED').length;
+        const activeUserCount = existingUsers.filter(u => u.status !== UserStatus.RETIRED).length;
         if (activeUserCount >= (companyRecord as any).maxUsers) {
           throw new BadRequestException(
             `User limit reached. Your plan allows a maximum of ${(companyRecord as any).maxUsers} users. ` +
@@ -251,7 +251,7 @@ export class AuthService {
         position: fullUser.position,
         status: fullUser.status,
         companyId: fullUser.companyId,
-        canAccessStrategy: fullUser.canAccessStrategy,
+        strategyAccess: fullUser.strategyAccess,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
       },
       accessToken,

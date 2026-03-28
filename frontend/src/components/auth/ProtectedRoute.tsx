@@ -19,7 +19,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles, checkS
   const isAdmin = user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
 
   if (checkStrategy) {
-    if (!isAdmin && !user?.canAccessStrategy) {
+    if (!isAdmin && (!user?.strategyAccess || user.strategyAccess === 'NONE')) {
       return <Navigate to="/dashboard" replace />
     }
   } else if (roles && user && !roles.includes(user.role)) {

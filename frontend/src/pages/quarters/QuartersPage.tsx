@@ -246,6 +246,7 @@ const QuartersPage: React.FC = () => {
     const navigate = useNavigate()
     const { user } = useAppSelector(state => state.auth)
     const isAdmin = ['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role ?? '')
+    const canEdit = isAdmin || user?.strategyAccess === 'EDIT'
     const [quarters, setQuarters] = useState<Quarter[]>([])
     const [loading, setLoading] = useState(true)
     const [showCreate, setShowCreate] = useState(false)
@@ -310,7 +311,7 @@ const QuartersPage: React.FC = () => {
                         <h1 className="text-3xl font-bold mb-1">Quarters</h1>
                         <p className="text-primary-100">Manage task cycles and track quarterly performance</p>
                     </div>
-                    {isAdmin && (
+                    {canEdit && (
                         <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white text-primary-700 rounded-lg font-semibold text-sm hover:bg-primary-50 transition">
                             <PlusIcon className="h-4 w-4" />
                             New Quarter
@@ -357,7 +358,7 @@ const QuartersPage: React.FC = () => {
                     <CalendarIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500 font-medium">No quarters yet</p>
                     <p className="text-sm text-gray-400 mb-4">Create your first quarter to start tracking task cycles</p>
-                    {isAdmin && (
+                    {canEdit && (
                         <button onClick={() => setShowCreate(true)} className="btn-primary">Create First Quarter</button>
                     )}
                 </div>
@@ -425,7 +426,7 @@ const QuartersPage: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <div className="flex items-center justify-end gap-3">
-                                                    {q.status === 'ACTIVE' && (
+                                                    {q.status === 'ACTIVE' && canEdit && (
                                                         <button 
                                                             onClick={(e) => { e.stopPropagation(); openCloseModal(q); }}
                                                             className="text-xs px-3 py-1.5 border border-gray-300 rounded-lg text-gray-600 hover:bg-gray-100 transition font-medium flex items-center gap-1.5"

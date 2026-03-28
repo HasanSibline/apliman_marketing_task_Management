@@ -256,8 +256,13 @@ export default function CreateCompany() {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    // Fallback for browsers with poor webp support
+    const type = file.type || (file.name.toLowerCase().endsWith('.webp') ? 'image/webp' : '');
+    console.log(`Logo selected: ${file.name}, type: ${type}, size: ${file.size}`);
+
     if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return; }
-    if (!file.type.startsWith('image/')) { toast.error('Images only'); return; }
+    if (!type.startsWith('image/')) { toast.error('Images only'); return; }
     setLogoFile(file);
     const reader = new FileReader();
     reader.onloadend = () => setLogoPreview(reader.result as string);

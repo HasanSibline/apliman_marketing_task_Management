@@ -13,7 +13,7 @@ export interface User {
   subscriptionPlan?: string | null
   departmentId?: string | null
   managerId?: string | null
-  canAccessStrategy?: boolean
+  strategyAccess: 'NONE' | 'READ' | 'EDIT'
 }
 
 interface AuthState {

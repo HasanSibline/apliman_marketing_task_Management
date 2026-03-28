@@ -21,8 +21,8 @@ export class UsersService {
     try {
       // Check user limits (skip for system admins)
       if (createUserDto.companyId) {
-        const limits = await this.companiesService.getCompanyResourceLimits(createUserDto.companyId) as any;
-        if (limits && (limits.maxUsers as number) !== -1) {
+        const limits = await this.companiesService.getCompanyResourceLimits(createUserDto.companyId);
+        if (limits && limits.maxUsers !== -1) {
           const currentUsers = await this.prisma.user.count({
             where: {
               companyId: createUserDto.companyId,
@@ -48,7 +48,7 @@ export class UsersService {
           companyId: true,
           position: true,
           status: true,
-          canAccessStrategy: true,
+          strategyAccess: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -96,7 +96,7 @@ export class UsersService {
         departmentId: true,
         managerId: true,
         isTicketApprover: true,
-        canAccessStrategy: true,
+        strategyAccess: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
@@ -127,7 +127,7 @@ export class UsersService {
         departmentId: true,
         managerId: true,
         isTicketApprover: true,
-        canAccessStrategy: true,
+        strategyAccess: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
@@ -158,7 +158,7 @@ export class UsersService {
         departmentId: true,
         managerId: true,
         isTicketApprover: true,
-        canAccessStrategy: true,
+        strategyAccess: true,
         createdAt: true,
         updatedAt: true,
         lastActiveAt: true,
@@ -199,7 +199,7 @@ export class UsersService {
           companyId: true,
           position: true,
           status: true,
-          canAccessStrategy: true,
+          strategyAccess: true,
           createdAt: true,
           updatedAt: true,
           lastActiveAt: true,

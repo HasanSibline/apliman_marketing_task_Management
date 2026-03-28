@@ -1,6 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["postgresqlExtensions"]
+  output          = "../node_modules/@prisma/client"
 }
 
 datasource db {
@@ -215,7 +216,7 @@ model User {
   departmentId       String?           // LINKED DEPARTMENT
   managerId          String?           // REPORTING STRUCTURE
   isTicketApprover   Boolean           @default(false)
-  canAccessStrategy  Boolean           @default(false)
+  strategyAccess     StrategyAccess    @default(NONE)
   status             UserStatus        @default(OFFLINE)
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
@@ -679,4 +680,10 @@ enum ObjectiveStatus {
   OFF_TRACK
   COMPLETED
   CANCELLED
+}
+
+enum StrategyAccess {
+  NONE
+  READ
+  EDIT
 }

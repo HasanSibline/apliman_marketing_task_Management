@@ -206,7 +206,12 @@ export class FilesService {
 
   private async compressImage(file: Express.Multer.File): Promise<Express.Multer.File> {
     try {
-      const outputPath = file.path.replace(path.extname(file.path), '_compressed.webp');
+      const dir = path.dirname(file.path);
+      const ext = path.extname(file.path);
+      const base = path.basename(file.path, ext);
+      const outputPath = path.join(dir, `${base}_compressed.webp`);
+      
+      console.log(`Compressing image: ${file.path} -> ${outputPath}`);
       
       await sharp(file.path)
         .resize(1920, 1080, { 
@@ -231,6 +236,7 @@ export class FilesService {
         path: outputPath,
         size: stats.size,
         filename: path.basename(outputPath),
+        mimetype: 'image/webp'
       };
     } catch (error) {
       console.error('Image compression error:', error);

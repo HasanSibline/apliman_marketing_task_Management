@@ -22,4 +22,8 @@ export enum TaskPhase {
   COMPLETED = 'COMPLETED',
   ARCHIVED = 'ARCHIVED',
 }
-
+export enum StrategyAccess {
+  NONE = 'NONE',
+  READ = 'READ',
+  EDIT = 'EDIT',
+}

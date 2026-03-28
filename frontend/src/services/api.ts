@@ -160,7 +160,7 @@ export const usersApi = {
     departmentId?: string
     managerId?: string
     isTicketApprover?: boolean
-    canAccessStrategy?: boolean
+    strategyAccess?: string
   }): Promise<any> => {
     const response = await api.post('/auth/register', data)
     return response.data

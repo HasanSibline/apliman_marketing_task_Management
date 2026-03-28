@@ -114,7 +114,6 @@ function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string
     )
 }
 
-// (ObjectiveCard replaced by expandable table row)
 // ─── Create Objective Modal ───────────────────────────────────────────────────
 function CreateObjectiveModal({
     quarters, onClose, onCreated,
@@ -183,6 +182,7 @@ function CreateObjectiveModal({
 const ObjectivesPage: React.FC = () => {
     const { user } = useAppSelector(state => state.auth)
     const isAdmin = ['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role ?? '')
+    const canEdit = isAdmin || user?.strategyAccess === 'EDIT'
     const [objectives, setObjectives] = useState<Objective[]>([])
     const [quarters, setQuarters] = useState<Quarter[]>([])
     const [loading, setLoading] = useState(true)
@@ -301,7 +301,7 @@ const ObjectivesPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-3">
-                            {isAdmin && (
+                            {canEdit && (
                                 <button onClick={() => deleteObjective(obj.id)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete Objective">
                                     <TrashIcon className="h-4 w-4" />
                                 </button>
@@ -312,15 +312,15 @@ const ObjectivesPage: React.FC = () => {
                         </div>
                     </td>
                 </motion.tr>
-                {(expanded || (isAdmin && obj.keyResults.length === 0)) && (
+                {(expanded || (canEdit && obj.keyResults.length === 0)) && (
                     <tr className="bg-gray-50/50">
                         <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100">
                             <div className="pl-14 pr-8 space-y-3">
                                 {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Key Results</h4>}
                                 {obj.keyResults.map(kr => (
-                                    <KRBar key={kr.id} kr={kr} canEdit={isAdmin} onUpdate={updateKR} />
+                                    <KRBar key={kr.id} kr={kr} canEdit={canEdit} onUpdate={updateKR} />
                                 ))}
-                                {isAdmin && !addingKR && (
+                                {canEdit && !addingKR && (
                                     <button onClick={() => setAddingKR(true)} className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium pt-1">
                                         <PlusIcon className="h-3.5 w-3.5" /> {obj.keyResults.length === 0 ? 'Add first key result' : 'Add key result'}
                                     </button>
@@ -379,7 +379,7 @@ const ObjectivesPage: React.FC = () => {
                                 Analytics
                             </button>
                         </div>
-                        {isAdmin && (
+                        {canEdit && (
                             <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 transition shadow-sm border border-primary-200">
                                 <PlusIcon className="h-4 w-4 stroke-2" />
                                 New Objective
@@ -409,54 +409,54 @@ const ObjectivesPage: React.FC = () => {
                         ))}
                     </div>
 
-            {/* Filters */}
-            <div className="flex gap-3 flex-wrap">
-                <select value={filterQuarter} onChange={e => setFilterQuarter(e.target.value)}
-                    className="select-field w-auto text-sm">
-                    <option value="">All quarters</option>
-                    {quarters.map(q => <option key={q.id} value={q.id}>{q.name} {q.year}</option>)}
-                </select>
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-                    className="select-field w-auto text-sm">
-                    <option value="">All statuses</option>
-                    {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                </select>
-            </div>
-
-            {/* Objectives Table */}
-            {loading ? (
-                <div className="flex justify-center py-12"><div className="spinner h-8 w-8" /></div>
-            ) : filtered.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-                    <FlagIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                    <p className="text-gray-500 font-medium">No objectives yet</p>
-                    <p className="text-sm text-gray-400 mb-4">Create your first objective to track company goals</p>
-                    {isAdmin && (
-                        <button onClick={() => setShowCreate(true)} className="btn-primary">Create First Objective</button>
-                    )}
-                </div>
-            ) : (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Objective & Progress</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Quarter</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                    <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Key Results</th>
-                                    <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-100">
-                                {filtered.map(obj => (
-                                    <ExpanderRow key={obj.id} obj={obj} />
-                                ))}
-                            </tbody>
-                        </table>
+                    {/* Filters */}
+                    <div className="flex gap-3 flex-wrap">
+                        <select value={filterQuarter} onChange={e => setFilterQuarter(e.target.value)}
+                            className="select-field w-auto text-sm">
+                            <option value="">All quarters</option>
+                            {quarters.map(q => <option key={q.id} value={q.id}>{q.name} {q.year}</option>)}
+                        </select>
+                        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                            className="select-field w-auto text-sm">
+                            <option value="">All statuses</option>
+                            {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                        </select>
                     </div>
-                </div>
-            )}
+
+                    {/* Objectives Table */}
+                    {loading ? (
+                        <div className="flex justify-center py-12"><div className="spinner h-8 w-8" /></div>
+                    ) : filtered.length === 0 ? (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                            <FlagIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                            <p className="text-gray-500 font-medium">No objectives yet</p>
+                            <p className="text-sm text-gray-400 mb-4">Create your first objective to track company goals</p>
+                            {canEdit && (
+                                <button onClick={() => setShowCreate(true)} className="btn-primary">Create First Objective</button>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full divide-y divide-gray-200">
+                                    <thead className="bg-gray-50">
+                                        <tr>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Objective & Progress</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Quarter</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Key Results</th>
+                                            <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="bg-white divide-y divide-gray-100">
+                                        {filtered.map(obj => (
+                                            <ExpanderRow key={obj.id} obj={obj} />
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
                 </>
             )}
         </div>

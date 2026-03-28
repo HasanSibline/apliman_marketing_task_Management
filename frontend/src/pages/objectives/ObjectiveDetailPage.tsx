@@ -60,6 +60,7 @@ const ObjectiveDetailPage: React.FC = () => {
     const navigate = useNavigate()
     const { user } = useAppSelector((state: any) => state.auth)
     const isAdmin = ['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role ?? '')
+    const canEdit = isAdmin || user?.strategyAccess === 'EDIT'
 
     const [obj, setObj] = useState<ObjectiveDetail | null>(null)
     const [loading, setLoading] = useState(true)
@@ -214,7 +215,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                 </div>
                                 <h2 className="text-lg font-bold text-gray-900 tracking-tight">Key Results</h2>
                             </div>
-                            {isAdmin && (
+                            {canEdit && (
                                 <button
                                     onClick={() => setAddingKR(true)}
                                     className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-bold hover:bg-primary-700 transition shadow-sm active:scale-95"
@@ -244,7 +245,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                         <h4 className="text-sm font-black text-gray-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight leading-tight">{kr.title}</h4>
                                                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target: {kr.targetValue} {kr.unit}</p>
                                                     </div>
-                                                    {isAdmin && (
+                                                    {canEdit && (
                                                         <button
                                                             onClick={() => {
                                                                 setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit })
@@ -305,7 +306,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                 </div>
                                 <h2 className="text-lg font-bold text-gray-900 tracking-tight">Linked Tasks</h2>
                             </div>
-                            {isAdmin && (
+                            {canEdit && (
                                 <button
                                     onClick={() => { setShowLinkTask(true); fetchAvailableTasks() }}
                                     className="p-1.5 text-gray-400 hover:text-primary-600 transition"
@@ -360,7 +361,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-1 shrink-0">
-                                                {isAdmin && (
+                                                {canEdit && (
                                                     <button
                                                         onClick={() => unlinkTask(task.id)}
                                                         className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"

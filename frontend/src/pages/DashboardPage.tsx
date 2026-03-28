@@ -26,7 +26,7 @@ const DashboardPage: React.FC = () => {
   const [activeQuarter, setActiveQuarter] = useState<any>(null)
 
   const isAdmin = user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
-  const hasStrategyAccess = isAdmin || user?.canAccessStrategy
+  const hasStrategyAccess = isAdmin || (user?.strategyAccess && user.strategyAccess !== 'NONE')
 
   useEffect(() => {
     dispatch(fetchDashboardAnalytics())

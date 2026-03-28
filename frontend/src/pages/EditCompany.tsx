@@ -123,12 +123,16 @@ export default function EditCompany() {
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Fallback for browsers with poor webp support
+      const type = file.type || (file.name.toLowerCase().endsWith('.webp') ? 'image/webp' : '');
+      console.log(`Edit logo selected: ${file.name}, type: ${type}, size: ${file.size}`);
+
       if (file.size > 5 * 1024 * 1024) {
         toast.error('File size must be less than 5MB');
         return;
       }
 
-      if (!file.type.startsWith('image/')) {
+      if (!type.startsWith('image/')) {
         toast.error('Please select an image file');
         return;
       }

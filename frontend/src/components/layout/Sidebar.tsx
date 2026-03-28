@@ -39,7 +39,7 @@ const Sidebar: React.FC = () => {
 
   const filteredNavigation = navigation.filter(item => {
     if (item.adminOnly && !isAdmin) return false
-    if (item.strategyOnly && !isAdmin && !user?.canAccessStrategy) return false
+    if (item.strategyOnly && !isAdmin && (user?.strategyAccess === 'NONE' || !user?.strategyAccess)) return false
     return true
   })
 

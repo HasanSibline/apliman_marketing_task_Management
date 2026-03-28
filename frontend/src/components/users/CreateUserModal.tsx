@@ -26,7 +26,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
     departmentId: '',
     managerId: '',
     isTicketApprover: false,
-    canAccessStrategy: false,
+    strategyAccess: 'NONE' as 'NONE' | 'READ' | 'EDIT',
   })
 
   const [departments, setDepartments] = useState<any[]>([])
@@ -99,7 +99,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         departmentId: formData.departmentId || undefined,
         managerId: formData.managerId || undefined,
         isTicketApprover: formData.isTicketApprover,
-        canAccessStrategy: formData.canAccessStrategy,
+        strategyAccess: formData.strategyAccess,
       })
       
       console.log('User created successfully!')
@@ -115,7 +115,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         departmentId: '',
         managerId: '',
         isTicketApprover: false,
-        canAccessStrategy: false,
+        strategyAccess: 'NONE',
       })
       setErrors({})
     } catch (error: any) {
@@ -275,19 +275,20 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                   </div>
 
                   {/* Strategy Access */}
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      id="canAccessStrategy"
-                      name="canAccessStrategy"
-                      checked={formData.canAccessStrategy}
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="strategyAccess" className="text-sm font-semibold text-gray-900 leading-none">Strategy Access</label>
+                    <select
+                      id="strategyAccess"
+                      name="strategyAccess"
+                      value={formData.strategyAccess}
                       onChange={handleChange}
-                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
-                    />
-                    <label htmlFor="canAccessStrategy" className="flex flex-col cursor-pointer">
-                      <span className="text-sm font-semibold text-gray-900 leading-none">Can Access Strategy</span>
-                      <span className="text-[10px] text-gray-500 mt-1">View/Manage Quarters and Objectives</span>
-                    </label>
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    >
+                      <option value="NONE">No Access</option>
+                      <option value="READ">Read Only (View strategy)</option>
+                      <option value="EDIT">Full Edit (Manage strategy)</option>
+                    </select>
+                    <span className="text-[10px] text-gray-500">Determines visibility and control over Quarters and Objectives</span>
                   </div>
                 </div>
 
