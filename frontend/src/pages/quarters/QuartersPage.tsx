@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -6,12 +6,14 @@ import {
     CheckCircleIcon,
     XMarkIcon,
     FlagIcon,
-    CalendarIcon,
     LockClosedIcon,
     FolderIcon,
     InboxIcon,
     EyeIcon,
     TicketIcon,
+    ChevronLeftIcon,
+    ChevronRightIcon,
+    ArchiveBoxIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
@@ -50,6 +52,11 @@ const STATUS_CONFIG = {
 }
 
 const QUARTER_NAMES = ['Q1', 'Q2', 'Q3', 'Q4']
+
+const SCROLLBAR_SHIELD = `
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
 
 // ─── Create Quarter Modal ─────────────────────────────────────────────────────
 function CreateQuarterModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
@@ -260,6 +267,7 @@ const QuartersPage: React.FC = () => {
     const [showCreate, setShowCreate] = useState(false)
     const [closeTarget, setCloseTarget] = useState<QuarterDetail | null>(null)
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+    const scrollRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => { 
         fetchQuarters();
@@ -305,6 +313,17 @@ const QuartersPage: React.FC = () => {
         }
     }
 
+    const scrollShelf = (direction: 'left' | 'right') => {
+        if (!scrollRef.current) return
+        const amount = direction === 'left' ? -300 : 300
+        scrollRef.current.scrollBy({ left: amount, behavior: 'smooth' })
+    }
+
+    const isYearCompleted = (year: number) => {
+        const yearQuarters = quartersByYear[year] || []
+        return yearQuarters.length === 4 && yearQuarters.every(q => q.status === 'CLOSED')
+    }
+
     // Role-based visibility: Employees only see ACTIVE/CLOSED
     const filteredQuarters = quarters.filter(q => isAdmin || q.status !== 'UPCOMING')
     
@@ -319,6 +338,7 @@ const QuartersPage: React.FC = () => {
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12">
+            <style>{SCROLLBAR_SHIELD}</style>
             {showCreate && (
                 <CreateQuarterModal
                     onClose={() => setShowCreate(false)}
@@ -356,11 +376,11 @@ const QuartersPage: React.FC = () => {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
             </div>
 
-            {/* Strategic Roadmap (Immersive Folder Grid) */}
-            <div className="space-y-6">
+            {/* Strategy Vault Shelf (Horizontal Scroll) */}
+            <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-xl font-black text-gray-900 tracking-tight">Strategy Vaults</h2>
-                    <div className="flex items-center gap-4 text-xs font-bold text-gray-500">
+                    <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase">Strategy Vaults</h2>
+                    <div className="flex items-center gap-4 text-[10px] font-bold text-gray-500">
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Active</span>
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Planned</span>
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-gray-400" /> Archived</span>
@@ -368,84 +388,115 @@ const QuartersPage: React.FC = () => {
                 </div>
 
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-20 gap-3">
-                        <div className="spinner h-10 w-10 border-4 border-primary-500 border-t-transparent animate-spin rounded-full" />
-                        <p className="text-sm font-bold text-gray-400 animate-pulse">Syncing Vaults...</p>
-                    </div>
-                ) : years.length === 0 ? (
-                    <div className="bg-white rounded-3xl p-16 text-center shadow-sm border-2 border-dashed border-gray-100">
-                        <CalendarIcon className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-gray-900">No Vaults Found</h3>
-                        <p className="text-gray-500 mb-6 max-w-sm mx-auto">Create your first strategic year to begin organizing your work into cycles.</p>
-                        {isAdmin && (
-                            <button onClick={() => setShowCreate(true)} className="btn-primary">Initialize 2026</button>
-                        )}
+                    <div className="flex flex-col items-center justify-center py-10 gap-2">
+                        <div className="spinner h-8 w-8 border-2 border-primary-500 border-t-transparent animate-spin rounded-full" />
                     </div>
                 ) : (
-                    <div className="space-y-10">
-                        {/* Folder Shelf */}
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 px-2">
+                    <div className="relative group">
+                        {/* Scroll Arrows */}
+                        <button 
+                            onClick={() => scrollShelf('left')}
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 shadow-lg rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity -ml-4"
+                        >
+                            <ChevronLeftIcon className="h-4 w-4 text-gray-600" />
+                        </button>
+                        <button 
+                            onClick={() => scrollShelf('right')}
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 shadow-lg rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity -mr-4"
+                        >
+                            <ChevronRightIcon className="h-4 w-4 text-gray-600" />
+                        </button>
+
+                        <div 
+                            ref={scrollRef}
+                            className="flex overflow-x-auto gap-4 px-2 pb-6 no-scrollbar snap-x scroll-smooth"
+                        >
                             {years.map(year => (
                                 <motion.button
                                     key={year}
-                                    whileHover={{ y: -8, scale: 1.02 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileHover={{ y: -4 }}
                                     onClick={() => setSelectedYear(year)}
-                                    className="relative group flex flex-col items-center"
+                                    className={`flex-none snap-start w-28 group relative flex flex-col items-center transition-all ${selectedYear === year ? 'scale-105' : 'opacity-70 hover:opacity-100'}`}
                                 >
-                                    {/* Physical Folder Visual */}
-                                    <div className="relative w-full aspect-[4/3]">
+                                    {/* Win Folder Visual (Smaller) */}
+                                    <div className="relative w-16 h-14 mb-2">
                                         {/* Folder Tab */}
-                                        <div className={`absolute top-0 left-0 w-12 h-3 rounded-t-lg transition-colors duration-300
-                                            ${selectedYear === year ? 'bg-primary-500' : 'bg-gray-300 group-hover:bg-gray-400'}`} />
+                                        <div className={`absolute top-0 left-0 w-6 h-1.5 rounded-t-sm transition-colors duration-300
+                                            ${selectedYear === year ? 'bg-primary-600' : 'bg-gray-400'}`} />
                                         
                                         {/* Folder Body */}
-                                        <div className={`absolute top-2 inset-0 rounded-xl rounded-tl-none shadow-xl transition-all duration-300 border-2
+                                        <div className={`absolute top-1 inset-0 rounded-sm shadow-md border transition-all duration-300
                                             ${selectedYear === year 
-                                                ? 'bg-primary-600 border-primary-500 ring-4 ring-primary-500/20' 
-                                                : 'bg-white border-gray-100 group-hover:border-gray-200'}`}
+                                                ? 'bg-primary-500 border-primary-400' 
+                                                : isYearCompleted(year) ? 'bg-gray-100 border-gray-200' : 'bg-white border-gray-300'}`}
                                         >
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
-                                                <FolderIcon className={`h-8 w-8 transition-colors duration-300 ${selectedYear === year ? 'text-white' : 'text-gray-300 group-hover:text-primary-400'}`} />
-                                                <span className={`text-base font-black mt-2 transition-colors duration-300 ${selectedYear === year ? 'text-white' : 'text-gray-900'}`}>{year}</span>
+                                            <div className="absolute inset-0 flex items-center justify-center">
+                                                <FolderIcon className={`h-6 w-6 transition-colors ${selectedYear === year ? 'text-white' : 'text-gray-300'}`} />
                                             </div>
 
-                                            {/* Quarter Indicators inside folder body (dots) */}
-                                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                                                {quartersByYear[year].map(q => (
-                                                    <div key={q.id} className={`h-1.5 w-1.5 rounded-full ${q.status === 'CLOSED' ? 'bg-gray-400/50' : q.status === 'ACTIVE' ? 'bg-green-400' : 'bg-indigo-400'}`} />
+                                            {/* Quarter Indicators */}
+                                            <div className="absolute bottom-1 left-1.2 flex gap-0.5 justify-center w-full">
+                                                {quartersByYear[year]?.map(q => (
+                                                    <div key={q.id} className={`h-1 w-1 rounded-full ${q.status === 'CLOSED' ? 'bg-gray-400/50' : q.status === 'ACTIVE' ? 'bg-green-400' : 'bg-indigo-400'}`} />
                                                 ))}
                                             </div>
                                         </div>
                                     </div>
                                     
-                                    {/* Year Label */}
-                                    <div className="mt-3 flex flex-col items-center">
-                                        <span className={`text-[10px] font-black uppercase tracking-widest transition-colors
-                                            ${selectedYear === year ? 'text-primary-600' : 'text-gray-400'}`}>
-                                            Strategy Vault
-                                        </span>
-                                    </div>
-
-                                    {/* Active Glow */}
+                                    <span className={`text-[11px] font-black transition-colors ${selectedYear === year ? 'text-primary-700' : 'text-gray-900 uppercase tracking-tight'}`}>{year}</span>
                                     {selectedYear === year && (
-                                        <motion.div layoutId="activeVaultGlow" className="absolute -inset-4 bg-primary-500/5 rounded-[2rem] blur-2xl -z-10" />
+                                        <motion.div layoutId="winFolderGlow" className="absolute -inset-2 bg-primary-100/50 rounded-lg -z-10" />
+                                    )}
+
+                                    {isYearCompleted(year) && (
+                                        <div className="absolute top-0 right-2">
+                                            <CheckCircleIcon className="h-3 w-3 text-green-500 bg-white rounded-full" />
+                                        </div>
                                     )}
                                 </motion.button>
                             ))}
                         </div>
+                    </div>
+                )}
 
-                        {/* Selected Vault Content */}
-                        <div className="relative">
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key={selectedYear}
-                                    initial={{ opacity: 0, x: 20 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -20 }}
-                                    transition={{ duration: 0.4, ease: "easeOut" }}
-                                    className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm"
-                                >
+                {/* Selected Vault Content */}
+                <div className="relative">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={selectedYear}
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm"
+                        >
+                            {/* Archive Filter: Logic to handle 'Shouldnt they stop appearing if closed' */}
+                            {isYearCompleted(selectedYear) ? (
+                                <div className="text-center py-12 px-6 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                                    <div className="p-4 bg-white rounded-full shadow-sm w-fit mx-auto mb-4 border border-gray-100">
+                                        <ArchiveBoxIcon className="h-10 w-10 text-gray-300" />
+                                    </div>
+                                    <h3 className="text-xl font-black text-gray-900 mb-2">{selectedYear} Strategy Successfully Archived</h3>
+                                    <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">This strategy year has been fully finalized. All cycles are closed and incomplete tasks were migrated to the Standby Vault or next cycle.</p>
+                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                        <button 
+                                            onClick={() => {
+                                                // Temporarily "unlock" the view for this session
+                                                setSelectedYear(selectedYear) // Toggle a local 'forcedShow' if needed
+                                                // For now, let's just show history if they click anyway
+                                            }}
+                                            className="px-6 py-2 bg-white text-gray-700 font-bold text-xs uppercase tracking-widest border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                                        >
+                                            Inspect Historical Records
+                                        </button>
+                                        {isAdmin && (
+                                            <button onClick={() => setShowCreate(true)} className="px-6 py-2 bg-primary-600 text-white font-bold text-xs uppercase tracking-widest rounded-lg hover:bg-primary-700 transition">
+                                                Initialize {selectedYear + 1}
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
                                     <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-100 gap-4">
                                         <div className="flex items-center gap-4">
                                             <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
@@ -454,16 +505,10 @@ const QuartersPage: React.FC = () => {
                                             <div>
                                                 <h3 className="text-xl font-black text-gray-900 leading-none mb-1">{selectedYear} Strategic Hub</h3>
                                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">
-                                                    Inside this vault: {quartersByYear[selectedYear]?.length || 0} Cycles · {quartersByYear[selectedYear]?.filter(q => q.status === 'CLOSED').length === 4 ? 'Fully Archived' : 'Cycle Planning'}
+                                                    Inside this vault: {quartersByYear[selectedYear]?.length || 0} Cycles · Cycle Planning
                                                 </p>
                                             </div>
                                         </div>
-                                        
-                                        {quartersByYear[selectedYear]?.filter(q => q.status === 'CLOSED').length === 4 && (
-                                            <span className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 text-gray-600 rounded-lg text-[10px] font-black uppercase tracking-wider border border-gray-100">
-                                                <CheckCircleIcon className="h-4 w-4" /> Full Year Strategy Completed
-                                            </span>
-                                        )}
                                     </div>
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -546,11 +591,11 @@ const QuartersPage: React.FC = () => {
                                             )
                                         })}
                                     </div>
-                                </motion.div>
-                            </AnimatePresence>
-                        </div>
-                    </div>
-                )}
+                                </>
+                            )}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </div>
 
             {/* Standby / Backlog Section (Aligned with Objectives Page) */}
