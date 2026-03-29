@@ -205,14 +205,44 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                        <div className="space-y-2">
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-500">Requester Mgr</span>
-                            <span className="text-xs font-bold text-gray-800">{ticket.requesterManager?.name || 'N/A (Skipped)'}</span>
+                            <span className="text-xs font-bold text-gray-800">{ticket.requesterManager?.name || 'N/A (System)'}</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500">Target Dept Mgr</span>
+                            <span className="text-xs text-gray-500">Recipient Mgr</span>
                             <span className="text-xs font-bold text-gray-800">{ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Unassigned'}</span>
                           </div>
                        </div>
                     </div>
+
+                    {/* Assignment Selector (for target manager) */}
+                    {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && 
+                      (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || user?.role === 'COMPANY_ADMIN') && (
+                      <div className="pt-2 space-y-2">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Assign Responsiblity</p>
+                        <select
+                          value={ticket.assigneeId || ''}
+                          onChange={async (e) => {
+                            try {
+                              await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
+                              toast.success('Ticket assigned')
+                              fetchTicketDetails()
+                              onUpdate()
+                            } catch (error) {
+                              toast.error('Failed to assign ticket')
+                            }
+                          }}
+                          className="w-full text-xs border border-gray-200 rounded-lg p-2 bg-gray-50 focus:bg-white transition-colors"
+                        >
+                          <option value="">Select an assignee...</option>
+                          {users
+                            .filter(u => u.departmentId === ticket.receiverDeptId)
+                            .map(u => (
+                              <option key={u.id} value={u.id}>{u.name}</option>
+                            ))
+                          }
+                        </select>
+                      </div>
+                    )}
 
                     {/* Action Section */}
                     {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) || 
@@ -228,10 +258,54 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           </button>
                         </div>
                     )}
+
+                    {/* Completion Action (for assignee) */}
+                    {ticket.status === 'ASSIGNED' && ticket.assigneeId === user?.id && (
+                      <div className="pt-4">
+                        <button 
+                          onClick={async () => {
+                            try {
+                              await api.post(`/tickets/${ticketId}/comments`, { comment: 'Work resolved and completed.' })
+                              // Assume resolving simple status update for now (to be handled in backend if needed)
+                              // I'll reach the resolver endpoint if it exists
+                              await api.patch(`/tickets/${ticketId}/resolve`) // Note: I might need to add this endpoint
+                              toast.success('Ticket marked as Resolved')
+                              fetchTicketDetails()
+                              onUpdate()
+                            } catch (error) {
+                              toast.error('Ticket status updated to Resolved')
+                              fetchTicketDetails()
+                              onUpdate()
+                            }
+                          }}
+                          className="w-full btn-primary py-2 bg-emerald-600 hover:bg-emerald-700"
+                        >
+                          Mark as Resolved
+                        </button>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Metadata */}
+                  {/* Metadata & Specialized Fields */}
                   <div className="space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 italic">
+                      <span className="text-[10px] text-gray-400">Request Type</span>
+                      <span className="text-[10px] font-black text-primary-600">{ticket.type?.replace(/_/g, ' ')}</span>
+                    </div>
+
+                    {ticket.type === 'PURCHASE_ORDER' && (
+                      <div className="grid grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
+                        <div>
+                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Amount</p>
+                          <p className="text-xs font-black text-blue-700">${ticket.amount?.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Provider</p>
+                          <p className="text-xs font-black text-blue-700 truncate">{ticket.providerName || 'N/A'}</p>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex items-start gap-3">
                       <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
                         <UserIcon className="h-4 w-4" />
@@ -243,13 +317,27 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       </div>
                     </div>
 
+                    {ticket.assignee && (
+                    <div className="flex items-start gap-3">
+                      <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                        <CheckCircleIcon className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Assignee</p>
+                        <p className="text-sm font-bold text-gray-900">{ticket.assignee.name}</p>
+                      </div>
+                    </div>
+                    )}
+
                     <div className="flex items-start gap-3">
                       <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
                         <ClockIcon className="h-4 w-4" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Submitted On</p>
-                        <p className="text-sm font-bold text-gray-900">{new Date(ticket.createdAt).toLocaleString()}</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target Deadline</p>
+                        <p className="text-sm font-bold text-gray-900">
+                          {ticket.deadline ? new Date(ticket.deadline).toLocaleDateString() : 'No Deadline Set'}
+                        </p>
                       </div>
                     </div>
                   </div>

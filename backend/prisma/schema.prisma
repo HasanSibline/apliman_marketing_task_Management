@@ -96,13 +96,19 @@ model Ticket {
   companyId          String
   title              String
   description        String
+  type               TicketType      @default(GENERAL)
   status             TicketStatus    @default(PENDING_REQ_MGR)
+  priority           String          @default("MEDIUM")
   isInternal         Boolean         @default(false)
   requesterId        String
   requesterManagerId String?
   receiverDeptId     String
   receiverManagerId  String?
   assigneeId         String?
+  amount             Float?
+  providerName       String?
+  deadline           DateTime?
+  isArchived         Boolean         @default(false)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
   taskId             String?         @unique
@@ -207,7 +213,7 @@ model User {
   departmentId        String?
   isTicketApprover    Boolean           @default(false)
   managerId           String?
-  canAccessStrategy   Boolean           @default(false)
+  strategyAccess      StrategyAccess    @default(NONE)
   chatSessions        ChatSession[]
   managedDepartment   Department?       @relation("DepartmentManager")
   knowledgeSources    KnowledgeSource[] @relation("KnowledgeSourceCreator")
@@ -631,6 +637,15 @@ enum TicketStatus {
   CANCELLED
 }
 
+enum TicketType {
+  GENERAL
+  PURCHASE_ORDER
+  IT_SUPPORT
+  DESIGN_REQUEST
+  LEGAL_CONTRACT
+  MARKETING_ASSET
+}
+
 enum UserRole {
   SUPER_ADMIN
   COMPANY_ADMIN
@@ -672,4 +687,10 @@ enum ObjectiveStatus {
   OFF_TRACK
   COMPLETED
   CANCELLED
+}
+
+enum StrategyAccess {
+  NONE
+  READ
+  EDIT
 }

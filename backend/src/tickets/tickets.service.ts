@@ -6,6 +6,14 @@ import { TicketStatus } from '@prisma/client';
 export class TicketsService {
   constructor(private prisma: PrismaService) {}
 
+  async resolve(id: string, userId: string, companyId: string) {
+    const ticket = await this.findOne(id, companyId);
+    return this.prisma.ticket.update({
+      where: { id },
+      data: { status: 'RESOLVED' }
+    });
+  }
+
   async findAll(companyId: string, departmentId?: string) {
     return this.prisma.ticket.findMany({
       where: {
@@ -51,24 +59,36 @@ export class TicketsService {
     return ticket;
   }
 
-  async create(companyId: string, userId: string, data: { title: string; description: string; receiverDeptId: string; isInternal?: boolean }) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+  async create(companyId: string, userId: string, data: { 
+    title: string; 
+    description: string; 
+    receiverDeptId: string; 
+    isInternal?: boolean;
+    type?: string;
+    priority?: string;
+    amount?: number;
+    providerName?: string;
+    deadline?: string;
+  }) {
+    const user = await this.prisma.user.findUnique({ 
+      where: { id: userId },
+      include: { department: true }
+    });
     if (!user) throw new NotFoundException('User not found');
 
     const ticketNumber = await this.generateTicketNumber(companyId);
     const receiverDept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
 
     // Determine initial status:
-    // If the requester has no manager, skip to PENDING_REC_MGR
+    // 1. If requester is system admin, skip to REC_MGR
+    // 2. If requester dept is SAME as receiver dept, skip to REC_MGR
+    // 3. Otherwise, use REQ_MGR
     let initialStatus: TicketStatus = TicketStatus.PENDING_REQ_MGR;
-    let receiverManagerId = null;
+    const isSameDept = user.departmentId === data.receiverDeptId;
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
 
-    if (!user.managerId || user.role === 'COMPANY_ADMIN' || user.role === 'SUPER_ADMIN') {
+    if (!user.managerId || isAdmin || isSameDept) {
       initialStatus = TicketStatus.PENDING_REC_MGR;
-      receiverManagerId = receiverDept?.managerId || null;
-      
-      // If no receiver manager either, and it's internal or direct, it could go to OPEN
-      // but usually we want someone in the target dept to see it.
     }
 
     return this.prisma.ticket.create({
@@ -77,11 +97,16 @@ export class TicketsService {
         ticketNumber,
         title: data.title,
         description: data.description,
+        type: (data.type as any) || 'GENERAL',
+        priority: data.priority || 'MEDIUM',
         receiverDeptId: data.receiverDeptId,
         requesterId: userId,
         requesterManagerId: user.managerId,
-        receiverManagerId: receiverManagerId,
-        isInternal: data.isInternal || false,
+        receiverManagerId: receiverDept?.managerId || null,
+        isInternal: data.isInternal || isSameDept || false,
+        amount: data.amount ? parseFloat(data.amount.toString()) : null,
+        providerName: data.providerName || null,
+        deadline: data.deadline ? new Date(data.deadline) : null,
         status: initialStatus,
       },
     });

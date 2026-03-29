@@ -17,8 +17,21 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [receiverDeptId, setReceiverDeptId] = useState('')
+  const [type, setType] = useState('GENERAL')
   const [priority, setPriority] = useState('MEDIUM')
+  const [deadline, setDeadline] = useState('')
+  const [amount, setAmount] = useState('')
+  const [providerName, setProviderName] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const ticketTypes = [
+    { id: 'GENERAL', label: 'General Request' },
+    { id: 'PURCHASE_ORDER', label: 'Purchase Order (PO)' },
+    { id: 'IT_SUPPORT', label: 'IT Support' },
+    { id: 'DESIGN_REQUEST', label: 'Design Request' },
+    { id: 'LEGAL_CONTRACT', label: 'Legal/Contract' },
+    { id: 'MARKETING_ASSET', label: 'Marketing Asset' }
+  ]
 
   useEffect(() => {
     if (isOpen) {
@@ -47,7 +60,11 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         title,
         description,
         receiverDeptId,
-        priority
+        type,
+        priority,
+        deadline: deadline || undefined,
+        amount: amount ? parseFloat(amount) : undefined,
+        providerName: providerName || undefined
       })
       toast.success('Ticket submitted successfully')
       resetForm()
@@ -64,15 +81,14 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     setTitle('')
     setDescription('')
     setReceiverDeptId('')
+    setType('GENERAL')
     setPriority('MEDIUM')
+    setDeadline('')
+    setAmount('')
+    setProviderName('')
   }
 
-  const priorityOptions = [
-    { id: 'LOW', label: 'Low', color: 'bg-slate-100 text-slate-600 border-slate-200' },
-    { id: 'MEDIUM', label: 'Medium', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    { id: 'HIGH', label: 'High', color: 'bg-amber-100 text-amber-700 border-amber-200' },
-    { id: 'URGENT', label: 'Urgent', color: 'bg-rose-100 text-rose-700 border-rose-200' }
-  ]
+
 
   return (
     <AnimatePresence>
@@ -106,21 +122,39 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
             {/* Form */}
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-              {/* Target Dept */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Target Department *
-                </label>
-                <select
-                  value={receiverDeptId}
-                  onChange={(e) => setReceiverDeptId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                >
-                  <option value="">Choose a department...</option>
-                  {departments.map((dept) => (
-                    <option key={dept.id} value={dept.id}>{dept.name}</option>
-                  ))}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Type */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Ticket Type *
+                  </label>
+                  <select
+                    value={type}
+                    onChange={(e) => setType(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    {ticketTypes.map((t) => (
+                      <option key={t.id} value={t.id}>{t.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Target Dept */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Department *
+                  </label>
+                  <select
+                    value={receiverDeptId}
+                    onChange={(e) => setReceiverDeptId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium"
+                  >
+                    <option value="">Choose a department...</option>
+                    {departments.map((dept) => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Title */}
@@ -137,6 +171,36 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 />
               </div>
 
+              {/* PO Specific Fields */}
+              {type === 'PURCHASE_ORDER' && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="grid grid-cols-2 gap-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Provider Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Amazon Web Services"
+                      value={providerName}
+                      onChange={(e) => setProviderName(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 1500.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
+                    />
+                  </div>
+                </motion.div>
+              )}
+
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -147,29 +211,40 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none font-medium text-gray-800"
                 />
               </div>
 
-              {/* Priority */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Request Priority
-                </label>
-                <div className="grid grid-cols-4 gap-2">
-                  {priorityOptions.map((opt) => (
-                    <button
-                      key={opt.id}
-                      onClick={() => setPriority(opt.id)}
-                      className={`py-2 px-2 rounded-md text-xs font-semibold border transition-all ${
-                        priority === opt.id 
-                          ? `${opt.color} border-transparent ring-2 ring-offset-1 ring-primary-500` 
-                          : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Deadline */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Deadline (SLA)
+                  </label>
+                  <input
+                    type="date"
+                    value={deadline}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setDeadline(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
+                  />
+                </div>
+
+                {/* Priority */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Priority
+                  </label>
+                  <select
+                    value={priority}
+                    onChange={(e) => setPriority(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="LOW">Low</option>
+                    <option value="MEDIUM">Medium</option>
+                    <option value="HIGH">High</option>
+                    <option value="URGENT">Urgent</option>
+                  </select>
                 </div>
               </div>
             </div>

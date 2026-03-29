@@ -52,4 +52,9 @@ export class TicketsController {
   addComment(@Param('id') id: string, @Body('comment') comment: string, @Request() req) {
     return this.ticketsService.addComment(id, req.user.id, comment, req.user.companyId);
   }
+
+  @Patch(':id/resolve')
+  resolve(@Param('id') id: string, @Request() req) {
+    return this.ticketsService.resolve(id, req.user.id, req.user.companyId);
+  }
 }
