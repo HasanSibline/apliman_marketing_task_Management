@@ -12,6 +12,7 @@ import {
     ChevronLeftIcon as ChevronLeftIconSolid,
     CalendarDaysIcon,
     UserCircleIcon,
+    ArchiveBoxIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
@@ -196,13 +197,21 @@ const QuarterDetailPage: React.FC = () => {
     return (
         <div className="space-y-6 max-w-6xl mx-auto pb-12">
             {/* Back & Breadcrumbs */}
-            <button
-                onClick={() => navigate('/quarters')}
-                className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-600 transition"
-            >
-                <ChevronLeftIcon className="h-4 w-4" />
-                Back to Quarters
-            </button>
+            <div className="flex items-center justify-between">
+                <button
+                    onClick={() => navigate(`/quarters?year=${quarter.year}`)}
+                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-600 transition"
+                >
+                    <ChevronLeftIcon className="h-4 w-4" />
+                    Back to Strategy Vault
+                </button>
+                {quarter.status === 'CLOSED' && (
+                    <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-full">
+                        <ArchiveBoxIcon className="h-4 w-4 text-gray-400" />
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Historical Record &middot; Read Only</span>
+                    </div>
+                )}
+            </div>
 
             {/* Header Section */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">

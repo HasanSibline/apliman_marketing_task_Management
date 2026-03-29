@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useLayoutEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
     PlusIcon,
@@ -270,9 +270,19 @@ const QuartersPage: React.FC = () => {
     const [showQuickCreate, setShowQuickCreate] = useState(false)
     const [movingTask, setMovingTask] = useState<Task | null>(null)
     const [closeTarget, setCloseTarget] = useState<QuarterDetail | null>(null)
-    const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+    const [searchParams, setSearchParams] = useSearchParams()
+    const urlYear = searchParams.get('year') ? parseInt(searchParams.get('year')!) : null
+
+    const [selectedYear, setSelectedYear] = useState<number>(urlYear || new Date().getFullYear())
+    const [hasAutoSelected, setHasAutoSelected] = useState(false)
     const [canScroll, setCanScroll] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
+
+    // Sync selected year with URL
+    const updateYearSelection = (year: number) => {
+        setSelectedYear(year)
+        setSearchParams({ year: year.toString() }, { replace: true })
+    }
 
     const fetchQuarters = async () => {
         setLoading(true)
@@ -281,9 +291,10 @@ const QuartersPage: React.FC = () => {
             setQuarters(data)
             
             const availableYears = Array.from(new Set(data.map((q: any) => q.year))).sort((a: any, b: any) => b - a) as number[]
-            const currentYear = new Date().getFullYear()
-            if (availableYears.length > 0 && !availableYears.includes(currentYear)) {
-                setSelectedYear(availableYears[0])
+            
+            // Smart select: If nothing in URL, and current selectedYear has no data, pick latest available
+            if (!urlYear && availableYears.length > 0 && !availableYears.includes(selectedYear)) {
+                updateYearSelection(availableYears[0])
             }
         } catch {
             toast.error('Failed to load strategy cycles')
@@ -358,10 +369,11 @@ const QuartersPage: React.FC = () => {
     }, [years])
 
     useEffect(() => {
-        if (years.length > 0 && !quartersByYear[selectedYear]) {
-            setSelectedYear(years[0])
+        if (!hasAutoSelected && years.length > 0 && !urlYear) {
+            updateYearSelection(years[0])
+            setHasAutoSelected(true)
         }
-    }, [years])
+    }, [years, hasAutoSelected, urlYear])
 
     useEffect(() => { 
         fetchQuarters();
@@ -394,23 +406,52 @@ const QuartersPage: React.FC = () => {
                             <button onClick={() => setMovingTask(null)} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
                         </div>
                         
-                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
-                            {quarters.filter(q => q.status !== 'CLOSED').map(q => (
-                                <button
-                                    key={q.id}
-                                    onClick={() => handleMoveTask(movingTask, q.id)}
-                                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-primary-500 hover:bg-primary-50 transition-all group"
-                                >
-                                    <div className="text-left">
-                                        <div className="text-sm font-bold text-gray-900">{q.name} {q.year}</div>
-                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{q.status}</div>
-                                    </div>
-                                    <ChevronRightIcon className="h-4 w-4 text-gray-300 group-hover:text-primary-500" />
-                                </button>
-                            ))}
-                            {quarters.filter(q => q.status !== 'CLOSED').length === 0 && (
-                                <p className="text-center py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">No active cycles available</p>
-                            )}
+                        <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
+                            {/* Active/Upcoming Roadmap */}
+                            <div>
+                                <p className="text-[10px] font-black text-primary-600 uppercase tracking-widest mb-2 px-1">Active Roadmap</p>
+                                <div className="space-y-1.5">
+                                    {quarters.filter(q => q.status !== 'CLOSED').map(q => (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => handleMoveTask(movingTask, q.id)}
+                                            className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                                        >
+                                            <div className="text-left">
+                                                <div className="text-sm font-bold text-gray-900">{q.name} {q.year}</div>
+                                                <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{q.status}</div>
+                                            </div>
+                                            <ChevronRightIcon className="h-4 w-4 text-gray-300 group-hover:text-primary-500" />
+                                        </button>
+                                    ))}
+                                    {quarters.filter(q => q.status !== 'CLOSED').length === 0 && (
+                                        <p className="py-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center italic bg-gray-50 rounded-lg">No active cycles available</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Archive History */}
+                            <div className="pt-2">
+                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1 flex items-center gap-1.5">
+                                    <ArchiveBoxIcon className="h-3 w-3" />
+                                    Strategic Archive
+                                </p>
+                                <div className="space-y-1.5 opacity-60 hover:opacity-100 transition-opacity">
+                                    {quarters.filter(q => q.status === 'CLOSED').map(q => (
+                                        <button
+                                            key={q.id}
+                                            onClick={() => handleMoveTask(movingTask, q.id)}
+                                            className="w-full flex items-center justify-between p-2.5 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all group"
+                                        >
+                                            <div className="text-left">
+                                                <div className="text-xs font-bold text-gray-600">{q.name} {q.year}</div>
+                                                <div className="text-[9px] text-gray-400 font-black uppercase tracking-tighter leading-none mt-1">Archived History</div>
+                                            </div>
+                                            <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-gray-600" />
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </motion.div>
                 </div>
@@ -504,7 +545,7 @@ const QuartersPage: React.FC = () => {
                             {years.map(year => (
                                 <button
                                     key={year}
-                                    onClick={() => setSelectedYear(year)}
+                                    onClick={() => updateYearSelection(year)}
                                     className={`flex-none snap-start w-28 group relative flex flex-col items-center pb-2 transition-all ${selectedYear === year ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                                 >
                                     {/* Win Folder Visual (Smaller) */}
@@ -513,25 +554,33 @@ const QuartersPage: React.FC = () => {
                                         <div className={`absolute top-0 left-0 w-6 h-1.5 rounded-t-sm transition-colors duration-300
                                             ${selectedYear === year ? 'bg-primary-600' : 'bg-gray-400'}`} />
                                         
+                                        {selectedYear === year && (
+                                            <div className="absolute -top-1 left-7 z-30">
+                                                <div className="bg-primary-600 rounded-full p-0.5 border border-white shadow-sm">
+                                                    <CheckCircleIcon className="h-3 w-3 text-white" />
+                                                </div>
+                                            </div>
+                                        )}
+                                        
                                         {/* Folder Body */}
                                         <div className={`absolute top-1 inset-0 rounded-sm shadow-md border transition-all duration-300
                                             ${selectedYear === year 
                                                 ? 'bg-primary-500 border-primary-400' 
-                                                : isYearCompleted(year) ? 'bg-gray-100 border-gray-200' : 'bg-white border-gray-300'}`}
+                                                : isYearCompleted(year) ? 'bg-gray-100 border-gray-200 shadow-none' : 'bg-white border-gray-300'}`}
                                         >
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <FolderIcon className={`h-6 w-6 transition-colors ${selectedYear === year ? 'text-white' : 'text-gray-300'}`} />
                                             </div>
 
                                             {/* Quarter Indicators */}
-                                            <div className="absolute bottom-1 left-1.2 flex gap-0.5 justify-center w-full">
+                                            <div className="absolute bottom-1 left-1.2 flex gap-0.5 justify-center w-full px-1">
                                                 {quartersByYear[year]?.map(q => (
-                                                    <div key={q.id} className={`h-1 w-1 rounded-full ${q.status === 'CLOSED' ? 'bg-gray-400/50' : q.status === 'ACTIVE' ? 'bg-green-400 shadow-[0_0_4px_rgba(74,222,128,0.5)]' : 'bg-indigo-400'}`} />
+                                                    <div key={q.id} className={`h-1 flex-1 rounded-full ${q.status === 'CLOSED' ? 'bg-gray-400/50' : q.status === 'ACTIVE' ? 'bg-green-400 shadow-[0_0_4px_rgba(74,222,128,0.5)]' : 'bg-indigo-400'}`} />
                                                 ))}
                                             </div>
                                         </div>
 
-                                        {/* Status Signs */}
+                                        {/* Status Signs - Only if NOT selected OR showing important status */}
                                         <div className="absolute -top-1 -right-1 z-20">
                                             {quartersByYear[year]?.some(q => q.status === 'ACTIVE') ? (
                                                 <div className="relative flex items-center justify-center">
@@ -540,9 +589,9 @@ const QuartersPage: React.FC = () => {
                                                         <SparklesIcon className="h-2 w-2 text-white" />
                                                     </div>
                                                 </div>
-                                            ) : isYearCompleted(year) ? (
+                                            ) : (isYearCompleted(year) && selectedYear !== year) ? (
                                                 <div className="h-4 w-4 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center">
-                                                    <CheckCircleIcon className="h-2.5 w-2.5 text-white" />
+                                                    <ArchiveBoxIcon className="h-2.5 w-2.5 text-white" />
                                                 </div>
                                             ) : null}
                                         </div>

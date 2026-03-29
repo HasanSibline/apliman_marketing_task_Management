@@ -163,7 +163,7 @@ export default function EditCompany() {
       const formDataUpload = new FormData();
       formDataUpload.append('file', logoFile);
 
-      const response = await api.post('/files/upload', formDataUpload, {
+      const response = await api.post('/files/upload/branding', formDataUpload, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

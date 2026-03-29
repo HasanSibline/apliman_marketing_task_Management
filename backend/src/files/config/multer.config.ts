@@ -18,14 +18,14 @@ export const multerConfig = (configService: ConfigService): MulterModuleOptions 
   return {
     storage: diskStorage({
       destination: (req, file, cb) => {
-        const taskId = req.params.taskId || 'temp';
-        const taskUploadPath = join(uploadPath, taskId);
+        const subfolder = req.params.taskId || req.params.folder || 'temp';
+        const targetPath = join(uploadPath, subfolder);
         
-        if (!existsSync(taskUploadPath)) {
-          mkdirSync(taskUploadPath, { recursive: true });
+        if (!existsSync(targetPath)) {
+          mkdirSync(targetPath, { recursive: true });
         }
         
-        cb(null, taskUploadPath);
+        cb(null, targetPath);
       },
       filename: (req, file, cb) => {
         const uniqueSuffix = `${uuidv4()}${extname(file.originalname)}`;

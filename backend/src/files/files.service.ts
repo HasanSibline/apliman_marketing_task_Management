@@ -22,13 +22,12 @@ export class FilesService {
         processedFile = await this.compressImage(file);
       }
 
-      // Return file path (relative to uploads directory)
       const fileName = path.basename(processedFile.path);
+      // Get the subfolder (e.g., 'temp', 'branding') from the file path
+      const subfolder = path.basename(path.dirname(processedFile.path));
       
-      // Construct the file URL
-      // In production, the frontend will request this through the API
-      // So we return a path relative to the API base
-      const fileUrl = `/api/files/public/${fileName}`;
+      // Construct the file URL (e.g., /api/files/public/branding/logo.webp)
+      const fileUrl = `/api/files/public/${subfolder}/${fileName}`;
       
       return {
         url: fileUrl,

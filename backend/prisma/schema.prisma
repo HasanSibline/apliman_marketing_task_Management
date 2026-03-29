@@ -1,7 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["postgresqlExtensions"]
   output          = "../node_modules/@prisma/client"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
@@ -35,87 +35,85 @@ model Company {
   chatSessions        ChatSession[]
   aiUsageStats        CompanyAIUsage[]
   settings            CompanySettings?
+  departments         Department[]
   knowledgeSources    KnowledgeSource[]
   objectives          Objective[]
   quarters            Quarter[]
   subscriptionHistory SubscriptionHistory[]
   tasks               Task[]
-  users               User[]
-  workflows           Workflow[]
-  
-  // Enterprise Relations
-  departments         Department[]
   teams               Team[]
   tickets             Ticket[]
+  users               User[]
+  workflows           Workflow[]
 
   @@map("companies")
 }
 
 model Department {
-  id          String   @id @default(uuid())
-  companyId   String
-  name        String
-  managerId   String?  @unique // Optional manager for the department
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  manager     User?    @relation("DepartmentManager", fields: [managerId], references: [id])
-  users       User[]   @relation("UserDepartment")
-  tickets     Ticket[] @relation("ReceiverDepartment")
+  id        String   @id @default(uuid())
+  companyId String
+  name      String
+  managerId String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  manager   User?    @relation("DepartmentManager", fields: [managerId], references: [id])
+  tickets   Ticket[] @relation("ReceiverDepartment")
+  users     User[]   @relation("UserDepartment")
 
   @@unique([companyId, name])
   @@map("departments")
 }
 
 model Team {
-  id          String       @id @default(uuid())
-  companyId   String
-  name        String
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  company     Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  members     TeamMember[]
+  id        String       @id @default(uuid())
+  companyId String
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  members   TeamMember[]
+  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@unique([companyId, name])
   @@map("teams")
 }
 
 model TeamMember {
-  id        String   @id @default(uuid())
-  teamId    String
-  userId    String
-  joinedAt  DateTime @default(now())
-  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  user      User     @relation("TeamMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  id       String   @id @default(uuid())
+  teamId   String
+  userId   String
+  joinedAt DateTime @default(now())
+  team     Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user     User     @relation("TeamMemberships", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([teamId, userId])
   @@map("team_members")
 }
 
 model Ticket {
-  id                  String         @id @default(uuid())
-  ticketNumber        String         // e.g. TKT-1001
-  companyId           String
-  title               String
-  description         String
-  status              TicketStatus   @default(PENDING_REQ_MGR)
-  isInternal          Boolean        @default(false)
-  requesterId         String
-  requesterManagerId  String?
-  receiverDeptId      String
-  receiverManagerId   String?
-  assigneeId          String?
-  createdAt           DateTime       @default(now())
-  updatedAt           DateTime       @updatedAt
-  taskId              String?        @unique
-  company             Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  requester           User           @relation("TicketRequester", fields: [requesterId], references: [id])
-  requesterManager    User?          @relation("TicketRequesterManager", fields: [requesterManagerId], references: [id])
-  receiverDept        Department     @relation("ReceiverDepartment", fields: [receiverDeptId], references: [id])
-  receiverManager     User?          @relation("TicketReceiverManager", fields: [receiverManagerId], references: [id])
-  assignee            User?          @relation("TicketAssignee", fields: [assigneeId], references: [id])
-  task                Task?          @relation(fields: [taskId], references: [id])
-  comments            TicketComment[]
+  id                 String          @id @default(uuid())
+  ticketNumber       String
+  companyId          String
+  title              String
+  description        String
+  status             TicketStatus    @default(PENDING_REQ_MGR)
+  isInternal         Boolean         @default(false)
+  requesterId        String
+  requesterManagerId String?
+  receiverDeptId     String
+  receiverManagerId  String?
+  assigneeId         String?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  taskId             String?         @unique
+  comments           TicketComment[]
+  assignee           User?           @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  company            Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  receiverDept       Department      @relation("ReceiverDepartment", fields: [receiverDeptId], references: [id])
+  receiverManager    User?           @relation("TicketReceiverManager", fields: [receiverManagerId], references: [id])
+  requester          User            @relation("TicketRequester", fields: [requesterId], references: [id])
+  requesterManager   User?           @relation("TicketRequesterManager", fields: [requesterManagerId], references: [id])
+  task               Task?           @relation(fields: [taskId], references: [id])
 
   @@map("tickets")
 }
@@ -131,17 +129,6 @@ model TicketComment {
 
   @@map("ticket_comments")
 }
-
-enum TicketStatus {
-  PENDING_REQ_MGR
-  PENDING_REC_MGR
-  OPEN
-  ASSIGNED
-  IN_PROGRESS
-  RESOLVED
-  CANCELLED
-}
-
 
 model Plan {
   id         String   @id @default(uuid())
@@ -206,49 +193,46 @@ model CompanyAIUsage {
 }
 
 model User {
-  id                 String            @id @default(uuid())
-  companyId          String?
-  email              String
-  name               String
-  password           String
-  role               UserRole          @default(EMPLOYEE)
-  position           String?
-  departmentId       String?           // LINKED DEPARTMENT
-  managerId          String?           // REPORTING STRUCTURE
-  isTicketApprover   Boolean           @default(false)
-  strategyAccess     StrategyAccess    @default(NONE)
-  status             UserStatus        @default(OFFLINE)
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
-  lastActiveAt       DateTime?
-  chatSessions       ChatSession[]
-  knowledgeSources   KnowledgeSource[] @relation("KnowledgeSourceCreator")
-  notifications      Notification[]
-  approvalsRequested PhaseApproval[]   @relation("ApprovalRequester")
-  approvalsReviewed  PhaseApproval[]   @relation("ApprovalReviewer")
-  phaseHistory       PhaseHistory[]
-  assignedSubtasks   Subtask[]
-  assignedByMe       TaskAssignment[]  @relation("TaskAssigner")
-  taskAssignments    TaskAssignment[]  @relation("TaskAssignments")
-  taskComments       TaskComment[]
-  assignedTasks      Task[]            @relation("TaskAssignee")
-  createdTasks       Task[]            @relation("TaskCreator")
-  chatContext        UserChatContext?
-  company            Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  createdWorkflows   Workflow[]        @relation("WorkflowCreator")
-  
-  // Enterprise Relations
-  department         Department?       @relation("UserDepartment", fields: [departmentId], references: [id])
-  managedDepartment  Department?       @relation("DepartmentManager")
-  manager            User?             @relation("UserManager", fields: [managerId], references: [id])
-  directReports      User[]            @relation("UserManager")
-  teamMemberships    TeamMember[]      @relation("TeamMemberships")
-  
-  requestedTickets     Ticket[]        @relation("TicketRequester")
-  requestedTicketsMgr  Ticket[]        @relation("TicketRequesterManager")
-  receivedTicketsMgr   Ticket[]        @relation("TicketReceiverManager")
-  assignedTickets      Ticket[]        @relation("TicketAssignee")
-  ticketComments       TicketComment[]
+  id                  String            @id @default(uuid())
+  companyId           String?
+  email               String
+  name                String
+  password            String
+  role                UserRole          @default(EMPLOYEE)
+  position            String?
+  status              UserStatus        @default(OFFLINE)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  lastActiveAt        DateTime?
+  departmentId        String?
+  isTicketApprover    Boolean           @default(false)
+  managerId           String?
+  canAccessStrategy   Boolean           @default(false)
+  chatSessions        ChatSession[]
+  managedDepartment   Department?       @relation("DepartmentManager")
+  knowledgeSources    KnowledgeSource[] @relation("KnowledgeSourceCreator")
+  notifications       Notification[]
+  approvalsRequested  PhaseApproval[]   @relation("ApprovalRequester")
+  approvalsReviewed   PhaseApproval[]   @relation("ApprovalReviewer")
+  phaseHistory        PhaseHistory[]
+  assignedSubtasks    Subtask[]
+  assignedByMe        TaskAssignment[]  @relation("TaskAssigner")
+  taskAssignments     TaskAssignment[]  @relation("TaskAssignments")
+  taskComments        TaskComment[]
+  assignedTasks       Task[]            @relation("TaskAssignee")
+  createdTasks        Task[]            @relation("TaskCreator")
+  teamMemberships     TeamMember[]      @relation("TeamMemberships")
+  ticketComments      TicketComment[]
+  assignedTickets     Ticket[]          @relation("TicketAssignee")
+  receivedTicketsMgr  Ticket[]          @relation("TicketReceiverManager")
+  requestedTickets    Ticket[]          @relation("TicketRequester")
+  requestedTicketsMgr Ticket[]          @relation("TicketRequesterManager")
+  chatContext         UserChatContext?
+  company             Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department          Department?       @relation("UserDepartment", fields: [departmentId], references: [id])
+  manager             User?             @relation("UserManager", fields: [managerId], references: [id])
+  directReports       User[]            @relation("UserManager")
+  createdWorkflows    Workflow[]        @relation("WorkflowCreator")
 
   @@unique([email, companyId])
   @@map("users")
@@ -256,7 +240,6 @@ model User {
 
 model Task {
   id             String           @id @default(uuid())
-  taskNumber     String?          @unique // e.g. TSK-1001
   companyId      String
   title          String
   description    String
@@ -276,9 +259,10 @@ model Task {
   subtaskId      String?          @unique
   quarterId      String?
   objectiveId    String?
-  keyResultId    String?
   rolledOverFrom String?
   isRolledOver   Boolean          @default(false)
+  keyResultId    String?
+  taskNumber     String?          @unique
   notifications  Notification[]
   approvals      PhaseApproval[]
   phaseHistory   PhaseHistory[]
@@ -292,15 +276,13 @@ model Task {
   company        Company          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   createdBy      User             @relation("TaskCreator", fields: [createdById], references: [id])
   currentPhase   Phase?           @relation(fields: [currentPhaseId], references: [id])
-  objective      Objective?       @relation(fields: [objectiveId], references: [id])
   keyResult      KeyResult?       @relation(fields: [keyResultId], references: [id])
+  objective      Objective?       @relation(fields: [objectiveId], references: [id])
   parentTask     Task?            @relation("ParentChildTasks", fields: [parentTaskId], references: [id])
   childTasks     Task[]           @relation("ParentChildTasks")
   quarter        Quarter?         @relation(fields: [quarterId], references: [id])
   linkedSubtask  Subtask?         @relation("TaskSubtaskLink", fields: [subtaskId], references: [id])
   workflow       Workflow?        @relation(fields: [workflowId], references: [id])
-  
-  // Link to ticket if task was generated from one
   ticket         Ticket?
 
   @@unique([companyId, taskNumber])
@@ -639,6 +621,16 @@ model TaskDependency {
   @@map("task_dependencies")
 }
 
+enum TicketStatus {
+  PENDING_REQ_MGR
+  PENDING_REC_MGR
+  OPEN
+  ASSIGNED
+  IN_PROGRESS
+  RESOLVED
+  CANCELLED
+}
+
 enum UserRole {
   SUPER_ADMIN
   COMPANY_ADMIN
@@ -680,10 +672,4 @@ enum ObjectiveStatus {
   OFF_TRACK
   COMPLETED
   CANCELLED
-}
-
-enum StrategyAccess {
-  NONE
-  READ
-  EDIT
 }

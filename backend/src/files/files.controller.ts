@@ -12,6 +12,7 @@ import {
   Res,
   StreamableFile,
   NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -37,18 +38,30 @@ import { UserRole } from '../types/prisma';
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Post('upload')
+  @Post('upload/:folder?')
   @UseInterceptors(FileInterceptor('file'))
-  @ApiOperation({ summary: 'Upload a single file (logo, avatar, etc.)' })
+  @ApiOperation({ summary: 'Upload a single file (logo, avatar, etc.) to a specific folder' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'File uploaded successfully' })
-  @ApiResponse({ status: 400, description: 'Invalid file' })
+  @ApiResponse({ status: 400, description: 'Invalid file or folder' })
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
+    @Param('folder') folder: string = 'temp',
     @Request() req,
   ) {
     if (!file) {
       throw new Error('No file provided');
+    }
+
+    // Security: Validate folder if provided
+    const safeFolders = ['temp', 'branding', 'avatars'];
+    if (folder && !safeFolders.includes(folder)) {
+      throw new BadRequestException('Invalid destination folder');
+    }
+    
+    // Roles check for branding/restricted folders
+    if (folder === 'branding' && !['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(req.user.role)) {
+      throw new BadRequestException('Only admins can upload branding assets');
     }
 
     return this.filesService.uploadSingleFile(file, req.user.id);
@@ -126,17 +139,23 @@ export class FilesController {
 @ApiTags('Public Files')
 @Controller('files/public')
 export class PublicFilesController {
-  @Get(':filename')
+  @Get(':folder/:filename')
   @ApiOperation({ summary: 'Serve public uploaded files (logos, avatars)' })
   @ApiResponse({ status: 200, description: 'File served successfully' })
   @ApiResponse({ status: 404, description: 'File not found' })
   async serveFile(
+    @Param('folder') folder: string,
     @Param('filename') filename: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    // Security: Only allow files from temp directory (where single uploads go)
+    // Security: Only allow files from safe public folders
+    const safeFolders = ['temp', 'branding', 'avatars'];
+    if (!safeFolders.includes(folder)) {
+      throw new NotFoundException('Invalid folder');
+    }
+
     const uploadPath = process.env.UPLOAD_PATH || './uploads';
-    const filePath = join(uploadPath, 'temp', filename);
+    const filePath = join(uploadPath, folder, filename);
 
     if (!existsSync(filePath)) {
       throw new NotFoundException('File not found');
@@ -161,5 +180,14 @@ export class PublicFilesController {
     });
 
     return new StreamableFile(file);
+  }
+
+  @Get(':filename')
+  @ApiOperation({ summary: 'Legacy support for single filename requests (defaults to temp)' })
+  async serveFileLegacy(
+    @Param('filename') filename: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    return this.serveFile('temp', filename, res);
   }
 }

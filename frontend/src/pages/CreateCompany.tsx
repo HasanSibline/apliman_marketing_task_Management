@@ -320,7 +320,7 @@ export default function CreateCompany() {
     if (!logoFile) return undefined;
     const fd = new FormData();
     fd.append('file', logoFile);
-    const res = await api.post('/files/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+    const res = await api.post('/files/upload/branding', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
     return res.data.url;
   };
 
