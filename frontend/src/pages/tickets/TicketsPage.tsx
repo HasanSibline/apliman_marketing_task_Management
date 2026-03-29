@@ -14,11 +14,17 @@ import CreateTicketModal from '@/components/tickets/CreateTicketModal'
 
 type TicketStatus = 'PENDING_REQ_MGR' | 'PENDING_REC_MGR' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED'
 
+import TicketDetailModal from '@/components/tickets/TicketDetailModal'
+
 const TicketsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [tickets, setTickets] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  
+  // Detail Modal State
+  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
+  const [showDetailModal, setShowDetailModal] = useState(false)
 
   useEffect(() => {
     fetchData()
@@ -36,11 +42,17 @@ const TicketsPage: React.FC = () => {
     }
   }
 
+  const handleOpenDetail = (id: string) => {
+    setSelectedTicketId(id)
+    setShowDetailModal(true)
+  }
+
   const handleCreateSuccess = () => {
     fetchData()
   }
 
-  const handleApprove = async (id: string) => {
+  const handleApprove = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
     try {
       await api.patch(`/tickets/${id}/approve`)
       toast.success('Ticket approved')
@@ -50,7 +62,8 @@ const TicketsPage: React.FC = () => {
     }
   }
 
-  const handleReject = async (id: string) => {
+  const handleReject = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation()
     const reason = prompt('Reason for rejection:')
     if (reason === null) return
     try {
@@ -61,6 +74,8 @@ const TicketsPage: React.FC = () => {
       toast.error('Failed to reject ticket')
     }
   }
+  
+  // ... (keep getStatusBadge)
 
   const getStatusBadge = (status: TicketStatus) => {
     switch (status) {
@@ -113,7 +128,11 @@ const TicketsPage: React.FC = () => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {tickets.map((ticket) => (
-                  <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={ticket.id} 
+                    onClick={() => handleOpenDetail(ticket.id)}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-primary-600">{ticket.ticketNumber}</span>
@@ -121,11 +140,19 @@ const TicketsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(ticket.status)}
+                      <div>
+                        {getStatusBadge(ticket.status)}
+                        {ticket.status === 'PENDING_REQ_MGR' && ticket.requesterManager && (
+                          <div className="text-[10px] text-gray-400 mt-1">Pending: {ticket.requesterManager.name}</div>
+                        )}
+                        {ticket.status === 'PENDING_REC_MGR' && ticket.receiverManager && (
+                          <div className="text-[10px] text-gray-400 mt-1">Pending: {ticket.receiverManager.name}</div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex items-center space-x-1">
-                        <span>{ticket.requesterDept?.name}</span>
+                        <span>{ticket.requesterDept?.name || ticket.requester?.department?.name}</span>
                         <ArrowRightIcon className="h-3 w-3 text-gray-400" />
                         <span>{ticket.receiverDept?.name}</span>
                       </div>
@@ -135,19 +162,21 @@ const TicketsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {/* Approval buttons for managers */}
-                        {((ticket.status === 'PENDING_REQ_MGR' && ticket.requesterDept?.managerId === user?.id) || 
-                          (ticket.status === 'PENDING_REC_MGR' && ticket.receiverDept?.managerId === user?.id)) && (
+                        {/* Approval buttons for managers or admins */}
+                        {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) || 
+                          (ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id))) ||
+                          (['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || ''))) && 
+                          (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
                           <>
                             <button 
-                              onClick={() => handleApprove(ticket.id)}
+                              onClick={(e) => handleApprove(e, ticket.id)}
                               className="p-1 text-green-600 hover:bg-green-50 rounded"
                               title="Approve"
                             >
                               <CheckCircleIcon className="h-5 w-5" />
                             </button>
                             <button 
-                              onClick={() => handleReject(ticket.id)}
+                              onClick={(e) => handleReject(e, ticket.id)}
                               className="p-1 text-red-600 hover:bg-red-50 rounded"
                               title="Reject"
                             >
@@ -174,6 +203,19 @@ const TicketsPage: React.FC = () => {
         onClose={() => setShowCreateModal(false)}
         onSuccess={handleCreateSuccess}
       />
+
+      {/* Detail Modal */}
+      {selectedTicketId && (
+        <TicketDetailModal
+          isOpen={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false)
+            setSelectedTicketId(null)
+          }}
+          ticketId={selectedTicketId}
+          onUpdate={fetchData}
+        />
+      )}
     </div>
   )
 }

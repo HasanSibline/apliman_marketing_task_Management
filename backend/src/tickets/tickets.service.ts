@@ -19,7 +19,9 @@ export class TicketsService {
       },
       include: {
         requester: { select: { id: true, name: true, department: { select: { name: true } } } },
+        requesterManager: { select: { id: true, name: true } },
         receiverDept: { select: { id: true, name: true } },
+        receiverManager: { select: { id: true, name: true } },
         assignee: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -54,6 +56,20 @@ export class TicketsService {
     if (!user) throw new NotFoundException('User not found');
 
     const ticketNumber = await this.generateTicketNumber(companyId);
+    const receiverDept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
+
+    // Determine initial status:
+    // If the requester has no manager, skip to PENDING_REC_MGR
+    let initialStatus: TicketStatus = TicketStatus.PENDING_REQ_MGR;
+    let receiverManagerId = null;
+
+    if (!user.managerId || user.role === 'COMPANY_ADMIN' || user.role === 'SUPER_ADMIN') {
+      initialStatus = TicketStatus.PENDING_REC_MGR;
+      receiverManagerId = receiverDept?.managerId || null;
+      
+      // If no receiver manager either, and it's internal or direct, it could go to OPEN
+      // but usually we want someone in the target dept to see it.
+    }
 
     return this.prisma.ticket.create({
       data: {
@@ -64,8 +80,9 @@ export class TicketsService {
         receiverDeptId: data.receiverDeptId,
         requesterId: userId,
         requesterManagerId: user.managerId,
+        receiverManagerId: receiverManagerId,
         isInternal: data.isInternal || false,
-        status: TicketStatus.PENDING_REQ_MGR,
+        status: initialStatus,
       },
     });
   }
@@ -108,9 +125,11 @@ export class TicketsService {
 
   async approveByRequesterManager(id: string, managerId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
+    const manager = await this.prisma.user.findUnique({ where: { id: managerId } });
     
-    if (ticket.requesterManagerId !== managerId) {
-      throw new ForbiddenException('Only the requester manager can approve this stage');
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(manager?.role || '');
+    if (ticket.requesterManagerId !== managerId && !isAdmin) {
+      throw new ForbiddenException('Only the requester manager or system admin can approve this stage');
     }
 
     if (ticket.status !== TicketStatus.PENDING_REQ_MGR) {
@@ -134,7 +153,9 @@ export class TicketsService {
     
     // Check if user is the manager of the receiver department or has approval rights
     const manager = await this.prisma.user.findUnique({ where: { id: managerId } });
-    if (!manager?.isTicketApprover && ticket.receiverManagerId !== managerId) {
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(manager?.role || '');
+
+    if (!manager?.isTicketApprover && ticket.receiverManagerId !== managerId && !isAdmin) {
       throw new ForbiddenException('Only the receiver department manager or designated approver can approve this stage');
     }
 
