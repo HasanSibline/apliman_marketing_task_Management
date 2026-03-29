@@ -26,9 +26,19 @@ export class ObjectivesService {
         return { ...obj, progress };
     }
 
-    async findAll(companyId: string, quarterId?: string) {
+    async findAll(companyId: string, userRole: string, quarterId?: string) {
+        const where: any = { companyId };
+        if (quarterId) where.quarterId = quarterId;
+
+        if (userRole === 'EMPLOYEE') {
+            where.OR = [
+                { quarter: null },
+                { quarter: { status: { not: 'UPCOMING' } } }
+            ];
+        }
+
         const objectives = await this.prisma.objective.findMany({
-            where: { companyId, ...(quarterId ? { quarterId } : {}) },
+            where,
             include: {
                 keyResults: true,
                 quarter: { select: { id: true, name: true, year: true } },
@@ -38,9 +48,18 @@ export class ObjectivesService {
         return objectives.map(o => this.withProgress(o));
     }
 
-    async findOne(id: string, companyId: string) {
+    async findOne(id: string, companyId: string, userRole?: string) {
+        const where: any = { id, companyId };
+        
+        if (userRole === 'EMPLOYEE') {
+            where.OR = [
+                { quarter: null },
+                { quarter: { status: { not: 'UPCOMING' } } }
+            ];
+        }
+
         const obj = await this.prisma.objective.findFirst({
-            where: { id, companyId },
+            where,
             include: {
                 keyResults: true,
                 quarter: { select: { id: true, name: true, year: true } },

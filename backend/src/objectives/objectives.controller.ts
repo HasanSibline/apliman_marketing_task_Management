@@ -18,12 +18,12 @@ export class ObjectivesController {
     @Get()
     @ApiQuery({ name: 'quarterId', required: false })
     findAll(@Request() req, @Query('quarterId') quarterId?: string) {
-        return this.objectivesService.findAll(req.user.companyId, quarterId);
+        return this.objectivesService.findAll(req.user.companyId, req.user.role, quarterId);
     }
 
     @Get(':id')
     findOne(@Param('id') id: string, @Request() req) {
-        return this.objectivesService.findOne(id, req.user.companyId);
+        return this.objectivesService.findOne(id, req.user.companyId, req.user.role);
     }
 
     @Post()

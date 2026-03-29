@@ -57,6 +57,7 @@ export class TasksController {
   @ApiQuery({ name: 'phase', type: 'string', required: false, description: 'Filter by phase ID' })
   @ApiQuery({ name: 'workflowId', type: 'string', required: false, description: 'Filter by workflow ID' })
   @ApiQuery({ name: 'priority', type: 'number', required: false, description: 'Filter by priority (1-5)' })
+  @ApiQuery({ name: 'quarterId', type: 'string', required: false, description: "Filter by quarter ID or 'null' for backlog" })
   @ApiQuery({ name: 'page', type: 'number', required: false, example: 1 })
   @ApiQuery({ name: 'limit', type: 'number', required: false, example: 10 })
   @ApiResponse({ status: 200, description: 'Tasks retrieved successfully' })
@@ -68,6 +69,7 @@ export class TasksController {
     @Query('phase') phase?: string,
     @Query('workflowId') workflowId?: string,
     @Query('priority') priority?: string,
+    @Query('quarterId') quarterId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -85,6 +87,7 @@ export class TasksController {
       limitNum,
       workflowId,
       priorityNum,
+      quarterId,
     );
   }
 

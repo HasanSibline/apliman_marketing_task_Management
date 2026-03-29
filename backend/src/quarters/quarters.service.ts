@@ -7,9 +7,13 @@ import { CloseQuarterDto } from './dto/close-quarter.dto';
 export class QuartersService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async findAll(companyId: string) {
+    async findAll(companyId: string, userRole?: string) {
+        const where: any = { companyId };
+        if (userRole === 'EMPLOYEE') {
+            where.status = { not: 'UPCOMING' };
+        }
         return this.prisma.quarter.findMany({
-            where: { companyId },
+            where,
             orderBy: [{ year: 'desc' }, { name: 'desc' }],
         });
     }
@@ -65,7 +69,7 @@ export class QuartersService {
         };
     }
 
-    async findOne(id: string, companyId: string) {
+    async findOne(id: string, companyId: string, userRole?: string) {
         const quarter = await this.prisma.quarter.findFirst({
             where: { id, companyId },
             include: {
@@ -83,6 +87,11 @@ export class QuartersService {
             },
         });
         if (!quarter) throw new NotFoundException('Quarter not found');
+
+        // Strategic Lock Check for findOne
+        if (userRole === 'EMPLOYEE' && quarter.status === 'UPCOMING') {
+            throw new NotFoundException('Cycle is currently private and under planning.');
+        }
 
         // Calculate stats for frontend accuracy
         const totalTasks = quarter.tasks.length;
@@ -131,6 +140,28 @@ export class QuartersService {
                 endDate: new Date(dto.endDate),
                 status: (dto.status as any) ?? 'UPCOMING',
             },
+        });
+    }
+
+    async update(id: string, companyId: string, dto: Partial<CreateQuarterDto>) {
+        const quarter = await this.prisma.quarter.findFirst({ where: { id, companyId } });
+        if (!quarter) throw new NotFoundException('Quarter not found');
+
+        // If transitioning to ACTIVE, close other active cycles
+        if (dto.status === 'ACTIVE') {
+            await this.prisma.quarter.updateMany({
+                where: { companyId, status: 'ACTIVE', id: { not: id } },
+                data: { status: 'CLOSED' },
+            });
+        }
+
+        return this.prisma.quarter.update({
+            where: { id },
+            data: {
+                ...dto,
+                startDate: dto.startDate ? new Date(dto.startDate) : undefined,
+                endDate: dto.endDate ? new Date(dto.endDate) : undefined,
+            } as any,
         });
     }
 

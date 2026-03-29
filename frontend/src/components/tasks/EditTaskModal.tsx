@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon, CalendarIcon, FlagIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { tasksApi, usersApi, quartersApi, objectivesApi } from '@/services/api'
 import toast from 'react-hot-toast'
+import { useAppSelector } from '@/hooks/redux'
+import { LockClosedIcon } from '@heroicons/react/24/outline'
 
 interface EditTaskModalProps {
   task: any
@@ -27,6 +29,9 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
   const [quarters, setQuarters] = useState<any[]>([])
   const [objectives, setObjectives] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const { user } = useAppSelector(state => state.auth)
+  const isAdmin = ['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role ?? '')
+  const isLocked = !isAdmin && task?.quarter?.status === 'UPCOMING'
 
   useEffect(() => {
     if (task) {
@@ -115,6 +120,18 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
+
+            {isLocked && (
+              <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
+                <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-600">
+                  <LockClosedIcon className="h-5 w-5" />
+                </div>
+                <div>
+                    <p className="text-sm font-bold text-indigo-900 leading-none">Strategic Lock Active</p>
+                    <p className="text-xs text-indigo-600 mt-1 uppercase tracking-wider font-bold">This task is part of a future cycle ({task?.quarter?.name}) and is restricted to Admin review.</p>
+                </div>
+              </div>
+            )}
 
             {/* Form */}
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -304,7 +321,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || isLocked}
                   className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isLoading ? 'Saving...' : 'Save Changes'}

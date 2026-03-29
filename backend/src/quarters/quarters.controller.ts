@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { QuartersService } from './quarters.service';
 import { CreateQuarterDto } from './dto/create-quarter.dto';
@@ -22,9 +22,9 @@ export class QuartersController {
     }
 
     @Get()
-    @ApiOperation({ summary: 'List quarters for the current company' })
+    @ApiOperation({ summary: 'Get all quarters for company' })
     findAll(@Request() req) {
-        return this.quartersService.findAll(req.user.companyId);
+        return this.quartersService.findAll(req.user.companyId, req.user.role);
     }
 
     @Get('yearly')
@@ -38,7 +38,14 @@ export class QuartersController {
     @Get(':id')
     @ApiOperation({ summary: 'Get quarter detail with tasks and objectives' })
     findOne(@Param('id') id: string, @Request() req) {
-        return this.quartersService.findOne(id, req.user.companyId);
+        return this.quartersService.findOne(id, req.user.companyId, req.user.role);
+    }
+
+    @Patch(':id')
+    @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @ApiOperation({ summary: 'Update quarter properties' })
+    update(@Param('id') id: string, @Body() dto: Partial<CreateQuarterDto>, @Request() req) {
+        return this.quartersService.update(id, req.user.companyId, dto);
     }
 
     @Get(':id/analytics')

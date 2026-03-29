@@ -402,6 +402,7 @@ export class TasksService {
         workflow: { include: { phases: { orderBy: { order: 'asc' } } } },
         assignedTo: true,
         assignments: { include: { user: true } },
+        quarter: true,
       },
     });
 
@@ -419,6 +420,11 @@ export class TasksService {
 
     if (!isAdmin && !isCreator && !isAssigned && !isInAssignments) {
       throw new ForbiddenException('You do not have permission to change the phase of this task. Only assigned users can move tasks between phases.');
+    }
+
+    // STRATEGIC LOCK: Prevent employees from moving tasks in UPCOMING quarters
+    if (!isAdmin && task.quarter?.status === 'UPCOMING') {
+      throw new ForbiddenException('This task belongs to a future quarter and is currently locked. You cannot move it between phases yet.');
     }
 
     const toPhase = await this.prisma.phase.findUnique({ where: { id: toPhaseId } });
@@ -846,6 +852,7 @@ export class TasksService {
     limit: number = 10,
     workflowId?: string,
     priority?: number,
+    quarterId?: string,
   ) {
     const skip = (page - 1) * limit;
     const where: any = {};
@@ -866,13 +873,23 @@ export class TasksService {
     // Role-based filtering
     if (userRole === UserRole.EMPLOYEE) {
       // Employees can only see tasks assigned to them or created by them
-      where.OR = [
-        { assignedToId: userId },
-        { createdById: userId },
-        // Also check TaskAssignment relationship for new multi-user assignments
-        { assignments: { some: { userId: userId } } },
+      // AND we filter out tasks from UPCOMING quarters to implement Strategic Locking
+      where.AND = [
+        {
+          OR: [
+            { assignedToId: userId },
+            { createdById: userId },
+            { assignments: { some: { userId: userId } } },
+          ]
+        },
+        {
+          OR: [
+            { quarter: null }, // Backlog tasks are visible
+            { quarter: { status: { not: 'UPCOMING' } } } // Only ACTIVE/CLOSED cycles
+          ]
+        }
       ];
-      console.log(`EMPLOYEE filtering for userId: ${userId}`);
+      console.log(`EMPLOYEE filtering for userId: ${userId} (excluding UPCOMING quarters)`);
     } else {
       console.log(`ADMIN/SUPER_ADMIN - no role filtering for userId: ${userId}, role: ${userRole}`);
     }
@@ -911,6 +928,10 @@ export class TasksService {
       } else {
         where.OR = searchConditions;
       }
+    }
+
+    if (quarterId) {
+      where.quarterId = quarterId === 'null' ? null : quarterId;
     }
 
     const [tasks, total] = await Promise.all([
@@ -1020,6 +1041,7 @@ export class TasksService {
               id: true,
               name: true,
               year: true,
+              status: true,
             },
           },
         },
@@ -1158,6 +1180,7 @@ export class TasksService {
             id: true,
             name: true,
             year: true,
+            status: true,
           },
         },
         objective: {
@@ -1238,6 +1261,11 @@ export class TasksService {
 
       if (!isAssigned && !isCreator && !isInAssignments) {
         throw new ForbiddenException('You do not have permission to edit this task. Only assigned users can edit.');
+      }
+
+      // STRATEGIC LOCK: Prevent employees from editing tasks in UPCOMING quarters
+      if (existingTask.quarter?.status === 'UPCOMING') {
+        throw new ForbiddenException('This task belongs to a future quarter and is currently locked for editing.');
       }
     }
 

@@ -25,6 +25,7 @@ import {
   PlusIcon,
   InformationCircleIcon,
   XCircleIcon,
+  LockClosedIcon,
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTaskById } from '@/store/slices/tasksSlice'
@@ -321,8 +322,9 @@ const TaskDetailPage: React.FC = () => {
 
   const priorityConfig = getPriorityConfig(currentTask.priority)
   const PriorityIcon = priorityConfig.icon
-  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
-  const canEdit = isAdmin || currentTask.assignedToId === user?.id || currentTask.createdById === user?.id
+  const isAdmin = ['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role ?? '')
+  const isLocked = !isAdmin && currentTask.quarter?.status === 'UPCOMING'
+  const canEdit = !isLocked && (isAdmin || currentTask.assignedToId === user?.id || currentTask.createdById === user?.id)
 
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-6">
@@ -337,6 +339,25 @@ const TaskDetailPage: React.FC = () => {
             <ArrowLeftIcon className="h-4 w-4" />
             <span className="font-medium">Back to Tasks</span>
           </button>
+
+          {isLocked && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-indigo-600 rounded-xl p-4 text-white shadow-lg shadow-indigo-200 border border-indigo-500 overflow-hidden relative"
+            >
+              <div className="absolute right-0 top-0 h-full w-32 bg-white/10 -skew-x-12 translate-x-16" />
+              <div className="flex items-center gap-4 relative z-10">
+                <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md">
+                   <LockClosedIcon className="h-6 w-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-black text-lg uppercase tracking-tight">Strategic Focus Lock Active</h3>
+                  <p className="text-sm text-indigo-100 font-medium">This task is part of our future planning cycle (<span className="text-white underline decoration-indigo-300 underline-offset-2">{currentTask.quarter?.name}</span>). Access is restricted to Admin review until the cycle begins.</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* Header Card */}
           <motion.div
@@ -428,7 +449,8 @@ const TaskDetailPage: React.FC = () => {
                             handlePhaseChange(newPhaseId)
                           }
                         }}
-                        className="appearance-none px-3 py-1.5 pr-8 rounded-lg text-sm font-medium border-2 cursor-pointer transition-colors"
+                        disabled={!canEdit}
+                        className="appearance-none px-3 py-1.5 pr-8 rounded-lg text-sm font-medium border-2 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{
                           backgroundColor: `${currentTask.currentPhase?.color}20`,
                           color: currentTask.currentPhase?.color,
