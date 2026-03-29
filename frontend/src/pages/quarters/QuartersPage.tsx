@@ -537,129 +537,117 @@ const QuartersPage: React.FC = () => {
                             className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm"
                         >
                             {/* Archive Filter: Logic to handle 'Shouldnt they stop appearing if closed' */}
-                            {isYearCompleted(selectedYear) ? (
-                                <div className="text-center py-12 px-6 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-                                    <div className="p-4 bg-white rounded-full shadow-sm w-fit mx-auto mb-4 border border-gray-100">
-                                        <ArchiveBoxIcon className="h-10 w-10 text-gray-300" />
-                                    </div>
-                                    <h3 className="text-xl font-black text-gray-900 mb-2">{selectedYear} Strategy Successfully Archived</h3>
-                                    <p className="text-sm text-gray-500 max-w-sm mx-auto mb-6">This strategy year has been fully finalized. All cycles are closed and incomplete tasks were migrated to the Standby Vault or next cycle.</p>
-                                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                        <button 
-                                            onClick={() => {
-                                                // Temporarily "unlock" the view for this session
-                                                setSelectedYear(selectedYear) // Toggle a local 'forcedShow' if needed
-                                                // For now, let's just show history if they click anyway
-                                            }}
-                                            className="px-6 py-2 bg-white text-gray-700 font-bold text-xs uppercase tracking-widest border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-                                        >
-                                            Inspect Historical Records
-                                        </button>
-                                        {isAdmin && (
-                                            <button onClick={() => setShowCreate(true)} className="px-6 py-2 bg-primary-600 text-white font-bold text-xs uppercase tracking-widest rounded-lg hover:bg-primary-700 transition">
-                                                Initialize {selectedYear + 1}
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            ) : (
-                                <>
-                                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-100 gap-4">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
-                                                <FolderIcon className="h-7 w-7" />
-                                            </div>
-                                            <div>
-                                                <h3 className="text-xl font-black text-gray-900 leading-none mb-1">{selectedYear} Strategic Hub</h3>
-                                                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">
-                                                    Inside this vault: {quartersByYear[selectedYear]?.length || 0} Cycles · Cycle Planning
-                                                </p>
-                                            </div>
+                            {isYearCompleted(selectedYear) && (
+                                <div className="mb-8 p-4 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                                            <ArchiveBoxIcon className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-black text-gray-900 leading-none">{selectedYear} Strategic Archive</p>
+                                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">This roadmap is fully finalized and read-only</p>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        {quartersByYear[selectedYear]?.map(q => {
-                                            const cfg = STATUS_CONFIG[q.status];
-                                            const progress = q.totalTasks > 0 ? Math.round((q.completedTasks / q.totalTasks) * 100) : 0;
-                                            return (
-                                                <motion.div 
-                                                    whileHover={{ y: -4 }}
-                                                    key={q.id}
-                                                    onClick={() => navigate(`/quarters/${q.id}`)}
-                                                    className="bg-white p-6 rounded-xl border border-gray-200 cursor-pointer relative group transition-all hover:shadow-md"
-                                                >
-                                                    <div className="flex items-center justify-between mb-5">
-                                                        <div className="text-base font-black text-gray-900 uppercase tracking-tight">{q.name}</div>
-                                                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${cfg.bg} border border-black/5`}>
-                                                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                                                            {cfg.label}
-                                                        </span>
-                                                    </div>
-                                                    
-                                                    <div className="space-y-5">
-                                                        <div>
-                                                            <div className="flex items-center justify-between text-[11px] font-black text-gray-400 uppercase mb-2">
-                                                                <span>Completion</span>
-                                                                <span className="text-primary-700">{progress}%</span>
-                                                            </div>
-                                                            <div className="h-2 bg-gray-100 rounded-full overflow-hidden border border-gray-50 shadow-inner">
-                                                                <div className={`h-full rounded-full transition-all duration-1000 ${progress === 100 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }} />
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex items-center justify-between pt-2 border-t border-gray-200/50">
-                                                            <div className="flex flex-col">
-                                                                <span className="text-base font-black text-gray-900 leading-none">{q.totalTasks}</span>
-                                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Tasks</span>
-                                                            </div>
-                                                            <div className="flex flex-col text-right">
-                                                                <span className="text-base font-black text-gray-900 leading-none">{q.objectivesCount}</span>
-                                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Goals</span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Lock Overlay for Upcoming (Strategic Lock) */}
-                                                    {q.status === 'UPCOMING' && !isAdmin && (
-                                                        <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                            <div className="bg-white p-4 rounded-xl shadow-sm flex flex-col items-center gap-1.5 border border-gray-100">
-                                                                <LockClosedIcon className="h-6 w-6 text-gray-400" />
-                                                                <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Vault Locked</span>
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Actions for Admin */}
-                                                    {isAdmin && q.status === 'UPCOMING' && (
-                                                        <button 
-                                                            onClick={async (e) => { 
-                                                                e.stopPropagation(); 
-                                                                try {
-                                                                    await api.patch(`/quarters/${q.id}`, { status: 'ACTIVE' });
-                                                                    toast.success('Strategy cycle is now LIVE!');
-                                                                    fetchQuarters();
-                                                                } catch { toast.error('Failed to start cycle'); }
-                                                            }}
-                                                            className="mt-6 w-full py-2.5 bg-primary-50 hover:bg-primary-600 text-primary-700 hover:text-white border border-primary-200 hover:border-primary-600 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                                                        >
-                                                            <CheckCircleIcon className="h-4 w-4" /> Start Cycle
-                                                        </button>
-                                                    )}
-                                                    {isAdmin && q.status === 'ACTIVE' && (
-                                                        <button 
-                                                            onClick={(e) => { e.stopPropagation(); openCloseModal(q); }}
-                                                            className="mt-6 w-full py-2.5 bg-white hover:bg-red-50 text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                                                        >
-                                                            <LockClosedIcon className="h-4 w-4" /> Close Cycle
-                                                        </button>
-                                                    )}
-                                                </motion.div>
-                                            )
-                                        })}
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-[10px] font-black text-gray-400 bg-white px-2 py-1 rounded border border-gray-100 uppercase tracking-tighter">Historical Record</span>
                                     </div>
-                                </>
+                                </div>
                             )}
+
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-100 gap-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
+                                        <FolderIcon className="h-7 w-7" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-black text-gray-900 leading-none mb-1">{selectedYear} Strategic Hub</h3>
+                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">
+                                            Inside this vault: {quartersByYear[selectedYear]?.length || 0} Cycles · Cycle Planning
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {quartersByYear[selectedYear]?.map(q => {
+                                    const cfg = STATUS_CONFIG[q.status];
+                                    const progress = q.totalTasks > 0 ? Math.round((q.completedTasks / q.totalTasks) * 100) : 0;
+                                    return (
+                                        <motion.div 
+                                            whileHover={{ y: -4 }}
+                                            key={q.id}
+                                            onClick={() => navigate(`/quarters/${q.id}`)}
+                                            className="bg-white p-6 rounded-xl border border-gray-200 cursor-pointer relative group transition-all hover:shadow-md"
+                                        >
+                                            <div className="flex items-center justify-between mb-5">
+                                                <div className="text-base font-black text-gray-900 uppercase tracking-tight">{q.name}</div>
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider ${cfg.bg} border border-black/5`}>
+                                                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                                                    {cfg.label}
+                                                </span>
+                                            </div>
+                                            
+                                            <div className="space-y-5">
+                                                <div>
+                                                    <div className="flex items-center justify-between text-[11px] font-black text-gray-400 uppercase mb-2">
+                                                        <span>Completion</span>
+                                                        <span className="text-primary-700">{progress}%</span>
+                                                    </div>
+                                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden border border-gray-50 shadow-inner">
+                                                        <div className={`h-full rounded-full transition-all duration-1000 ${progress === 100 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }} />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between pt-2 border-t border-gray-200/50">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-base font-black text-gray-900 leading-none">{q.totalTasks}</span>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Tasks</span>
+                                                    </div>
+                                                    <div className="flex flex-col text-right">
+                                                        <span className="text-base font-black text-gray-900 leading-none">{q.objectivesCount}</span>
+                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Goals</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Lock Overlay for Upcoming (Strategic Lock) */}
+                                            {q.status === 'UPCOMING' && !isAdmin && (
+                                                <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    <div className="bg-white p-4 rounded-xl shadow-sm flex flex-col items-center gap-1.5 border border-gray-100">
+                                                        <LockClosedIcon className="h-6 w-6 text-gray-400" />
+                                                        <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Vault Locked</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Actions for Admin */}
+                                            {isAdmin && q.status === 'UPCOMING' && (
+                                                <button 
+                                                    onClick={async (e) => { 
+                                                        e.stopPropagation(); 
+                                                        try {
+                                                            await api.patch(`/quarters/${q.id}`, { status: 'ACTIVE' });
+                                                            toast.success('Strategy cycle is now LIVE!');
+                                                            fetchQuarters();
+                                                        } catch { toast.error('Failed to start cycle'); }
+                                                    }}
+                                                    className="mt-6 w-full py-2.5 bg-primary-50 hover:bg-primary-600 text-primary-700 hover:text-white border border-primary-200 hover:border-primary-600 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <CheckCircleIcon className="h-4 w-4" /> Start Cycle
+                                                </button>
+                                            )}
+                                            {isAdmin && q.status === 'ACTIVE' && (
+                                                <button 
+                                                    onClick={(e) => { e.stopPropagation(); openCloseModal(q); }}
+                                                    className="mt-6 w-full py-2.5 bg-white hover:bg-red-50 text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <LockClosedIcon className="h-4 w-4" /> Close Cycle
+                                                </button>
+                                            )}
+                                        </motion.div>
+                                    )
+                                })}
+                            </div>
                         </motion.div>
                     </AnimatePresence>
                 </div>
