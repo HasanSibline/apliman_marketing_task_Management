@@ -35,8 +35,10 @@ const UsersPage: React.FC = () => {
   const [companyName, setCompanyName] = useState<string>('Your Company')
 
   useEffect(() => {
-    dispatch(fetchUsers({}))
-  }, [dispatch])
+    if (activeTab === 'users') {
+      dispatch(fetchUsers({}))
+    }
+  }, [dispatch, activeTab])
 
   useEffect(() => {
     const fetchCompanyDetails = async () => {

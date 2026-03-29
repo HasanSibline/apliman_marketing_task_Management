@@ -33,23 +33,48 @@ export class DepartmentsService {
   }
 
   async create(companyId: string, data: { name: string; managerId?: string }) {
-    return this.prisma.department.create({
-      data: {
-        companyId,
-        name: data.name,
-        managerId: data.managerId || null,
-      },
+    return this.prisma.$transaction(async (tx) => {
+      const dept = await tx.department.create({
+        data: {
+          companyId,
+          name: data.name,
+          managerId: data.managerId || null,
+        },
+      });
+
+      // If a manager was assigned, move them into this department automatically
+      if (data.managerId) {
+        await tx.user.update({
+          where: { id: data.managerId, companyId },
+          data: { departmentId: dept.id },
+        });
+      }
+
+      return dept;
     });
   }
 
   async update(id: string, companyId: string, data: { name?: string; managerId?: string }) {
     await this.findOne(id, companyId);
-    return this.prisma.department.update({
-      where: { id },
-      data: {
-        ...(data.name && { name: data.name }),
-        ...(data.managerId !== undefined && { managerId: data.managerId }),
-      },
+    
+    return this.prisma.$transaction(async (tx) => {
+      const dept = await tx.department.update({
+        where: { id },
+        data: {
+          ...(data.name && { name: data.name }),
+          ...(data.managerId !== undefined && { managerId: data.managerId }),
+        },
+      });
+
+      // If a manager was assigned/changed, move them into this department automatically
+      if (data.managerId && data.managerId !== 'null' && data.managerId !== '') {
+        await tx.user.update({
+          where: { id: data.managerId, companyId },
+          data: { departmentId: dept.id },
+        });
+      }
+
+      return dept;
     });
   }
 

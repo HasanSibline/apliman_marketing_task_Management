@@ -3,9 +3,13 @@ import { PlusIcon, UserGroupIcon, UserIcon, TrashIcon } from '@heroicons/react/2
 import api from '@/services/api'
 import { toast } from 'react-hot-toast'
 
+import { useAppDispatch, useAppSelector } from '@/hooks/redux'
+import { fetchUsers } from '@/store/slices/usersSlice'
+
 const DepartmentsManagement: React.FC = () => {
+  const dispatch = useAppDispatch()
+  const { users: availableUsers } = useAppSelector((state) => state.users)
   const [departments, setDepartments] = useState<any[]>([])
-  const [availableUsers, setAvailableUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newDeptName, setNewDeptName] = useState('')
@@ -18,12 +22,11 @@ const DepartmentsManagement: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [deptsRes, usersRes] = await Promise.all([
+      const [deptsRes] = await Promise.all([
         api.get('/departments'),
-        api.get('/users')
+        dispatch(fetchUsers({})).unwrap()
       ])
       setDepartments(deptsRes.data)
-      setAvailableUsers(usersRes.data)
     } catch (error) {
       toast.error('Failed to fetch departments data')
     } finally {
