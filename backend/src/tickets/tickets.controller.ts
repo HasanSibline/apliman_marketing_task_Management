@@ -9,8 +9,20 @@ export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 
   @Get()
-  findAll(@Request() req, @Query('departmentId') departmentId?: string) {
-    return this.ticketsService.findAll(req.user.companyId, departmentId);
+  findAll(
+    @Request() req, 
+    @Query('page') page: string = '1',
+    @Query('search') search?: string,
+    @Query('departmentId') departmentId?: string
+  ) {
+    return this.ticketsService.findAll(
+      req.user.companyId, 
+      req.user.id, 
+      req.user.role, 
+      parseInt(page),
+      departmentId,
+      search
+    );
   }
 
   @Get(':id')

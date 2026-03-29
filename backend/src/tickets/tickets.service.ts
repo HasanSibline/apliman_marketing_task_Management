@@ -14,26 +14,55 @@ export class TicketsService {
     });
   }
 
-  async findAll(companyId: string, departmentId?: string) {
-    return this.prisma.ticket.findMany({
-      where: {
-        companyId,
-        ...(departmentId && {
-          OR: [
-            { requester: { departmentId } },
-            { receiverDeptId: departmentId },
-          ],
-        }),
-      },
-      include: {
-        requester: { select: { id: true, name: true, department: { select: { name: true } } } },
-        requesterManager: { select: { id: true, name: true } },
-        receiverDept: { select: { id: true, name: true } },
-        receiverManager: { select: { id: true, name: true } },
-        assignee: { select: { id: true, name: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+  async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string) {
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
+    const take = 10;
+    const skip = (page - 1) * take;
+
+    const where = {
+      companyId,
+      ...(isAdmin ? {} : {
+        OR: [
+          { requesterId: userId },
+          { requesterManagerId: userId },
+          { receiverManagerId: userId },
+          { assigneeId: userId },
+          { receiverDept: { managerId: userId } }
+        ]
+      }),
+      ...(departmentId && {
+        OR: [
+          { requester: { departmentId } },
+          { receiverDeptId: departmentId },
+        ],
+      }),
+      ...(search && {
+        OR: [
+          { title: { contains: search, mode: 'insensitive' as any } },
+          { ticketNumber: { contains: search, mode: 'insensitive' as any } },
+          { requester: { name: { contains: search, mode: 'insensitive' as any } } }
+        ]
+      })
+    };
+
+    const [tickets, total] = await Promise.all([
+      this.prisma.ticket.findMany({
+        where,
+        include: {
+          requester: { select: { id: true, name: true, department: { select: { name: true } } } },
+          requesterManager: { select: { id: true, name: true } },
+          receiverDept: { select: { id: true, name: true, managerId: true } },
+          receiverManager: { select: { id: true, name: true } },
+          assignee: { select: { id: true, name: true } },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.ticket.count({ where })
+    ]);
+
+    return { tickets, total };
   }
 
   async findOne(id: string, companyId: string) {
