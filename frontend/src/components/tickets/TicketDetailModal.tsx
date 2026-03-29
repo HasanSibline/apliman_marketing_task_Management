@@ -293,15 +293,29 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       <span className="text-[10px] font-black text-primary-600">{ticket.type?.replace(/_/g, ' ')}</span>
                     </div>
 
-                    {ticket.type === 'PURCHASE_ORDER' && (
+                    {/* Universal Dynamic Metadata Display */}
+                    {ticket.metadata && Object.keys(ticket.metadata).length > 0 && (
+                      <div className="p-3 bg-gray-50/80 rounded-xl border border-gray-100 space-y-3">
+                         {Object.entries(ticket.metadata).map(([key, value]) => (
+                           <div key={key}>
+                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                               {key.replace(/_/g, ' ')}
+                             </p>
+                             <p className="text-xs font-bold text-gray-700">{String(value)}</p>
+                           </div>
+                         ))}
+                      </div>
+                    )}
+
+                    {ticket.type === 'PURCHASE_ORDER' && ticket.amount && (
                       <div className="grid grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
                         <div>
                           <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Amount</p>
-                          <p className="text-xs font-black text-blue-700">${ticket.amount?.toLocaleString()}</p>
+                          <p className="text-xs font-black text-blue-700">${ticket.amount?.toLocaleString() || ticket.metadata?.amount}</p>
                         </div>
                         <div>
                           <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Provider</p>
-                          <p className="text-xs font-black text-blue-700 truncate">{ticket.providerName || 'N/A'}</p>
+                          <p className="text-xs font-black text-blue-700 truncate">{ticket.providerName || ticket.metadata?.provider || 'N/A'}</p>
                         </div>
                       </div>
                     )}

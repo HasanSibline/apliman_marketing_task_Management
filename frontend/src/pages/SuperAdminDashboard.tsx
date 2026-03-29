@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import api, { BACKEND_URL } from '../services/api';
+import { BACKEND_URL } from '../services/api';
 
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3001/api';
 

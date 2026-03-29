@@ -20,18 +20,174 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [type, setType] = useState('GENERAL')
   const [priority, setPriority] = useState('MEDIUM')
   const [deadline, setDeadline] = useState('')
-  const [amount, setAmount] = useState('')
-  const [providerName, setProviderName] = useState('')
+  const [metadata, setMetadata] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const ticketTypes = [
     { id: 'GENERAL', label: 'General Request' },
     { id: 'PURCHASE_ORDER', label: 'Purchase Order (PO)' },
     { id: 'IT_SUPPORT', label: 'IT Support' },
-    { id: 'DESIGN_REQUEST', label: 'Design Request' },
-    { id: 'LEGAL_CONTRACT', label: 'Legal/Contract' },
-    { id: 'MARKETING_ASSET', label: 'Marketing Asset' }
+    { id: 'HR_REQUEST', label: 'HR Request' },
+    { id: 'SALES_LEAD', label: 'Sales / Lead' },
+    { id: 'PRODUCT_DEV', label: 'Product / Dev Issue' },
+    { id: 'QA_DEFECT', label: 'QA / Bug' }
   ]
+
+  const getTargetDept = () => departments.find(d => d.id === receiverDeptId)
+
+  const handleMetadataChange = (key: string, value: any) => {
+    setMetadata(prev => ({ ...prev, [key]: value }))
+  }
+
+  const renderDynamicFields = () => {
+    const dept = getTargetDept()
+    if (!dept) return null
+
+    const name = dept.name.toUpperCase()
+    
+    // IT / SUPPORT
+    if (name.includes('IT') || name.includes('SUPPORT') || type === 'IT_SUPPORT') {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Issue Category</label>
+            <select 
+              onChange={(e) => handleMetadataChange('it_category', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            >
+              <option value="Hardware">Hardware</option>
+              <option value="Software">Software</option>
+              <option value="Network">Network / Wifi</option>
+              <option value="Access">Access / Permissions</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Machine/Asset ID</label>
+            <input 
+              type="text" 
+              placeholder="e.g. LAP-102"
+              onChange={(e) => handleMetadataChange('asset_id', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            />
+          </div>
+        </div>
+      )
+    }
+
+    // HR
+    if (name.includes('HR') || name.includes('PEOPLE') || type === 'HR_REQUEST') {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Type of Document</label>
+            <select 
+              onChange={(e) => handleMetadataChange('hr_doc_type', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            >
+              <option value="Salary Certificate">Salary Certificate</option>
+              <option value="Contract Copy">Contract Copy</option>
+              <option value="Insurance Claim">Insurance Claim</option>
+              <option value="Vacation Balance">Vacation Balance</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Urgency Justification</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Needed for Visa"
+              onChange={(e) => handleMetadataChange('hr_reason', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            />
+          </div>
+        </div>
+      )
+    }
+
+    // SALES / REVENUE / MARKETING
+    if (name.includes('SALE') || name.includes('REVENUE') || name.includes('MARKET')) {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Client / Lead Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. Global Tech Inc."
+              onChange={(e) => handleMetadataChange('lead_name', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Projected Value ($)</label>
+            <input 
+              type="number" 
+              placeholder="10000"
+              onChange={(e) => handleMetadataChange('deal_value', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            />
+          </div>
+        </div>
+      )
+    }
+
+    // QA / PRODUCT / DEV
+    if (name.includes('QA') || name.includes('DEV') || name.includes('PROD')) {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">System Environment</label>
+            <select 
+              onChange={(e) => handleMetadataChange('environment', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            >
+              <option value="Production">Production (Live)</option>
+              <option value="Staging">Staging</option>
+              <option value="Beta">Beta</option>
+              <option value="Development">Development</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Severity</label>
+            <select 
+              onChange={(e) => handleMetadataChange('severity', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            >
+              <option value="Minor">Minor / UI</option>
+              <option value="Major">Major / Functional</option>
+              <option value="Critical">Critical / Blocker</option>
+            </select>
+          </div>
+        </div>
+      )
+    }
+
+    // FINANCE / ACCOUNTING
+    if (name.includes('ACCOUNT') || name.includes('FINANCE') || type === 'PURCHASE_ORDER') {
+      return (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Provider / Vendor Name</label>
+            <input 
+              type="text" 
+              placeholder="e.g. AWS Marketplace"
+              onChange={(e) => handleMetadataChange('provider', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Amount ($)</label>
+            <input 
+              type="number" 
+              placeholder="0.00"
+              onChange={(e) => handleMetadataChange('amount', e.target.value)}
+              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+            />
+          </div>
+        </div>
+      )
+    }
+
+    return null
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -63,8 +219,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         type,
         priority,
         deadline: deadline || undefined,
-        amount: amount ? parseFloat(amount) : undefined,
-        providerName: providerName || undefined
+        metadata
       })
       toast.success('Ticket submitted successfully')
       resetForm()
@@ -84,8 +239,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     setType('GENERAL')
     setPriority('MEDIUM')
     setDeadline('')
-    setAmount('')
-    setProviderName('')
+    setMetadata({})
   }
 
 
@@ -164,50 +318,32 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Need assistance with server migration"
+                  placeholder="Summarize the core request..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                 />
               </div>
 
-              {/* PO Specific Fields */}
-              {type === 'PURCHASE_ORDER' && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Provider Name</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Amazon Web Services"
-                      value={providerName}
-                      onChange={(e) => setProviderName(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
-                    <input
-                      type="number"
-                      placeholder="e.g. 1500.00"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none"
-                    />
-                  </div>
-                </motion.div>
-              )}
+              {/* Dynamic Department-Specific Fields */}
+              <motion.div 
+                key={receiverDeptId + type}
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="bg-gray-50 rounded-xl p-4 border border-gray-100"
+              >
+                {renderDynamicFields() || (
+                   <p className="text-xs text-gray-400 text-center italic">No additional specialized fields required.</p>
+                )}
+              </motion.div>
 
               {/* Description */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description Details
+                  Extended Instructions
                 </label>
                 <textarea
-                  placeholder="Describe what help you need from the other department..."
+                  placeholder="Provide background context and detailed instructions..."
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
@@ -219,7 +355,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 {/* Deadline */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Deadline (SLA)
+                    Target Deadline
                   </label>
                   <input
                     type="date"
