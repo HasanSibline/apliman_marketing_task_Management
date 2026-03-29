@@ -14,10 +14,12 @@ import {
     ChevronLeftIcon,
     ChevronRightIcon,
     ArchiveBoxIcon,
+    SparklesIcon,
 } from '@heroicons/react/24/outline'
-import api from '@/services/api'
+import api, { tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
+import CreateTaskModal from '@/components/tasks/CreateTaskModal'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Quarter {
@@ -265,6 +267,8 @@ const QuartersPage: React.FC = () => {
     
     const [loading, setLoading] = useState(true)
     const [showCreate, setShowCreate] = useState(false)
+    const [showQuickCreate, setShowQuickCreate] = useState(false)
+    const [movingTask, setMovingTask] = useState<Task | null>(null)
     const [closeTarget, setCloseTarget] = useState<QuarterDetail | null>(null)
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
     const scrollRef = useRef<HTMLDivElement>(null)
@@ -313,6 +317,18 @@ const QuartersPage: React.FC = () => {
         }
     }
 
+    const handleMoveTask = async (task: Task, targetQuarterId: string) => {
+        try {
+            await tasksApi.assignToQuarter(task.id, targetQuarterId)
+            toast.success('Task moved to strategic cycle!')
+            setMovingTask(null)
+            fetchQuarters()
+            fetchBacklog()
+        } catch {
+            toast.error('Failed to move task')
+        }
+    }
+
     const scrollShelf = (direction: 'left' | 'right') => {
         if (!scrollRef.current) return
         const amount = direction === 'left' ? -300 : 300
@@ -339,18 +355,61 @@ const QuartersPage: React.FC = () => {
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12">
             <style>{SCROLLBAR_SHIELD}</style>
+            
+            {showQuickCreate && (
+                <CreateTaskModal 
+                    isOpen={showQuickCreate} 
+                    onClose={() => { setShowQuickCreate(false); fetchBacklog(); fetchQuarters(); }} 
+                />
+            )}
+
+            {movingTask && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 text-left">
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+                        className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 border border-gray-100">
+                        <div className="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 className="text-lg font-black text-gray-900 leading-none">Move to Cycle</h3>
+                                <p className="text-xs text-gray-500 mt-1 font-medium truncate max-w-[200px]">{movingTask.title}</p>
+                            </div>
+                            <button onClick={() => setMovingTask(null)} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
+                        </div>
+                        
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 no-scrollbar">
+                            {quarters.filter(q => q.status !== 'CLOSED').map(q => (
+                                <button
+                                    key={q.id}
+                                    onClick={() => handleMoveTask(movingTask, q.id)}
+                                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                                >
+                                    <div className="text-left">
+                                        <div className="text-sm font-bold text-gray-900">{q.name} {q.year}</div>
+                                        <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{q.status}</div>
+                                    </div>
+                                    <ChevronRightIcon className="h-4 w-4 text-gray-300 group-hover:text-primary-500" />
+                                </button>
+                            ))}
+                            {quarters.filter(q => q.status !== 'CLOSED').length === 0 && (
+                                <p className="text-center py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">No active cycles available</p>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
             {showCreate && (
                 <CreateQuarterModal
                     onClose={() => setShowCreate(false)}
                     onCreated={() => { setShowCreate(false); fetchQuarters(); }}
                 />
             )}
+
             {closeTarget && (
                 <CloseQuarterModal
                     quarter={closeTarget}
                     quarters={quarters}
                     onClose={() => setCloseTarget(null)}
-                    onClosed={() => { setCloseTarget(null); fetchQuarters(); }}
+                    onClosed={() => { setCloseTarget(null); fetchQuarters(); fetchBacklog(); }}
                 />
             )}
 
@@ -365,12 +424,20 @@ const QuartersPage: React.FC = () => {
                         <h1 className="text-3xl font-black mb-1 leading-tight">Roadmap & Archives</h1>
                         <p className="text-primary-50 font-medium max-w-lg">Advanced strategic planning, yearly lifecycle management, and task standby vault.</p>
                     </div>
-                    {isAdmin && (
-                        <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-5 py-3 bg-white text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 active:scale-95 transition-all shadow-sm">
-                            <PlusIcon className="h-5 w-5 stroke-[2.5]" />
-                            New Cycle
-                        </button>
-                    )}
+                    <div className="flex items-center gap-3">
+                        {isAdmin && (
+                            <button onClick={() => setShowQuickCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-primary-500 text-white border border-primary-400 rounded-lg font-bold text-sm hover:bg-primary-400 active:scale-95 transition-all shadow-sm">
+                                <SparklesIcon className="h-5 w-5" />
+                                New Idea
+                            </button>
+                        )}
+                        {isAdmin && (
+                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 active:scale-95 transition-all shadow-sm">
+                                <PlusIcon className="h-5 w-5" />
+                                Start Year
+                            </button>
+                        )}
+                    </div>
                 </div>
                 {/* Decorative element */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
@@ -396,15 +463,15 @@ const QuartersPage: React.FC = () => {
                         {/* Scroll Arrows */}
                         <button 
                             onClick={() => scrollShelf('left')}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 shadow-lg rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity -ml-4"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -ml-5"
                         >
-                            <ChevronLeftIcon className="h-4 w-4 text-gray-600" />
+                            <ChevronLeftIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
                         </button>
                         <button 
                             onClick={() => scrollShelf('right')}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-white/90 shadow-lg rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity -mr-4"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -mr-5"
                         >
-                            <ChevronRightIcon className="h-4 w-4 text-gray-600" />
+                            <ChevronRightIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
                         </button>
 
                         <div 
@@ -611,11 +678,19 @@ const QuartersPage: React.FC = () => {
                                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Unassigned Backlog · Total: {backlogTotal}</p>
                             </div>
                         </div>
-                        {isAdmin && (
-                            <button onClick={() => navigate('/tasks')} className="px-4 py-2 bg-white text-primary-700 border border-gray-200 rounded-lg text-xs font-bold hover:bg-primary-50 transition shadow-sm">
-                                Manage Backlog
-                            </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                            {isAdmin && (
+                                <button onClick={() => setShowQuickCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 border border-primary-100 rounded-lg text-xs font-bold hover:bg-primary-100 transition shadow-sm">
+                                    <SparklesIcon className="h-3.5 w-3.5" />
+                                    New Idea
+                                </button>
+                            )}
+                            {isAdmin && (
+                                <button onClick={() => navigate('/tasks')} className="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg text-xs font-bold hover:bg-gray-50 transition shadow-sm">
+                                    Full Board
+                                </button>
+                            )}
+                        </div>
                     </div>
                     
                     <div className="overflow-x-auto">
@@ -652,9 +727,21 @@ const QuartersPage: React.FC = () => {
                                             {task.assignedTo?.name ?? 'Unassigned'}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <button onClick={() => navigate(`/tasks/${task.id}`)} className="p-2 text-gray-400 hover:text-primary-600 transition-colors">
-                                                <EyeIcon className="h-5 w-5" />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-2 text-gray-400">
+                                                {isAdmin && (
+                                                    <button 
+                                                        onClick={() => setMovingTask(task)} 
+                                                        className="p-2 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-transparent hover:border-primary-100 flex items-center gap-1"
+                                                        title="Quick Assign to Strategy Cycle"
+                                                    >
+                                                        <PlusIcon className="h-4 w-4" />
+                                                        <span className="text-[10px] font-bold uppercase">Assign</span>
+                                                    </button>
+                                                )}
+                                                <button onClick={() => navigate(`/tasks/${task.id}`)} className="p-2 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                                    <EyeIcon className="h-5 w-5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
