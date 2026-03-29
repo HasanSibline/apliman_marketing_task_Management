@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -271,15 +271,8 @@ const QuartersPage: React.FC = () => {
     const [movingTask, setMovingTask] = useState<Task | null>(null)
     const [closeTarget, setCloseTarget] = useState<QuarterDetail | null>(null)
     const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear())
+    const [canScroll, setCanScroll] = useState(false)
     const scrollRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => { 
-        fetchQuarters();
-    }, [])
-
-    useEffect(() => {
-        fetchBacklog(); 
-    }, [backlogPage])
 
     const fetchQuarters = async () => {
         setLoading(true)
@@ -287,7 +280,6 @@ const QuartersPage: React.FC = () => {
             const { data } = await api.get('/quarters')
             setQuarters(data)
             
-            // Auto-select the latest year if the current year has no data
             const availableYears = Array.from(new Set(data.map((q: any) => q.year))).sort((a: any, b: any) => b - a) as number[]
             const currentYear = new Date().getFullYear()
             if (availableYears.length > 0 && !availableYears.includes(currentYear)) {
@@ -335,12 +327,7 @@ const QuartersPage: React.FC = () => {
         scrollRef.current.scrollBy({ left: amount, behavior: 'smooth' })
     }
 
-    const isYearCompleted = (year: number) => {
-        const yearQuarters = quartersByYear[year] || []
-        return yearQuarters.length === 4 && yearQuarters.every(q => q.status === 'CLOSED')
-    }
-
-    // Role-based visibility: Employees only see ACTIVE/CLOSED
+    // Role-based visibility
     const filteredQuarters = quarters.filter(q => isAdmin || q.status !== 'UPCOMING')
     
     // Group quarters by year
@@ -351,6 +338,38 @@ const QuartersPage: React.FC = () => {
     }, {} as Record<number, Quarter[]>)
 
     const years = Object.keys(quartersByYear).map(Number).sort((a, b) => b - a)
+
+    const isYearCompleted = (year: number) => {
+        const yearQuarters = quartersByYear[year] || []
+        return yearQuarters.length === 4 && yearQuarters.every(q => q.status === 'CLOSED')
+    }
+
+    const checkScroll = () => {
+        if (scrollRef.current) {
+            const { scrollWidth, clientWidth } = scrollRef.current
+            setCanScroll(scrollWidth > clientWidth)
+        }
+    }
+
+    useLayoutEffect(() => {
+        checkScroll()
+        window.addEventListener('resize', checkScroll)
+        return () => window.removeEventListener('resize', checkScroll)
+    }, [years])
+
+    useEffect(() => {
+        if (years.length > 0 && !quartersByYear[selectedYear]) {
+            setSelectedYear(years[0])
+        }
+    }, [years])
+
+    useEffect(() => { 
+        fetchQuarters();
+    }, [])
+
+    useEffect(() => {
+        fetchBacklog(); 
+    }, [backlogPage])
 
     return (
         <div className="max-w-7xl mx-auto space-y-8 pb-12">
@@ -460,30 +479,33 @@ const QuartersPage: React.FC = () => {
                     </div>
                 ) : (
                     <div className="relative group">
-                        {/* Scroll Arrows */}
-                        <button 
-                            onClick={() => scrollShelf('left')}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -ml-5"
-                        >
-                            <ChevronLeftIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
-                        </button>
-                        <button 
-                            onClick={() => scrollShelf('right')}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -mr-5"
-                        >
-                            <ChevronRightIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
-                        </button>
+                        {/* Scroll Arrows - Only show if carousel is full */}
+                        {canScroll && (
+                            <>
+                                <button 
+                                    onClick={() => scrollShelf('left')}
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -ml-5"
+                                >
+                                    <ChevronLeftIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
+                                </button>
+                                <button 
+                                    onClick={() => scrollShelf('right')}
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -mr-5"
+                                >
+                                    <ChevronRightIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
+                                </button>
+                            </>
+                        )}
 
                         <div 
                             ref={scrollRef}
                             className="flex overflow-x-auto gap-4 px-2 pb-6 no-scrollbar snap-x scroll-smooth"
                         >
                             {years.map(year => (
-                                <motion.button
+                                <button
                                     key={year}
-                                    whileHover={{ y: -4 }}
                                     onClick={() => setSelectedYear(year)}
-                                    className={`flex-none snap-start w-28 group relative flex flex-col items-center transition-all ${selectedYear === year ? 'scale-105' : 'opacity-70 hover:opacity-100'}`}
+                                    className={`flex-none snap-start w-28 group relative flex flex-col items-center pb-2 transition-all ${selectedYear === year ? 'opacity-100' : 'opacity-70 hover:opacity-100'}`}
                                 >
                                     {/* Win Folder Visual (Smaller) */}
                                     <div className="relative w-16 h-14 mb-2">
@@ -504,23 +526,33 @@ const QuartersPage: React.FC = () => {
                                             {/* Quarter Indicators */}
                                             <div className="absolute bottom-1 left-1.2 flex gap-0.5 justify-center w-full">
                                                 {quartersByYear[year]?.map(q => (
-                                                    <div key={q.id} className={`h-1 w-1 rounded-full ${q.status === 'CLOSED' ? 'bg-gray-400/50' : q.status === 'ACTIVE' ? 'bg-green-400' : 'bg-indigo-400'}`} />
+                                                    <div key={q.id} className={`h-1 w-1 rounded-full ${q.status === 'CLOSED' ? 'bg-gray-400/50' : q.status === 'ACTIVE' ? 'bg-green-400 shadow-[0_0_4px_rgba(74,222,128,0.5)]' : 'bg-indigo-400'}`} />
                                                 ))}
                                             </div>
                                         </div>
+
+                                        {/* Status Signs */}
+                                        <div className="absolute -top-1 -right-1 z-20">
+                                            {quartersByYear[year]?.some(q => q.status === 'ACTIVE') ? (
+                                                <div className="relative flex items-center justify-center">
+                                                    <div className="absolute inset-0 bg-green-400 animate-ping rounded-full opacity-75" />
+                                                    <div className="relative h-4 w-4 bg-green-500 rounded-full border-2 border-white flex items-center justify-center">
+                                                        <SparklesIcon className="h-2 w-2 text-white" />
+                                                    </div>
+                                                </div>
+                                            ) : isYearCompleted(year) ? (
+                                                <div className="h-4 w-4 bg-gray-400 rounded-full border-2 border-white flex items-center justify-center">
+                                                    <CheckCircleIcon className="h-2.5 w-2.5 text-white" />
+                                                </div>
+                                            ) : null}
+                                        </div>
                                     </div>
                                     
-                                    <span className={`text-[11px] font-black transition-colors ${selectedYear === year ? 'text-primary-700' : 'text-gray-900 uppercase tracking-tight'}`}>{year}</span>
+                                    <span className={`text-[11px] font-black transition-colors ${selectedYear === year ? 'text-primary-700 underline underline-offset-4 decoration-2' : 'text-gray-900 uppercase tracking-tight'}`}>{year}</span>
                                     {selectedYear === year && (
-                                        <motion.div layoutId="winFolderGlow" className="absolute -inset-2 bg-primary-100/50 rounded-lg -z-10" />
+                                        <div className="absolute -inset-2 bg-primary-50 rounded-lg -z-10" />
                                     )}
-
-                                    {isYearCompleted(year) && (
-                                        <div className="absolute top-0 right-2">
-                                            <CheckCircleIcon className="h-3 w-3 text-green-500 bg-white rounded-full" />
-                                        </div>
-                                    )}
-                                </motion.button>
+                                </button>
                             ))}
                         </div>
                     </div>
