@@ -540,7 +540,7 @@ const QuartersPage: React.FC = () => {
 
                         <div 
                             ref={scrollRef}
-                            className="flex overflow-x-auto gap-4 px-2 pb-6 no-scrollbar snap-x scroll-smooth"
+                            className="flex overflow-x-auto gap-4 px-2 pt-4 pb-6 no-scrollbar snap-x scroll-smooth"
                         >
                             {years.map(year => (
                                 <button
