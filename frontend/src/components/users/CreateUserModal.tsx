@@ -4,7 +4,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { usersApi } from '@/services/api'
 import { fetchUsers } from '@/store/slices/usersSlice'
-import ActionModal from '@/components/ui/ActionModal'
+import toast from 'react-hot-toast'
 
 interface CreateUserModalProps {
   isOpen: boolean
@@ -107,7 +107,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         strategyAccess: formData.strategyAccess,
       })
       
-      console.log('User created successfully!')
+      toast.success('Personnel onboarded successfully!')
       dispatch(fetchUsers({}))
       onClose()
       setFormData({
@@ -125,7 +125,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
       setErrors({})
     } catch (error: any) {
       const message = error.response?.data?.message || 'Failed to create user'
-      console.error(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
