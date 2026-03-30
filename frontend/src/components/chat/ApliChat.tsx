@@ -296,12 +296,12 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     // Check for @ mention (inline autocomplete)
     const atMatch = textBeforeCursor.match(/@([\w\s]*)$/)
     if (atMatch) {
-      const query = atMatch[1].toLowerCase()
+      const query = atMatch[1].toLowerCase().trim()
       
-      if (query.length > 0) {
+      if (query.length >= 1) {
         // Find first user that starts with the query
         const matchedUser = allUsers.find(u => 
-          u.name.toLowerCase().startsWith(query)
+          u.name.toLowerCase().includes(query)
         )
         
         if (matchedUser) {
@@ -316,12 +316,12 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     // Check for / task reference (inline autocomplete)
     const slashMatch = textBeforeCursor.match(/\/([\w\s-]*)$/)
     if (slashMatch) {
-      const query = slashMatch[1].toLowerCase()
+      const query = slashMatch[1].toLowerCase().trim()
       
-      if (query.length > 0) {
+      if (query.length >= 1) {
         // Find first task that starts with the query
         const matchedTask = allTasks.find((t: any) => 
-          t.title.toLowerCase().startsWith(query)
+          t.title.toLowerCase().includes(query)
         )
         
         if (matchedTask) {
@@ -348,21 +348,25 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         const suggestion = suggestions[0]
     const textBeforeCursor = inputValue.substring(0, cursorPosition)
     const textAfterCursor = inputValue.substring(cursorPosition)
-    
-    let newText = ''
+        const textBeforeCursor = inputValue.substring(0, cursorPosition)
+        const textAfterCursor = inputValue.substring(cursorPosition)
+        
+        let newText = ''
         let newCursorPos = 0
         
-    if (suggestionType === 'user') {
-          const beforeMention = textBeforeCursor.replace(/@[\w]*$/, '')
+        if (suggestionType === 'user') {
+          const atIndex = textBeforeCursor.lastIndexOf('@')
+          const beforeMention = textBeforeCursor.substring(0, atIndex)
           newText = beforeMention + `@${suggestion.name} ` + textAfterCursor
           newCursorPos = beforeMention.length + suggestion.name.length + 2
-    } else if (suggestionType === 'task') {
-          const beforeTask = textBeforeCursor.replace(/\/[\w\s-]*$/, '')
+        } else if (suggestionType === 'task') {
+          const slashIndex = textBeforeCursor.lastIndexOf('/')
+          const beforeTask = textBeforeCursor.substring(0, slashIndex)
           newText = beforeTask + `/${suggestion.title} ` + textAfterCursor
           newCursorPos = beforeTask.length + suggestion.title.length + 2
-    }
-    
-    setInputValue(newText)
+        }
+        
+        setInputValue(newText)
         setInlineCompletion('')
     setSuggestions([])
     setSuggestionType(null)
@@ -659,7 +663,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   />
                   {/* Inline completion overlay - Cut-edge styled, no white edge */}
                   {inlineCompletion && (
-                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm overflow-hidden right-12">
+                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm overflow-hidden right-4">
                       <span className="invisible">{inputValue}</span>
                       <span className="text-gray-400 bg-gray-50/80 px-1.5 py-0.5 rounded-md border border-gray-200/50 backdrop-blur-sm font-medium whitespace-nowrap">
                         {inlineCompletion}
