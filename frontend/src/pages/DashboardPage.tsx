@@ -15,6 +15,7 @@ import { fetchDashboardAnalytics } from '@/store/slices/analyticsSlice'
 import { fetchPhaseCount } from '@/store/slices/tasksSlice'
 import StatsCard from '@/components/dashboard/StatsCard'
 import TaskPhaseChart from '@/components/dashboard/TaskPhaseChart'
+import Avatar from '@/components/common/Avatar'
 import { quartersApi, formatAssetUrl } from '@/services/api'
 
 const DashboardPage: React.FC = () => {
@@ -127,13 +128,13 @@ const DashboardPage: React.FC = () => {
           {/* User Profile Identity */}
           <div className="flex items-center gap-6">
              <div className="h-20 w-20 rounded-2xl bg-white/20 border-2 border-white/20 p-0.5 flex-shrink-0 relative">
-                {user?.avatar ? (
-                  <img src={formatAssetUrl(user.avatar)} className="h-full w-full object-cover rounded-2xl" alt={user.name} />
-                ) : (
-                  <div className="h-full w-full rounded-2xl bg-primary-500 flex items-center justify-center text-2xl font-black text-white">
-                    {user?.name?.charAt(0)}
-                  </div>
-                )}
+                 <Avatar 
+                    src={user?.avatar} 
+                    name={user?.name} 
+                    size="lg" 
+                    rounded="2xl" 
+                    className="h-full w-full"
+                 />
                 <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-emerald-500 border-4 border-primary-600 shadow-sm" />
              </div>
              

@@ -214,7 +214,7 @@ export class PublicFilesController {
     @Res({ passthrough: true }) res: Response,
   ) {
     // Security: Only allow files from safe public folders
-    const safeFolders = ['temp', 'branding', 'avatars'];
+    const safeFolders = ['temp', 'branding', 'avatars', 'tickets', 'tasks'];
     if (!safeFolders.includes(folder)) {
       throw new NotFoundException('Invalid folder');
     }

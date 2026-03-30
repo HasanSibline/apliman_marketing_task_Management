@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 import Logo from './Logo'
+import Avatar from '../common/Avatar'
 
 const Sidebar: React.FC = () => {
   const { sidebarOpen } = useAppSelector((state) => state.ui)
@@ -113,13 +114,12 @@ const Sidebar: React.FC = () => {
         <div className="border-t border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              </div>
+                <Avatar 
+                  src={user?.avatar} 
+                  name={user?.name} 
+                  size="sm" 
+                  rounded="full" 
+                />
               {sidebarOpen && (
                 <motion.div
                   initial={{ opacity: 0, x: -10 }}

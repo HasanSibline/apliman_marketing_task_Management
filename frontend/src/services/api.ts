@@ -7,8 +7,14 @@ export const BACKEND_URL = API_BASE_URL.replace('/api', '') // Base URL without 
 export const formatAssetUrl = (path: string | null | undefined): string => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
+  
+  // Ensure we have a clean backend base URL without trailing slash
+  const baseUrl = BACKEND_URL.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  
+  // Ensure path starts with a single slash
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  return `${BACKEND_URL}${cleanPath}`;
+  
+  return `${baseUrl}${cleanPath}`;
 }
 
 // Create axios instance

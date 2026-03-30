@@ -12,6 +12,7 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
   const { user } = useAppSelector((state) => state.auth)
+  const [imgError, setImgError] = React.useState(false)
   
   const sizeClasses = {
     sm: 'h-6',
@@ -20,7 +21,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
   }
 
   // Determine logo source: company custom logo or default fallback
-  const logoSrc = user?.companyLogo ? formatAssetUrl(user.companyLogo) : logoImage;
+  const logoSrc = user?.companyLogo && !imgError ? formatAssetUrl(user.companyLogo) : logoImage;
 
   return (
     <Link to="/" className={`flex items-center ${className}`}>
@@ -28,6 +29,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
         src={logoSrc}
         alt={user?.companyId ? "Company Logo" : "Apliman Logo"}
         className={`${sizeClasses[size]} w-auto object-contain max-w-full`}
+        onError={() => setImgError(true)}
       />
     </Link>
   )
