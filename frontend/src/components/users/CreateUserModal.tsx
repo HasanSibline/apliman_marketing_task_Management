@@ -4,6 +4,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { usersApi } from '@/services/api'
 import { fetchUsers } from '@/store/slices/usersSlice'
+import ActionModal from '@/components/ui/ActionModal'
 
 interface CreateUserModalProps {
   isOpen: boolean
@@ -24,7 +25,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
     role: 'EMPLOYEE' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
     position: '',
     departmentId: '',
-    teamId: '',
     managerId: '',
     isTicketApprover: false,
     strategyAccess: 'NONE' as 'NONE' | 'READ' | 'EDIT',
@@ -102,7 +102,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         role: formData.role,
         position: formData.position.trim(),
         departmentId: formData.departmentId || undefined,
-        teamId: formData.teamId || undefined,
         managerId: formData.managerId || undefined,
         isTicketApprover: formData.isTicketApprover,
         strategyAccess: formData.strategyAccess,
@@ -119,7 +118,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         role: 'EMPLOYEE',
         position: '',
         departmentId: '',
-        teamId: '',
         managerId: '',
         isTicketApprover: false,
         strategyAccess: 'NONE',
@@ -140,10 +138,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         ...prev,
         [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
       };
-      // Reset team if department changes
-      if (name === 'departmentId') {
-        newData.teamId = '';
-      }
       return newData;
     });
     
@@ -354,30 +348,6 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     ))}
                   </select>
                 </div>
-
-                {/* Team Mapping (Linked to Department) */}
-                {formData.departmentId && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                  >
-                    <label htmlFor="teamId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
-                      Personnel Team Assignment
-                    </label>
-                    <select
-                      id="teamId"
-                      name="teamId"
-                      value={formData.teamId}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
-                    >
-                      <option value="">No Team Assigned</option>
-                      {departments.find(d => d.id === formData.departmentId)?.teams?.map((team: any) => (
-                        <option key={team.id} value={team.id}>{team.name}</option>
-                      ))}
-                    </select>
-                  </motion.div>
-                )}
 
                 {/* Manager */}
                 <div>

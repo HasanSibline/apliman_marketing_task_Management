@@ -192,23 +192,26 @@ export class UsersService {
 
   async update(id: string, updateUserDto: UpdateUserDto) {
     try {
-      const user = await this.prisma.user.update({
-        where: { id },
-        data: updateUserDto,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-          avatar: true,
-          companyId: true,
-          position: true,
-          status: true,
-          strategyAccess: true,
-          createdAt: true,
-          updatedAt: true,
-          lastActiveAt: true,
-        },
+      const user = await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.user.update({
+          where: { id },
+          data: updateUserDto,
+          select: {
+            id: true, email: true, name: true, role: true, avatar: true,
+            companyId: true, position: true, status: true, strategyAccess: true,
+            createdAt: true, updatedAt: true, lastActiveAt: true,
+          },
+        });
+
+        // "Vice Versa" Logic: If role is demoted to EMPLOYEE, remove as department manager
+        if (updateUserDto.role && updateUserDto.role === 'EMPLOYEE') {
+          await tx.department.updateMany({
+            where: { managerId: id },
+            data: { managerId: null }
+          });
+        }
+
+        return updated;
       });
 
       return user;

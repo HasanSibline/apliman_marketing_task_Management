@@ -25,7 +25,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
     position: '',
     status: '' as 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED',
     departmentId: '',
-    teamId: '',
     managerId: '',
     isTicketApprover: false,
     strategyAccess: 'NONE' as 'NONE' | 'READ' | 'EDIT',
@@ -61,7 +60,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         position: user.position,
         status: user.status,
         departmentId: user.departmentId || '',
-        teamId: user.teamId || '',
         managerId: user.managerId || '',
         isTicketApprover: user.isTicketApprover || false,
         strategyAccess: user.strategyAccess || 'NONE',
@@ -110,7 +108,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         position: formData.position.trim(),
         status: formData.status,
         departmentId: formData.departmentId || null,
-        teamId: formData.teamId || null,
         managerId: formData.managerId || null,
         isTicketApprover: formData.isTicketApprover,
         strategyAccess: formData.strategyAccess,
@@ -135,12 +132,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         ...prev,
         [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
       };
-      
-      // Reset team if department changes
-      if (name === 'departmentId') {
-        newData.teamId = '';
-      }
-      
       return newData;
     });
     
@@ -364,30 +355,6 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     ))}
                   </select>
                 </div>
-
-                {/* Team Mapping (Linked to Department) */}
-                {formData.departmentId && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                  >
-                    <label htmlFor="teamId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
-                      Personnel Team Assignment
-                    </label>
-                    <select
-                      id="teamId"
-                      name="teamId"
-                      value={formData.teamId}
-                      onChange={handleChange}
-                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
-                    >
-                      <option value="">No Team Assigned</option>
-                      {departments.find(d => d.id === formData.departmentId)?.teams?.map((team: any) => (
-                        <option key={team.id} value={team.id}>{team.name}</option>
-                      ))}
-                    </select>
-                  </motion.div>
-                )}
 
                 {/* Direct Manager Selector */}
                 <div>

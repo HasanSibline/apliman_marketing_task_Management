@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast'
 
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchUsers } from '@/store/slices/usersSlice'
+import ActionModal from '@/components/ui/ActionModal'
 
 const DepartmentsManagement: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -14,6 +15,18 @@ const DepartmentsManagement: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newDeptName, setNewDeptName] = useState('')
   const [selectedManagerId, setSelectedManagerId] = useState('')
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    variant: 'danger' | 'warning' | 'info' | 'success';
+    title: string;
+    description: string;
+    targetId?: string;
+  }>({
+    isOpen: false,
+    variant: 'info',
+    title: '',
+    description: ''
+  })
 
   useEffect(() => {
     fetchData()
@@ -51,14 +64,26 @@ const DepartmentsManagement: React.FC = () => {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this department?')) return
+  const handleDelete = (id: string) => {
+    setActionModal({
+      isOpen: true,
+      variant: 'danger',
+      title: 'Decommission Department',
+      description: 'Are you sure you want to permanently delete this organizational department? This action cannot be reversed.',
+      targetId: id
+    })
+  }
+
+  const confirmDelete = async () => {
+    if (!actionModal.targetId) return
     try {
-      await api.delete(`/departments/${id}`)
+      await api.delete(`/departments/${actionModal.targetId}`)
       toast.success('Department deleted')
       fetchData()
     } catch (error) {
       toast.error('Failed to delete department')
+    } finally {
+      setActionModal(prev => ({ ...prev, isOpen: false }))
     }
   }
 
@@ -143,6 +168,15 @@ const DepartmentsManagement: React.FC = () => {
           </div>
         </div>
       )}
+
+      <ActionModal
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={confirmDelete}
+        title={actionModal.title}
+        description={actionModal.description}
+        variant={actionModal.variant}
+      />
     </div>
   )
 }
