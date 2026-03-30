@@ -139,20 +139,28 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
     }
   }
 
-  const handleDownload = (fileId: string, fileName: string) => {
-    const downloadUrl = `${import.meta.env.VITE_API_URL}/files/ticket/download/${fileId}`
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.setAttribute('download', fileName)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
+  const handleDownload = async (fileId: string, fileName: string) => {
+    try {
+      const response = await api.get(`/files/ticket-download/${fileId}`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', fileName)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      toast.error('Download failed')
+    }
   }
 
   const handleDeleteAttachment = async (fileId: string) => {
     if (!window.confirm('Remove this attachment?')) return
     try {
-      await api.delete(`/files/ticket/${fileId}`)
+      await api.delete(`/files/ticket-delete/${fileId}`)
       toast.success('Attachment removed')
       fetchAttachments()
     } catch (error) {

@@ -156,7 +156,7 @@ const TicketDetailPage: React.FC = () => {
 
   const handleDownload = async (fileId: string, fileName: string) => {
     try {
-      const response = await api.get(`/files/ticket/download/${fileId}`, {
+      const response = await api.get(`/files/ticket-download/${fileId}`, {
         responseType: 'blob'
       });
       
@@ -169,7 +169,7 @@ const TicketDetailPage: React.FC = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      toast.error('Tactical failure during asset retrieval');
+      toast.error('Download failed');
     }
   }
 
@@ -187,7 +187,7 @@ const TicketDetailPage: React.FC = () => {
         toast.error('Strategic Rejection Logged')
         fetchTicketDetails()
       } else if (type === 'remove_attachment' && targetId) {
-        await api.delete(`/files/ticket/${targetId}`)
+        await api.delete(`/files/ticket-delete/${targetId}`)
         toast.success('Asset removed')
         fetchAttachments()
       }

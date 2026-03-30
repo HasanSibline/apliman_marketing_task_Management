@@ -375,13 +375,28 @@ export class FilesService {
     if (!file) throw new NotFoundException('File not found');
 
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(userRole);
+
+    // Allow: admin, or any user involved in the ticket
     const isInvolved = file.ticket.requesterId === userId || 
                        file.ticket.requesterManagerId === userId || 
                        file.ticket.receiverManagerId === userId || 
                        file.ticket.assigneeId === userId ||
                        file.ticket.receiverDept?.managerId === userId;
 
-    if (!isAdmin && !isInvolved) throw new NotFoundException('Access denied');
+    // Also allow any user in the same company as the ticket (checked via user's companyId)
+    if (!isAdmin && !isInvolved) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true }
+      });
+      const ticketWithCompany = await this.prisma.ticket.findUnique({
+        where: { id: file.ticketId },
+        select: { companyId: true }
+      });
+      if (!user?.companyId || user.companyId !== ticketWithCompany?.companyId) {
+        throw new NotFoundException('Access denied');
+      }
+    }
 
     if (!existsSync(file.filePath)) throw new NotFoundException('File on disk missing');
 
@@ -391,6 +406,7 @@ export class FilesService {
       mimeType: file.mimeType,
     };
   }
+
 
   async deleteTicketFile(fileId: string, userId: string, userRole: string) {
     const file = await this.prisma.ticketAttachment.findUnique({

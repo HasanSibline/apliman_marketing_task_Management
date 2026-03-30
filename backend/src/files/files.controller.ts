@@ -155,7 +155,7 @@ export class FilesController {
     return this.filesService.getTicketFiles(ticketId, req.user.id, req.user.role);
   }
 
-  @Get('ticket/download/:fileId')
+  @Get('ticket-download/:fileId')
   @ApiOperation({ summary: 'Download a ticket attachment' })
   async downloadTicketFile(
     @Param('fileId') fileId: string,
@@ -171,7 +171,7 @@ export class FilesController {
     return new StreamableFile(file);
   }
 
-  @Delete('ticket/:fileId')
+  @Delete('ticket-delete/:fileId')
   @ApiOperation({ summary: 'Delete a ticket attachment' })
   async deleteTicketFile(@Param('fileId') fileId: string, @Request() req) {
     return this.filesService.deleteTicketFile(fileId, req.user.id, req.user.role);
