@@ -114,6 +114,7 @@ model Ticket {
   updatedAt          DateTime        @updatedAt
   taskId             String?         @unique
   comments           TicketComment[]
+  attachments        TicketAttachment[]
   assignee           User?           @relation("TicketAssignee", fields: [assigneeId], references: [id])
   company            Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   receiverDept       Department      @relation("ReceiverDepartment", fields: [receiverDeptId], references: [id])
@@ -123,6 +124,20 @@ model Ticket {
   task               Task?           @relation(fields: [taskId], references: [id])
 
   @@map("tickets")
+}
+
+model TicketAttachment {
+  id         String   @id @default(uuid())
+  ticketId   String
+  fileName   String
+  filePath   String
+  fileType   String
+  fileSize   Int
+  mimeType   String
+  uploadedAt DateTime @default(now())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_attachments")
 }
 
 model TicketComment {

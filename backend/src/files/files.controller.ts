@@ -133,6 +133,49 @@ export class FilesController {
   getFileStats() {
     return this.filesService.getFileStats();
   }
+
+  // --- Ticket Attachments ---
+
+  @Post('ticket/:ticketId')
+  @UseInterceptors(FilesInterceptor('files', 10))
+  @ApiOperation({ summary: 'Upload files to a ticket' })
+  @ApiConsumes('multipart/form-data')
+  async uploadTicketFiles(
+    @Param('ticketId') ticketId: string,
+    @UploadedFiles() files: Express.Multer.File[],
+    @Request() req,
+  ) {
+    if (!files || files.length === 0) throw new BadRequestException('No files provided');
+    return this.filesService.uploadTicketFiles(ticketId, files, req.user.id);
+  }
+
+  @Get('ticket/:ticketId')
+  @ApiOperation({ summary: 'Get all files for a ticket' })
+  async getTicketFiles(@Param('ticketId') ticketId: string, @Request() req) {
+    return this.filesService.getTicketFiles(ticketId, req.user.id, req.user.role);
+  }
+
+  @Get('ticket/download/:fileId')
+  @ApiOperation({ summary: 'Download a ticket attachment' })
+  async downloadTicketFile(
+    @Param('fileId') fileId: string,
+    @Request() req,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const fileInfo = await this.filesService.downloadTicketFile(fileId, req.user.id, req.user.role);
+    const file = createReadStream(fileInfo.filePath);
+    res.set({
+      'Content-Type': fileInfo.mimeType,
+      'Content-Disposition': `attachment; filename="${fileInfo.fileName}"`,
+    });
+    return new StreamableFile(file);
+  }
+
+  @Delete('ticket/:fileId')
+  @ApiOperation({ summary: 'Delete a ticket attachment' })
+  async deleteTicketFile(@Param('fileId') fileId: string, @Request() req) {
+    return this.filesService.deleteTicketFile(fileId, req.user.id, req.user.role);
+  }
 }
 
 // Public Files Controller (No Authentication Required)

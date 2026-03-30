@@ -257,14 +257,16 @@ export class FilesService {
   }
 
   async getFileStats() {
-    const stats = await this.prisma.taskFile.aggregate({
-      _count: {
-        id: true,
-      },
-      _sum: {
-        fileSize: true,
-      },
-    });
+    const [stats, ticketStats] = await Promise.all([
+      this.prisma.taskFile.aggregate({
+        _count: { id: true },
+        _sum: { fileSize: true },
+      }),
+      this.prisma.ticketAttachment.aggregate({
+        _count: { id: true },
+        _sum: { fileSize: true },
+      })
+    ]);
 
     const filesByType = await this.prisma.taskFile.groupBy({
       by: ['mimeType'],
@@ -274,12 +276,122 @@ export class FilesService {
     });
 
     return {
-      totalFiles: stats._count.id || 0,
-      totalSize: stats._sum.fileSize || 0,
+      totalFiles: (stats._count.id || 0) + (ticketStats._count.id || 0),
+      totalSize: (stats._sum.fileSize || 0) + (ticketStats._sum.fileSize || 0),
       filesByType: filesByType.map(item => ({
         mimeType: item.mimeType,
         count: item._count.id,
       })),
     };
+  }
+
+  // --- Ticket Attachments ---
+
+  async uploadTicketFiles(ticketId: string, files: Express.Multer.File[], userId: string) {
+    // Verify ticket exists
+    const ticket = await this.prisma.ticket.findFirst({
+      where: { id: ticketId },
+    });
+
+    if (!ticket) {
+      throw new NotFoundException('Ticket not found');
+    }
+
+    const uploadedFiles = [];
+
+    for (const file of files) {
+      try {
+        let processedFile = file;
+        if (file.mimetype.startsWith('image/')) {
+          processedFile = await this.compressImage(file);
+        }
+
+        const fileRecord = await this.prisma.ticketAttachment.create({
+          data: {
+            ticketId,
+            fileName: file.originalname,
+            filePath: processedFile.path,
+            fileType: path.extname(file.originalname),
+            fileSize: processedFile.size,
+            mimeType: file.mimetype,
+          },
+        });
+
+        uploadedFiles.push(fileRecord);
+      } catch (error) {
+        if (existsSync(file.path)) await fs.unlink(file.path).catch(console.error);
+        throw new BadRequestException(`Failed to process file: ${file.originalname}`);
+      }
+    }
+
+    return uploadedFiles;
+  }
+
+  async getTicketFiles(ticketId: string, userId: string, userRole: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
+      include: {
+        attachments: { orderBy: { uploadedAt: 'desc' } },
+      },
+    });
+
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    
+    // Privacy check: only involved or admin
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(userRole);
+    const isInvolved = ticket.requesterId === userId || 
+                       ticket.requesterManagerId === userId || 
+                       ticket.receiverManagerId === userId || 
+                       ticket.assigneeId === userId;
+
+    if (!isAdmin && !isInvolved) {
+      throw new NotFoundException('Access denied to this ticket files');
+    }
+
+    return ticket.attachments;
+  }
+
+  async downloadTicketFile(fileId: string, userId: string, userRole: string) {
+    const file = await this.prisma.ticketAttachment.findUnique({
+      where: { id: fileId },
+      include: { ticket: true },
+    });
+
+    if (!file) throw new NotFoundException('File not found');
+
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(userRole);
+    const isInvolved = file.ticket.requesterId === userId || 
+                       file.ticket.requesterManagerId === userId || 
+                       file.ticket.receiverManagerId === userId || 
+                       file.ticket.assigneeId === userId;
+
+    if (!isAdmin && !isInvolved) throw new NotFoundException('Access denied');
+
+    if (!existsSync(file.filePath)) throw new NotFoundException('File on disk missing');
+
+    return {
+      filePath: file.filePath,
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+    };
+  }
+
+  async deleteTicketFile(fileId: string, userId: string, userRole: string) {
+    const file = await this.prisma.ticketAttachment.findUnique({
+      where: { id: fileId },
+      include: { ticket: true },
+    });
+
+    if (!file) throw new NotFoundException('File not found');
+
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(userRole);
+    if (!isAdmin && file.ticket.requesterId !== userId) {
+      throw new BadRequestException('Only requester or admins can delete attachments');
+    }
+
+    if (existsSync(file.filePath)) await fs.unlink(file.filePath).catch(console.error);
+    await this.prisma.ticketAttachment.delete({ where: { id: fileId } });
+
+    return { message: 'Attachment deleted' };
   }
 }

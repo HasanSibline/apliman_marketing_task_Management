@@ -6,6 +6,7 @@ import {
   XCircleIcon, 
   ChatBubbleLeftRightIcon,
   ArrowRightIcon,
+  TrashIcon,
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
@@ -18,6 +19,7 @@ type TicketStatus = 'PENDING_REQ_MGR' | 'PENDING_REC_MGR' | 'OPEN' | 'IN_PROGRES
 
 const TicketsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
+  const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
   const [tickets, setTickets] = useState<any[]>([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
@@ -196,9 +198,26 @@ const TicketsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-right">
                       <div className="flex justify-end space-x-1">
+                        {isAdmin && (
+                          <button 
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if(window.confirm('Delete this ticket?')) {
+                                try {
+                                  await api.delete(`/tickets/${ticket.id}`);
+                                  toast.success('Ticket removed');
+                                  fetchData();
+                                } catch(e) { toast.error('Failed'); }
+                              }
+                            }}
+                            className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                          >
+                            <TrashIcon className="h-5 w-5" />
+                          </button>
+                        )}
                         {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) || 
                           (ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id))) ||
-                          (['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || ''))) && 
+                          isAdmin) && 
                           (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
                           <>
                             <button onClick={(e) => handleApprove(e, ticket.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl"><CheckCircleIcon className="h-5 w-5" /></button>

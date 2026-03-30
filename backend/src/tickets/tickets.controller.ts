@@ -69,4 +69,14 @@ export class TicketsController {
   resolve(@Param('id') id: string, @Request() req) {
     return this.ticketsService.resolve(id, req.user.id, req.user.companyId);
   }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
+    return this.ticketsService.update(id, req.user.id, req.user.role, updateDto, req.user.companyId);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string, @Request() req) {
+    return this.ticketsService.remove(id, req.user.id, req.user.role, req.user.companyId);
+  }
 }

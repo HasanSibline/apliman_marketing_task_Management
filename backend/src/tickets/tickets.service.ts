@@ -78,6 +78,9 @@ export class TicketsService {
           include: { user: { select: { id: true, name: true } } },
           orderBy: { createdAt: 'asc' },
         },
+        attachments: {
+          orderBy: { uploadedAt: 'desc' },
+        },
       },
     });
 
@@ -244,6 +247,50 @@ export class TicketsService {
     return this.prisma.ticketComment.create({
       data: { ticketId: id, userId, comment },
     });
+  }
+
+  async update(id: string, userId: string, role: string, data: any, companyId: string) {
+    const ticket = await this.findOne(id, companyId);
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
+    const isOwner = ticket.requesterId === userId;
+
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException('No permission to edit this ticket');
+    }
+
+    if (data.receiverDeptId === null || data.receiverDeptId === '') {
+      throw new BadRequestException('A receiver department is mandatory. Select a new one before removing.');
+    }
+
+    // If receiver department changed, update the receiver manager too
+    let receiverManagerId = ticket.receiverManagerId;
+    if (data.receiverDeptId && data.receiverDeptId !== ticket.receiverDeptId) {
+      const dept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
+      receiverManagerId = dept?.managerId || null;
+    }
+
+    return this.prisma.ticket.update({
+      where: { id },
+      data: {
+        ...data,
+        receiverManagerId,
+        id: undefined,
+        companyId: undefined,
+        ticketNumber: undefined,
+        requesterId: undefined,
+      }
+    });
+  }
+
+  async remove(id: string, userId: string, role: string, companyId: string) {
+    const ticket = await this.findOne(id, companyId);
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
+
+    if (!isAdmin) {
+      throw new ForbiddenException('Only Administrators can delete tickets.');
+    }
+
+    return this.prisma.ticket.delete({ where: { id } });
   }
 
   private async generateTicketNumber(companyId: string): Promise<string> {

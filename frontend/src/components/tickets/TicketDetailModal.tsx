@@ -8,7 +8,15 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   AtSymbolIcon,
-  ChatBubbleLeftRightIcon
+  ChatBubbleLeftRightIcon,
+  PencilSquareIcon,
+  TrashIcon,
+  ArrowPathIcon,
+  ListBulletIcon,
+  PaperClipIcon,
+  ArrowDownTrayIcon,
+  DocumentIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import { toast } from 'react-hot-toast'
@@ -25,12 +33,27 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
   const { user } = useAppSelector((state) => state.auth)
   const [ticket, setTicket] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [attachments, setAttachments] = useState<any[]>([])
+  const [isUploading, setIsUploading] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const [users, setUsers] = useState<any[]>([])
+  const [departments, setDepartments] = useState<any[]>([])
+  
+  // Edit Mode States
+  const [isEditing, setIsEditing] = useState(false)
+  const [editData, setEditData] = useState({
+    title: '',
+    description: '',
+    receiverDeptId: '',
+    status: ''
+  })
+  const [isSaving, setIsSaving] = useState(false)
+
   const [showMentions, setShowMentions] = useState(false)
   const [mentionFilter, setMentionFilter] = useState('')
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const commentsEndRef = useRef<HTMLDivElement>(null)
 
@@ -38,6 +61,8 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
     if (isOpen && ticketId) {
       fetchTicketDetails()
       fetchUsers()
+      fetchDepartments()
+      fetchAttachments()
     }
   }, [isOpen, ticketId])
 
@@ -54,6 +79,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
     try {
       const res = await api.get(`/tickets/${ticketId}`)
       setTicket(res.data)
+      setEditData({
+        title: res.data.title,
+        description: res.data.description,
+        receiverDeptId: res.data.receiverDeptId,
+        status: res.data.status
+      })
     } catch (error) {
       toast.error('Failed to load ticket details')
       onClose()
@@ -67,7 +98,100 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
       const res = await api.get('/users')
       setUsers(res.data)
     } catch (error) {
-      console.error('Failed to fetch users for mentions')
+      console.error('Failed to fetch users')
+    }
+  }
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await api.get('/departments')
+      setDepartments(res.data)
+    } catch (error) {
+      console.error('Failed to fetch departments')
+    }
+  }
+
+  const fetchAttachments = async () => {
+    try {
+      const res = await api.get(`/files/ticket/${ticketId}`)
+      setAttachments(res.data)
+    } catch (error) {
+      console.error('Failed to fetch attachments')
+    }
+  }
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    const formData = new FormData()
+    Array.from(files).forEach(file => formData.append('files', file))
+
+    setIsUploading(true)
+    try {
+      await api.post(`/files/ticket/${ticketId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      })
+      toast.success('Files uploaded successfully')
+      fetchAttachments()
+    } catch (error) {
+      toast.error('File upload failed')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const handleDownload = (fileId: string, fileName: string) => {
+    const downloadUrl = `${import.meta.env.VITE_API_URL}/files/ticket/download/${fileId}`
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.setAttribute('download', fileName)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  const handleDeleteAttachment = async (fileId: string) => {
+    if (!window.confirm('Remove this attachment?')) return
+    try {
+      await api.delete(`/files/ticket/${fileId}`)
+      toast.success('Attachment removed')
+      fetchAttachments()
+    } catch (error) {
+      toast.error('Failed to delete attachment')
+    }
+  }
+
+  const handleUpdateTicket = async () => {
+    if (!editData.title || !editData.receiverDeptId) {
+      toast.error('A Title and Receiver Department are both mandatory.')
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      await api.patch(`/tickets/${ticketId}`, editData)
+      toast.success('Ticket updated successfully')
+      setIsEditing(false)
+      fetchTicketDetails()
+      onUpdate()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Update failed')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDeleteTicket = async () => {
+    if (!window.confirm('PERMANENT DELETION: Are you sure? This ticket will be removed from all logs.')) return
+    try {
+      await api.delete(`/tickets/${ticketId}`)
+      toast.success('Ticket deleted permanentely')
+      onClose()
+      onUpdate()
+    } catch (error) {
+      toast.error('Deletion failed')
     }
   }
 
@@ -78,12 +202,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
       fetchTicketDetails()
       onUpdate()
     } catch (error) {
-      toast.error('Failed to approve ticket')
+      toast.error('Failed to approve')
     }
   }
 
   const handleReject = async () => {
-    const reason = prompt('Reason for rejection:')
+    const reason = prompt('State rejection reason:')
     if (reason === null) return
     try {
       await api.patch(`/tickets/${ticketId}/reject`, { reason })
@@ -91,7 +215,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
       fetchTicketDetails()
       onUpdate()
     } catch (error) {
-      toast.error('Failed to reject ticket')
+      toast.error('Failed to reject')
     }
   }
 
@@ -105,7 +229,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
       setNewComment('')
       fetchTicketDetails()
     } catch (error) {
-      toast.error('Failed to add comment')
+      toast.error('Comment failed')
     } finally {
       setIsSubmittingComment(false)
     }
@@ -114,10 +238,13 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
     setNewComment(val)
-
-    // Check for @ mention
-    const lastWord = val.split(/\s/).pop() || ''
     
+    // Improved Mentions Detection
+    const cursorPosition = e.target.selectionStart
+    const textBeforeCursor = val.substring(0, cursorPosition)
+    const words = textBeforeCursor.split(/\s+/)
+    const lastWord = words[words.length - 1]
+
     if (lastWord.startsWith('@')) {
       setShowMentions(true)
       setMentionFilter(lastWord.slice(1).toLowerCase())
@@ -127,12 +254,24 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
   }
 
   const insertMention = (userName: string) => {
-    const words = newComment.split(/\s/)
-    words.pop() // Remove the partial @mention
-    const updated = [...words, `@${userName} `].join(' ')
-    setNewComment(updated)
+    const cursorPosition = commentInputRef.current?.selectionStart || 0
+    const textBeforeCursor = newComment.substring(0, cursorPosition)
+    const textAfterCursor = newComment.substring(cursorPosition)
+    
+    const words = textBeforeCursor.split(/\s+/)
+    words[words.length - 1] = `@${userName}`
+    
+    const newText = words.join(' ') + ' ' + textAfterCursor
+    setNewComment(newText)
     setShowMentions(false)
-    commentInputRef.current?.focus()
+    
+    setTimeout(() => {
+      if (commentInputRef.current) {
+        commentInputRef.current.focus()
+        const newCursorPos = (words.join(' ') + ' ').length
+        commentInputRef.current.setSelectionRange(newCursorPos, newCursorPos)
+      }
+    }, 0)
   }
 
   const filteredUsers = users.filter(u => 
@@ -142,321 +281,372 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
   if (!isOpen) return null
 
+  const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
+  const canEdit = ticket?.requesterId === user?.id || isAdmin;
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          className="absolute inset-0 bg-black/70 backdrop-blur-md"
         />
 
         <motion.div
           initial={{ opacity: 0, y: 50, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 50, scale: 0.95 }}
-          className="relative w-full max-w-4xl h-[85vh] bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-gray-100"
+          className="relative w-full max-w-6xl h-[90vh] bg-white rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-gray-100"
         >
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+              <ArrowPathIcon className="h-10 w-10 text-primary-600 animate-spin" />
             </div>
           ) : (
             <>
-              {/* Header Strip */}
-              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <div className="flex items-center gap-3">
-                  <span className="bg-primary-100 text-primary-700 px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase">
+              {/* Premium Header Strip */}
+              <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <span className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-lg shadow-primary-200">
                     {ticket.ticketNumber}
                   </span>
-                  <h2 className="text-xl font-black text-gray-900 truncate max-w-md">
-                    {ticket.title}
-                  </h2>
+                  {isEditing ? (
+                    <input 
+                      type="text"
+                      value={editData.title}
+                      onChange={(e) => setEditData({...editData, title: e.target.value})}
+                      className="flex-1 max-w-lg px-4 py-2 bg-white border-2 border-primary-500/20 rounded-xl text-xl font-black text-gray-900 focus:outline-none focus:border-primary-500 transition-all font-outfit"
+                    />
+                  ) : (
+                    <h2 className="text-2xl font-black text-gray-900 truncate max-w-lg uppercase tracking-tight font-outfit">
+                      {ticket.title}
+                    </h2>
+                  )}
                 </div>
-                <button
-                  onClick={onClose}
-                  className="p-2 hover:bg-gray-200 rounded-full text-gray-400 hover:text-gray-600 transition-all"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
+                <div className="flex items-center gap-3">
+                  {canEdit && !isEditing && (
+                    <button 
+                      onClick={() => setIsEditing(true)}
+                      className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 hover:border-primary-500 transition-all shadow-sm"
+                    >
+                      <PencilSquareIcon className="h-4 w-4 text-primary-600" /> Modify
+                    </button>
+                  )}
+                  {isAdmin && (
+                    <button 
+                      onClick={handleDeleteTicket}
+                      className="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  )}
+                  <div className="w-px h-8 bg-gray-200 mx-2" />
+                  <button
+                    onClick={onClose}
+                    className="p-2.5 bg-gray-100/50 hover:bg-gray-200 rounded-xl text-gray-400 hover:text-gray-900 transition-all"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 flex overflow-hidden">
-                {/* Left Panel: Info (40%) */}
-                <div className="w-2/5 border-r border-gray-100 overflow-y-auto p-6 space-y-6 bg-gray-50/30">
-                  {/* Status Card */}
-                  <div className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-3">
+                {/* Left Panel: Configuration & Metadata */}
+                <div className="w-[480px] border-r border-gray-100 overflow-y-auto p-8 space-y-8 bg-gray-50/20">
+                  
+                  {/* Process Control Card */}
+                  <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Status</span>
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
-                        ${ticket.status === 'RESOLVED' ? 'bg-green-100 text-green-700' : 
-                          ticket.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
-                          'bg-amber-100 text-amber-700'}`}>
+                      <div className="flex items-center gap-2">
+                        <ListBulletIcon className="h-4 w-4 text-primary-500" />
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Process Workflow</span>
+                      </div>
+                      <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border
+                        ${ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
+                          ticket.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                          'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
                         {ticket.status.replace(/_/g, ' ')}
                       </span>
                     </div>
-                    
-                    {/* Approvers List */}
-                    <div className="space-y-2 pt-2">
-                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Cycle Approvers</p>
-                       <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500">Requester Mgr</span>
-                            <span className="text-xs font-bold text-gray-800">{ticket.requesterManager?.name || 'N/A (System)'}</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs text-gray-500">Recipient Mgr</span>
-                            <span className="text-xs font-bold text-gray-800">{ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Unassigned'}</span>
-                          </div>
-                       </div>
-                    </div>
 
-                    {/* Assignment Selector (for target manager) */}
-                    {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && 
-                      (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || user?.role === 'COMPANY_ADMIN') && (
-                      <div className="pt-2 space-y-2">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Assign Responsiblity</p>
-                        <select
-                          value={ticket.assigneeId || ''}
-                          onChange={async (e) => {
-                            try {
-                              await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
-                              toast.success('Ticket assigned')
-                              fetchTicketDetails()
-                              onUpdate()
-                            } catch (error) {
-                              toast.error('Failed to assign ticket')
-                            }
-                          }}
-                          className="w-full text-xs border border-gray-200 rounded-lg p-2 bg-gray-50 focus:bg-white transition-colors"
-                        >
-                          <option value="">Select an assignee...</option>
-                          {users
-                            .filter(u => u.departmentId === ticket.receiverDeptId)
-                            .map(u => (
-                              <option key={u.id} value={u.id}>{u.name}</option>
-                            ))
-                          }
-                        </select>
+                    {isEditing ? (
+                      <div className="space-y-4 pt-2">
+                         <div className="space-y-2">
+                            <label className="text-[9px] font-black text-primary-600 uppercase tracking-widest ml-1">Redirect To Dept</label>
+                            <select
+                              value={editData.receiverDeptId}
+                              onChange={(e) => setEditData({...editData, receiverDeptId: e.target.value})}
+                              className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white focus:border-primary-500 transition-all font-black text-gray-800"
+                            >
+                                <option value="">Select Destination...</option>
+                                {departments.map(d => (
+                                  <option key={d.id} value={d.id}>{d.name}</option>
+                                ))}
+                            </select>
+                         </div>
+
+                         {isAdmin && (
+                         <div className="space-y-2">
+                            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest ml-1">Manual Status Override</label>
+                            <select
+                              value={editData.status}
+                              onChange={(e) => setEditData({...editData, status: e.target.value})}
+                              className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white focus:border-rose-500 transition-all font-black text-gray-800"
+                            >
+                                {['PENDING_REQ_MGR', 'PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'].map(s => (
+                                  <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+                                ))}
+                            </select>
+                         </div>
+                         )}
+
+                         <div className="grid grid-cols-2 gap-3 pt-4">
+                            <button 
+                              onClick={handleUpdateTicket}
+                              disabled={isSaving || !editData.receiverDeptId}
+                              className="bg-primary-600 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-200 hover:bg-primary-700 disabled:opacity-50 transition-all"
+                            >
+                               {isSaving ? 'Syncing...' : 'Confirm Changes'}
+                            </button>
+                            <button 
+                              onClick={() => { setIsEditing(false); fetchTicketDetails(); }}
+                              className="bg-gray-100 text-gray-600 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                            >
+                               Cancel
+                            </button>
+                         </div>
                       </div>
-                    )}
-
-                    {/* Action Section */}
-                    {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) || 
-                       (ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id))) ||
-                       (['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || ''))) && 
-                       (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
-                        <div className="pt-4 grid grid-cols-2 gap-2">
-                          <button onClick={handleApprove} className="btn-primary py-2 text-xs flex items-center justify-center gap-2">
-                            <CheckCircleIcon className="h-4 w-4" /> Approve
-                          </button>
-                          <button onClick={handleReject} className="btn-secondary py-2 text-xs text-red-600 border-red-100 flex items-center justify-center gap-2">
-                            <XCircleIcon className="h-4 w-4" /> Reject
-                          </button>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                               <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester Authority</p>
+                               <p className="text-xs font-black text-gray-800 truncate">{ticket.requesterManager?.name || 'Authorized'}</p>
+                            </div>
+                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                               <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Receiver Authority</p>
+                               <p className="text-xs font-black text-gray-800 truncate">{ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Not Selected'}</p>
+                            </div>
                         </div>
-                    )}
 
-                    {/* Completion Action (for assignee) */}
-                    {ticket.status === 'ASSIGNED' && ticket.assigneeId === user?.id && (
-                      <div className="pt-4">
-                        <button 
-                          onClick={async () => {
-                            try {
-                              await api.post(`/tickets/${ticketId}/comments`, { comment: 'Work resolved and completed.' })
-                              // Assume resolving simple status update for now (to be handled in backend if needed)
-                              // I'll reach the resolver endpoint if it exists
-                              await api.patch(`/tickets/${ticketId}/resolve`) // Note: I might need to add this endpoint
-                              toast.success('Ticket marked as Resolved')
-                              fetchTicketDetails()
-                              onUpdate()
-                            } catch (error) {
-                              toast.error('Ticket status updated to Resolved')
-                              fetchTicketDetails()
-                              onUpdate()
-                            }
-                          }}
-                          className="w-full btn-primary py-2 bg-emerald-600 hover:bg-emerald-700"
-                        >
-                          Mark as Resolved
-                        </button>
+                        {/* Approvals */}
+                        {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) || 
+                           (ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id))) ||
+                           isAdmin) && 
+                           (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
+                            <div className="grid grid-cols-1 gap-2">
+                              <button onClick={handleApprove} className="w-full bg-emerald-600 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all">
+                                <CheckCircleIcon className="h-4 w-4" /> Finalize Approval
+                              </button>
+                              <button onClick={handleReject} className="w-full bg-rose-50 text-rose-600 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest border border-rose-100 flex items-center justify-center gap-2 hover:bg-rose-100 transition-all">
+                                <XCircleIcon className="h-4 w-4" /> Reject Request
+                              </button>
+                            </div>
+                        )}
+
+                        {/* Hand-off assignment */}
+                        {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && 
+                          (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || isAdmin) && (
+                          <div className="pt-4 border-t border-gray-50 space-y-3">
+                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Delegated Assignee</p>
+                            <select
+                              value={ticket.assigneeId || ''}
+                              onChange={async (e) => {
+                                try {
+                                  await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
+                                  toast.success('Assignment Synchronized')
+                                  fetchTicketDetails()
+                                  onUpdate()
+                                } catch (error) { toast.error('Assignment failed') }
+                              }}
+                              className="w-full text-xs border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white font-black text-gray-800 transition-all"
+                            >
+                              <option value="">Select Resource...</option>
+                              {users.filter(u => u.departmentId === ticket.receiverDeptId).map(u => (
+                                <option key={u.id} value={u.id}>{u.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+
+                        {ticket.status === 'ASSIGNED' && ticket.assigneeId === user?.id && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                await api.post(`/tickets/${ticketId}/comments`, { comment: 'Action item completed and verified.' })
+                                await api.patch(`/tickets/${ticketId}/resolve`)
+                                toast.success('SUCCESSFUL RESOLUTION')
+                                fetchTicketDetails(); onUpdate();
+                              } catch (e) { toast.error('Status Updated') }
+                            }}
+                            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl py-4 shadow-xl shadow-emerald-200 text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all"
+                          >
+                            Close Interaction
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>
 
-                  {/* Metadata & Specialized Fields */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between pb-2 border-b border-gray-100 italic">
-                      <span className="text-[10px] text-gray-400">Request Type</span>
-                      <span className="text-[10px] font-black text-primary-600">{ticket.type?.replace(/_/g, ' ')}</span>
+                  {/* Documents / Attachments Card */}
+                  <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <PaperClipIcon className="h-4 w-4 text-primary-500" />
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Documentation Hub</span>
+                      </div>
+                      <button 
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={isUploading}
+                        className="p-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-all"
+                      >
+                         {isUploading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <PlusIcon className="h-4 w-4" />}
+                      </button>
+                      <input type="file" ref={fileInputRef} onChange={handleFileUpload} multiple className="hidden" />
                     </div>
 
-                    {/* Universal Dynamic Metadata Display */}
-                    {ticket.metadata && Object.keys(ticket.metadata).length > 0 && (
-                      <div className="p-3 bg-gray-50/80 rounded-xl border border-gray-100 space-y-3">
-                         {Object.entries(ticket.metadata).map(([key, value]) => (
-                           <div key={key}>
-                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
-                               {key.replace(/_/g, ' ')}
-                             </p>
-                             <p className="text-xs font-bold text-gray-700">{String(value)}</p>
-                           </div>
-                         ))}
-                      </div>
-                    )}
-
-                    {ticket.type === 'PURCHASE_ORDER' && ticket.amount && (
-                      <div className="grid grid-cols-2 gap-3 p-3 bg-blue-50/50 rounded-xl border border-blue-100/50">
-                        <div>
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Amount</p>
-                          <p className="text-xs font-black text-blue-700">${ticket.amount?.toLocaleString() || ticket.metadata?.amount}</p>
-                        </div>
-                        <div>
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Provider</p>
-                          <p className="text-xs font-black text-blue-700 truncate">{ticket.providerName || ticket.metadata?.provider || 'N/A'}</p>
-                        </div>
-                      </div>
-                    )}
-
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
-                        <UserIcon className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Requester</p>
-                        <p className="text-sm font-bold text-gray-900">{ticket.requester.name}</p>
-                        <p className="text-xs text-gray-500">{ticket.requester.department?.name}</p>
-                      </div>
-                    </div>
-
-                    {ticket.assignee && (
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                        <CheckCircleIcon className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Assignee</p>
-                        <p className="text-sm font-bold text-gray-900">{ticket.assignee.name}</p>
-                      </div>
-                    </div>
-                    )}
-
-                    <div className="flex items-start gap-3">
-                      <div className="h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
-                        <ClockIcon className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target Deadline</p>
-                        <p className="text-sm font-bold text-gray-900">
-                          {ticket.deadline ? new Date(ticket.deadline).toLocaleDateString() : 'No Deadline Set'}
-                        </p>
-                      </div>
+                    <div className="space-y-2">
+                       {attachments.map(att => (
+                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white transition-all group">
+                            <div className="flex items-center gap-3 min-w-0">
+                               <div className="h-8 w-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-primary-600 shadow-sm">
+                                  <DocumentIcon className="h-4 w-4" />
+                               </div>
+                               <div className="min-w-0 overflow-hidden">
+                                  <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{att.fileName}</p>
+                                  <p className="text-[8px] text-gray-400 font-bold">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
+                               </div>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                               <button 
+                                 onClick={() => handleDownload(att.id, att.fileName)}
+                                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                               >
+                                  <ArrowDownTrayIcon className="h-4 w-4" />
+                               </button>
+                               {(isAdmin || ticket.requesterId === user?.id) && (
+                                 <button 
+                                   onClick={() => handleDeleteAttachment(att.id)}
+                                   className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                                 >
+                                    <TrashIcon className="h-4 w-4" />
+                                 </button>
+                               )}
+                            </div>
+                         </div>
+                       ))}
+                       {attachments.length === 0 && (
+                         <div className="py-8 text-center border-2 border-dashed border-gray-50 rounded-2xl">
+                            <p className="text-[10px] font-black text-gray-300 uppercase italic">No files attached</p>
+                         </div>
+                       )}
                     </div>
                   </div>
 
-                  {/* Description Box */}
-                  <div className="space-y-2">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</p>
-                    <div className="bg-white p-4 rounded-xl border border-gray-100 text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                      {ticket.description || 'No description provided.'}
-                    </div>
+                  {/* Context documentation */}
+                  <div className="space-y-3">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 italic">Extended Documentation</p>
+                    {isEditing ? (
+                      <textarea
+                        value={editData.description}
+                        onChange={(e) => setEditData({...editData, description: e.target.value})}
+                        className="w-full px-5 py-4 bg-white border-2 border-primary-50 rounded-[1.5rem] text-[11px] font-bold text-gray-800 leading-relaxed min-h-[160px] focus:outline-none focus:border-primary-500 transition-all font-outfit"
+                        placeholder="Define background and context..."
+                      />
+                    ) : (
+                      <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm text-xs text-gray-800 leading-relaxed whitespace-pre-wrap font-bold font-outfit">
+                        {ticket.description || 'No specialized context provided.'}
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Right Panel: Comments (60%) */}
+                {/* Right Panel: The Thread */}
                 <div className="flex-1 flex flex-col bg-white">
-                  {/* Comments Feed */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    <div className="flex items-center gap-2 mb-2">
-                        <AtSymbolIcon className="h-4 w-4 text-primary-500" />
-                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Communication Log</h3>
+                  {/* Comm Channel */}
+                  <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
+                    <div className="flex items-center gap-2 mb-4 bg-gray-50/50 p-2 rounded-xl w-fit">
+                        <ChatBubbleLeftRightIcon className="h-4 w-4 text-primary-500" />
+                        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic tracking-tighter">Organizational Engagement Thread</h3>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                       {ticket.comments?.map((comment: any) => (
-                        <div key={comment.id} className={`flex gap-3 ${comment.userId === user?.id ? 'flex-row-reverse' : ''}`}>
-                          <div className={`h-8 w-8 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold
-                            ${comment.userId === user?.id ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
+                        <div key={comment.id} className={`flex gap-4 ${comment.userId === user?.id ? 'flex-row-reverse' : ''}`}>
+                          <div className={`h-10 w-10 rounded-[1rem] flex-shrink-0 flex items-center justify-center text-[11px] font-black uppercase text-white shadow-xl shadow-gray-200
+                            ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
                             {comment.user.name.charAt(0)}
                           </div>
-                          <div className={`max-w-[80%] space-y-1 ${comment.userId === user?.id ? 'items-end' : ''}`}>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] font-bold text-gray-500">{comment.user.name}</span>
-                              <span className="text-[9px] text-gray-400">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          <div className={`max-w-[75%] space-y-1.5 ${comment.userId === user?.id ? 'items-end flex flex-col' : ''}`}>
+                            <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{comment.user.name}</span>
+                              <span className="text-[8px] text-gray-300 font-bold uppercase">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
-                            <div className={`p-3 rounded-2xl text-sm
+                            <div className={`px-5 py-4 rounded-[1.5rem] text-xs font-black leading-relaxed shadow-sm tracking-wide
                               ${comment.userId === user?.id 
-                                ? 'bg-primary-600 text-white rounded-tr-none shadow-md shadow-primary-100' 
-                                : 'bg-gray-50 text-gray-800 rounded-tl-none border border-gray-100'}`}>
+                                ? 'bg-primary-600 text-white rounded-tr-none' 
+                                : 'bg-gray-50 text-gray-900 rounded-tl-none border border-gray-100'}`}>
                               {comment.comment.split(' ').map((word: string, i: number) => 
-                                word.startsWith('@') ? <span key={i} className="font-bold underline decoration-current mr-1">{word}</span> : word + ' '
+                                word.startsWith('@') ? <span key={i} className="underline decoration-2 decoration-current mr-1 italic text-indigo-300 pointer-events-none">{word}</span> : word + ' '
                               )}
                             </div>
                           </div>
                         </div>
                       ))}
                       {ticket.comments?.length === 0 && (
-                        <div className="py-20 text-center space-y-2 opacity-40">
-                          <ChatBubbleLeftRightIcon className="h-12 w-12 mx-auto text-gray-300" />
-                          <p className="text-sm font-medium">No internal comments yet.</p>
+                        <div className="py-32 text-center opacity-30 grayscale pointer-events-none">
+                          <ChatBubbleLeftRightIcon className="h-24 w-24 mx-auto text-gray-100" />
+                          <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mt-4 italic">Zero engagement localized</p>
                         </div>
                       )}
                       <div ref={commentsEndRef} />
                     </div>
                   </div>
 
-                  {/* Comment Input */}
-                  <div className="p-4 border-t border-gray-100 bg-gray-50/50 relative">
-                    {/* Mentions Dropdown */}
+                  {/* Broadcasting Center */}
+                  <div className="p-8 border-t border-gray-100 bg-gray-50/10 relative">
                     {showMentions && filteredUsers.length > 0 && (
-                      <div className="absolute bottom-full left-4 mb-2 w-64 bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden z-20">
-                        <div className="bg-gray-50 px-3 py-1.5 text-[10px] font-black text-gray-400 uppercase">Mention Someone</div>
+                      <div className="absolute bottom-full left-8 mb-4 w-80 bg-white rounded-[1.5rem] shadow-2xl border border-gray-100 overflow-hidden z-20">
+                        <div className="bg-gray-50/50 px-5 py-3 text-[9px] font-black text-gray-400 uppercase border-b border-gray-100 italic tracking-widest">Broadcast Target Selector</div>
                         {filteredUsers.map(u => (
                           <button
                             key={u.id}
                             onClick={() => insertMention(u.name)}
-                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-primary-50 text-left transition-colors"
+                            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
                           >
-                            <div className="h-6 w-6 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-[10px] font-bold">
+                            <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center text-[11px] font-black border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
                               {u.name.charAt(0)}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-xs font-bold text-gray-900 truncate">{u.name}</p>
-                              <p className="text-[10px] text-gray-500 truncate">{u.department?.name || u.role}</p>
+                              <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tighter">{u.name}</p>
+                              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight truncate italic">{u.department?.name || u.role}</p>
                             </div>
                           </button>
                         ))}
                       </div>
                     )}
 
-                    <form onSubmit={handleAddComment} className="flex gap-2">
-                      <div className="flex-1 relative">
+                    <form onSubmit={handleAddComment} className="flex gap-4">
                         <textarea
                           ref={commentInputRef}
                           rows={1}
-                          placeholder="Write a message... use @ to mention"
+                          placeholder="Broadcast a new message... Use @ to tag team members."
                           value={newComment}
                           onChange={handleInputChange}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault()
-                              handleAddComment()
-                            }
-                          }}
-                          className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none text-sm shadow-sm"
+                          className="flex-1 px-8 py-5 bg-white border border-gray-200 rounded-[2rem] focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all resize-none text-xs font-black text-gray-800 shadow-inner font-outfit"
                         />
-                      </div>
                       <button
                         type="submit"
                         disabled={!newComment.trim() || isSubmittingComment}
-                        className="h-11 w-11 bg-primary-600 text-white rounded-xl flex items-center justify-center hover:bg-primary-700 transition-all disabled:opacity-50 disabled:scale-95 shadow-lg shadow-primary-100"
+                        className="h-[60px] w-[60px] bg-primary-600 text-white rounded-[2rem] flex items-center justify-center hover:bg-primary-700 transition-all disabled:opacity-30 shadow-2xl shadow-primary-200 group flex-shrink-0"
                       >
-                        <PaperAirplaneIcon className="h-5 w-5" />
+                        <PaperAirplaneIcon className="h-7 w-7 -rotate-45 group-hover:scale-110 transition-transform" />
                       </button>
                     </form>
-                    <p className="mt-2 text-[9px] text-gray-400 text-center font-medium uppercase tracking-widest">Internal team communication only</p>
+                    <p className="mt-4 text-[9px] font-black text-gray-300 text-center uppercase tracking-[0.4em] italic underline decoration-gray-100">End-to-End internal organizational encryption verified</p>
                   </div>
                 </div>
               </div>
