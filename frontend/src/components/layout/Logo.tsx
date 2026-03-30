@@ -22,9 +22,12 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
   // Determine logo source: company custom logo or default fallback
   let logoSrc = logoImage;
   if (user?.companyLogo) {
-    logoSrc = user.companyLogo.startsWith('http') 
-      ? user.companyLogo 
-      : `${BACKEND_URL}${user.companyLogo}`;
+    if (user.companyLogo.startsWith('http')) {
+      logoSrc = user.companyLogo;
+    } else {
+      const cleanPath = user.companyLogo.startsWith('/') ? user.companyLogo : `/${user.companyLogo}`;
+      logoSrc = `${BACKEND_URL}${cleanPath}`;
+    }
   }
 
   return (

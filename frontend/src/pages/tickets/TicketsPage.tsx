@@ -9,7 +9,7 @@ import {
   TrashIcon,
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
-import api from '@/services/api'
+import api, { formatAssetUrl } from '@/services/api'
 import { useAppSelector } from '@/hooks/redux'
 import { toast } from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
@@ -148,17 +148,31 @@ const TicketsPage: React.FC = () => {
   const totalPages = Math.ceil(total / 10)
 
   return (
-    <div className="space-y-6 pb-20">
-      {/* Strategic Header */}
-      <div className="flex justify-between items-center bg-white p-8 rounded-2xl border border-gray-100">
-        <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight font-outfit uppercase">Logistics & Requests</h1>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic underline decoration-gray-50">Universal Organizational Interaction Log</p>
+    <div className="max-w-7xl mx-auto space-y-8 pb-20">
+      {/* Strategic Header (Aligned with Strategic Hub) */}
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-sm border border-primary-500/20 relative overflow-hidden">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-2 font-bold text-primary-100 uppercase tracking-widest text-[10px]">
+              <TicketIcon className="h-4 w-4" />
+              Logistics Hub
+            </div>
+            <h1 className="text-3xl font-black mb-1 leading-tight font-outfit uppercase tracking-tight">Logistics & Requests</h1>
+            <p className="text-primary-50 font-medium max-w-lg opacity-90">Universal Organizational Interaction Log · Real-time mission tracking and tactical coordination.</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setShowCreateModal(true)} 
+              className="flex items-center gap-2 px-6 py-3 bg-white text-primary-700 rounded-lg font-black text-[11px] uppercase tracking-widest hover:bg-primary-50 active:scale-95 transition-all shadow-sm"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Initiate Request
+            </button>
+          </div>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="px-8 py-3.5 bg-primary-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
-          Initiate Request
-        </button>
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16 blur-2xl pointer-events-none" />
       </div>
 
       {/* Controls Bar */}
@@ -242,8 +256,19 @@ const TicketsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
-                      <p className="text-xs font-bold text-gray-900">{ticket.requester?.name}</p>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase">Requester</p>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                          {ticket.requester?.avatar ? (
+                            <img src={formatAssetUrl(ticket.requester.avatar)} className="h-full w-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-black text-gray-400">{ticket.requester?.name?.charAt(0)}</span>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-900 leading-tight">{ticket.requester?.name}</p>
+                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Initiator</p>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap text-right">
                       <div className="flex justify-end space-x-1">

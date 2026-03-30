@@ -4,6 +4,13 @@ import toast from 'react-hot-toast'
 const API_BASE_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3001/api'
 export const BACKEND_URL = API_BASE_URL.replace('/api', '') // Base URL without /api suffix
 
+export const formatAssetUrl = (path: string | null | undefined): string => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${BACKEND_URL}${cleanPath}`;
+}
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,

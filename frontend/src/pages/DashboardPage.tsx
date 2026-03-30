@@ -15,7 +15,7 @@ import { fetchDashboardAnalytics } from '@/store/slices/analyticsSlice'
 import { fetchPhaseCount } from '@/store/slices/tasksSlice'
 import StatsCard from '@/components/dashboard/StatsCard'
 import TaskPhaseChart from '@/components/dashboard/TaskPhaseChart'
-import { quartersApi } from '@/services/api'
+import { quartersApi, formatAssetUrl } from '@/services/api'
 
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -130,7 +130,7 @@ const DashboardPage: React.FC = () => {
           <div className="flex items-center gap-6">
              <div className="h-20 w-20 rounded-2xl bg-white/20 border-2 border-white/20 p-0.5 flex-shrink-0 relative">
                 {user?.avatar ? (
-                  <img src={user.avatar} className="h-full w-full object-cover rounded-2xl" alt={user.name} />
+                  <img src={formatAssetUrl(user.avatar)} className="h-full w-full object-cover rounded-2xl" alt={user.name} />
                 ) : (
                   <div className="h-full w-full rounded-2xl bg-primary-500 flex items-center justify-center text-2xl font-black text-white">
                     {user?.name?.charAt(0)}
@@ -264,7 +264,7 @@ const DashboardPage: React.FC = () => {
                            <div className={`h-12 w-12 rounded-xl flex items-center justify-center overflow-hidden border-2
                              ${isTopThree ? 'border-white/30 bg-white/10' : 'border-white bg-gray-200'}`}>
                               {performer.avatar ? (
-                                <img src={performer.avatar} className="h-full w-full object-cover" alt={performer.name} />
+                                <img src={formatAssetUrl(performer.avatar)} className="h-full w-full object-cover" alt={performer.name} />
                               ) : (
                                 <div className={`h-full w-full flex items-center justify-center font-black text-sm
                                   ${isTopThree ? 'text-white' : 'text-gray-500'}`}>

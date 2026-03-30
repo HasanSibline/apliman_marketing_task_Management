@@ -18,7 +18,8 @@ import {
   ClockIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline'
-import api, { BACKEND_URL } from '@/services/api'
+import api, { formatAssetUrl } from '@/services/api'
+import { PlayIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -257,6 +258,26 @@ const TicketDetailPage: React.FC = () => {
     })
   }
 
+  const handleCommenceExecution = async () => {
+    try {
+      await api.patch(`/tickets/${ticketId}/status`, { status: 'IN_PROGRESS' })
+      toast.success('Execution Commenced')
+      fetchTicketDetails()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to commence execution')
+    }
+  }
+
+  const handleFinalizeEngagement = async () => {
+    try {
+      await api.patch(`/tickets/${ticketId}/status`, { status: 'RESOLVED' })
+      toast.success('Engagement Finalized')
+      fetchTicketDetails()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to finalize engagement')
+    }
+  }
+
   const handleAddComment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     if (!newComment.trim()) return
@@ -313,6 +334,7 @@ const TicketDetailPage: React.FC = () => {
     }
   }
 
+
   const insertMention = (userName: string) => {
     const cursorPosition = commentInputRef.current?.selectionStart || 0
     const textBeforeCursor = newComment.substring(0, cursorPosition)
@@ -362,9 +384,9 @@ const TicketDetailPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
       
-      {/* Strategic Header (Aligned with Quarters Page) */}
+      {/* Strategic Header (Aligned with Strategic Hub) */}
       <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-sm border border-primary-500/20 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 font-outfit">
           <div className="flex-1 min-w-0">
             <button 
               onClick={() => navigate('/tickets')}
@@ -388,7 +410,7 @@ const TicketDetailPage: React.FC = () => {
                 type="text"
                 value={editData.title}
                 onChange={(e) => setEditData({...editData, title: e.target.value})}
-                className="w-full max-w-2xl bg-white/10 border-2 border-white/20 rounded-xl px-4 py-2 text-2xl font-black focus:outline-none focus:border-white transition-all font-outfit"
+                className="w-full max-w-2xl bg-white/10 border-2 border-white/20 rounded-xl px-4 py-2 text-2xl font-black focus:outline-none focus:border-white transition-all"
               />
             ) : (
               <h1 className="text-3xl font-black mb-1 leading-tight truncate uppercase tracking-tight">{ticket.title}</h1>
@@ -397,13 +419,28 @@ const TicketDetailPage: React.FC = () => {
               Engagement initiated by <span className="font-black text-white">{ticket.requester?.name}</span> mapping into <span className="font-black text-white">{ticket.receiverDept?.name}</span>.
             </p>
           </div>
-          <div className="flex items-center gap-3 self-end md:self-center">
+          
+          <div className="flex flex-wrap items-center gap-3 self-end md:self-center">
+             {/* Tactical Lifecycle Phase Actions */}
+             {ticket.status === 'ASSIGNED' && ticket.assigneeId === user?.id && (
+               <button onClick={handleCommenceExecution} className="flex items-center gap-2 px-6 py-3.5 bg-green-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-lg shadow-green-500/20 active:scale-95">
+                 <PlayIcon className="h-4 w-4" />
+                 Commence Execution
+               </button>
+             )}
+             {ticket.status === 'IN_PROGRESS' && ticket.assigneeId === user?.id && (
+               <button onClick={handleFinalizeEngagement} className="flex items-center gap-2 px-6 py-3.5 bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 active:scale-95">
+                 <CheckIcon className="h-4 w-4" />
+                 Finalize Engagement
+               </button>
+             )}
+
              {canEdit && !isEditing && (
                 <button 
                   onClick={() => setIsEditing(true)}
                   className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl font-black text-xs uppercase tracking-widest transition-all"
                 >
-                  <PencilSquareIcon className="h-4 w-4" /> Edit Detail
+                   <PencilSquareIcon className="h-4 w-4" /> Edit Detail
                 </button>
              )}
              {isAdmin && (
@@ -411,7 +448,7 @@ const TicketDetailPage: React.FC = () => {
                   onClick={handleDeleteTicket}
                   className="p-2.5 bg-rose-500/20 text-rose-100 border border-rose-500/30 rounded-xl hover:bg-rose-500 transition-all"
                 >
-                  <TrashIcon className="h-5 w-5" />
+                   <TrashIcon className="h-5 w-5" />
                 </button>
              )}
           </div>
@@ -524,7 +561,7 @@ const TicketDetailPage: React.FC = () => {
                          <div className="h-10 w-10 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
                             {ticket.assignee.avatar ? (
                               <img 
-                                src={ticket.assignee.avatar.startsWith('http') ? ticket.assignee.avatar : `${BACKEND_URL}${ticket.assignee.avatar}`} 
+                                src={formatAssetUrl(ticket.assignee.avatar)} 
                                 className="h-full w-full object-cover" 
                                 alt={ticket.assignee.name}
                               />
@@ -688,7 +725,7 @@ const TicketDetailPage: React.FC = () => {
                         ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
                         {comment.user.avatar ? (
                           <img 
-                            src={comment.user.avatar.startsWith('http') ? comment.user.avatar : `${BACKEND_URL}${comment.user.avatar}`} 
+                            src={formatAssetUrl(comment.user.avatar)} 
                             className="h-full w-full object-cover" 
                             alt={comment.user.name} 
                           />
@@ -735,7 +772,7 @@ const TicketDetailPage: React.FC = () => {
                             className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
                           >
                              <div className="h-8 w-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 group-hover:scale-110 transition-transform">
-                              {u.avatar ? <img src={u.avatar} className="h-full w-full object-cover" /> : <span className="text-[10px] font-black">{u.name.charAt(0)}</span>}
+                              {u.avatar ? <img src={formatAssetUrl(u.avatar)} className="h-full w-full object-cover" /> : <span className="text-[10px] font-black">{u.name.charAt(0)}</span>}
                              </div>
                              <div className="min-w-0">
                                <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{u.name}</p>

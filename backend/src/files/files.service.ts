@@ -345,7 +345,14 @@ export class FilesService {
                        ticket.assigneeId === userId;
 
     if (!isAdmin && !isInvolved) {
-      throw new NotFoundException('Access denied to this ticket files');
+      // Final check: Is it the department manager of the receiver department?
+      const dept = await this.prisma.department.findUnique({
+        where: { id: ticket.receiverDeptId },
+        select: { managerId: true }
+      });
+      if (dept?.managerId !== userId) {
+        throw new NotFoundException('Access denied to this ticket files');
+      }
     }
 
     return ticket.attachments;
@@ -354,7 +361,15 @@ export class FilesService {
   async downloadTicketFile(fileId: string, userId: string, userRole: string) {
     const file = await this.prisma.ticketAttachment.findUnique({
       where: { id: fileId },
-      include: { ticket: true },
+      include: { 
+        ticket: {
+          include: {
+            receiverDept: {
+              select: { managerId: true }
+            }
+          }
+        } 
+      },
     });
 
     if (!file) throw new NotFoundException('File not found');
@@ -363,7 +378,8 @@ export class FilesService {
     const isInvolved = file.ticket.requesterId === userId || 
                        file.ticket.requesterManagerId === userId || 
                        file.ticket.receiverManagerId === userId || 
-                       file.ticket.assigneeId === userId;
+                       file.ticket.assigneeId === userId ||
+                       file.ticket.receiverDept?.managerId === userId;
 
     if (!isAdmin && !isInvolved) throw new NotFoundException('Access denied');
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon, PaperClipIcon } from '@heroicons/react/24/outline'
 import { CpuChipIcon } from '@heroicons/react/24/solid'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
@@ -35,6 +35,9 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   const [inlineCompletion, setInlineCompletion] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [attachments, setAttachments] = useState<any[]>([])
+  const [isUploading, setIsUploading] = useState(false)
   const { user } = useSelector((state: RootState) => state.auth)
 
   // Humanize AI responses by removing markdown formatting
@@ -126,18 +129,58 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
     }
   }
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setIsUploading(true)
+    const newAttachments = [...attachments]
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i]
+        const formData = new FormData()
+        formData.append('file', file)
+        
+        const res = await api.post('/files/upload/temp', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+        
+        newAttachments.push({
+          name: file.name,
+          url: res.data.url,
+          type: file.type
+        })
+      }
+      
+      setAttachments(newAttachments)
+      toast.success('Asset(s) Attached')
+    } catch (error) {
+      toast.error('Tactical failure during asset retrieval')
+    } finally {
+      setIsUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
   const sendMessage = async () => {
-    if (!inputValue.trim() || isTyping) return
+    if ((!inputValue.trim() && attachments.length === 0) || isTyping || isUploading) return
 
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputValue,
+      content: inputValue + (attachments.length > 0 ? `\n\n[Attached: ${attachments.map(a => a.name).join(', ')}]` : ''),
       createdAt: new Date().toISOString(),
     }
 
     setMessages((prev) => [...prev, userMessage])
+    const currentAttachments = [...attachments]
     setInputValue('')
+    setAttachments([])
     setIsTyping(true)
     setStreamingMessage('')
 
@@ -145,6 +188,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
       const response = await api.post('/chat/message', {
         message: inputValue,
         sessionId,
+        files: currentAttachments.map(a => ({ name: a.name, url: a.url, type: a.type }))
       })
 
       if (response.data.sessionId && !sessionId) {
@@ -552,17 +596,58 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
             {/* Input - Professional Design with Inline Completion */}
             <div className="p-4 border-t border-gray-200 bg-white relative">
-          <div className="flex items-center space-x-2">
+              {/* Attachment Preview Facility */}
+              {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {attachments.map((file, idx) => (
+                    <div key={idx} className="group relative flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5 shadow-sm">
+                      <div className="h-5 w-5 bg-primary-50 rounded flex items-center justify-center">
+                        <PaperClipIcon className="h-3 w-3 text-primary-600" />
+                      </div>
+                      <span className="text-[10px] font-black text-gray-700 truncate max-w-[100px]">{file.name}</span>
+                      <button 
+                        onClick={() => removeAttachment(idx)}
+                        className="opacity-0 group-hover:opacity-100 absolute -top-1 -right-1 h-4 w-4 bg-error-600 text-white rounded-full flex items-center justify-center shadow-md transition-all"
+                      >
+                        <XMarkIcon className="h-2.5 w-2.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center space-x-2">
+                <input
+                  type="file"
+                  multiple
+                  ref={fileInputRef}
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isTyping}
+                  className="text-gray-400 hover:text-primary-600 hover:bg-primary-50 p-2 rounded-lg transition-all disabled:opacity-30"
+                  title="Attach Documents"
+                >
+                  {isUploading ? (
+                    <div className="h-5 w-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <PaperClipIcon className="w-5 h-5" />
+                  )}
+                </button>
+
                 <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={handleInputChange}
-              onKeyDown={handleKeyPress}
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyDown={handleKeyPress}
                     placeholder="Type your message... (@user or /task)"
                     className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400 bg-transparent relative z-10"
-              disabled={isTyping}
+                    disabled={isTyping}
                     style={{ caretColor: 'auto' }}
                   />
                   {/* Inline completion overlay - Cut-edge styled, no white edge */}
@@ -575,14 +660,14 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     </div>
                   )}
                 </div>
-            <button
-              onClick={sendMessage}
-              disabled={!inputValue.trim() || isTyping}
+                <button
+                  onClick={sendMessage}
+                  disabled={(!inputValue.trim() && attachments.length === 0) || isTyping || isUploading}
                   className="bg-primary-600 text-white rounded-lg p-2 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
-            >
-              <PaperAirplaneIcon className="w-5 h-5" />
-            </button>
-          </div>
+                >
+                  <PaperAirplaneIcon className="w-5 h-5" />
+                </button>
+              </div>
           <p className="text-xs text-gray-400 mt-2 text-center">
                 Use <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">@</kbd> for users or <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">/</kbd> for tasks • <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">Space</kbd> or <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">Tab</kbd> to complete
           </p>

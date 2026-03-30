@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { changePassword, updateUser } from '@/store/slices/authSlice'
-import { usersApi, filesApi } from '@/services/api'
+import { usersApi, filesApi, formatAssetUrl } from '@/services/api'
 import toast from 'react-hot-toast'
 
 const profileSchema = yup.object({
@@ -109,7 +109,7 @@ const ProfilePage: React.FC = () => {
           <div className="relative group">
             <div className="h-24 w-24 rounded-3xl bg-primary-600 flex items-center justify-center overflow-hidden border-4 border-gray-50 shadow-lg">
               {user?.avatar ? (
-                <img src={user.avatar} className="h-full w-full object-cover" alt={user.name} />
+                <img src={formatAssetUrl(user.avatar)} className="h-full w-full object-cover" alt={user.name} />
               ) : (
                 <span className="text-3xl font-black text-white">
                   {user?.name?.charAt(0).toUpperCase()}
