@@ -20,7 +20,7 @@ export const formatAssetUrl = (path: string | null | undefined): string => {
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // Increased to 60 seconds for cold starts on Render
+  timeout: 120000, // Increased to 120 seconds for cold starts and large uploads on Render
   headers: {
     'Content-Type': 'application/json',
   },

@@ -14,11 +14,11 @@ import {
   DocumentIcon,
   PlusIcon,
   ChevronLeftIcon,
-  UserCircleIcon,
   ClockIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline'
 import api, { formatAssetUrl } from '@/services/api'
+import Avatar from '@/components/common/Avatar'
 import { PlayIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
@@ -559,16 +559,13 @@ const TicketDetailPage: React.FC = () => {
                    {ticket.assignee && (
                       <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-xl border border-primary-100">
                          <div className="h-10 w-10 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                            {ticket.assignee.avatar ? (
-                              <img 
-                                src={formatAssetUrl(ticket.assignee.avatar)} 
-                                className="h-full w-full object-cover" 
-                                alt={ticket.assignee.name}
-                              />
-                            ) : (
-                              <UserCircleIcon className="h-6 w-6 text-white" />
-                            )}
-                         </div>
+                          <Avatar 
+                            src={ticket.assignee.avatar} 
+                            name={ticket.assignee.name}
+                            size="md"
+                            rounded="xl"
+                          />
+                       </div>
                          <div>
                             <p className="text-[8px] font-black text-primary-400 uppercase tracking-widest mb-1 italic">Assigned Personnel</p>
                             <p className="text-xs font-black text-primary-900 truncate">{ticket.assignee.name}</p>
@@ -723,15 +720,12 @@ const TicketDetailPage: React.FC = () => {
                     >
                       <div className={`h-11 w-11 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm
                         ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
-                        {comment.user.avatar ? (
-                          <img 
-                            src={formatAssetUrl(comment.user.avatar)} 
-                            className="h-full w-full object-cover" 
-                            alt={comment.user.name} 
-                          />
-                        ) : (
-                          <span className="text-[11px] font-black uppercase text-white">{comment.user.name.charAt(0)}</span>
-                        )}
+                        <Avatar 
+                          src={comment.user.avatar} 
+                          name={comment.user.name}
+                          size="md"
+                          rounded="xl"
+                        />
                       </div>
                       <div className={`max-w-[80%] space-y-1.5 ${comment.userId === user?.id ? 'items-end' : ''} flex flex-col`}>
                         <div className={`flex items-center gap-3 ${comment.userId === user?.id ? 'flex-row-reverse' : ''}`}>

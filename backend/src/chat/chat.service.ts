@@ -150,7 +150,7 @@ export class ChatService {
   /**
    * Send a message and get AI response
    */
-  async sendMessage(userId: string, dto: SendMessageDto) {
+  async sendMessage(userId: string, dto: SendMessageDto, userToken?: string) {
     try {
       // Get or create session
       const session = await this.getOrCreateSession(userId, dto.sessionId);
@@ -277,6 +277,7 @@ export class ChatService {
         provider: company.aiProvider || 'gemini', // CRITICAL: Pass company provider
         companyName: company.name, // CRITICAL: Pass actual company name
         files: dto.files, // Pass files for multimodal support
+        userToken, // Pass user's access token for file fetching
       });
 
       // Save assistant message

@@ -327,6 +327,7 @@ class ChatRequest(BaseModel):
     api_key: Optional[str] = None  # Company-specific API key
     provider: Optional[str] = "gemini"  # Selected AI provider
     files: Optional[List[dict]] = None # Added for multimodal support
+    userToken: Optional[str] = None # User's access token for file fetching
 
 @app.post("/chat", dependencies=[Depends(require_service_token)])
 async def chat(request: ChatRequest):
@@ -359,7 +360,8 @@ async def chat(request: ChatRequest):
             additional_context=request.additionalContext,
             is_deep_analysis=request.isDeepAnalysis,
             company_name=request.companyName,
-            files=request.files # Pass files here
+            files=request.files, # Pass files here
+            user_token=request.userToken # Pass user token
         )
         return result
     except HTTPException:

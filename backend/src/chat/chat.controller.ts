@@ -22,7 +22,7 @@ export class ChatController {
    */
   @Post('message')
   async sendMessage(@Request() req, @Body() dto: SendMessageDto) {
-    return this.chatService.sendMessage(req.user.id, dto);
+    return this.chatService.sendMessage(req.user.id, dto, req.headers.authorization);
   }
 
   /**

@@ -52,7 +52,8 @@ class ChatService:
         additional_context: Dict[str, Any],
         is_deep_analysis: bool = False,
         company_name: str = None,  # Add company_name parameter
-        files: Optional[List[Dict[str, Any]]] = None  # Added for multimodal
+        files: Optional[List[Dict[str, Any]]] = None,  # Added for multimodal
+        user_token: Optional[str] = None  # User's access token for file fetching
     ) -> Dict[str, Any]:
         """
         Process a chat message and generate a response
@@ -99,7 +100,7 @@ ApliChat:"""
             if self.provider == "groq":
                 response_text = await self._generate_via_groq(full_prompt)
             else:
-                response_text = await self._generate_via_rest(full_prompt, files=files)
+                response_text = await self._generate_via_rest(full_prompt, files=files, user_token=user_token)
                 
             response_text = response_text.strip()
 
@@ -173,7 +174,7 @@ ApliChat:"""
             logger.error(f"❌ Groq Chat request failed: {str(e)}")
             raise e
 
-    async def _generate_via_rest(self, prompt: str, files: Optional[List[Dict[str, Any]]] = None) -> str:
+    async def _generate_via_rest(self, prompt: str, files: Optional[List[Dict[str, Any]]] = None, user_token: Optional[str] = None) -> str:
         """Make a stateless request to Gemini API via REST with rotation support"""
         attempts = 0
         max_attempts = len(self.api_keys)
@@ -198,8 +199,13 @@ ApliChat:"""
                     continue
 
                 try:
+                    # Pass user token if available for authenticated backend fetches
+                    headers = {}
+                    if user_token:
+                        headers['Authorization'] = user_token if user_token.startswith('Bearer ') else f'Bearer {user_token}'
+
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+                        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=45)) as resp:
                             if resp.status != 200:
                                 logger.warning(f"⚠️ Could not fetch file {name}: HTTP {resp.status}")
                                 file_context_text += f"\n[File '{name}' could not be downloaded (HTTP {resp.status})]\n"
