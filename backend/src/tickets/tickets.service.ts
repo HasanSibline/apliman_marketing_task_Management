@@ -14,12 +14,14 @@ export class TicketsService {
     });
   }
 
-  async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string) {
+  async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string, statusType?: string) {
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
     const take = 10;
     const skip = (page - 1) * take;
 
-    const where = {
+    const historyStatuses: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CANCELLED];
+
+    const where: any = {
       companyId,
       ...(isAdmin ? {} : {
         OR: [
@@ -30,6 +32,10 @@ export class TicketsService {
           { receiverDept: { managerId: userId } }
         ]
       }),
+      ...(statusType === 'HISTORY' 
+        ? { status: { in: historyStatuses } }
+        : { status: { notIn: historyStatuses } }
+      ),
       ...(departmentId && {
         OR: [
           { requester: { departmentId } },

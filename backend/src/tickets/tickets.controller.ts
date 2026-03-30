@@ -13,7 +13,8 @@ export class TicketsController {
     @Request() req, 
     @Query('page') page: string = '1',
     @Query('search') search?: string,
-    @Query('departmentId') departmentId?: string
+    @Query('departmentId') departmentId?: string,
+    @Query('statusType') statusType?: string
   ) {
     return this.ticketsService.findAll(
       req.user.companyId, 
@@ -21,7 +22,8 @@ export class TicketsController {
       req.user.role, 
       parseInt(page),
       departmentId,
-      search
+      search,
+      statusType
     );
   }
 
