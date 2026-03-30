@@ -18,7 +18,7 @@ import {
   ClockIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline'
-import api from '@/services/api'
+import api, { BACKEND_URL } from '@/services/api'
 import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -153,14 +153,23 @@ const TicketDetailPage: React.FC = () => {
     }
   }
 
-  const handleDownload = (fileId: string, fileName: string) => {
-    const downloadUrl = `${import.meta.env.VITE_API_URL}/files/ticket/download/${fileId}`
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.setAttribute('download', fileName)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
+  const handleDownload = async (fileId: string, fileName: string) => {
+    try {
+      const response = await api.get(`/files/ticket/download/${fileId}`, {
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error('Tactical failure during asset retrieval');
+    }
   }
 
   const confirmAction = async (reason?: string) => {
@@ -369,7 +378,9 @@ const TicketDetailPage: React.FC = () => {
                 {ticket.ticketNumber}
               </span>
               <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/20 bg-white/5`}>
-                {ticket.status.replace(/_/g, ' ')}
+                {ticket.status === 'PENDING_REQ_MGR' ? `Awaiting Alignment: ${ticket.requesterManager?.name || 'Initiator Manager'}` :
+                  ticket.status === 'PENDING_REC_MGR' ? `Awaiting Priority: ${ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Target Manager'}` :
+                  ticket.status.replace(/_/g, ' ')}
               </span>
             </div>
             {isEditing ? (
@@ -511,10 +522,18 @@ const TicketDetailPage: React.FC = () => {
                    {ticket.assignee && (
                       <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-xl border border-primary-100">
                          <div className="h-10 w-10 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                            {ticket.assignee.avatar ? <img src={ticket.assignee.avatar} className="h-full w-full object-cover" /> : <UserCircleIcon className="h-6 w-6 text-white" />}
+                            {ticket.assignee.avatar ? (
+                              <img 
+                                src={ticket.assignee.avatar.startsWith('http') ? ticket.assignee.avatar : `${BACKEND_URL}${ticket.assignee.avatar}`} 
+                                className="h-full w-full object-cover" 
+                                alt={ticket.assignee.name}
+                              />
+                            ) : (
+                              <UserCircleIcon className="h-6 w-6 text-white" />
+                            )}
                          </div>
                          <div>
-                            <p className="text-[8px] font-black text-primary-400 uppercase tracking-widest mb-1">Assigned Resources</p>
+                            <p className="text-[8px] font-black text-primary-400 uppercase tracking-widest mb-1 italic">Assigned Personnel</p>
                             <p className="text-xs font-black text-primary-900 truncate">{ticket.assignee.name}</p>
                          </div>
                       </div>
@@ -543,18 +562,33 @@ const TicketDetailPage: React.FC = () => {
                    )}
 
                    {ticket.status === 'ASSIGNED' && ticket.assigneeId === user?.id && (
-                      <button 
-                        onClick={async () => {
-                          try {
-                            await api.patch(`/tickets/${ticketId}/resolve`)
-                            toast.success('GOAL FINALIZED')
-                            fetchTicketDetails();
-                          } catch (e) { toast.error('Sync error') }
-                        }}
-                        className="w-full py-4 bg-emerald-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-100 hover:scale-[1.02] transition-all"
-                      >
-                        Finalize & Close
-                      </button>
+                     <button 
+                       onClick={async () => {
+                         try {
+                           await api.patch(`/tickets/${ticketId}/start`)
+                           toast.success('MISSION EXECUTION COMMENCED')
+                           fetchTicketDetails()
+                         } catch { toast.error('Failed to start engagement') }
+                       }}
+                       className="w-full py-4 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-100 hover:scale-[1.02] transition-all"
+                     >
+                       Commence Execution
+                     </button>
+                   )}
+
+                   {(ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS') && (ticket.assigneeId === user?.id || isAdmin) && (
+                     <button 
+                       onClick={async () => {
+                         try {
+                           await api.patch(`/tickets/${ticketId}/resolve`)
+                           toast.success('MISSION OBJECTIVE FINALIZED')
+                           fetchTicketDetails()
+                         } catch { toast.error('Sync error') }
+                       }}
+                       className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-xl' : 'bg-gray-100 text-gray-500'} text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all`}
+                     >
+                       Finalize Engagement
+                     </button>
                    )}
                 </div>
              )}
@@ -653,7 +687,11 @@ const TicketDetailPage: React.FC = () => {
                       <div className={`h-11 w-11 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm
                         ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
                         {comment.user.avatar ? (
-                          <img src={comment.user.avatar} className="h-full w-full object-cover" alt={comment.user.name} />
+                          <img 
+                            src={comment.user.avatar.startsWith('http') ? comment.user.avatar : `${BACKEND_URL}${comment.user.avatar}`} 
+                            className="h-full w-full object-cover" 
+                            alt={comment.user.name} 
+                          />
                         ) : (
                           <span className="text-[11px] font-black uppercase text-white">{comment.user.name.charAt(0)}</span>
                         )}
@@ -663,12 +701,14 @@ const TicketDetailPage: React.FC = () => {
                           <span className="text-[10px] font-black text-gray-900 uppercase tracking-tight">{comment.user.name}</span>
                           <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                         </div>
-                        <div className={`px-6 py-4 rounded-2xl text-xs font-black leading-relaxed tracking-wide shadow-sm
+                        <div className={`px-6 py-4 rounded-2xl text-xs font-black leading-relaxed tracking-wide shadow-sm whitespace-pre-wrap
                           ${comment.userId === user?.id 
                             ? 'bg-primary-600 text-white rounded-tr-none' 
                             : 'bg-white text-gray-900 rounded-tl-none border border-gray-100'}`}>
-                          {comment.comment.split(' ').map((word: string, i: number) => 
-                            word.startsWith('@') ? <span key={i} className="underline decoration-indigo-300 decoration-2 mr-1 italic text-indigo-300 pointer-events-none">{word}</span> : word + ' '
+                          {comment.comment.split(/(\s+)/).map((part: string, i: number) => 
+                            part.startsWith('@') 
+                              ? <span key={i} className={`underline decoration-2 mr-1 italic pointer-events-none ${comment.userId === user?.id ? 'decoration-white/40 text-white' : 'decoration-indigo-300 text-indigo-500'}`}>{part}</span> 
+                              : part
                           )}
                         </div>
                       </div>

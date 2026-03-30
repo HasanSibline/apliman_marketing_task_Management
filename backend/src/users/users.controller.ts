@@ -34,8 +34,8 @@ export class UsersController {
 
   @Get()
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get all users (Admin only - filtered by company)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  @ApiOperation({ summary: 'Get all users (Admin/Manager only - filtered by company)' })
   @ApiQuery({ name: 'role', enum: UserRole, required: false })
   @ApiQuery({ name: 'status', enum: UserStatus, required: false })
   @ApiResponse({ status: 200, description: 'Users retrieved successfully' })

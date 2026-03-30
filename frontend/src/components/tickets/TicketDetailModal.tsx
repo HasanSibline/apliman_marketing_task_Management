@@ -15,7 +15,7 @@ import {
   DocumentIcon,
   PlusIcon
 } from '@heroicons/react/24/outline'
-import api from '@/services/api'
+import api, { BACKEND_URL } from '@/services/api'
 import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -365,7 +365,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         ${ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
                           ticket.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                           'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
-                        {ticket.status.replace(/_/g, ' ')}
+                        {ticket.status === 'PENDING_REQ_MGR' ? `Awaiting Alignment: ${ticket.requesterManager?.name || 'Initiator Manager'}` :
+                          ticket.status === 'PENDING_REC_MGR' ? `Awaiting Priority: ${ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Target Manager'}` :
+                          ticket.status.replace(/_/g, ' ')}
                       </span>
                     </div>
 
@@ -473,15 +475,31 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           <button 
                             onClick={async () => {
                               try {
-                                await api.post(`/tickets/${ticketId}/comments`, { comment: 'Action item completed and verified.' })
-                                await api.patch(`/tickets/${ticketId}/resolve`)
-                                toast.success('SUCCESSFUL RESOLUTION')
-                                fetchTicketDetails(); onUpdate();
-                              } catch (e) { toast.error('Status Updated') }
+                                await api.patch(`/tickets/${ticketId}/start`)
+                                toast.success('MISSION EXECUTION COMMENCED')
+                                fetchTicketDetails()
+                                onUpdate()
+                              } catch { toast.error('Failed to start engagement') }
                             }}
-                            className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl py-4 shadow-xl shadow-emerald-200 text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all"
+                            className="w-full py-4 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-100 hover:scale-[1.02] transition-all"
                           >
-                            Close Interaction
+                            Commence Execution
+                          </button>
+                        )}
+
+                        {(ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS') && (ticket.assigneeId === user?.id || isAdmin) && (
+                          <button 
+                            onClick={async () => {
+                              try {
+                                await api.patch(`/tickets/${ticketId}/resolve`)
+                                toast.success('MISSION OBJECTIVE FINALIZED')
+                                fetchTicketDetails()
+                                onUpdate()
+                              } catch { toast.error('Sync error') }
+                            }}
+                            className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-xl' : 'bg-gray-100 text-gray-500'} text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all`}
+                          >
+                            Finalize Engagement
                           </button>
                         )}
                       </div>
@@ -576,7 +594,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         <div className={`h-10 w-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-100
                           ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
                           {comment.user.avatar ? (
-                            <img src={comment.user.avatar} className="h-full w-full object-cover" alt={comment.user.name} />
+                            <img 
+                              src={comment.user.avatar.startsWith('http') ? comment.user.avatar : `${BACKEND_URL}${comment.user.avatar}`} 
+                              className="h-full w-full object-cover" 
+                              alt={comment.user.name} 
+                            />
                           ) : (
                             <span className="text-[11px] font-black uppercase text-white">
                               {comment.user.name.charAt(0)}
@@ -622,7 +644,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           >
                             <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
                               {u.avatar ? (
-                                <img src={u.avatar} className="h-full w-full object-cover" alt={u.name} />
+                                <img 
+                                  src={u.avatar.startsWith('http') ? u.avatar : `${BACKEND_URL}${u.avatar}`} 
+                                  className="h-full w-full object-cover" 
+                                  alt={u.name} 
+                                />
                               ) : (
                                 <span className="text-[11px] font-black uppercase">{u.name.charAt(0)}</span>
                               )}

@@ -130,10 +130,12 @@ const TicketsPage: React.FC = () => {
     }
   }
 
-  const getStatusBadge = (status: TicketStatus) => {
-    switch (status) {
-      case 'PENDING_REQ_MGR': return <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-amber-100">Verification Req</span>
-      case 'PENDING_REC_MGR': return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100">Hand-off Pending</span>
+  const getStatusBadge = (ticket: any) => {
+    switch (ticket.status as TicketStatus) {
+      case 'PENDING_REQ_MGR': 
+        return <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-amber-100 italic">Awaiting Alignment: {ticket.requesterManager?.name || 'Manager'}</span>
+      case 'PENDING_REC_MGR': 
+        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Awaiting Priority: {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Dept. Manager'}</span>
       case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-blue-100">Log Open</span>
       case 'ASSIGNED': return <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-indigo-100">Task Assigned</span>
       case 'IN_PROGRESS': return <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-purple-100">Processing</span>
@@ -226,7 +228,7 @@ const TicketsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
-                      {getStatusBadge(ticket.status)}
+                      {getStatusBadge(ticket)}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="flex items-center space-x-2">

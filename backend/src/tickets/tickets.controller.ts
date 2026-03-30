@@ -62,6 +62,11 @@ export class TicketsController {
     return this.ticketsService.assign(id, req.user.id, assigneeId, req.user.companyId);
   }
 
+  @Patch(':id/start')
+  startProgress(@Param('id') id: string, @Request() req) {
+    return this.ticketsService.startProgress(id, req.user.id, req.user.companyId);
+  }
+
   @Post(':id/comments')
   addComment(@Param('id') id: string, @Body('comment') comment: string, @Request() req) {
     return this.ticketsService.addComment(id, req.user.id, comment, req.user.companyId);

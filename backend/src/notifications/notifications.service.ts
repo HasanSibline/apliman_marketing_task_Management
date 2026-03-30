@@ -5,6 +5,7 @@ export interface CreateNotificationData {
   userId: string;
   taskId?: string;
   subtaskId?: string;
+  ticketId?: string;
   phaseId?: string;
   commentId?: string;
   type: string;
@@ -23,6 +24,7 @@ export class NotificationsService {
         userId: data.userId,
         taskId: data.taskId,
         subtaskId: data.subtaskId,
+        ticketId: data.ticketId,
         phaseId: data.phaseId,
         type: data.type,
         title: data.title,
@@ -30,40 +32,18 @@ export class NotificationsService {
         actionUrl: data.actionUrl,
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        task: {
-          select: {
-            id: true,
-            title: true,
-            taskType: true,
-          },
-        },
-        subtask: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-        phase: {
-          select: {
-            id: true,
-            name: true,
-            color: true,
-          },
-        },
+        user: { select: { id: true, name: true, email: true } },
+        task: { select: { id: true, title: true, taskType: true } },
+        subtask: { select: { id: true, title: true } },
+        ticket: { select: { id: true, title: true, ticketNumber: true } },
+        phase: { select: { id: true, name: true, color: true } },
       },
     });
   }
 
   async createBulkNotifications(notifications: CreateNotificationData[]) {
     return this.prisma.notification.createMany({
-      data: notifications,
+      data: notifications as any,
     });
   }
 
@@ -74,26 +54,10 @@ export class NotificationsService {
       this.prisma.notification.findMany({
         where: { userId },
         include: {
-          task: {
-            select: {
-              id: true,
-              title: true,
-              taskType: true,
-            },
-          },
-          subtask: {
-            select: {
-              id: true,
-              title: true,
-            },
-          },
-          phase: {
-            select: {
-              id: true,
-              name: true,
-              color: true,
-            },
-          },
+          task: { select: { id: true, title: true, taskType: true } },
+          subtask: { select: { id: true, title: true } },
+          ticket: { select: { id: true, title: true, ticketNumber: true } },
+          phase: { select: { id: true, name: true, color: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,

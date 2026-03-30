@@ -1,17 +1,40 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TicketsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService
+  ) { }
 
   async resolve(id: string, userId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
-    return this.prisma.ticket.update({
+    
+    // Only assignee or manager can resolve
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes((await this.prisma.user.findUnique({ where: { id: userId } }))?.role || '');
+    if (ticket.assigneeId !== userId && !isAdmin) {
+      throw new ForbiddenException('Only the assigned resource or an admin can finalize this engagement');
+    }
+
+    const updated = await this.prisma.ticket.update({
       where: { id },
       data: { status: 'RESOLVED' }
     });
+
+    // Notify requester that the goal is finalized
+    await this.notifications.createNotification({
+      userId: ticket.requesterId,
+      ticketId: id,
+      type: 'TICKET_RESOLVED',
+      title: 'Engagement Finalized',
+      message: `The mission objectives for ${ticket.ticketNumber} have been successfully localized and resolved.`,
+      actionUrl: `/tickets/${id}`
+    });
+
+    return updated;
   }
 
   async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string, statusType?: string) {
@@ -57,7 +80,7 @@ export class TicketsService {
         include: {
           requester: { select: { id: true, name: true, department: { select: { name: true } } } },
           requesterManager: { select: { id: true, name: true } },
-          receiverDept: { select: { id: true, name: true, managerId: true } },
+          receiverDept: { include: { manager: { select: { id: true, name: true } } } },
           receiverManager: { select: { id: true, name: true } },
           assignee: { select: { id: true, name: true } },
         },
@@ -79,9 +102,9 @@ export class TicketsService {
         requesterManager: { select: { id: true, name: true } },
         receiverDept: { include: { manager: { select: { id: true, name: true } } } },
         receiverManager: { select: { id: true, name: true } },
-        assignee: { select: { id: true, name: true } },
+        assignee: { select: { id: true, name: true, avatar: true } },
         comments: {
-          include: { user: { select: { id: true, name: true } } },
+          include: { user: { select: { id: true, name: true, avatar: true } } },
           orderBy: { createdAt: 'asc' },
         },
         attachments: {
@@ -132,7 +155,7 @@ export class TicketsService {
       initialStatus = TicketStatus.PENDING_REC_MGR;
     }
 
-    return this.prisma.ticket.create({
+    const ticket = await this.prisma.ticket.create({
       data: {
         companyId,
         ticketNumber,
@@ -152,6 +175,29 @@ export class TicketsService {
         status: initialStatus,
       },
     });
+
+    // Notify for tactical authorizations if required
+    if (initialStatus === TicketStatus.PENDING_REQ_MGR && user.managerId) {
+      await this.notifications.createNotification({
+        userId: user.managerId,
+        ticketId: ticket.id,
+        type: 'TICKET_APPROVAL_NEEDED',
+        title: 'Authorization Requested',
+        message: `${user.name} has initiated an engagement (${ticket.ticketNumber}) that requires your managerial authorization.`,
+        actionUrl: `/tickets/${ticket.id}`
+      });
+    } else if (initialStatus === TicketStatus.PENDING_REC_MGR && receiverDept?.managerId) {
+      await this.notifications.createNotification({
+        userId: receiverDept.managerId,
+        ticketId: ticket.id,
+        type: 'TICKET_APPROVAL_NEEDED',
+        title: 'Logistical Authorization Needed',
+        message: `An incoming engagement request (${ticket.ticketNumber}) for the ${receiverDept.name} department requires your review.`,
+        actionUrl: `/tickets/${ticket.id}`
+      });
+    }
+
+    return ticket;
   }
 
   async approve(id: string, userId: string, companyId: string) {
@@ -184,10 +230,22 @@ export class TicketsService {
     const comment = reason ? `Rejected: ${reason}` : 'Rejected';
     await this.addComment(id, userId, comment, companyId);
 
-    return this.prisma.ticket.update({
+    const updated = await this.prisma.ticket.update({
       where: { id },
-      data: { status: TicketStatus.CANCELLED }, // Cancelled or rejected
+      data: { status: TicketStatus.CANCELLED },
     });
+
+    // Notify the initiator that the mission was aborted
+    await this.notifications.createNotification({
+      userId: ticket.requesterId,
+      ticketId: id,
+      type: 'TICKET_REJECTED',
+      title: 'Engagement Aborted',
+      message: `Strategic Rejection: Your ticket ${ticket.ticketNumber} was rejected by management. Reason: ${reason || 'Operational Constraints'}`,
+      actionUrl: `/tickets/${id}`
+    });
+
+    return updated;
   }
 
   async approveByRequesterManager(id: string, managerId: string, companyId: string) {
@@ -206,13 +264,27 @@ export class TicketsService {
     // Move to receiver manager stage
     const receiverDept = await this.prisma.department.findUnique({ where: { id: ticket.receiverDeptId } });
 
-    return this.prisma.ticket.update({
+    const updated = await this.prisma.ticket.update({
       where: { id },
       data: {
         status: TicketStatus.PENDING_REC_MGR,
         receiverManagerId: receiverDept?.managerId || null,
       },
     });
+
+    // Notify receiver manager for the next tactical authorize
+    if (receiverDept?.managerId) {
+      await this.notifications.createNotification({
+        userId: receiverDept.managerId,
+        ticketId: id,
+        type: 'TICKET_APPROVAL_NEEDED',
+        title: 'Authorization Required',
+        message: `An engagement request (${ticket.ticketNumber}) has cleared departmental approval and requires your logistical sign-off.`,
+        actionUrl: `/tickets/${id}`
+      });
+    }
+
+    return updated;
   }
 
   async approveByReceiverManager(id: string, managerId: string, companyId: string) {
@@ -230,10 +302,22 @@ export class TicketsService {
       throw new BadRequestException('Ticket is not in receiver approval stage');
     }
 
-    return this.prisma.ticket.update({
+    const updated = await this.prisma.ticket.update({
       where: { id },
       data: { status: TicketStatus.OPEN },
     });
+
+    // Notify the requester that the mission is now active
+    await this.notifications.createNotification({
+      userId: ticket.requesterId,
+      ticketId: id,
+      type: 'TICKET_APPROVED',
+      title: 'Strategic Authorization Confirmed',
+      message: `All authorizations for ${ticket.ticketNumber} have been localized. The engagement is now ACTIVE.`,
+      actionUrl: `/tickets/${id}`
+    });
+
+    return updated;
   }
 
   async assign(id: string, managerId: string, assigneeId: string, companyId: string) {
@@ -243,20 +327,89 @@ export class TicketsService {
       throw new BadRequestException('Ticket cannot be assigned in its current status');
     }
 
-    return this.prisma.ticket.update({
+    const updated = await this.prisma.ticket.update({
       where: { id },
       data: {
         assigneeId,
         status: TicketStatus.ASSIGNED,
       },
     });
+
+    // Notify assigned personnel
+    await this.notifications.createNotification({
+      userId: assigneeId,
+      ticketId: id,
+      type: 'TICKET_ASSIGNED',
+      title: 'New Personnel Assignment',
+      message: `You have been tacticaly assigned to ticket ${ticket.ticketNumber} for mission execution.`,
+      actionUrl: `/tickets/${id}`
+    });
+
+    return updated;
+  }
+
+  async startProgress(id: string, userId: string, companyId: string) {
+    const ticket = await this.findOne(id, companyId);
+    
+    if (ticket.status !== TicketStatus.ASSIGNED) {
+      throw new BadRequestException('Ticket must be ASSIGNED before it can be moved to IN_PROGRESS');
+    }
+
+    if (ticket.assigneeId !== userId) {
+      throw new ForbiddenException('Only the assigned personnel can start mission execution');
+    }
+
+    return this.prisma.ticket.update({
+      where: { id },
+      data: { status: TicketStatus.IN_PROGRESS }
+    });
   }
 
   async addComment(id: string, userId: string, comment: string, companyId: string) {
-    await this.findOne(id, companyId);
-    return this.prisma.ticketComment.create({
+    const ticket = await this.findOne(id, companyId);
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    const newComment = await this.prisma.ticketComment.create({
       data: { ticketId: id, userId, comment },
     });
+
+    // Strategy: Parse and notify @mentions
+    await this.notifyMentions(id, ticket.ticketNumber, comment, user?.name || 'Someone', userId, companyId);
+
+    return newComment;
+  }
+
+  private async notifyMentions(ticketId: string, ticketNumber: string, comment: string, senderName: string, senderId: string, companyId: string) {
+    const mentionRegex = /@([^ ,.:;!?@#$%/(){}[\]|\\"'<>]+( [^ ,.:;!?@#$%/(){}[\]|\\"'<>]+)*)/g;
+    const matches = comment.matchAll(mentionRegex);
+    const mentionedNames = new Set<string>();
+
+    for (const match of matches) {
+      mentionedNames.add(match[1]);
+    }
+
+    if (mentionedNames.size === 0) return;
+
+    // Direct Database cross-reference for identity matching
+    const mentionedUsers = await this.prisma.user.findMany({
+      where: {
+        companyId,
+        name: { in: Array.from(mentionedNames) },
+        id: { not: senderId }
+      },
+      select: { id: true, name: true }
+    });
+
+    for (const u of mentionedUsers) {
+      await this.notifications.createNotification({
+        userId: u.id,
+        ticketId,
+        type: 'TICKET_MENTION',
+        title: 'Collaborative Mention localized',
+        message: `${senderName} mentioned you in the intelligence feed for ${ticketNumber}.`,
+        actionUrl: `/tickets/${ticketId}`
+      });
+    }
   }
 
   async update(id: string, userId: string, role: string, data: any, companyId: string) {

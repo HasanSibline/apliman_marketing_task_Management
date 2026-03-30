@@ -31,7 +31,7 @@ export class FilesService {
       
       return {
         url: fileUrl,
-        fileName: file.originalname,
+        fileName: fileName, // Return the unique filename used on disk
         size: processedFile.size,
         mimeType: file.mimetype,
       };

@@ -15,6 +15,8 @@ export interface User {
   managerId?: string | null
   avatar?: string | null
   strategyAccess: 'NONE' | 'READ' | 'EDIT'
+  companyLogo?: string | null
+  companyColor?: string | null
 }
 
 interface AuthState {

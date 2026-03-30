@@ -186,6 +186,8 @@ export class UsersService {
         subscriptionPlan: true,
         subscriptionEnd: true,
         maxUsers: true,
+        logo: true,
+        primaryColor: true,
       },
     });
   }

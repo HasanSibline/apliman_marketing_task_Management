@@ -80,6 +80,8 @@ export class AuthService {
         companyId: user.companyId,
         strategyAccess: user.strategyAccess,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
+        companyLogo: company?.logo || null,
+        companyColor: company?.primaryColor || null,
       },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
@@ -253,6 +255,8 @@ export class AuthService {
         companyId: fullUser.companyId,
         strategyAccess: fullUser.strategyAccess,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
+        companyLogo: company?.logo || null,
+        companyColor: company?.primaryColor || null,
       },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),

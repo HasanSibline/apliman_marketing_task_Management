@@ -10,7 +10,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { toggleSidebar } from '@/store/slices/uiSlice'
 import { logout } from '@/store/slices/authSlice'
-import { usersApi } from '@/services/api'
+import { usersApi, BACKEND_URL } from '@/services/api'
 
 const Header: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -81,7 +81,11 @@ const Header: React.FC = () => {
             <Menu.Button className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 transition-colors duration-200 group">
               <div className="h-9 w-9 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-md group-hover:shadow-lg transition-all">
                 {user?.avatar ? (
-                  <img src={user.avatar} className="h-full w-full object-cover" alt={user.name} />
+                  <img 
+                    src={user.avatar.startsWith('http') ? user.avatar : `${BACKEND_URL}${user.avatar}`} 
+                    className="h-full w-full object-cover" 
+                    alt={user.name} 
+                  />
                 ) : (
                   <span className="text-sm font-black text-white">
                     {user?.name?.charAt(0).toUpperCase()}

@@ -192,12 +192,10 @@ export class FilesController {
     // Upload the file to avatars folder
     const result = await this.filesService.uploadSingleFile(file, req.user.id, 'avatars');
     
-    // Update user record with avatar URL
     // The URL should be accessible via the PublicFilesController
-    const avatarUrl = `${process.env.VITE_API_URL}/files/public/avatars/${result.fileName}`;
+    const avatarUrl = result.url; // Already correctly formatted by the service
     
-    // Assuming UsersService is injected or we can use prisma directly here 
-    // but better to use service. I'll need to inject UsersService into FilesController
+    // Inject and call the UsersService update or use the one from filesService
     return this.filesService.updateUserAvatar(req.user.id, avatarUrl);
   }
 }
