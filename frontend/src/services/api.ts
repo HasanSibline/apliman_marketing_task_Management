@@ -9,11 +9,24 @@ export const formatAssetUrl = (path: string | null | undefined): string => {
   if (path.startsWith('http')) return path;
   
   // Ensure we have a clean backend base URL without trailing slash
-  const baseUrl = BACKEND_URL.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
+  const baseUrl = (BACKEND_URL && BACKEND_URL !== 'undefined') ? 
+    (BACKEND_URL.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL) : 
+    window.location.origin;
+  
+  // Guard against paths starting with 'undefined/' which can happen if variables are missing
+  let cleanPath = path;
+  if (cleanPath.startsWith('undefined/')) {
+    cleanPath = cleanPath.replace('undefined/', '/');
+  }
   
   // Ensure path starts with a single slash
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
   
+  // If path is just /api/files/public/undefined/..., it's a broken DB entry
+  if (cleanPath.includes('/undefined/')) {
+     return ''; // Triggers fallback to initials
+  }
+
   return `${baseUrl}${cleanPath}`;
 }
 

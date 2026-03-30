@@ -193,10 +193,12 @@ ApliChat:"""
 
                 # Make relative URLs absolute
                 if url and url.startswith("/"):
+                    # Use official BACKEND_URL if set, otherwise try to reach same host or fallback
+                    backend_base = os.getenv("BACKEND_URL") or os.getenv("API_URL", "").replace("/api", "") or "http://localhost:3001"
                     url = f"{backend_base}{url}"
-
-                if not url:
-                    continue
+                    logger.info(f"🔗 Resolving relative URL to absolute: {url}")
+                else:
+                    logger.info(f"🔗 Using absolute URL for file fetch: {url}")
 
                 try:
                     # Pass user token if available for authenticated backend fetches
@@ -207,44 +209,31 @@ ApliChat:"""
                     async with aiohttp.ClientSession() as session:
                         async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=45)) as resp:
                             if resp.status != 200:
-                                logger.warning(f"⚠️ Could not fetch file {name}: HTTP {resp.status}")
+                                error_body = await resp.text()
+                                logger.warning(f"⚠️ Could not fetch file {name} from {url}: HTTP {resp.status} - {error_body[:200]}")
                                 file_context_text += f"\n[File '{name}' could not be downloaded (HTTP {resp.status})]\n"
                                 continue
-
+ 
                             raw = await resp.read()
+                            logger.info(f"✅ Successfully fetched {name} ({len(raw)} bytes)")
 
-                    # Images → inline_data for Gemini multimodal
-                    if mime.startswith("image/"):
+                    # PDFs & Images → inline_data for Gemini multimodal
+                    if mime.startswith("image/") or mime == "application/pdf" or name.lower().endswith(".pdf"):
                         import base64
                         b64 = base64.b64encode(raw).decode("utf-8")
                         file_parts.append({
                             "inline_data": {
-                                "mime_type": mime,
+                                "mime_type": mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/png"),
                                 "data": b64
                             }
                         })
-                        logger.info(f"📎 Attached image '{name}' ({len(raw)} bytes) as inline_data")
-
-                    # PDFs → extract text with PyPDF2
-                    elif mime == "application/pdf" or name.lower().endswith(".pdf"):
-                        try:
-                            import io
-                            import PyPDF2
-                            reader = PyPDF2.PdfReader(io.BytesIO(raw))
-                            text = "\n".join(
-                                page.extract_text() or "" for page in reader.pages
-                            )
-                            file_context_text += f"\n--- Content of '{name}' ---\n{text[:4000]}\n---\n"
-                            logger.info(f"📄 Extracted {len(text)} chars from PDF '{name}'")
-                        except Exception as pdf_err:
-                            logger.warning(f"⚠️ PDF extraction failed for '{name}': {pdf_err}")
-                            file_context_text += f"\n[File '{name}' is a PDF but text could not be extracted]\n"
-
-                    # Text-based files → embed content directly
-                    elif mime.startswith("text/") or name.lower().endswith((".txt", ".md", ".csv", ".json", ".xml", ".html")):
+                        logger.info(f"📎 Attached multimodal asset '{name}' ({len(raw)} bytes) as inline_data")
+ 
+                    # Text-based files → embed content directly in prompt for better reasoning 
+                    elif mime.startswith("text/") or name.lower().endswith((".txt", ".md", ".csv", ".json", ".xml", ".html", ".js", ".ts", ".py")):
                         try:
                             text = raw.decode("utf-8", errors="replace")
-                            file_context_text += f"\n--- Content of '{name}' ---\n{text[:4000]}\n---\n"
+                            file_context_text += f"\n--- Content of '{name}' ---\n{text[:10000]}\n---\n"
                             logger.info(f"📝 Embedded text file '{name}' ({len(text)} chars)")
                         except Exception as txt_err:
                             logger.warning(f"⚠️ Text decode failed for '{name}': {txt_err}")

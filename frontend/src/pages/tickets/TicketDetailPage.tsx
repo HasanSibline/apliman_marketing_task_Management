@@ -154,8 +154,9 @@ const TicketDetailPage: React.FC = () => {
     }
   }
 
-  const handleDownload = async (fileId: string, fileName: string) => {
+   const handleDownload = async (fileId: string, fileName: string) => {
     try {
+      console.log(`📡 Initiation of asset retrieval for: ${fileName} (${fileId})`);
       const response = await api.get(`/files/ticket-download/${fileId}`, {
         responseType: 'blob'
       });
@@ -168,8 +169,22 @@ const TicketDetailPage: React.FC = () => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      toast.error('Download failed');
+      console.log(`✅ Asset ${fileName} localized and transferred successfully.`);
+    } catch (error: any) {
+      console.error('Download failed:', error);
+      
+      // Try to extract a more descriptive error if it's a blob
+      if (error.response?.data instanceof Blob) {
+        const text = await error.response.data.text();
+        try {
+          const json = JSON.parse(text);
+          toast.error(json.message || 'Download failed');
+        } catch {
+          toast.error('File no longer on server or access denied');
+        }
+      } else {
+        toast.error(error.response?.data?.message || 'Strategic retrieval failure');
+      }
     }
   }
 

@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { formatAssetUrl } from '../services/api';
+import Avatar from '../components/common/Avatar';
 
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -350,35 +350,21 @@ export default function SuperAdminDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {companies.map(company => {
-                  const logoUrl = company.logo ? formatAssetUrl(company.logo) : null;
                   return (
                     <tr key={company.id} className="hover:bg-gray-50 transition-colors">
                       {/* Company */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
-                          {logoUrl ? (
-                            <img 
-                              src={logoUrl} 
-                              alt={company.name} 
-                              className="h-9 w-9 rounded-lg object-cover" 
-                              onError={(e) => {
-                                const target = e.currentTarget;
-                                const fallback = document.createElement('div');
-                                fallback.className = 'h-9 w-9 rounded-lg flex items-center justify-center text-white text-sm font-bold flex-shrink-0';
-                                fallback.style.backgroundColor = company.primaryColor || '#6366f1';
-                                fallback.innerText = company.name?.charAt(0) || 'C';
-                                target.replaceWith(fallback);
-                              }}
-                            />
-                          ) : (
-                            <div className="h-9 w-9 rounded-lg flex items-center justify-center text-white text-sm font-bold"
-                              style={{ backgroundColor: company.primaryColor }}>
-                              {company.name.charAt(0)}
-                            </div>
-                          )}
+                          <Avatar 
+                             src={company.logo} 
+                             name={company.name}
+                             size="sm"
+                             rounded="lg"
+                             className="h-9 w-9"
+                          />
                           <div>
-                            <p className="text-sm font-semibold text-gray-900">{company.name}</p>
-                            <p className="text-xs text-gray-400">/{company.slug}</p>
+                             <p className="text-sm font-semibold text-gray-900">{company.name}</p>
+                             <p className="text-xs text-gray-400">/{company.slug}</p>
                           </div>
                         </div>
                       </td>

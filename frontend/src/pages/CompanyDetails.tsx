@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api, { formatAssetUrl } from '@/services/api';
+import api from '@/services/api';
 import toast from 'react-hot-toast';
+import Avatar from '@/components/common/Avatar';
 
 interface Company {
   id: string;
@@ -164,8 +165,6 @@ export default function CompanyDetails() {
     ? Math.ceil((new Date(company.subscriptionEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     : null;
 
-  // Convert relative logo URL to absolute URL if needed
-  const logoUrl = company.logo ? formatAssetUrl(company.logo) : null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -181,16 +180,13 @@ export default function CompanyDetails() {
           
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              {logoUrl ? (
-                <img src={logoUrl} alt={company.name} className="h-16 w-16 rounded-full object-cover mr-4" />
-              ) : (
-                <div
-                  className="h-16 w-16 rounded-full mr-4 flex items-center justify-center text-white font-bold text-2xl"
-                  style={{ backgroundColor: company.primaryColor }}
-                >
-                  {company.name.charAt(0)}
-                </div>
-              )}
+              <Avatar 
+                src={company.logo} 
+                name={company.name}
+                size="lg"
+                rounded="full"
+                className="h-16 w-16 mr-4 border-2 border-white shadow-sm"
+              />
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
                 <p className="text-gray-600">{company.slug}</p>

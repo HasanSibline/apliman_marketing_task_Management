@@ -646,37 +646,36 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <PaperClipIcon className="w-5 h-5" />
                   )}
                 </button>
-
-                <div className="flex-1 relative">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyPress}
-                    placeholder="Type your message... (@user or /task)"
-                    className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400 bg-transparent relative z-10"
-                    disabled={isTyping}
-                    style={{ caretColor: 'auto' }}
-                  />
-                  {/* Inline completion overlay - Cut-edge styled, no white edge */}
-                  {inlineCompletion && (
-                    <div className="absolute left-3.5 top-2 pointer-events-none text-sm overflow-hidden right-4">
-                      <span className="invisible">{inputValue}</span>
-                      <span className="text-gray-400 bg-gray-50/80 px-1.5 py-0.5 rounded-md border border-gray-200/50 backdrop-blur-sm font-medium whitespace-nowrap">
-                        {inlineCompletion}
-                      </span>
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={sendMessage}
-                  disabled={(!inputValue.trim() && attachments.length === 0) || isTyping || isUploading}
-                  className="bg-primary-600 text-white rounded-lg p-2 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
-                >
-                  <PaperAirplaneIcon className="w-5 h-5" />
-                </button>
-              </div>
+                 <div className="flex-1 min-w-0 relative">
+                   <input
+                     ref={inputRef}
+                     type="text"
+                     value={inputValue}
+                     onChange={handleInputChange}
+                     onKeyDown={handleKeyPress}
+                     placeholder="Type a message... (@ /)"
+                     className="w-full border border-gray-300 rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all hover:border-gray-400 placeholder:text-gray-400 bg-transparent relative z-10"
+                     disabled={isTyping}
+                     style={{ caretColor: 'auto' }}
+                   />
+                   {/* Inline completion overlay - Cut-edge styled */}
+                   {inlineCompletion && (
+                     <div className="absolute left-3.5 top-2 pointer-events-none text-sm overflow-hidden right-4">
+                       <span className="invisible">{inputValue}</span>
+                       <span className="text-gray-400/60 font-medium italic">
+                         {inlineCompletion}
+                       </span>
+                     </div>
+                   )}
+                 </div>
+                 <button
+                   onClick={sendMessage}
+                   disabled={(!inputValue.trim() && attachments.length === 0) || isTyping || isUploading}
+                   className="bg-primary-600 text-white rounded-lg p-2 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
+                 >
+                   <PaperAirplaneIcon className="w-5 h-5" />
+                 </button>
+               </div>
           <p className="text-xs text-gray-400 mt-2 text-center">
                 Use <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">@</kbd> for users or <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">/</kbd> for tasks • <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">Space</kbd> or <kbd className="px-1 py-0.5 bg-gray-100 rounded text-xs font-mono border border-gray-200">Tab</kbd> to complete
           </p>

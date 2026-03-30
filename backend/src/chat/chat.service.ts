@@ -280,16 +280,20 @@ export class ChatService {
         userToken, // Pass user's access token for file fetching
       });
 
-      // Save assistant message
+      // Save assistant message (Safety first: ensure content is a string)
+      const assistantContent = typeof aiResponse === 'string' 
+        ? aiResponse 
+        : (aiResponse?.message || aiResponse?.content || "I encountered an error processing your request.");
+
       const assistantMessage = await this.prisma.chatMessage.create({
         data: {
           sessionId: session.id,
           role: 'assistant',
-          content: aiResponse.message,
+          content: String(assistantContent),
           metadata: {
             mentions,
             taskRefs,
-            contextUsed: aiResponse.contextUsed,
+            contextUsed: !!aiResponse?.contextUsed,
           },
         },
       });
