@@ -187,9 +187,13 @@ const TicketsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
                       <div className="flex items-center space-x-2">
-                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2 py-1 rounded">{ticket.requesterDept?.name || ticket.requester?.department?.name}</span>
-                        <ArrowRightIcon className="h-3 w-3 text-gray-300" />
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-100">{ticket.receiverDept?.name}</span>
+                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-xl border border-gray-100 uppercase tracking-tighter">
+                          {ticket.requester?.department?.name || 'General'}
+                        </span>
+                        <ArrowRightIcon className="h-3.5 w-3.5 text-gray-300" />
+                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100 uppercase tracking-tighter shadow-sm">
+                          {ticket.receiverDept?.name || 'IT'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
