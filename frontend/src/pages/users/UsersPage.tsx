@@ -12,11 +12,11 @@ import {
 import { Menu } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchUsers } from '@/store/slices/usersSlice'
+import api, { usersApi } from '@/services/api'
+import ActionModal from '@/components/ui/ActionModal'
+import toast from 'react-hot-toast'
 import CreateUserModal from '@/components/users/CreateUserModal'
 import EditUserModal from '@/components/users/EditUserModal'
-import DeleteUserModal from '@/components/users/DeleteUserModal'
-import ResetPasswordModal from '@/components/users/ResetPasswordModal'
-import api from '@/services/api'
 import DepartmentsManagement from '@/components/users/DepartmentsManagement'
 import TeamsManagement from '@/components/users/TeamsManagement'
 
@@ -29,10 +29,22 @@ const UsersPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('users')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
-  const [showDeleteModal, setShowDeleteModal] = useState(false)
-  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [companyName, setCompanyName] = useState<string>('Your Company')
+  
+  // Tactical Modal State
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    type: 'delete' | 'reset_password';
+    title: string;
+    description: string;
+    targetId?: string;
+  }>({
+    isOpen: false,
+    type: 'delete',
+    title: '',
+    description: '',
+  })
 
   useEffect(() => {
     if (activeTab === 'users') {
@@ -62,12 +74,42 @@ const UsersPage: React.FC = () => {
 
   const handleDelete = (user: any) => {
     setSelectedUser(user)
-    setShowDeleteModal(true)
+    setActionModal({
+      isOpen: true,
+      type: 'delete',
+      title: 'Strategic Personnel Deletion',
+      description: `SYSTEM REMOVAL: Are you sure you want to permanently delete ${user.name}? This action is irreversible and distinct from retirement.`,
+      targetId: user.id
+    })
   }
 
   const handleResetPassword = (user: any) => {
     setSelectedUser(user)
-    setShowResetPasswordModal(true)
+    setActionModal({
+      isOpen: true,
+      type: 'reset_password',
+      title: 'Credential Reset Log',
+      description: `Initiate a secure password reset for ${user.name}? This will send a reset link to their verified email.`,
+      targetId: user.id
+    })
+  }
+
+  const handleConfirmAction = async () => {
+    const { type, targetId } = actionModal
+    setActionModal(p => ({ ...p, isOpen: false }))
+
+    try {
+      if (type === 'delete') {
+        await usersApi.delete(targetId!)
+        toast.success(`${selectedUser?.name || 'Personnel'} removed from active logs`)
+        dispatch(fetchUsers({}))
+      } else if (type === 'reset_password') {
+        await usersApi.resetPassword(targetId!)
+        toast.success('Credential reset broadcasted successfully')
+      }
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Operation synchronization failure')
+    }
   }
 
   const canManageUser = (targetUser: any) => {
@@ -95,7 +137,7 @@ const UsersPage: React.FC = () => {
     ACTIVE: 'bg-green-100 text-green-800',
     AWAY: 'bg-yellow-100 text-yellow-800',
     OFFLINE: 'bg-gray-100 text-gray-800',
-    RETIRED: 'bg-red-100 text-red-800',
+    RETIRED: 'bg-rose-100 text-rose-800 border border-rose-100',
   }
 
   const roleColors: Record<string, string> = {
@@ -319,29 +361,15 @@ const UsersPage: React.FC = () => {
         />
       )}
 
-      {/* Delete User Modal */}
-      {selectedUser && (
-        <DeleteUserModal
-          isOpen={showDeleteModal}
-          onClose={() => {
-            setShowDeleteModal(false)
-            setSelectedUser(null)
-          }}
-          user={selectedUser}
-        />
-      )}
-
-      {/* Reset Password Modal */}
-      {selectedUser && (
-        <ResetPasswordModal
-          isOpen={showResetPasswordModal}
-          onClose={() => {
-            setShowResetPasswordModal(false)
-            setSelectedUser(null)
-          }}
-          user={selectedUser}
-        />
-      )}
+      <ActionModal
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal(p => ({ ...p, isOpen: false }))}
+        onConfirm={handleConfirmAction}
+        title={actionModal.title}
+        description={actionModal.description}
+        variant={actionModal.type === 'delete' ? 'danger' : 'info'}
+        confirmText={actionModal.type === 'delete' ? 'Delete Permanently' : 'Reset Credentials'}
+      />
     </div>
   )
 }

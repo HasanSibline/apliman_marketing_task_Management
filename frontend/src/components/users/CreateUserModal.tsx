@@ -80,6 +80,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
       newErrors.position = 'Position is required'
     }
 
+    if (formData.role === 'EMPLOYEE' && !formData.managerId) {
+      newErrors.managerId = 'Manager is required for standard personnel'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -255,11 +259,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                       setFormData(prev => ({
                         ...prev,
                         role: newRole,
-                        // Automatically set as approver if manager
+                        // Automatically enable approval rights for MANAGERS
                         isTicketApprover: newRole === 'MANAGER' ? true : prev.isTicketApprover
                       }));
                     }}
-                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
                     {canCreateRole('EMPLOYEE') && <option value="EMPLOYEE">Standard Employee</option>}
                     {canCreateRole('MANAGER') && <option value="MANAGER">Departmental Manager</option>}

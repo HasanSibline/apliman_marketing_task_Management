@@ -4,7 +4,7 @@ import { TicketStatus } from '@prisma/client';
 
 @Injectable()
 export class TicketsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async resolve(id: string, userId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
@@ -32,7 +32,7 @@ export class TicketsService {
           { receiverDept: { managerId: userId } }
         ]
       }),
-      ...(statusType === 'HISTORY' 
+      ...(statusType === 'HISTORY'
         ? { status: { in: historyStatuses } }
         : { status: { notIn: historyStatuses } }
       ),
@@ -97,10 +97,11 @@ export class TicketsService {
     return ticket;
   }
 
-  async create(companyId: string, userId: string, data: { 
-    title: string; 
-    description: string; 
-    receiverDeptId: string; 
+  async create(companyId: string, userId: string, data: {
+    title: string;
+    description: string;
+    receiverDeptId: string;
+    assigneeId?: string;
     isInternal?: boolean;
     type?: string;
     priority?: string;
@@ -108,7 +109,7 @@ export class TicketsService {
     providerName?: string;
     deadline?: string;
   }) {
-    const user = await this.prisma.user.findUnique({ 
+    const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { department: true }
     });
@@ -118,14 +119,16 @@ export class TicketsService {
     const receiverDept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
 
     // Determine initial status:
-    // 1. If requester is system admin, skip to REC_MGR
-    // 2. If requester dept is SAME as receiver dept, skip to REC_MGR
-    // 3. Otherwise, use REQ_MGR
+    // 1. If specifically to a user, no manager approval required.
+    // 2. If to a department, requires manager approval.
     let initialStatus: TicketStatus = TicketStatus.PENDING_REQ_MGR;
+    const isDirectToUser = !!data.assigneeId;
     const isSameDept = user.departmentId === data.receiverDeptId;
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
 
-    if (!user.managerId || isAdmin || isSameDept) {
+    if (isDirectToUser) {
+      initialStatus = TicketStatus.OPEN;
+    } else if (!user.managerId || isAdmin || isSameDept) {
       initialStatus = TicketStatus.PENDING_REC_MGR;
     }
 
@@ -138,6 +141,7 @@ export class TicketsService {
         type: (data.type as any) || 'GENERAL',
         priority: data.priority || 'MEDIUM',
         receiverDeptId: data.receiverDeptId,
+        assigneeId: data.assigneeId || null,
         requesterId: userId,
         requesterManagerId: user.managerId,
         receiverManagerId: receiverDept?.managerId || null,
@@ -152,7 +156,7 @@ export class TicketsService {
 
   async approve(id: string, userId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
-    
+
     if (ticket.status === TicketStatus.PENDING_REQ_MGR) {
       return this.approveByRequesterManager(id, userId, companyId);
     } else if (ticket.status === TicketStatus.PENDING_REC_MGR) {
@@ -164,7 +168,7 @@ export class TicketsService {
 
   async reject(id: string, userId: string, companyId: string, reason?: string) {
     const ticket = await this.findOne(id, companyId);
-    
+
     // Authorization check
     let canReject = false;
     if (ticket.status === TicketStatus.PENDING_REQ_MGR && ticket.requesterManagerId === userId) {
@@ -189,7 +193,7 @@ export class TicketsService {
   async approveByRequesterManager(id: string, managerId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
     const manager = await this.prisma.user.findUnique({ where: { id: managerId } });
-    
+
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(manager?.role || '');
     if (ticket.requesterManagerId !== managerId && !isAdmin) {
       throw new ForbiddenException('Only the requester manager or system admin can approve this stage');
@@ -213,7 +217,7 @@ export class TicketsService {
 
   async approveByReceiverManager(id: string, managerId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
-    
+
     // Check if user is the manager of the receiver department or has approval rights
     const manager = await this.prisma.user.findUnique({ where: { id: managerId } });
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(manager?.role || '');
@@ -234,7 +238,7 @@ export class TicketsService {
 
   async assign(id: string, managerId: string, assigneeId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
-    
+
     if (ticket.status !== TicketStatus.OPEN && ticket.status !== TicketStatus.ASSIGNED) {
       throw new BadRequestException('Ticket cannot be assigned in its current status');
     }

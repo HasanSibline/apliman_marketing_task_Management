@@ -88,6 +88,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
       newErrors.position = 'Position is required'
     }
 
+    if (formData.role === 'EMPLOYEE' && !formData.managerId) {
+      newErrors.managerId = 'Manager is required for standard personnel'
+    }
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -302,8 +306,15 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       id="role"
                       name="role"
                       value={formData.role}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      onChange={(e) => {
+                        const newRole = e.target.value as any;
+                        setFormData(prev => ({
+                          ...prev,
+                          role: newRole,
+                          isTicketApprover: newRole === 'MANAGER' ? true : prev.isTicketApprover
+                        }));
+                      }}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none font-outfit"
                     >
                       {roleOptions().map((roleOption) => (
                         <option key={roleOption} value={roleOption}>

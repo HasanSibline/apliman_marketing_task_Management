@@ -42,11 +42,15 @@ export class DepartmentsService {
         },
       });
 
-      // If a manager was assigned, move them into this department automatically
+      // If a manager was assigned, move them into this department and elevate role automatically
       if (data.managerId) {
         await tx.user.update({
           where: { id: data.managerId, companyId },
-          data: { departmentId: dept.id },
+          data: { 
+            departmentId: dept.id,
+            role: 'MANAGER',
+            isTicketApprover: true
+          },
         });
       }
 
@@ -66,11 +70,15 @@ export class DepartmentsService {
         },
       });
 
-      // If a manager was assigned/changed, move them into this department automatically
+      // If a manager was assigned/changed, move them into this department and elevate role automatically
       if (data.managerId && data.managerId !== 'null' && data.managerId !== '') {
         await tx.user.update({
           where: { id: data.managerId, companyId },
-          data: { departmentId: dept.id },
+          data: { 
+            departmentId: dept.id,
+            role: 'MANAGER',
+            isTicketApprover: true
+          },
         });
       }
 

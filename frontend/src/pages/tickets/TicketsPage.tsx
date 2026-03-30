@@ -12,12 +12,14 @@ import {
 import api from '@/services/api'
 import { useAppSelector } from '@/hooks/redux'
 import { toast } from 'react-hot-toast'
+import { useNavigate } from 'react-router-dom'
+import ActionModal from '@/components/ui/ActionModal'
 import CreateTicketModal from '@/components/tickets/CreateTicketModal'
-import TicketDetailModal from '@/components/tickets/TicketDetailModal'
 
-type TicketStatus = 'PENDING_REQ_MGR' | 'PENDING_REC_MGR' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'REJECTED'
+type TicketStatus = 'PENDING_REQ_MGR' | 'PENDING_REC_MGR' | 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CANCELLED'
 
 const TicketsPage: React.FC = () => {
+  const navigate = useNavigate()
   const { user } = useAppSelector((state) => state.auth)
   const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
   const [tickets, setTickets] = useState<any[]>([])
@@ -28,9 +30,21 @@ const TicketsPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE')
   
-  // Detail Modal State
-  const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
-  const [showDetailModal, setShowDetailModal] = useState(false)
+  // Tactical Modal States
+  const [actionModal, setActionModal] = useState<{
+    isOpen: boolean;
+    type: 'approve' | 'reject' | 'delete';
+    title: string;
+    description: string;
+    targetId?: string;
+    requireReason?: boolean;
+    reasons?: string[];
+  }>({
+    isOpen: false,
+    type: 'approve',
+    title: '',
+    description: '',
+  })
 
   useEffect(() => {
     fetchData()
@@ -56,8 +70,7 @@ const TicketsPage: React.FC = () => {
   }
 
   const handleOpenDetail = (id: string) => {
-    setSelectedTicketId(id)
-    setShowDetailModal(true)
+    navigate(`/tickets/${id}`)
   }
 
   const handleCreateSuccess = () => {
@@ -65,27 +78,55 @@ const TicketsPage: React.FC = () => {
     fetchData()
   }
 
-  const handleApprove = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation()
+  const handleConfirmAction = async (reason?: string) => {
+    const { type, targetId } = actionModal
+    setActionModal(p => ({ ...p, isOpen: false }))
+
     try {
-      await api.patch(`/tickets/${id}/approve`)
-      toast.success('Ticket approved')
+      if (type === 'approve') {
+        await api.patch(`/tickets/${targetId}/approve`)
+        toast.success('Interaction Authorized')
+      } else if (type === 'reject') {
+        await api.patch(`/tickets/${targetId}/reject`, { reason })
+        toast.error('Interaction Terminated')
+      } else if (type === 'delete') {
+        await api.delete(`/tickets/${targetId}`)
+        toast.success('Record Pruned')
+      }
       fetchData()
     } catch (error) {
-      toast.error('Failed to approve ticket')
+      toast.error('Operational synchronization failed')
     }
   }
 
-  const handleReject = async (e: React.MouseEvent, id: string) => {
+  const promptAction = (e: React.MouseEvent, type: 'approve' | 'reject' | 'delete', id: string) => {
     e.stopPropagation()
-    const reason = prompt('Reason for rejection:')
-    if (reason === null) return
-    try {
-      await api.patch(`/tickets/${id}/reject`, { reason })
-      toast.error('Ticket rejected')
-      fetchData()
-    } catch (error) {
-      toast.error('Failed to reject ticket')
+    if (type === 'delete') {
+      setActionModal({
+        isOpen: true,
+        type: 'delete',
+        title: 'Strategic Deletion',
+        description: 'Permanently remove this engagement record from all operational logs?',
+        targetId: id
+      })
+    } else if (type === 'reject') {
+      setActionModal({
+        isOpen: true,
+        type: 'reject',
+        title: 'Tactical Rejection',
+        description: 'Identify the operational reason for terminating this request flow.',
+        targetId: id,
+        requireReason: true,
+        reasons: ['Incomplete Specifications', 'Budgetary Constraints', 'Personnel Overload', 'Incorrect Target', 'Duplicate Interaction']
+      })
+    } else if (type === 'approve') {
+      setActionModal({
+        isOpen: true,
+        type: 'approve',
+        title: 'Operational Authorization',
+        description: 'Authorize this engagement stage and proceed to the next industrial phase?',
+        targetId: id
+      })
     }
   }
 
@@ -94,9 +135,10 @@ const TicketsPage: React.FC = () => {
       case 'PENDING_REQ_MGR': return <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-amber-100">Verification Req</span>
       case 'PENDING_REC_MGR': return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100">Hand-off Pending</span>
       case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-blue-100">Log Open</span>
-      case 'IN_PROGRESS': return <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-indigo-100">Resource Assigned</span>
+      case 'ASSIGNED': return <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-indigo-100">Task Assigned</span>
+      case 'IN_PROGRESS': return <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-purple-100">Processing</span>
       case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-emerald-100">Task Finalized</span>
-      case 'REJECTED': return <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-rose-100">Entry Denied</span>
+      case 'CANCELLED': return <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-rose-100">Entry Denied</span>
       default: return null
     }
   }
@@ -124,13 +166,13 @@ const TicketsPage: React.FC = () => {
             onClick={() => { setActiveTab('ACTIVE'); setPage(1); }}
             className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'ACTIVE' ? 'bg-white text-primary-600 border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            Live Interactions
+            Active Tickets
           </button>
           <button 
             onClick={() => { setActiveTab('HISTORY'); setPage(1); }}
             className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HISTORY' ? 'bg-white text-primary-600 border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            Historical Archives
+            History Tickets
           </button>
         </div>
 
@@ -205,16 +247,7 @@ const TicketsPage: React.FC = () => {
                       <div className="flex justify-end space-x-1">
                         {isAdmin && (
                           <button 
-                            onClick={async (e) => {
-                              e.stopPropagation();
-                              if(window.confirm('Delete this ticket?')) {
-                                try {
-                                  await api.delete(`/tickets/${ticket.id}`);
-                                  toast.success('Ticket removed');
-                                  fetchData();
-                                } catch(e) { toast.error('Failed'); }
-                              }
-                            }}
+                            onClick={(e) => promptAction(e, 'delete', ticket.id)}
                             className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
                           >
                             <TrashIcon className="h-5 w-5" />
@@ -225,8 +258,8 @@ const TicketsPage: React.FC = () => {
                           isAdmin) && 
                           (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
                           <>
-                            <button onClick={(e) => handleApprove(e, ticket.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl"><CheckCircleIcon className="h-5 w-5" /></button>
-                            <button onClick={(e) => handleReject(e, ticket.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl"><XCircleIcon className="h-5 w-5" /></button>
+                            <button onClick={(e) => promptAction(e, 'approve', ticket.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl"><CheckCircleIcon className="h-5 w-5" /></button>
+                            <button onClick={(e) => promptAction(e, 'reject', ticket.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl"><XCircleIcon className="h-5 w-5" /></button>
                           </>
                         )}
                         <button className="p-2 text-gray-400 hover:text-primary-600"><ChatBubbleLeftRightIcon className="h-5 w-5" /></button>
@@ -272,17 +305,16 @@ const TicketsPage: React.FC = () => {
         onSuccess={handleCreateSuccess}
       />
 
-      {selectedTicketId && (
-        <TicketDetailModal
-          isOpen={showDetailModal}
-          onClose={() => {
-            setShowDetailModal(false)
-            setSelectedTicketId(null)
-          }}
-          ticketId={selectedTicketId}
-          onUpdate={fetchData}
-        />
-      )}
+      <ActionModal
+        isOpen={actionModal.isOpen}
+        onClose={() => setActionModal(p => ({ ...p, isOpen: false }))}
+        onConfirm={handleConfirmAction}
+        title={actionModal.title}
+        description={actionModal.description}
+        variant={actionModal.type === 'delete' ? 'danger' : actionModal.type === 'reject' ? 'warning' : 'success'}
+        requireReason={actionModal.requireReason}
+        reasons={actionModal.reasons}
+      />
     </div>
   )
 }

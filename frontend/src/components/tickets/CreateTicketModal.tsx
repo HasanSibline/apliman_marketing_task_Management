@@ -22,6 +22,8 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [deadline, setDeadline] = useState('')
   const [metadata, setMetadata] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [deptUsers, setDeptUsers] = useState<any[]>([])
+  const [assigneeId, setAssigneeId] = useState('')
 
   const ticketTypes = [
     { id: 'GENERAL', label: 'General Request' },
@@ -195,6 +197,24 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     }
   }, [isOpen])
 
+  useEffect(() => {
+    if (receiverDeptId) {
+      fetchDeptUsers(receiverDeptId)
+    } else {
+      setDeptUsers([])
+      setAssigneeId('')
+    }
+  }, [receiverDeptId])
+
+  const fetchDeptUsers = async (deptId: string) => {
+    try {
+      const res = await api.get(`/departments/${deptId}`)
+      setDeptUsers(res.data.users || [])
+    } catch (error) {
+      toast.error('Failed to load department personnel')
+    }
+  }
+
   const fetchDepartments = async () => {
     try {
       const res = await api.get('/departments')
@@ -216,6 +236,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         title,
         description,
         receiverDeptId,
+        assigneeId: assigneeId || null,
         type,
         priority,
         deadline: deadline || undefined,
@@ -277,22 +298,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             {/* Form */}
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
-                {/* Type */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ticket Type *
-                  </label>
-                  <select
-                    value={type}
-                    onChange={(e) => setType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  >
-                    {ticketTypes.map((t) => (
-                      <option key={t.id} value={t.id}>{t.label}</option>
-                    ))}
-                  </select>
-                </div>
-
                 {/* Target Dept */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -309,6 +314,46 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     ))}
                   </select>
                 </div>
+
+                {/* Target User */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Target Personnel (Optional)
+                  </label>
+                  <select
+                    value={assigneeId}
+                    onChange={(e) => setAssigneeId(e.target.value)}
+                    disabled={!receiverDeptId}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium disabled:bg-gray-50 disabled:text-gray-400"
+                  >
+                    <option value="">Direct to Department Manager</option>
+                    {deptUsers.map((u) => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                  </select>
+                  {!assigneeId && receiverDeptId && (
+                    <p className="mt-1 text-[9px] text-gray-400 italic">Requires Dept. Manager Approval</p>
+                  )}
+                  {assigneeId && (
+                    <p className="mt-1 text-[9px] text-primary-600 font-bold italic uppercase tracking-tighter">Bypasses Approval - Direct Entry</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Interaction Category *
+                </label>
+                <select
+                  value={type}
+                  onChange={(e) => setType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium"
+                >
+                  {ticketTypes.map((t) => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Title */}
