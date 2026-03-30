@@ -49,9 +49,9 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+      className="bg-white rounded-xl border border-gray-100 p-8"
     >
-      <h3 className="text-lg font-semibold text-gray-900 mb-3">Tasks by Workflow</h3>
+      <h3 className="text-xl font-black text-gray-900 mb-6 tracking-tight uppercase">Tasks by Workflow</h3>
       
       {/* Legend under title - VERTICAL layout */}
       {filteredData.length > 0 && (

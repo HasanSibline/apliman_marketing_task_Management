@@ -50,7 +50,7 @@ const Header: React.FC = () => {
   }
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
       <div className="flex items-center justify-between h-16 px-6">
         {/* Left side */}
         <div className="flex items-center space-x-4">
@@ -130,7 +130,7 @@ const Header: React.FC = () => {
                       } flex items-center w-full px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
                     >
                       <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3 opacity-60" />
-                      Terminate Session
+                      Logout
                     </button>
                   )}
                 </Menu.Item>

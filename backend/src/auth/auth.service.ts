@@ -144,8 +144,8 @@ export class AuthService {
       if (!creatorCompanyId) {
         throw new BadRequestException('Admin must belong to a company to create users');
       }
-      if (registerDto.role !== UserRole.EMPLOYEE) {
-        throw new BadRequestException('Admins can only create Employee accounts');
+      if (registerDto.role !== UserRole.EMPLOYEE && registerDto.role !== UserRole.MANAGER) {
+        throw new BadRequestException('Admins can only create Employee or Manager accounts');
       }
     }
 

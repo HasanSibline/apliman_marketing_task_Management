@@ -3,6 +3,7 @@ export enum UserRole {
   SUPER_ADMIN = 'SUPER_ADMIN',     // System administrator - manages all companies
   COMPANY_ADMIN = 'COMPANY_ADMIN', // Company administrator - manages their company
   ADMIN = 'ADMIN',                 // Department admin
+  MANAGER = 'MANAGER',             // Department Manager
   EMPLOYEE = 'EMPLOYEE',           // Regular user
 }
 

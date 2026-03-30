@@ -667,6 +667,7 @@ enum UserRole {
   SUPER_ADMIN
   COMPANY_ADMIN
   ADMIN
+  MANAGER
   EMPLOYEE
 }
 

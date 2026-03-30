@@ -158,6 +158,7 @@ export const usersApi = {
     role: string
     position: string
     departmentId?: string
+    teamId?: string
     managerId?: string
     isTicketApprover?: boolean
     strategyAccess?: string

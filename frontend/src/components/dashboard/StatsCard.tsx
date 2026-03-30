@@ -25,12 +25,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+      className="bg-white rounded-xl border border-gray-100 p-6 flex items-center justify-between group hover:border-primary-100 transition-all"
     >
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
+      <div className="flex-1">
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
+        <p className="text-3xl font-black text-gray-900 tracking-tighter">{value}</p>
           {subtitle && (
             <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
           )}
@@ -48,7 +47,6 @@ const StatsCard: React.FC<StatsCardProps> = ({
         <div className={`p-3 rounded-lg ${color}`}>
           <Icon className="h-6 w-6 text-white" />
         </div>
-      </div>
     </motion.div>
   )
 }

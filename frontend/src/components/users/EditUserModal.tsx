@@ -21,10 +21,11 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: '' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE',
+    role: '' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
     position: '',
     status: '' as 'ACTIVE' | 'AWAY' | 'OFFLINE' | 'RETIRED',
     departmentId: '',
+    teamId: '',
     managerId: '',
     isTicketApprover: false,
     strategyAccess: 'NONE' as 'NONE' | 'READ' | 'EDIT',
@@ -60,6 +61,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         position: user.position,
         status: user.status,
         departmentId: user.departmentId || '',
+        teamId: user.teamId || '',
         managerId: user.managerId || '',
         isTicketApprover: user.isTicketApprover || false,
         strategyAccess: user.strategyAccess || 'NONE',
@@ -104,6 +106,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         position: formData.position.trim(),
         status: formData.status,
         departmentId: formData.departmentId || null,
+        teamId: formData.teamId || null,
         managerId: formData.managerId || null,
         isTicketApprover: formData.isTicketApprover,
         strategyAccess: formData.strategyAccess,
@@ -123,10 +126,19 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }))
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      };
+      
+      // Reset team if department changes
+      if (name === 'departmentId') {
+        newData.teamId = '';
+      }
+      
+      return newData;
+    });
     
     if (errors[name]) {
       setErrors(prev => ({
@@ -154,22 +166,21 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
     return false
   }
 
-  type RoleOption = 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE'
+  type RoleOption = 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE'
 
   const roleOptions = (): RoleOption[] => {
     if (!currentUser) return []
 
     if (currentUser.role === 'SUPER_ADMIN') {
-      return ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN', 'EMPLOYEE']
+      return ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE']
     }
 
     if (currentUser.role === 'COMPANY_ADMIN') {
-      // System Administrator can manage Company Admins and Employees
-      return ['ADMIN', 'EMPLOYEE']
+      return ['ADMIN', 'MANAGER', 'EMPLOYEE']
     }
 
     if (currentUser.role === 'ADMIN') {
-      return ['EMPLOYEE']
+      return ['MANAGER', 'EMPLOYEE']
     }
 
     return []
@@ -183,10 +194,12 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
         return 'System Administrator'
       case 'ADMIN':
         return companyName ? `${companyName} Admin` : 'Company Admin'
+      case 'MANAGER':
+        return 'Department Manager'
       case 'EMPLOYEE':
         return 'Employee'
       default:
-        return role
+        return role as string
     }
   }
 
@@ -217,16 +230,16 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
               onClick={onClose}
             />
             
-            {/* Modal */}
+            {/* Tactical Edit Modal */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-md bg-white rounded-lg shadow-xl"
+              initial={{ opacity: 0, y: 50, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.98 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Edit User</h2>
+              {/* Strategic Header Strip */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-50 bg-gray-50/50">
+                <h2 className="text-xl font-black text-gray-900 tracking-tight font-outfit uppercase">Identify Modification</h2>
                 <button
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -322,40 +335,64 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   )}
                 </div>
 
-                {/* Department */}
+                {/* Department Mapping */}
                 <div>
-                  <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
+                  <label htmlFor="departmentId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    Organizational Department
                   </label>
                   <select
                     id="departmentId"
                     name="departmentId"
                     value={formData.departmentId}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
-                    <option value="">No Department</option>
+                    <option value="">No Department Mapping</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* Manager */}
+                {/* Team Mapping (Linked to Department) */}
+                {formData.departmentId && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                  >
+                    <label htmlFor="teamId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                      Personnel Team Assignment
+                    </label>
+                    <select
+                      id="teamId"
+                      name="teamId"
+                      value={formData.teamId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    >
+                      <option value="">No Team Assigned</option>
+                      {departments.find(d => d.id === formData.departmentId)?.teams?.map((team: any) => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                  </motion.div>
+                )}
+
+                {/* Direct Manager Selector */}
                 <div>
-                  <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 mb-1">
-                    Direct Manager
+                  <label htmlFor="managerId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    Direct Reporting Manager
                   </label>
                   <select
                     id="managerId"
                     name="managerId"
                     value={formData.managerId}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
-                    <option value="">No Manager</option>
+                    <option value="">No Direct Manager Mapping</option>
                     {potentialManagers.filter(m => m.id !== user.id).map((m) => (
-                      <option key={m.id} value={m.id}>{m.name} ({m.position || 'No Position'})</option>
+                      <option key={m.id} value={m.id}>{m.name} ({m.position || 'Standard Personnel'})</option>
                     ))}
                   </select>
                 </div>

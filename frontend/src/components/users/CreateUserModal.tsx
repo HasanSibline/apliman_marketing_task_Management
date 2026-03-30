@@ -21,9 +21,10 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'EMPLOYEE' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE',
+    role: 'EMPLOYEE' as 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE',
     position: '',
     departmentId: '',
+    teamId: '',
     managerId: '',
     isTicketApprover: false,
     strategyAccess: 'NONE' as 'NONE' | 'READ' | 'EDIT',
@@ -97,6 +98,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         role: formData.role,
         position: formData.position.trim(),
         departmentId: formData.departmentId || undefined,
+        teamId: formData.teamId || undefined,
         managerId: formData.managerId || undefined,
         isTicketApprover: formData.isTicketApprover,
         strategyAccess: formData.strategyAccess,
@@ -113,6 +115,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
         role: 'EMPLOYEE',
         position: '',
         departmentId: '',
+        teamId: '',
         managerId: '',
         isTicketApprover: false,
         strategyAccess: 'NONE',
@@ -128,10 +131,17 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as HTMLInputElement
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
-    }))
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      };
+      // Reset team if department changes
+      if (name === 'departmentId') {
+        newData.teamId = '';
+      }
+      return newData;
+    });
     
     // Clear error when user starts typing
     if (errors[name]) {
@@ -142,16 +152,15 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
     }
   }
 
-  const canCreateRole = (role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'EMPLOYEE') => {
+  const canCreateRole = (role: 'SUPER_ADMIN' | 'COMPANY_ADMIN' | 'ADMIN' | 'MANAGER' | 'EMPLOYEE') => {
     if (user?.role === 'SUPER_ADMIN') {
-      return true // Platform Admin can create any role
+      return true
     }
     if (user?.role === 'COMPANY_ADMIN') {
-      // System Administrator can create Company Admins and Employees only
-      return role === 'ADMIN' || role === 'EMPLOYEE'
+      return role === 'ADMIN' || role === 'MANAGER' || role === 'EMPLOYEE'
     }
     if (user?.role === 'ADMIN') {
-      return role === 'EMPLOYEE' // Company Admin can only create employees
+      return role === 'MANAGER' || role === 'EMPLOYEE'
     }
     return false
   }
@@ -170,16 +179,16 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
               onClick={onClose}
             />
             
-            {/* Modal */}
+            {/* Tactical Identity Modal */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-md bg-white rounded-lg shadow-xl"
+              initial={{ opacity: 0, y: 50, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 50, scale: 0.98 }}
+              className="relative w-full max-w-md bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden"
             >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Create New User</h2>
+              {/* Strategic Header Strip */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-50 bg-gray-50/50">
+                <h2 className="text-xl font-black text-gray-900 tracking-tight font-outfit uppercase">Onboard Personnel</h2>
                 <button
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -232,25 +241,35 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                   )}
                 </div>
 
-                {/* Role */}
+                 {/* Organizational Authority Role */}
                 <div>
-                  <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                    Role *
+                  <label htmlFor="role" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    Logistical Tier *
                   </label>
                   <select
                     id="role"
                     name="role"
                     value={formData.role}
-                    onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    onChange={(e) => {
+                      const newRole = e.target.value as any;
+                      setFormData(prev => ({
+                        ...prev,
+                        role: newRole,
+                        // Automatically set as approver if manager
+                        isTicketApprover: newRole === 'MANAGER' ? true : prev.isTicketApprover
+                      }));
+                    }}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all"
                   >
-                    {canCreateRole('EMPLOYEE') && <option value="EMPLOYEE">Employee</option>}
+                    {canCreateRole('EMPLOYEE') && <option value="EMPLOYEE">Standard Employee</option>}
+                    {canCreateRole('MANAGER') && <option value="MANAGER">Departmental Manager</option>}
                     {canCreateRole('ADMIN') && (
                       <option value="ADMIN">
-                        {companyName ? `${companyName} Admin` : 'Company Admin'}
+                        {companyName ? `${companyName} Administrator` : 'Regional Admin'}
                       </option>
                     )}
-                    {canCreateRole('SUPER_ADMIN') && <option value="SUPER_ADMIN">Platform Administrator</option>}
+                    {canCreateRole('COMPANY_ADMIN') && <option value="COMPANY_ADMIN">System Administrator</option>}
+                    {canCreateRole('SUPER_ADMIN') && <option value="SUPER_ADMIN">Platform Overlord</option>}
                   </select>
                 </div>
 
@@ -315,22 +334,46 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Department */}
                 <div>
-                  <label htmlFor="departmentId" className="block text-sm font-medium text-gray-700 mb-1">
-                    Department
+                  <label htmlFor="departmentId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                    Direct Department
                   </label>
                   <select
                     id="departmentId"
                     name="departmentId"
                     value={formData.departmentId}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
-                    <option value="">No Department</option>
+                    <option value="">No Department Mapping</option>
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
                   </select>
                 </div>
+
+                {/* Team Mapping (Linked to Department) */}
+                {formData.departmentId && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                  >
+                    <label htmlFor="teamId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                      Personnel Team Assignment
+                    </label>
+                    <select
+                      id="teamId"
+                      name="teamId"
+                      value={formData.teamId}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl text-sm font-black text-gray-900 focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    >
+                      <option value="">No Team Assigned</option>
+                      {departments.find(d => d.id === formData.departmentId)?.teams?.map((team: any) => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
+                  </motion.div>
+                )}
 
                 {/* Manager */}
                 <div>

@@ -293,10 +293,10 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
         />
 
         <motion.div
-          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+          initial={{ opacity: 0, y: 50, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 50, scale: 0.95 }}
-          className="relative w-full max-w-6xl h-[90vh] bg-white rounded-[2rem] shadow-2xl flex flex-col overflow-hidden border border-gray-100"
+          exit={{ opacity: 0, y: 50, scale: 0.98 }}
+          className="relative w-full max-w-6xl h-[90vh] bg-white rounded-[2rem] shadow-none flex flex-col overflow-hidden border border-gray-100"
         >
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
@@ -307,7 +307,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
               {/* Premium Header Strip */}
               <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <span className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase shadow-lg shadow-primary-200">
+                  <span className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border border-primary-500">
                     {ticket.ticketNumber}
                   </span>
                   {isEditing ? (
@@ -355,7 +355,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                 <div className="w-[480px] border-r border-gray-100 overflow-y-auto p-8 space-y-8 bg-gray-50/20">
                   
                   {/* Process Control Card */}
-                  <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-xl shadow-gray-200/50 space-y-6">
+                  <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ListBulletIcon className="h-4 w-4 text-primary-500" />
@@ -506,8 +506,8 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     </div>
 
                     <div className="space-y-2">
-                       {attachments.map(att => (
-                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white transition-all group">
+                        {attachments.map(att => (
+                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-100 hover:bg-white transition-all group">
                             <div className="flex items-center gap-3 min-w-0">
                                <div className="h-8 w-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-primary-600 shadow-sm">
                                   <DocumentIcon className="h-4 w-4" />
@@ -573,7 +573,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     <div className="space-y-6">
                       {ticket.comments?.map((comment: any) => (
                         <div key={comment.id} className={`flex gap-4 ${comment.userId === user?.id ? 'flex-row-reverse' : ''}`}>
-                        <div className={`h-10 w-10 rounded-[1rem] flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-white shadow-xl shadow-gray-200
+                        <div className={`h-10 w-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-100
                           ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
                           {comment.user.avatar ? (
                             <img src={comment.user.avatar} className="h-full w-full object-cover" alt={comment.user.name} />
@@ -585,10 +585,10 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         </div>
                           <div className={`max-w-[75%] space-y-1.5 ${comment.userId === user?.id ? 'items-end flex flex-col' : ''}`}>
                             <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{comment.user.name}</span>
-                              <span className="text-[8px] text-gray-300 font-bold uppercase">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              <span className="text-[10px] font-black text-gray-900 uppercase tracking-tight">{comment.user.name}</span>
+                              <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
-                            <div className={`px-5 py-4 rounded-[1.5rem] text-xs font-black leading-relaxed shadow-sm tracking-wide
+                            <div className={`px-5 py-4 rounded-2xl text-xs font-black leading-relaxed tracking-wide
                               ${comment.userId === user?.id 
                                 ? 'bg-primary-600 text-white rounded-tr-none' 
                                 : 'bg-gray-50 text-gray-900 rounded-tl-none border border-gray-100'}`}>
@@ -612,7 +612,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   {/* Broadcasting Center */}
                   <div className="p-8 border-t border-gray-100 bg-gray-50/10 relative">
                     {showMentions && filteredUsers.length > 0 && (
-                      <div className="absolute bottom-full left-8 mb-4 w-80 bg-white rounded-[1.5rem] shadow-2xl border border-gray-100 overflow-hidden z-20">
+                      <div className="absolute bottom-full left-8 mb-4 w-80 bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden z-20">
                         <div className="bg-gray-50/50 px-5 py-3 text-[9px] font-black text-gray-400 uppercase border-b border-gray-100 italic tracking-widest">Broadcast Target Selector</div>
                         {filteredUsers.map(u => (
                           <button
@@ -643,12 +643,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           placeholder="Broadcast a new message... Use @ to tag team members."
                           value={newComment}
                           onChange={handleInputChange}
-                          className="flex-1 px-8 py-5 bg-white border border-gray-200 rounded-[2rem] focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all resize-none text-xs font-black text-gray-800 shadow-inner font-outfit"
+                          className="flex-1 px-8 py-5 bg-white border border-gray-100 rounded-2xl focus:outline-none focus:border-primary-500 transition-all resize-none text-xs font-black text-gray-800 font-outfit"
                         />
                       <button
                         type="submit"
                         disabled={!newComment.trim() || isSubmittingComment}
-                        className="h-[60px] w-[60px] bg-primary-600 text-white rounded-[2rem] flex items-center justify-center hover:bg-primary-700 transition-all disabled:opacity-30 shadow-2xl shadow-primary-200 group flex-shrink-0"
+                        className="h-[60px] w-[60px] bg-primary-600 text-white rounded-2xl flex items-center justify-center hover:bg-primary-700 transition-all disabled:opacity-30 border border-primary-500 group flex-shrink-0"
                       >
                         <PaperAirplaneIcon className="h-7 w-7 -rotate-45 group-hover:scale-110 transition-transform" />
                       </button>

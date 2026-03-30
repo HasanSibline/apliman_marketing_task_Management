@@ -91,12 +91,12 @@ const TicketsPage: React.FC = () => {
 
   const getStatusBadge = (status: TicketStatus) => {
     switch (status) {
-      case 'PENDING_REQ_MGR': return <span className="px-2 py-0.5 bg-yellow-100/80 text-yellow-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Pending Req Manager</span>
-      case 'PENDING_REC_MGR': return <span className="px-2 py-0.5 bg-orange-100/80 text-orange-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Pending Rec Manager</span>
-      case 'OPEN': return <span className="px-2 py-0.5 bg-blue-100/80 text-blue-700 rounded-full text-[10px] font-bold uppercase tracking-wider border border-blue-200">Open</span>
-      case 'IN_PROGRESS': return <span className="px-2 py-0.5 bg-indigo-100/80 text-indigo-700 rounded-full text-[10px] font-bold uppercase tracking-wider">Assigned</span>
-      case 'RESOLVED': return <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-bold uppercase tracking-wider border border-emerald-200">Resolved</span>
-      case 'REJECTED': return <span className="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-[10px] font-bold uppercase tracking-wider border border-rose-200">Rejected</span>
+      case 'PENDING_REQ_MGR': return <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-amber-100">Verification Req</span>
+      case 'PENDING_REC_MGR': return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100">Hand-off Pending</span>
+      case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-blue-100">Log Open</span>
+      case 'IN_PROGRESS': return <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-indigo-100">Resource Assigned</span>
+      case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-emerald-100">Task Finalized</span>
+      case 'REJECTED': return <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-rose-100">Entry Denied</span>
       default: return null
     }
   }
@@ -105,47 +105,48 @@ const TicketsPage: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-20">
-      <div className="flex justify-between items-center">
+      {/* Strategic Header */}
+      <div className="flex justify-between items-center bg-white p-8 rounded-2xl border border-gray-100">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Organization Tickets</h1>
-          <p className="text-xs font-medium text-gray-400 uppercase tracking-widest mt-1">Universal across-department requests</p>
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight font-outfit uppercase">Logistics & Requests</h1>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-2 italic underline decoration-gray-50">Universal Organizational Interaction Log</p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="btn-primary py-2.5 px-6 shadow-xl shadow-primary-500/10">
-          <PlusIcon className="h-4 w-4 mr-2" />
-          Create Ticket
+        <button onClick={() => setShowCreateModal(true)} className="px-8 py-3.5 bg-primary-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all flex items-center gap-2">
+          <PlusIcon className="h-4 w-4" />
+          Initiate Request
         </button>
       </div>
 
       {/* Controls Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-2 p-1 bg-gray-100 rounded-2xl w-fit">
+        <div className="flex items-center space-x-2 p-1 bg-gray-50 border border-gray-100 rounded-2xl w-fit">
           <button 
             onClick={() => { setActiveTab('ACTIVE'); setPage(1); }}
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'ACTIVE' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'ACTIVE' ? 'bg-white text-primary-600 border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            Active Work
+            Live Interactions
           </button>
           <button 
             onClick={() => { setActiveTab('HISTORY'); setPage(1); }}
-            className={`px-6 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'HISTORY' ? 'bg-white shadow-sm text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+            className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HISTORY' ? 'bg-white text-primary-600 border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
           >
-            Ticket History
+            Historical Archives
           </button>
         </div>
 
-        <div className="relative w-full md:w-96">
+        <div className="relative w-full md:w-[400px]">
           <input 
             type="text"
-            placeholder="Search by ID, Title, or Dept..."
+            placeholder="FILTER LOGS BY ID / DEPT / TITLE..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all font-medium"
+            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-primary-500 transition-all placeholder:text-gray-300"
           />
-          <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <MagnifyingGlassIcon className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-primary-600" />
         </div>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden min-h-[400px]">
+      <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden min-h-[400px] shadow-none">
         {isLoading ? (
           <div className="p-20 text-center">
             <div className="animate-spin inline-block w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mb-4"></div>

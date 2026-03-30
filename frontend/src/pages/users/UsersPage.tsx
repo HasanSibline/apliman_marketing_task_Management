@@ -85,7 +85,7 @@ const UsersPage: React.FC = () => {
 
     if (user.role === 'ADMIN') {
       if (user.companyId && targetUser.companyId && user.companyId !== targetUser.companyId) return false
-      return targetUser.role === 'EMPLOYEE'
+      return targetUser.role === 'EMPLOYEE' || targetUser.role === 'MANAGER'
     }
 
     return false
@@ -102,6 +102,7 @@ const UsersPage: React.FC = () => {
     SUPER_ADMIN: 'bg-purple-100 text-purple-800',
     COMPANY_ADMIN: 'bg-indigo-100 text-indigo-800',
     ADMIN: 'bg-blue-100 text-blue-800',
+    MANAGER: 'bg-primary-100 text-primary-700 border border-primary-100 shadow-sm shadow-primary-50',
     EMPLOYEE: 'bg-gray-100 text-gray-800',
   }
 
@@ -113,6 +114,8 @@ const UsersPage: React.FC = () => {
         return 'System Administrator'
       case 'ADMIN':
         return `${companyName} Admin`
+      case 'MANAGER':
+        return 'Department Manager'
       case 'EMPLOYEE':
         return 'Employee'
       default:
@@ -128,25 +131,25 @@ const UsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      {/* Strategic Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Organization</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your company structure and team members
+          <h1 className="text-3xl font-black text-gray-900 tracking-tight font-outfit">Identity & Logistics</h1>
+          <p className="text-[10px] font-black text-gray-400 mt-1 uppercase tracking-[0.2em] italic underline decoration-gray-100 italic">
+            Company Personnel Hub & Tactical Structure
           </p>
         </div>
         
-        {/* Tab Switcher */}
-        <div className="flex p-1 bg-gray-100 rounded-xl w-fit">
+        {/* Tab Selection Facility */}
+        <div className="flex p-1 bg-gray-50 border border-gray-100 rounded-xl w-fit">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`flex items-center px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-primary-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+                  ? 'bg-white text-primary-600 border border-gray-100'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <tab.icon className="h-4 w-4 mr-2" />
@@ -161,10 +164,10 @@ const UsersPage: React.FC = () => {
           {(user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'ADMIN') && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="btn-primary"
+              className="px-6 py-3 bg-primary-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 flex items-center transition-all"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
-              Add User
+              Onboard Personnel
             </button>
           )}
         </div>
@@ -187,14 +190,18 @@ const UsersPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="card hover:shadow-md transition-shadow duration-200"
+                className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-between hover:border-primary-100 transition-all font-outfit"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 rounded-full bg-primary-600 flex items-center justify-center">
-                    <UserIcon className="h-6 w-6 text-white" />
+                  <div className="h-12 w-12 rounded-2xl bg-primary-600 flex items-center justify-center overflow-hidden border-4 border-primary-50">
+                    {userItem.avatar ? (
+                      <img src={userItem.avatar} className="h-full w-full object-cover" alt={userItem.name} />
+                    ) : (
+                      <UserIcon className="h-6 w-6 text-white" />
+                    )}
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-black text-gray-900 tracking-tight uppercase">
                       {userItem.name}
                     </h3>
                     <p className="text-gray-600">{userItem.email}</p>

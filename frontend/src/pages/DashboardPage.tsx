@@ -116,44 +116,46 @@ const DashboardPage: React.FC = () => {
   return (
     <div className="space-y-8 pb-12">
       {/* Premium Header Strip */}
-      <div className="bg-gradient-to-br from-primary-800 via-primary-700 to-primary-900 rounded-[3rem] p-10 text-white shadow-2xl relative overflow-hidden border-8 border-white/5">
-        <div className="absolute -top-24 -right-24 h-96 w-96 bg-primary-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" />
-        <div className="absolute -bottom-24 -left-24 h-96 w-96 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20" />
+    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+      {/* Strategic Command Strip */}
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white border border-primary-500/20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
         
         <motion.div
            initial={{ opacity: 0, y: 20 }}
            animate={{ opacity: 1, y: 0 }}
            className="relative z-10 flex flex-col md:flex-row md:items-center gap-8"
         >
-          {/* User Profile Image & Greeting */}
+          {/* User Profile Identity */}
           <div className="flex items-center gap-6">
-             <div className="h-24 w-24 rounded-[2rem] bg-white/20 border-4 border-white/10 p-1 flex-shrink-0 shadow-2xl relative group">
+             <div className="h-20 w-20 rounded-2xl bg-white/20 border-2 border-white/20 p-0.5 flex-shrink-0 relative">
                 {user?.avatar ? (
-                  <img src={user.avatar} className="h-full w-full object-cover rounded-[1.8rem]" alt={user.name} />
+                  <img src={user.avatar} className="h-full w-full object-cover rounded-2xl" alt={user.name} />
                 ) : (
-                  <div className="h-full w-full rounded-[1.8rem] bg-primary-500 flex items-center justify-center text-3xl font-black text-white">
+                  <div className="h-full w-full rounded-2xl bg-primary-500 flex items-center justify-center text-2xl font-black text-white">
                     {user?.name?.charAt(0)}
                   </div>
                 )}
-                <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-emerald-500 border-4 border-primary-700 shadow-lg" title="Live System Connection" />
+                <div className="absolute -bottom-1 -right-1 h-5 w-5 rounded-full bg-emerald-500 border-4 border-primary-600 shadow-sm" />
              </div>
              
              <div className="space-y-1">
-               <h1 className="text-4xl md:text-5xl font-black font-outfit tracking-tighter leading-tight">
-                 {getGreeting()}, <span className="text-primary-300">{user?.name?.split(' ')[0]}</span>
+               <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
+                 {getGreeting()}, <span className="text-primary-100">{user?.name?.split(' ')[0]}</span>
                </h1>
                
-               {/* Small Weather Inline */}
+               {/* Atmospheric Synchronisation (Weather) */}
                {weather && (
-                  <div className="flex items-center gap-2 text-primary-100/80 font-bold text-sm tracking-tight opacity-90">
-                     {weather.temperature > 25 ? <SunIcon className="h-4 w-4 text-amber-300" /> : <CloudIcon className="h-4 w-4 text-sky-200" />}
-                     <span>{Math.round(weather.temperature)}°C</span>
-                     <span className="h-1 w-1 rounded-full bg-white/20 mx-1" />
-                     <span className="uppercase tracking-widest text-[10px]">Local Conditions Synchronized</span>
+                  <div className="flex items-center gap-3 text-primary-100/90 font-black text-[10px] tracking-[0.2em] uppercase italic opacity-80 mt-2">
+                     <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full border border-white/10">
+                        {weather.temperature > 25 ? <SunIcon className="h-3 w-3 text-amber-300" /> : <CloudIcon className="h-3 w-3 text-sky-100" />}
+                        <span>{Math.round(weather.temperature)}°C</span>
+                     </div>
+                     <span className="opacity-50 tracking-widest">Atmosphere Synced</span>
                   </div>
                )}
                
-               <p className="text-primary-100 font-bold opacity-60 text-xs italic tracking-tight hidden md:block">
+               <p className="text-primary-100 font-bold opacity-70 text-xs italic tracking-tight hidden md:block">
                  Operational profile verified. Accessing {isAdmin ? "Global Enterprise Intelligence" : "Individual Success Tracker"}.
                </p>
              </div>
@@ -175,85 +177,9 @@ const DashboardPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Tactical Center: Analytics & Leaderboard */}
+      {/* Tactical Hub Visualization */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Leaderboard Module */}
-        <motion.div
-           initial={{ opacity: 0, x: -30 }}
-           animate={{ opacity: 1, x: 0 }}
-           className="lg:col-span-1 bg-white rounded-[3rem] shadow-xl border border-gray-100 flex flex-col h-[600px] overflow-hidden"
-        >
-          <div className="p-8 border-b border-gray-50 bg-gray-50/50">
-             <div className="flex items-center gap-4">
-                <div className="h-12 w-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center shadow-sm">
-                   <TrophyIcon className="h-7 w-7" />
-                </div>
-                <div>
-                   <h3 className="text-xl font-black text-gray-900 tracking-tight">Performance Elite</h3>
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Global Competition Leaderboard</p>
-                </div>
-             </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
-             {topPerformers.map((performer: any, index: number) => {
-               const isTopThree = index < 3;
-               const decorationColors = [
-                 'bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-200',
-                 'bg-gradient-to-br from-gray-300 to-gray-500 shadow-gray-200',
-                 'bg-gradient-to-br from-orange-400 to-orange-600 shadow-orange-200'
-               ];
-                return (
-                  <div 
-                    key={index} 
-                    className={`flex items-center justify-between p-5 rounded-[2rem] transition-all group
-                      ${isTopThree ? 'bg-gray-900 text-white shadow-2xl scale-[1.05] border border-white/10' : 'bg-gray-50 text-gray-900 hover:bg-white hover:shadow-lg border border-transparent hover:border-gray-100'}`}
-                  >
-                     <div className="flex items-center gap-4">
-                        <div className="relative">
-                           <div className={`h-12 w-12 rounded-[1.2rem] flex items-center justify-center overflow-hidden border-2
-                             ${isTopThree ? 'border-primary-400/50' : 'border-white'}`}>
-                              {performer.avatar ? (
-                                <img src={performer.avatar} className="h-full w-full object-cover" alt={performer.name} />
-                              ) : (
-                                <div className={`h-full w-full flex items-center justify-center font-black text-sm
-                                  ${isTopThree ? 'bg-primary-500 text-white' : 'bg-gray-200 text-gray-500'}`}>
-                                   {performer.name?.charAt(0)}
-                                </div>
-                              )}
-                           </div>
-                           {isTopThree && (
-                              <span className={`absolute -top-2 -right-2 h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black shadow-lg border-2 border-gray-900
-                                ${decorationColors[index]}`}>
-                                 {index + 1}
-                              </span>
-                           )}
-                        </div>
-                        <div className="min-w-0">
-                           <p className={`text-xs font-black uppercase tracking-tight truncate ${isTopThree ? 'text-white' : 'text-gray-900'}`}>{performer.name}</p>
-                           <p className={`text-[9px] font-bold italic uppercase tracking-tighter truncate ${isTopThree ? 'text-gray-400' : 'text-gray-400'}`}>{performer.position}</p>
-                        </div>
-                     </div>
-                     <div className="flex flex-col items-end">
-                        <span className={`text-sm font-black ${isTopThree ? 'text-primary-400' : 'text-primary-600'}`}>{performer.tasksCompleted}</span>
-                        <span className="text-[8px] font-black uppercase tracking-widest opacity-50">SLA Res</span>
-                     </div>
-                  </div>
-                )
-
-             })}
-
-             {topPerformers.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center py-20 grayscale opacity-10">
-                   <ChartBarIcon className="h-24 w-24 mb-4" />
-                   <p className="text-sm font-black uppercase tracking-widest">Awaiting results</p>
-                </div>
-             )}
-          </div>
-        </motion.div>
-
-        {/* Global Analytics Section */}
+        {/* Analytics on Left (2/3 width) */}
         <div className="lg:col-span-2 space-y-8">
            <TaskPhaseChart 
               data={Object.entries(phaseCount || {}).map(([phase, data]: [string, any]) => ({
@@ -268,39 +194,119 @@ const DashboardPage: React.FC = () => {
                <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-[3rem] p-8 border border-gray-100 shadow-xl"
+                  className="bg-white rounded-xl p-8 border border-gray-100"
                >
                   <div className="flex items-center justify-between mb-8">
                      <div className="flex items-center gap-4">
-                        <div className="h-14 w-14 rounded-3xl bg-primary-50 text-primary-600 flex items-center justify-center">
-                           <FlagIcon className="h-8 w-8" />
+                        <div className="h-12 w-12 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
+                           <FlagIcon className="h-6 w-6" />
                         </div>
                         <div>
-                           <h3 className="text-2xl font-black text-gray-900 tracking-tighter">Strategic Quarter Hub</h3>
-                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">{activeQuarter.name} Velocity Profile</p>
+                           <h3 className="text-xl font-black text-gray-900 tracking-tight">Strategy Velocity Hub</h3>
+                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{activeQuarter.name} Planning Archive</p>
                         </div>
                      </div>
                      <div className="text-right">
                         <p className="text-4xl font-black text-primary-600 tracking-tighter">{activeQuarter.avgProgress}%</p>
-                        <p className="text-[8px] font-black uppercase tracking-[0.2em] text-gray-300 italic underline decoration-primary-100">Company Momentum</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-300">Quarterly Momentum</p>
                      </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
+                     <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
                         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Active Target Set</p>
-                        <p className="text-3xl font-black text-gray-900">{activeQuarter.objectives?.length || 0}</p>
+                        <p className="text-3xl font-black text-gray-900 leading-none">{activeQuarter.objectives?.length || 0}</p>
                      </div>
-                     <div className="p-6 bg-gray-50 rounded-[2rem] border border-gray-100">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Task Satisfaction Density</p>
-                        <p className="text-3xl font-black text-gray-900">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</p>
+                     <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Operation Completion</p>
+                        <p className="text-3xl font-black text-gray-900 leading-none">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</p>
                      </div>
                   </div>
                </motion.div>
             )}
         </div>
+
+        {/* Leaderboard on Right (1/3 width) */}
+        <motion.div
+           initial={{ opacity: 0, x: 30 }}
+           animate={{ opacity: 1, x: 0 }}
+           className="lg:col-span-1 bg-white rounded-xl border border-gray-100 flex flex-col h-full overflow-hidden"
+        >
+          <div className="p-6 border-b border-gray-50 bg-gray-50/50">
+             <div className="flex items-center gap-4">
+                <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                   <TrophyIcon className="h-6 w-6" />
+                </div>
+                <div>
+                   <h3 className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">Performance Elite</h3>
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Global Competition</p>
+                </div>
+             </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar min-h-[500px]">
+             {topPerformers.map((performer: any, index: number) => {
+               const isTopThree = index < 3;
+               const rankGradients = [
+                 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600', // Gold
+                 'bg-gradient-to-r from-slate-400 via-slate-300 to-slate-500', // Silver
+                 'bg-gradient-to-r from-orange-600 via-orange-500 to-orange-700'  // Bronze
+               ];
+               const rankLabels = ['Supreme', 'Excellence', 'Merit'];
+                return (
+                  <div 
+                    key={index} 
+                    className={`flex items-center justify-between p-4 rounded-2xl transition-all group border
+                      ${isTopThree ? `${rankGradients[index]} text-white border-white/20` : 'bg-gray-50 text-gray-900 hover:bg-white hover:border-gray-200 border-transparent transition-colors'}`}
+                  >
+                     <div className="flex items-center gap-4">
+                        <div className="relative">
+                           <div className={`h-12 w-12 rounded-xl flex items-center justify-center overflow-hidden border-2
+                             ${isTopThree ? 'border-white/30 bg-white/10' : 'border-white bg-gray-200'}`}>
+                              {performer.avatar ? (
+                                <img src={performer.avatar} className="h-full w-full object-cover" alt={performer.name} />
+                              ) : (
+                                <div className={`h-full w-full flex items-center justify-center font-black text-sm
+                                  ${isTopThree ? 'text-white' : 'text-gray-500'}`}>
+                                   {performer.name?.charAt(0)}
+                                </div>
+                              )}
+                           </div>
+                           {isTopThree && (
+                              <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white flex items-center justify-center border-2 border-gray-900 shadow-none scale-110">
+                                 <span className={`text-[10px] font-black ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500' : 'text-orange-600'}`}>
+                                    {index + 1}
+                                 </span>
+                              </div>
+                           )}
+                        </div>
+                        <div className="min-w-0">
+                           <p className={`text-[11px] font-black uppercase tracking-tight truncate ${isTopThree ? 'text-white' : 'text-gray-900'}`}>{performer.name}</p>
+                           <p className={`text-[9px] font-bold uppercase tracking-tight truncate ${isTopThree ? 'text-white/70' : 'text-gray-400'}`}>
+                              {isTopThree ? rankLabels[index] : performer.position}
+                           </p>
+                        </div>
+                     </div>
+                     <div className="flex flex-col items-end">
+                        <span className={`text-sm font-black ${isTopThree ? 'text-white' : 'text-primary-600'}`}>{performer.tasksCompleted}</span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${isTopThree ? 'text-white/40' : 'text-gray-300'}`}>SLA Res</span>
+                     </div>
+                  </div>
+                )
+
+             })}
+
+             {topPerformers.length === 0 && (
+                <div className="h-full flex flex-col items-center justify-center py-20 grayscale opacity-20">
+                   <ChartBarIcon className="h-16 w-16 mb-4" />
+                   <p className="text-xs font-black uppercase tracking-widest">Waiting for data</p>
+                </div>
+             )}
+          </div>
+        </motion.div>
       </div>
     </div>
+  </div>
   )
 }
 
