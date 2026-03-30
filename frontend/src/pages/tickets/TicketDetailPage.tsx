@@ -382,10 +382,10 @@ const TicketDetailPage: React.FC = () => {
   const canAuthoriseRec = (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || isAdmin);
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-12 animate-in fade-in duration-500">
+    <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       
-      {/* Strategic Header (Aligned with Strategic Hub) */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-sm border border-primary-500/20 relative overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 font-outfit">
           <div className="flex-1 min-w-0">
             <button 
@@ -413,10 +413,10 @@ const TicketDetailPage: React.FC = () => {
                 className="w-full max-w-2xl bg-white/10 border-2 border-white/20 rounded-xl px-4 py-2 text-2xl font-black focus:outline-none focus:border-white transition-all"
               />
             ) : (
-              <h1 className="text-3xl font-black mb-1 leading-tight truncate uppercase tracking-tight">{ticket.title}</h1>
+            <h1 className="text-3xl font-bold mb-1 leading-tight truncate">{ticket.title}</h1>
             )}
-            <p className="text-primary-50 font-medium max-w-2xl opacity-80 mt-2">
-              Engagement initiated by <span className="font-black text-white">{ticket.requester?.name}</span> mapping into <span className="font-black text-white">{ticket.receiverDept?.name}</span>.
+            <p className="text-primary-100 max-w-2xl mt-1">
+              Requested by <span className="font-bold text-white">{ticket.requester?.name}</span> to <span className="font-bold text-white">{ticket.receiverDept?.name}</span>.
             </p>
           </div>
           
@@ -463,10 +463,10 @@ const TicketDetailPage: React.FC = () => {
           
           {/* Approval Matrix Card */}
           {(isReqMgrStage || isRecMgrStage) && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6 shadow-sm">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6 shadow-sm">
                <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                  <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Operational Authorization</h3>
+                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Authorization Required</h3>
                </div>
                
                <div className="space-y-4">
@@ -504,7 +504,7 @@ const TicketDetailPage: React.FC = () => {
           )}
 
           {/* Configuration Card */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6 shadow-sm font-outfit">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6 shadow-sm font-outfit">
              <div className="flex items-center gap-2">
                 <ListBulletIcon className="h-4 w-4 text-primary-500" />
                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Ticket Configuration</h3>
@@ -679,10 +679,10 @@ const TicketDetailPage: React.FC = () => {
         <div className="lg:col-span-2 space-y-8">
            
            {/* Context Focus Area */}
-           <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm space-y-6">
+           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
               <div className="flex items-center gap-2">
                   <SparklesIcon className="h-5 w-5 text-primary-500" />
-                  <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Requirement Breakdown</h3>
+                  <h3 className="text-lg font-bold text-gray-900">Description</h3>
               </div>
               
               {isEditing ? (
@@ -700,8 +700,8 @@ const TicketDetailPage: React.FC = () => {
            </div>
 
            {/* Communication Feed */}
-           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm flex flex-col overflow-hidden min-h-[600px]">
-              <div className="p-6 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+           <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden min-h-[600px]">
+              <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                      <div className="h-9 w-9 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center border border-primary-200 shadow-sm">
                         <ChatBubbleLeftRightIcon className="h-5 w-5" />

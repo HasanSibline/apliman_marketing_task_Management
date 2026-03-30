@@ -114,11 +114,9 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-8 pb-12">
-      {/* Premium Header Strip */}
-    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+    <div className="space-y-6">
       {/* Strategic Command Strip */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white border border-primary-500/20 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
         
         <motion.div
@@ -202,8 +200,8 @@ const DashboardPage: React.FC = () => {
                            <FlagIcon className="h-6 w-6" />
                         </div>
                         <div>
-                           <h3 className="text-xl font-black text-gray-900 tracking-tight">Strategy Velocity Hub</h3>
-                           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{activeQuarter.name} Planning Archive</p>
+                           <h3 className="text-lg font-bold text-gray-900 tracking-tight">Strategy Velocity Hub</h3>
+                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{activeQuarter.name} Planning Archive</p>
                         </div>
                      </div>
                      <div className="text-right">
@@ -306,7 +304,6 @@ const DashboardPage: React.FC = () => {
         </motion.div>
       </div>
     </div>
-  </div>
   )
 }
 

@@ -177,119 +177,128 @@ const TicketsPage: React.FC = () => {
 
       {/* Controls Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center space-x-2 p-1 bg-gray-50 border border-gray-100 rounded-2xl w-fit">
-          <button 
+        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+          <button
             onClick={() => { setActiveTab('ACTIVE'); setPage(1); }}
-            className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'ACTIVE' ? 'bg-white text-primary-600 border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'ACTIVE' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            Active Tickets
+            Active
           </button>
-          <button 
+          <button
             onClick={() => { setActiveTab('HISTORY'); setPage(1); }}
-            className={`px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'HISTORY' ? 'bg-white text-primary-600 border border-gray-100' : 'text-gray-400 hover:text-gray-600'}`}
+            className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'HISTORY' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
           >
-            History Tickets
+            History
           </button>
         </div>
 
-        <div className="relative w-full md:w-[400px]">
-          <input 
+        <div className="relative w-full md:w-80">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          </div>
+          <input
             type="text"
-            placeholder="FILTER LOGS BY ID / DEPT / TITLE..."
+            placeholder="Search by ID, department, or title..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-12 pr-4 py-4 bg-white border border-gray-100 rounded-2xl text-[11px] font-black uppercase tracking-widest focus:outline-none focus:border-primary-500 transition-all placeholder:text-gray-300"
+            className="pl-11 pr-4 py-2.5 w-full border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400 text-sm"
           />
-          <MagnifyingGlassIcon className="h-5 w-5 absolute left-4 top-1/2 -translate-y-1/2 text-primary-600" />
         </div>
       </div>
-
-      <div className="bg-white rounded-[2rem] border border-gray-100 overflow-hidden min-h-[400px] shadow-none">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {isLoading ? (
-          <div className="p-20 text-center">
-            <div className="animate-spin inline-block w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full mb-4"></div>
-            <p className="text-gray-400 italic text-sm">Processing records...</p>
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">Loading tickets...</p>
           </div>
         ) : tickets.length === 0 ? (
-          <div className="p-20 text-center">
-            <TicketIcon className="h-16 w-16 text-gray-100 mx-auto mb-4" />
-            <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px]">No records found</p>
-            <p className="text-sm text-gray-500 mt-2 px-12">We couldn't find any tickets matching your access or search criteria.</p>
+          <div className="text-center py-16">
+            <TicketIcon className="h-16 w-16 text-gray-200 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No tickets found</h3>
+            <p className="text-gray-500 mb-6">No tickets match your current filters.</p>
+            <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              New Request
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-50">
-              <thead className="bg-gray-50/30">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">ID & Title</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Stage</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Path</th>
-                  <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Requester</th>
-                  <th className="px-6 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID &amp; Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Route</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Requester</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-50 text-gray-700">
+              <tbody className="bg-white divide-y divide-gray-100">
                 {tickets.map((ticket) => (
-                  <tr 
-                    key={ticket.id} 
+                  <tr
+                    key={ticket.id}
                     onClick={() => handleOpenDetail(ticket.id)}
-                    className="hover:bg-gray-50/50 transition-all cursor-pointer group"
+                    className="hover:bg-gray-50 transition-colors cursor-pointer group"
                   >
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-primary-600 tracking-tighter mb-0.5">{ticket.ticketNumber}</span>
-                        <span className="text-sm font-black text-gray-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight truncate max-w-xs">{ticket.title}</span>
+                        <span className="text-xs font-semibold text-primary-600 mb-0.5">{ticket.ticketNumber}</span>
+                        <span className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors truncate max-w-xs">{ticket.title}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(ticket)}
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-xl border border-gray-100 uppercase tracking-tighter">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
                           {ticket.requester?.department?.name || 'General'}
                         </span>
-                        <ArrowRightIcon className="h-3.5 w-3.5 text-gray-300" />
-                        <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-xl border border-indigo-100 uppercase tracking-tighter shadow-sm">
+                        <ArrowRightIcon className="h-3 w-3 text-gray-400" />
+                        <span className="text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
                           {ticket.receiverDept?.name || 'IT'}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200">
+                        <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
                           {ticket.requester?.avatar ? (
                             <img src={formatAssetUrl(ticket.requester.avatar)} className="h-full w-full object-cover" />
                           ) : (
-                            <span className="text-[10px] font-black text-gray-400">{ticket.requester?.name?.charAt(0)}</span>
+                            <span className="text-xs font-semibold text-gray-500">{ticket.requester?.name?.charAt(0)}</span>
                           )}
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-gray-900 leading-tight">{ticket.requester?.name}</p>
-                          <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight">Initiator</p>
+                          <p className="text-sm font-medium text-gray-900">{ticket.requester?.name}</p>
+                          <p className="text-xs text-gray-500">{ticket.requester?.department?.name || 'No dept'}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-5 whitespace-nowrap text-right">
-                      <div className="flex justify-end space-x-1">
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <div className="flex justify-end gap-1">
                         {isAdmin && (
-                          <button 
+                          <button
                             onClick={(e) => promptAction(e, 'delete', ticket.id)}
-                            className="p-2 text-rose-300 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                           >
-                            <TrashIcon className="h-5 w-5" />
+                            <TrashIcon className="h-4 w-4" />
                           </button>
                         )}
-                        {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) || 
+                        {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) ||
                           (ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id))) ||
-                          isAdmin) && 
+                          isAdmin) &&
                           (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
                           <>
-                            <button onClick={(e) => promptAction(e, 'approve', ticket.id)} className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl"><CheckCircleIcon className="h-5 w-5" /></button>
-                            <button onClick={(e) => promptAction(e, 'reject', ticket.id)} className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl"><XCircleIcon className="h-5 w-5" /></button>
+                            <button onClick={(e) => promptAction(e, 'approve', ticket.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><CheckCircleIcon className="h-4 w-4" /></button>
+                            <button onClick={(e) => promptAction(e, 'reject', ticket.id)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><XCircleIcon className="h-4 w-4" /></button>
                           </>
                         )}
-                        <button className="p-2 text-gray-400 hover:text-primary-600"><ChatBubbleLeftRightIcon className="h-5 w-5" /></button>
+                        <button className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"><ChatBubbleLeftRightIcon className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>
@@ -299,30 +308,28 @@ const TicketsPage: React.FC = () => {
           </div>
         )}
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
-           <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">
-             Viewing {tickets.length} of {total} total records
-           </p>
-           <div className="flex items-center space-x-2">
-              <button 
-                disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}
-                className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-all shadow-sm"
-              >
-                Previous
-              </button>
-              <div className="px-4 py-2 rounded-xl bg-white border border-gray-200 text-[10px] font-black text-primary-600">
-                {page} / {totalPages || 1}
-              </div>
-              <button 
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-30 transition-all shadow-sm"
-              >
-                Next
-              </button>
-           </div>
+        {/* Footer / Pagination */}
+        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
+          <p className="text-sm text-gray-500">
+            Showing <span className="font-semibold text-gray-700">{tickets.length}</span> of <span className="font-semibold text-gray-700">{total}</span> tickets
+          </p>
+          <div className="flex items-center gap-2">
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage(p => p - 1)}
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-sm font-medium text-gray-700 px-2">{page} / {totalPages || 1}</span>
+            <button
+              disabled={page >= totalPages}
+              onClick={() => setPage(p => p + 1)}
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
 
