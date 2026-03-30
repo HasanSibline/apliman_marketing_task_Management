@@ -346,8 +346,6 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
       
       if (suggestions.length > 0) {
         const suggestion = suggestions[0]
-    const textBeforeCursor = inputValue.substring(0, cursorPosition)
-    const textAfterCursor = inputValue.substring(cursorPosition)
         const textBeforeCursor = inputValue.substring(0, cursorPosition)
         const textAfterCursor = inputValue.substring(cursorPosition)
         
