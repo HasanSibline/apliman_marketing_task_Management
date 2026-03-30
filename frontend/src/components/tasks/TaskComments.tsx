@@ -19,6 +19,7 @@ interface User {
   email: string
   position?: string
   role: string
+  avatar?: string
 }
 
 interface Subtask {
@@ -363,27 +364,31 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
               transition={{ delay: index * 0.1 }}
               className="flex space-x-3"
             >
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                <span className="text-sm font-medium text-white">
-                  {comment.user?.name?.charAt(0).toUpperCase() || 'U'}
-                </span>
+              <div className="h-9 w-9 rounded-xl bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden border-2 border-white">
+                {comment.user?.avatar ? (
+                  <img src={comment.user.avatar} className="h-full w-full object-cover" alt={comment.user.name} />
+                ) : (
+                  <span className="text-sm font-black text-white">
+                    {comment.user?.name?.charAt(0).toUpperCase() || 'U'}
+                  </span>
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                <div className="bg-gray-50 rounded-2xl p-4 hover:bg-gray-100 transition-colors border border-gray-100">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-gray-900">
+                      <p className="text-sm font-black text-gray-900 tracking-tight">
                         {comment.user?.name || 'Unknown User'}
                       </p>
                       {comment.user?.position && (
-                        <span className="text-xs text-gray-500">• {comment.user.position}</span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">• {comment.user.position}</span>
                       )}
                     </div>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                       {formatTimeAgo(comment.createdAt)}
                     </p>
                   </div>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                  <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
                     {highlightContent(comment.comment)}
                   </div>
                   
@@ -405,19 +410,26 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
             </motion.div>
           ))
         ) : (
-          <div className="text-center py-8">
-            <p className="text-gray-500">No comments yet. Be the first to comment!</p>
+          <div className="text-center py-12">
+            <div className="h-12 w-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
+               <span className="text-xl">💬</span>
+            </div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No strategic discussions yet</p>
           </div>
         )}
       </div>
 
       {/* Add Comment Form */}
-      <form onSubmit={handleSubmitComment} className="border-t border-gray-200 pt-4">
-        <div className="flex space-x-3">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <span className="text-sm font-medium text-white">
-              {user?.name?.charAt(0).toUpperCase() || 'U'}
-            </span>
+      <form onSubmit={handleSubmitComment} className="border-t border-gray-100 pt-6">
+        <div className="flex space-x-4">
+          <div className="h-10 w-10 rounded-2xl bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden border-2 border-white">
+            {user?.avatar ? (
+              <img src={user.avatar} className="h-full w-full object-cover" alt={user.name} />
+            ) : (
+              <span className="text-sm font-black text-white">
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </span>
+            )}
           </div>
           <div className="flex-1 relative">
             {/* Image Previews */}
@@ -473,10 +485,14 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                         }`}
                       >
                         {/* Avatar Circle with Initial */}
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <span className="text-white font-semibold text-sm">
-                            {mentionUser.name.charAt(0).toUpperCase()}
-                          </span>
+                        <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden border-2 border-white">
+                          {mentionUser.avatar ? (
+                            <img src={mentionUser.avatar} className="h-full w-full object-cover" alt={mentionUser.name} />
+                          ) : (
+                            <span className="text-white font-black text-xs">
+                              {mentionUser.name.charAt(0).toUpperCase()}
+                            </span>
+                          )}
                         </div>
                         {/* User Info */}
                         <div className="flex-1 min-w-0">

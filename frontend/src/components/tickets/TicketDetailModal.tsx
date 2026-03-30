@@ -3,11 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   XMarkIcon, 
   PaperAirplaneIcon,
-  UserIcon,
-  ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
-  AtSymbolIcon,
   ChatBubbleLeftRightIcon,
   PencilSquareIcon,
   TrashIcon,
@@ -576,10 +573,16 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     <div className="space-y-6">
                       {ticket.comments?.map((comment: any) => (
                         <div key={comment.id} className={`flex gap-4 ${comment.userId === user?.id ? 'flex-row-reverse' : ''}`}>
-                          <div className={`h-10 w-10 rounded-[1rem] flex-shrink-0 flex items-center justify-center text-[11px] font-black uppercase text-white shadow-xl shadow-gray-200
-                            ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
-                            {comment.user.name.charAt(0)}
-                          </div>
+                        <div className={`h-10 w-10 rounded-[1rem] flex-shrink-0 flex items-center justify-center overflow-hidden border-2 border-white shadow-xl shadow-gray-200
+                          ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
+                          {comment.user.avatar ? (
+                            <img src={comment.user.avatar} className="h-full w-full object-cover" alt={comment.user.name} />
+                          ) : (
+                            <span className="text-[11px] font-black uppercase text-white">
+                              {comment.user.name.charAt(0)}
+                            </span>
+                          )}
+                        </div>
                           <div className={`max-w-[75%] space-y-1.5 ${comment.userId === user?.id ? 'items-end flex flex-col' : ''}`}>
                             <div className="flex items-center gap-3">
                               <span className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{comment.user.name}</span>
@@ -617,8 +620,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             onClick={() => insertMention(u.name)}
                             className="w-full flex items-center gap-4 px-5 py-4 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
                           >
-                            <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center text-[11px] font-black border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
-                              {u.name.charAt(0)}
+                            <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
+                              {u.avatar ? (
+                                <img src={u.avatar} className="h-full w-full object-cover" alt={u.name} />
+                              ) : (
+                                <span className="text-[11px] font-black uppercase">{u.name.charAt(0)}</span>
+                              )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tighter">{u.name}</p>

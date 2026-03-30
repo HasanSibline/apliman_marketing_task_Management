@@ -176,6 +176,30 @@ export class FilesController {
   async deleteTicketFile(@Param('fileId') fileId: string, @Request() req) {
     return this.filesService.deleteTicketFile(fileId, req.user.id, req.user.role);
   }
+
+  // --- User Avatars ---
+
+  @Post('avatar')
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiOperation({ summary: 'Upload user avatar' })
+  @ApiConsumes('multipart/form-data')
+  async uploadAvatar(
+    @UploadedFile() file: Express.Multer.File,
+    @Request() req,
+  ) {
+    if (!file) throw new BadRequestException('No file provided');
+    
+    // Upload the file to avatars folder
+    const result = await this.filesService.uploadSingleFile(file, req.user.id, 'avatars');
+    
+    // Update user record with avatar URL
+    // The URL should be accessible via the PublicFilesController
+    const avatarUrl = `${process.env.VITE_API_URL}/files/public/avatars/${result.fileName}`;
+    
+    // Assuming UsersService is injected or we can use prisma directly here 
+    // but better to use service. I'll need to inject UsersService into FilesController
+    return this.filesService.updateUserAvatar(req.user.id, avatarUrl);
+  }
 }
 
 // Public Files Controller (No Authentication Required)

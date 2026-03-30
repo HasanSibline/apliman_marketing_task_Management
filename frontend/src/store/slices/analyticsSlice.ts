@@ -17,6 +17,7 @@ interface AnalyticsData {
     tasksCompleted: number
     completionRate: number
   }>
+  topPerformers: any[]
 }
 
 interface UserAnalytics {

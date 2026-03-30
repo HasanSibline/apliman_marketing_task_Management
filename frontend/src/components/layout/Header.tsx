@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, Fragment } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Bars3Icon,
   UserCircleIcon,
@@ -9,7 +10,6 @@ import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { toggleSidebar } from '@/store/slices/uiSlice'
 import { logout } from '@/store/slices/authSlice'
-import { Fragment } from 'react'
 import { usersApi } from '@/services/api'
 
 const Header: React.FC = () => {
@@ -78,15 +78,19 @@ const Header: React.FC = () => {
 
           {/* User menu */}
           <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 transition-colors duration-200">
-              <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
-                <span className="text-sm font-medium text-white">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </span>
+            <Menu.Button className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 transition-colors duration-200 group">
+              <div className="h-9 w-9 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-md group-hover:shadow-lg transition-all">
+                {user?.avatar ? (
+                  <img src={user.avatar} className="h-full w-full object-cover" alt={user.name} />
+                ) : (
+                  <span className="text-sm font-black text-white">
+                    {user?.name?.charAt(0).toUpperCase()}
+                  </span>
+                )}
               </div>
               <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
-                <p className="text-xs text-gray-500">{user?.role?.replace('_', ' ')}</p>
+                <p className="text-sm font-black text-gray-900 tracking-tight leading-none">{user?.name}</p>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.role?.replace('_', ' ')}</p>
               </div>
             </Menu.Button>
 
@@ -99,35 +103,37 @@ const Header: React.FC = () => {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
-                <div className="py-1">
-                  <Menu.Item>
-                    {({ active }) => (
-                      <a
-                        href="/profile"
-                        className={`${
-                          active ? 'bg-gray-100' : ''
-                        } flex items-center px-4 py-2 text-sm text-gray-700`}
-                      >
-                        <UserCircleIcon className="h-4 w-4 mr-3" />
-                        Your Profile
-                      </a>
-                    )}
-                  </Menu.Item>
-                  <Menu.Item>
-                    {({ active }) => (
-                      <button
-                        onClick={handleLogout}
-                        className={`${
-                          active ? 'bg-gray-100' : ''
-                        } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
-                      >
-                        <ArrowRightOnRectangleIcon className="h-4 w-4 mr-3" />
-                        Sign out
-                      </button>
-                    )}
-                  </Menu.Item>
+              <Menu.Items className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden border border-gray-100 p-2">
+                <div className="px-4 py-3 border-b border-gray-50 mb-1">
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Signed in as</p>
+                   <p className="text-sm font-black text-gray-900 truncate">{user?.email}</p>
                 </div>
+                <Menu.Item>
+                  {({ active }) => (
+                    <Link
+                      to="/profile"
+                      className={`${
+                        active ? 'bg-primary-50 text-primary-600' : 'text-gray-700'
+                      } flex items-center px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
+                    >
+                      <UserCircleIcon className="h-5 w-5 mr-3 opacity-60" />
+                      Management Profile
+                    </Link>
+                  )}
+                </Menu.Item>
+                <Menu.Item>
+                  {({ active }) => (
+                    <button
+                      onClick={handleLogout}
+                      className={`${
+                        active ? 'bg-red-50 text-red-600' : 'text-gray-700'
+                      } flex items-center w-full px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
+                    >
+                      <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3 opacity-60" />
+                      Terminate Session
+                    </button>
+                  )}
+                </Menu.Item>
               </Menu.Items>
             </Transition>
           </Menu>

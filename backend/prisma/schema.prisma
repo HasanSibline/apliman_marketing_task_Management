@@ -229,6 +229,7 @@ model User {
   departmentId        String?
   isTicketApprover    Boolean           @default(false)
   managerId           String?
+  avatar              String?
   strategyAccess      StrategyAccess    @default(NONE)
   chatSessions        ChatSession[]
   managedDepartment   Department?       @relation("DepartmentManager")

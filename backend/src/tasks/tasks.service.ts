@@ -945,6 +945,7 @@ export class TasksService {
               email: true,
               position: true,
               status: true,
+              avatar: true,
             },
           },
           createdBy: {
@@ -953,6 +954,7 @@ export class TasksService {
               name: true,
               email: true,
               position: true,
+              avatar: true,
             },
           },
           workflow: {
@@ -1088,6 +1090,7 @@ export class TasksService {
             email: true,
             position: true,
             status: true,
+            avatar: true,
           },
         },
         createdBy: {
@@ -1096,6 +1099,7 @@ export class TasksService {
             name: true,
             email: true,
             position: true,
+            avatar: true,
           },
         },
         workflow: {
@@ -1225,6 +1229,7 @@ export class TasksService {
                 name: true,
                 email: true,
                 position: true,
+                avatar: true,
               },
             },
             images: {

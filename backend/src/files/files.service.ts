@@ -13,7 +13,7 @@ export class FilesService {
     private readonly configService: ConfigService,
   ) {}
 
-  async uploadSingleFile(file: Express.Multer.File, userId: string) {
+  async uploadSingleFile(file: Express.Multer.File, userId: string, folder: string = 'temp') {
     try {
       let processedFile = file;
       
@@ -393,5 +393,16 @@ export class FilesService {
     await this.prisma.ticketAttachment.delete({ where: { id: fileId } });
 
     return { message: 'Attachment deleted' };
+  }
+
+  async updateUserAvatar(userId: string, avatarUrl: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { avatar: avatarUrl },
+      select: {
+        id: true,
+        avatar: true,
+      },
+    });
   }
 }

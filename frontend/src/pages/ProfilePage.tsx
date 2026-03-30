@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { changePassword, updateUser } from '@/store/slices/authSlice'
-import { usersApi } from '@/services/api'
+import { usersApi, filesApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
 const profileSchema = yup.object({
@@ -76,13 +76,26 @@ const ProfilePage: React.FC = () => {
     }))
   }
 
+  const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      const result = await filesApi.uploadAvatar(file)
+      dispatch(updateUser({ avatar: result.avatar }))
+      toast.success('Avatar updated successfully!')
+    } catch (error: any) {
+      toast.error('Failed to upload avatar')
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <button
         onClick={() => navigate(-1)}
         className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 transition"
       >
-        <ArrowLeftIcon className="h-4 h-4 mr-2" />
+        <ArrowLeftIcon className="h-4 w-4 mr-2" />
         Back
       </button>
 
@@ -90,20 +103,37 @@ const ProfilePage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="card"
+        className="card overflow-hidden"
       >
-        <div className="flex items-center space-x-4">
-          <div className="h-16 w-16 rounded-full bg-primary-600 flex items-center justify-center">
-            <span className="text-2xl font-bold text-white">
-              {user?.name?.charAt(0).toUpperCase()}
-            </span>
+        <div className="flex items-center space-x-6 p-2">
+          <div className="relative group">
+            <div className="h-24 w-24 rounded-3xl bg-primary-600 flex items-center justify-center overflow-hidden border-4 border-gray-50 shadow-lg">
+              {user?.avatar ? (
+                <img src={user.avatar} className="h-full w-full object-cover" alt={user.name} />
+              ) : (
+                <span className="text-3xl font-black text-white">
+                  {user?.name?.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-3xl">
+              <span className="text-[10px] font-black uppercase tracking-widest">Update</span>
+              <input type="file" className="hidden" accept="image/*" onChange={onAvatarChange} />
+            </label>
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{user?.name}</h1>
-            <p className="text-gray-600">{user?.email}</p>
-            <p className="text-sm text-gray-500 capitalize">
-              {user?.role?.replace('_', ' ').toLowerCase()} {user?.position && `• ${user.position}`}
-            </p>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">{user?.name}</h1>
+            <p className="text-gray-500 font-bold text-sm tracking-tight">{user?.email}</p>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="bg-primary-50 text-primary-700 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-primary-100">
+                {user?.role?.replace('_', ' ')}
+              </span>
+              {user?.position && (
+                <span className="bg-gray-50 text-gray-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-gray-100">
+                  {user.position}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </motion.div>
