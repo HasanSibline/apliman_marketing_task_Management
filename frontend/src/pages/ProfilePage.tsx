@@ -7,7 +7,9 @@ import { useNavigate } from 'react-router-dom'
 import { ArrowLeftIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { changePassword, updateUser } from '@/store/slices/authSlice'
-import { usersApi, filesApi, formatAssetUrl } from '@/services/api'
+import { usersApi, filesApi } from '@/services/api'
+import Avatar from '@/components/common/Avatar'
+
 import toast from 'react-hot-toast'
 
 const profileSchema = yup.object({
@@ -107,20 +109,19 @@ const ProfilePage: React.FC = () => {
       >
         <div className="flex items-center space-x-6 p-2">
           <div className="relative group">
-            <div className="h-24 w-24 rounded-3xl bg-primary-600 flex items-center justify-center overflow-hidden border-4 border-gray-50 shadow-lg">
-              {user?.avatar ? (
-                <img src={formatAssetUrl(user.avatar)} className="h-full w-full object-cover" alt={user.name} />
-              ) : (
-                <span className="text-3xl font-black text-white">
-                  {user?.name?.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-3xl">
-              <span className="text-[10px] font-black uppercase tracking-widest">Update</span>
-              <input type="file" className="hidden" accept="image/*" onChange={onAvatarChange} />
-            </label>
+              <Avatar
+                src={user?.avatar}
+                name={user?.name}
+                className="h-24 w-24 border-4 border-gray-50 shadow-lg"
+                size="lg"
+                rounded="2xl"
+              />
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-3xl">
+                <span className="text-[10px] font-black uppercase tracking-widest">Update</span>
+                <input type="file" className="hidden" accept="image/*" onChange={onAvatarChange} />
+              </label>
           </div>
+
           <div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">{user?.name}</h1>
             <p className="text-gray-500 font-bold text-sm tracking-tight">{user?.email}</p>

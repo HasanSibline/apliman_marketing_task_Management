@@ -18,7 +18,22 @@ export const multerConfig = (configService: ConfigService): MulterModuleOptions 
   return {
     storage: diskStorage({
       destination: (req, file, cb) => {
-        const subfolder = req.params.taskId || req.params.folder || 'temp';
+        // Determine the correct upload subfolder:
+        // 1. Avatar uploads → avatars/
+        // 2. Ticket uploads → ticket/
+        // 3. Single file with folder param → that folder
+        // 4. Task uploads → taskId folder
+        // 5. Default → temp/
+        let subfolder: string;
+        const url = req.url || req.path || '';
+        if (url.includes('/avatar')) {
+          subfolder = 'avatars';
+        } else if (url.includes('/ticket/')) {
+          subfolder = 'tickets';
+        } else {
+          subfolder = req.params.taskId || req.params.folder || 'temp';
+        }
+
         const targetPath = join(uploadPath, subfolder);
         
         if (!existsSync(targetPath)) {

@@ -12,7 +12,9 @@ import {
 import { Menu } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchUsers } from '@/store/slices/usersSlice'
-import api, { usersApi, formatAssetUrl } from '@/services/api'
+import api, { usersApi } from '@/services/api'
+import Avatar from '@/components/common/Avatar'
+
 import ActionModal from '@/components/ui/ActionModal'
 import toast from 'react-hot-toast'
 import CreateUserModal from '@/components/users/CreateUserModal'
@@ -235,13 +237,13 @@ const UsersPage: React.FC = () => {
                 className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-between hover:border-primary-100 transition-all font-outfit"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 rounded-2xl bg-primary-600 flex items-center justify-center overflow-hidden border-4 border-primary-50">
-                    {userItem.avatar ? (
-                      <img src={formatAssetUrl(userItem.avatar)} className="h-full w-full object-cover" alt={userItem.name} />
-                    ) : (
-                      <UserIcon className="h-6 w-6 text-white" />
-                    )}
-                  </div>
+                  <Avatar
+                    src={userItem.avatar}
+                    name={userItem.name}
+                    className="h-12 w-12 border-4 border-primary-50"
+                    size="md"
+                    rounded="2xl"
+                  />
                   <div className="flex-1">
                     <h3 className="text-lg font-black text-gray-900 tracking-tight uppercase">
                       {userItem.name}

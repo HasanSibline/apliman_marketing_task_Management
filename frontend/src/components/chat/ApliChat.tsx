@@ -226,22 +226,29 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
       if (error.response?.data?.message) {
         errorMsg = error.response.data.message
       } else if (error.response?.data?.detail) {
-        errorMsg = typeof error.response.data.detail === 'string' 
-          ? error.response.data.detail 
+        errorMsg = typeof error.response.data.detail === 'string'
+          ? error.response.data.detail
           : error.response.data.detail.message || 'AI service error'
       } else if (error.message) {
         errorMsg = error.message
       }
-      
+
       toast.error(errorMsg)
-      
-      // Add error message to chat
+
+      // Determine if it's a connection/network issue vs a real (actionable) error
+      const isNetworkIssue =
+        errorMsg.toLowerCase().includes('trouble connecting') ||
+        errorMsg.toLowerCase().includes('network') ||
+        errorMsg.toLowerCase().includes('failed to send')
+
+      const displayContent = isNetworkIssue
+        ? "I'm having trouble connecting right now. Please try again in a moment."
+        : `⚠️ ${errorMsg}`
+
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: errorMsg.includes('not enabled') || errorMsg.includes('API key')
-          ? `⚠️ ${errorMsg}`
-          : "I'm having trouble connecting right now. Please try again in a moment.",
+        content: displayContent,
         createdAt: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, errorMessage])

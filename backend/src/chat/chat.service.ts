@@ -594,18 +594,42 @@ export class ChatService {
       );
 
       return response.data;
-    } catch (error) {
-      const detailedError = error.response?.data?.detail
-        ? (typeof error.response.data.detail === 'string' ? error.response.data.detail : JSON.stringify(error.response.data.detail))
-        : error.message;
+    } catch (error: any) {
+      const statusCode = error.response?.status;
+      const detail = error.response?.data?.detail;
+      const detailedError = detail
+        ? (typeof detail === 'string' ? detail : JSON.stringify(detail))
+        : error.message || 'Unknown error';
+
       this.logger.error('Error calling AI chat service:', detailedError);
 
-      // Fallback response if AI service is unavailable
-      return {
-        message: "I'm having trouble connecting to my AI brain right now. Please try again in a moment.",
-        contextUsed: false,
-        learnedContext: null,
-      };
+      // Distinguish between connection failure vs AI service returning an error
+      const isConnectionError =
+        error.code === 'ECONNREFUSED' ||
+        error.code === 'ENOTFOUND' ||
+        error.code === 'ECONNRESET' ||
+        error.code === 'ECONNABORTED' ||
+        error.code === 'ETIMEDOUT' ||
+        error.message?.includes('timeout') ||
+        error.message?.includes('connect');
+
+      if (isConnectionError) {
+        // AI service is down — friendly fallback
+        return {
+          message: "I'm having trouble connecting to my AI brain right now. Please try again in a moment.",
+          contextUsed: false,
+          learnedContext: null,
+        };
+      }
+
+      // API-level error (bad key, quota, etc.) — surface it clearly
+      const userFacingMessage = statusCode === 401 || statusCode === 403
+        ? 'AI authentication failed. Please check the API key in your company settings.'
+        : detailedError.includes('API_KEY_INVALID') || detailedError.includes('API key not valid')
+          ? 'The AI API key is invalid. Please update it in your company settings.'
+          : `AI service error: ${detailedError}`;
+
+      throw new Error(userFacingMessage);
     }
   }
 

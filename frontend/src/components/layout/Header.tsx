@@ -10,7 +10,8 @@ import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { toggleSidebar } from '@/store/slices/uiSlice'
 import { logout } from '@/store/slices/authSlice'
-import { usersApi, formatAssetUrl } from '@/services/api'
+import { usersApi } from '@/services/api'
+import Avatar from '@/components/common/Avatar'
 
 const Header: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -79,19 +80,13 @@ const Header: React.FC = () => {
           {/* User menu */}
           <Menu as="div" className="relative">
             <Menu.Button className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 transition-colors duration-200 group">
-              <div className="h-9 w-9 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-md group-hover:shadow-lg transition-all">
-                {user?.avatar ? (
-                  <img 
-                    src={formatAssetUrl(user.avatar)} 
-                    className="h-full w-full object-cover" 
-                    alt={user.name} 
-                  />
-                ) : (
-                  <span className="text-sm font-black text-white">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
+              <Avatar
+                src={user?.avatar}
+                name={user?.name}
+                className="h-9 w-9 border-2 border-white shadow-md group-hover:shadow-lg transition-all"
+                size="sm"
+                rounded="xl"
+              />
               <div className="hidden md:block text-left">
                 <p className="text-sm font-black text-gray-900 tracking-tight leading-none">{user?.name}</p>
                 <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.role?.replace('_', ' ')}</p>
