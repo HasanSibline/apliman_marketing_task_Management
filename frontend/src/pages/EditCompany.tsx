@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api, { BACKEND_URL } from '../services/api';
+import api, { formatAssetUrl } from '../services/api';
 
 interface EditCompanyForm {
   name: string;
@@ -75,10 +75,7 @@ export default function EditCompany() {
 
       // Set logo preview if exists
       if (company.logo) {
-        // Convert relative URL to absolute if needed
-        const absoluteLogoUrl = company.logo.startsWith('http')
-          ? company.logo
-          : `${BACKEND_URL}${company.logo}`;
+        const absoluteLogoUrl = company.logo ? formatAssetUrl(company.logo) : null;
         setLogoPreview(absoluteLogoUrl);
       }
     } catch (err: any) {

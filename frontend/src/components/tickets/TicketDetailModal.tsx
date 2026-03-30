@@ -15,7 +15,7 @@ import {
   DocumentIcon,
   PlusIcon
 } from '@heroicons/react/24/outline'
-import api, { BACKEND_URL } from '@/services/api'
+import api, { formatAssetUrl } from '@/services/api'
 import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -595,7 +595,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
                           {comment.user.avatar ? (
                             <img 
-                              src={comment.user.avatar.startsWith('http') ? comment.user.avatar : `${BACKEND_URL}${comment.user.avatar}`} 
+                              src={formatAssetUrl(comment.user.avatar)} 
                               className="h-full w-full object-cover" 
                               alt={comment.user.name} 
                             />
@@ -645,7 +645,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
                               {u.avatar ? (
                                 <img 
-                                  src={u.avatar.startsWith('http') ? u.avatar : `${BACKEND_URL}${u.avatar}`} 
+                                  src={formatAssetUrl(u.avatar)} 
                                   className="h-full w-full object-cover" 
                                   alt={u.name} 
                                 />

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import api, { BACKEND_URL } from '@/services/api';
+import api, { formatAssetUrl } from '@/services/api';
 import toast from 'react-hot-toast';
 
 interface Company {
@@ -165,11 +165,7 @@ export default function CompanyDetails() {
     : null;
 
   // Convert relative logo URL to absolute URL if needed
-  const logoUrl = company.logo 
-    ? (company.logo.startsWith('http') 
-        ? company.logo 
-        : `${BACKEND_URL}${company.logo}`)
-    : null;
+  const logoUrl = company.logo ? formatAssetUrl(company.logo) : null;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">

@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { RootState } from '../store';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { BACKEND_URL } from '../services/api';
+import { formatAssetUrl } from '../services/api';
 
 const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3001/api';
 
@@ -350,9 +350,7 @@ export default function SuperAdminDashboard() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {companies.map(company => {
-                  const logoUrl = company.logo
-                    ? (company.logo.startsWith('http') ? company.logo : `${BACKEND_URL}${company.logo}`)
-                    : null;
+                  const logoUrl = company.logo ? formatAssetUrl(company.logo) : null;
                   return (
                     <tr key={company.id} className="hover:bg-gray-50 transition-colors">
                       {/* Company */}

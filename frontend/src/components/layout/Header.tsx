@@ -10,7 +10,7 @@ import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { toggleSidebar } from '@/store/slices/uiSlice'
 import { logout } from '@/store/slices/authSlice'
-import { usersApi, BACKEND_URL, formatAssetUrl } from '@/services/api'
+import { usersApi, formatAssetUrl } from '@/services/api'
 
 const Header: React.FC = () => {
   const dispatch = useAppDispatch()

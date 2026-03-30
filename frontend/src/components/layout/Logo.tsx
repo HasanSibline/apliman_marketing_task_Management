@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import logoImage from '@/assets/apliman-logo.webp'
 
 import { useAppSelector } from '@/hooks/redux'
-import { BACKEND_URL } from '@/services/api'
+import { formatAssetUrl } from '@/services/api'
 
 interface LogoProps {
   className?: string
@@ -20,15 +20,7 @@ const Logo: React.FC<LogoProps> = ({ className = '', size = 'md' }) => {
   }
 
   // Determine logo source: company custom logo or default fallback
-  let logoSrc = logoImage;
-  if (user?.companyLogo) {
-    if (user.companyLogo.startsWith('http')) {
-      logoSrc = user.companyLogo;
-    } else {
-      const cleanPath = user.companyLogo.startsWith('/') ? user.companyLogo : `/${user.companyLogo}`;
-      logoSrc = `${BACKEND_URL}${cleanPath}`;
-    }
-  }
+  const logoSrc = user?.companyLogo ? formatAssetUrl(user.companyLogo) : logoImage;
 
   return (
     <Link to="/" className={`flex items-center ${className}`}>

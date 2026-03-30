@@ -2,7 +2,7 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
-import api, { BACKEND_URL } from '../services/api';
+import api, { formatAssetUrl } from '../services/api';
 import { setAuth } from '../store/slices/authSlice';
 
 interface CompanyBranding {
@@ -188,11 +188,7 @@ const CompanyLogin: React.FC = () => {
   const accentColor = company?.primaryColor || '#4F46E5';
   
   // Convert relative logo URL to absolute URL if needed
-  const logoUrl = company?.logo 
-    ? (company.logo.startsWith('http') 
-        ? company.logo 
-        : `${BACKEND_URL}${company.logo}`)
-    : null;
+  const logoUrl = company?.logo ? formatAssetUrl(company.logo) : null;
 
   return (
     <div 
