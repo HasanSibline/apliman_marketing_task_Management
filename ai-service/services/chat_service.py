@@ -242,7 +242,7 @@ class ChatService:
                     logger.error(f"❌ Failed to fetch file {name}: {file_err}")
 
         if file_context_text:
-            message = f"{message}\n\n=== ATTACHED FILE CONTENT ===\n{file_context_text}\n=== END OF ATTACHED FILES ==="
+            message = f"=== USER UPLOADED FILE CONTENT (PRIORITY) ===\n{file_context_text}\n=== END OF UPLOADED FILES ===\n\nUser Question about these files: {message}"
         max_attempts = max(len(self.api_keys), 3)
 
         while attempts < max_attempts:
@@ -358,7 +358,7 @@ Department: {user.get('department', {}).get('name', 'Not assigned')}
 - You can reference tasks using TSK-XXXX numbers and tickets using TKT-XXXX numbers.
 - If a user mentions a code like TKT-1001, they are referring to a specific ticket.
 - You can analyze files and images if they are provided in the chat.
-{"- (IMAGE ANALYST MODE: ACTIVE) The user has attached files/images. Analyze them carefully to answer their query." if has_files else ""}
+{"- (IMPORTANT: ANALYST MODE ACTIVE) The user has attached files/images. These files take ABSOLUTE PRIORITY over any other knowledge source. If the file content contradicts your general knowledge, follow the file content." if has_files else ""}
 
 """
 

@@ -20,7 +20,6 @@ import {
 } from '@heroicons/react/24/outline'
 import api, { formatAssetUrl } from '@/services/api'
 import Avatar from '@/components/common/Avatar'
-import { PlayIcon, CheckIcon } from '@heroicons/react/24/outline'
 import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -274,25 +273,6 @@ const TicketDetailPage: React.FC = () => {
     })
   }
 
-  const handleCommenceExecution = async () => {
-    try {
-      await api.patch(`/tickets/${ticketId}/status`, { status: 'IN_PROGRESS' })
-      toast.success('Execution Commenced')
-      fetchTicketDetails()
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to commence execution')
-    }
-  }
-
-  const handleFinalizeEngagement = async () => {
-    try {
-      await api.patch(`/tickets/${ticketId}/status`, { status: 'RESOLVED' })
-      toast.success('Engagement Finalized')
-      fetchTicketDetails()
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to finalize engagement')
-    }
-  }
 
   const handleAddComment = async (e?: React.FormEvent) => {
     if (e) e.preventDefault()
@@ -405,110 +385,97 @@ const TicketDetailPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       
-      {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8 text-white relative overflow-hidden shadow-2xl">
-        <div className="relative z-10 font-outfit">
-          {/* Top Row: Navigation and Action */}
-          <div className="flex items-center justify-between mb-6">
-            <button 
-              onClick={() => navigate('/tickets')}
-              className="flex items-center gap-2 font-bold text-primary-100 hover:text-white uppercase tracking-widest text-[10px] transition-all hover:translate-x-[-4px]"
-            >
-              <ChevronLeftIcon className="h-3 w-3 stroke-[3]" />
-              Return to Board
-            </button>
+       {/* Header */}
+       <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8 lg:p-12 text-white relative overflow-hidden shadow-2xl">
+         {/* Absolute Action Zone */}
+         <div className="absolute top-6 right-6 lg:top-10 lg:right-10 flex items-center gap-3 z-30">
+            {isAdmin && (
+              <button onClick={handleDeleteTicket} className="p-3 bg-red-500/20 text-red-100 border border-red-500/30 rounded-xl hover:bg-red-600 hover:text-white transition-all shadow-xl backdrop-blur-md">
+                 <TrashIcon className="h-5 w-5" />
+              </button>
+            )}
+            {canEdit && (
+              <button onClick={() => setIsEditing(!isEditing)} className={`p-3 rounded-xl border transition-all shadow-2xl backdrop-blur-xl ${isEditing ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}`}>
+                 <PencilSquareIcon className="h-5 w-5" />
+              </button>
+            )}
+         </div>
 
-            <div className="flex items-center gap-3">
-              {isAdmin && (
-                <button 
-                  onClick={handleDeleteTicket}
-                  className="p-2.5 bg-rose-500/20 text-rose-100 border border-rose-500/30 rounded-xl hover:bg-rose-600 hover:text-white transition-all"
-                  title="Strategic Deletion"
-                >
-                   <TrashIcon className="h-5 w-5" />
-                </button>
-              )}
-              {canEdit && (
-                <button 
-                  onClick={() => setIsEditing(!isEditing)}
-                  className={`p-2.5 rounded-xl border transition-all ${isEditing ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}`}
-                  title={isEditing ? "Sync Changes" : "Edit Detail"}
-                >
-                   <PencilSquareIcon className="h-5 w-5" />
-                </button>
-              )}
-            </div>
-          </div>
+         <div className="relative z-10 font-outfit">
+           <div className="mb-10">
+              <button onClick={() => navigate('/tickets')} className="flex items-center gap-2 group font-bold text-primary-100 hover:text-white uppercase tracking-[0.25em] text-[10px] transition-all">
+                <ChevronLeftIcon className="h-4 w-4 stroke-[3] group-hover:translate-x-[-3px] transition-transform" />
+                Return to Board
+              </button>
+           </div>
 
-          {/* Main Title Row */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-            <div className="flex-1 min-w-0">
-               <div className="flex items-center gap-3 mb-3">
-                  <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border border-white/20">
-                    {ticket.ticketNumber}
-                  </span>
-                  <div className={`h-2 w-2 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
-               </div>
-               
-               {isEditing ? (
-                  <input 
-                    type="text"
-                    value={editData.title}
-                    onChange={(e) => setEditData({...editData, title: e.target.value})}
-                    className="w-full max-w-3xl bg-white/10 border-b-2 border-white/30 px-0 py-2 text-4xl font-black focus:outline-none focus:border-white transition-all placeholder:text-white/30"
-                    placeholder="Mission Objective..."
-                  />
-               ) : (
-                  <h1 className="text-4xl md:text-5xl font-black mb-2 leading-tight tracking-tight drop-shadow-sm">{ticket.title}</h1>
-               )}
-               <p className="text-primary-100 text-sm font-medium">
-                 Requested by <span className="font-bold text-white underline decoration-primary-400/50 underline-offset-4">{ticket.requester?.name}</span> to the <span className="font-bold text-white italic">{ticket.receiverDept?.name} Team</span>.
-               </p>
-            </div>
+           <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-12">
+              <div className="flex-1 min-w-0 max-w-4xl">
+                 <div className="flex items-center gap-4 mb-6">
+                    <span className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-[11px] font-black tracking-[0.2em] uppercase border border-white/20 shadow-inner text-primary-50">
+                      IDENTIFIER: {ticket.ticketNumber}
+                    </span>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-black/10 rounded-full border border-white/5">
+                       <div className={`h-2 w-2 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
+                       <span className="text-[9px] font-black uppercase text-white/50 tracking-widest">{ticket.status.replace(/_/g, ' ')}</span>
+                    </div>
+                 </div>
 
-            {/* Status Command Center (Right Side) */}
-            <div className="flex flex-col items-end gap-2">
-               {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a:any) => a.userId === user?.id)) ? (
-                <div className="relative group/status w-full md:w-64">
-                   <p className="text-[10px] font-black uppercase text-primary-200 tracking-[0.2em] mb-2 text-right">Status Command</p>
-                   <div className="relative">
-                      <select 
-                        value={ticket.status}
-                        onChange={async (e) => {
-                          try {
-                            const res = await api.patch(`/tickets/${ticketId}`, { status: e.target.value })
-                            toast.success('Status synchronized')
-                            setTicket(res.data)
-                          } catch (err: any) {
-                            toast.error(err.response?.data?.message || 'Sync failure')
-                          }
-                        }}
-                        className="w-full appearance-none bg-white text-primary-900 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-primary-50 transition-all focus:outline-none shadow-xl ring-4 ring-black/5"
-                      >
-                        <option value="PENDING_REQ_MGR">Pending Approval</option>
-                        <option value="PENDING_REC_MGR">Pending Assignment</option>
-                        <option value="OPEN">Open Status</option>
-                        <option value="ASSIGNED">Assigned Status</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="RESOLVED">Resolved Status</option>
-                        <option value="CANCELLED">Cancelled Status</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <ListBulletIcon className="h-4 w-4 text-primary-600" />
-                      </div>
-                   </div>
-                </div>
-              ) : (
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-8 py-4 rounded-2xl flex flex-col items-end">
-                   <p className="text-[9px] font-black uppercase text-primary-200 tracking-widest mb-1">Current Phase</p>
-                   <span className="text-xl font-black uppercase tracking-tighter">
-                    {ticket.status.replace(/_/g, ' ')}
-                   </span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+                 {isEditing ? (
+                    <input type="text" value={editData.title} onChange={(e) => setEditData({...editData, title: e.target.value})} className="w-full bg-white/10 border-b-4 border-white/40 px-4 py-4 text-4xl lg:text-5xl font-black focus:outline-none focus:border-white transition-all placeholder:text-white/20 rounded-t-2xl shadow-2xl" placeholder="Mission Objective Title..." />
+                 ) : (
+                    <h1 className="text-4xl lg:text-7xl font-black mb-6 leading-[1.1] tracking-tight drop-shadow-2xl">{ticket.title}</h1>
+                 )}
+                 
+                 <p className="text-primary-100/90 text-sm font-semibold tracking-wide flex flex-wrap items-center gap-x-3 gap-y-2">
+                   Initiated by <span className="font-black text-white underline decoration-white/40 underline-offset-8 decoration-2">{ticket.requester?.name}</span> 
+                   <span className="text-white/30 font-light">PROCESSED FOR</span> 
+                   <span className="font-black text-white italic bg-white/10 px-3 py-1 rounded-lg border border-white/10">{ticket.receiverDept?.name} Operation</span>
+                 </p>
+              </div>
+
+              <div className="xl:flex-shrink-0 xl:mb-1 w-full xl:w-auto">
+                 {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a:any) => a.userId === user?.id)) ? (
+                  <div className="relative group/status w-full md:w-80 lg:w-96">
+                     <p className="text-[10px] font-black uppercase text-primary-200 tracking-[0.3em] mb-4 text-left xl:text-right opacity-60">Strategic Mission Status</p>
+                     <div className="relative">
+                        <select 
+                          value={ticket.status}
+                          onChange={async (e) => {
+                            try {
+                              const res = await api.patch(`/tickets/${ticketId}`, { status: e.target.value })
+                              toast.success('Frequency Synchronized')
+                              setTicket(res.data)
+                            } catch (err: any) {
+                              toast.error(err.response?.data?.message || 'Sync failure')
+                            }
+                          }}
+                          className="w-full appearance-none bg-white text-primary-950 px-8 py-5 rounded-[1.5rem] text-xs font-black uppercase tracking-[0.1em] cursor-pointer hover:bg-gray-50 transition-all focus:outline-none shadow-[0_15px_40px_rgba(0,0,0,0.2)] ring-8 ring-white/5 active:scale-95"
+                        >
+                           <option value="PENDING_REQ_MGR">Awaiting Manager Scan</option>
+                           <option value="PENDING_REC_MGR">Scanning Specialist Pool</option>
+                           <option value="OPEN">Open Frequency</option>
+                           <option value="ASSIGNED">Specialist Deployment</option>
+                           <option value="IN_PROGRESS">Operation Active</option>
+                           <option value="RESOLVED">Mission Accomplished</option>
+                           <option value="CANCELLED">Mission Aborted</option>
+                        </select>
+                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
+                           <ListBulletIcon className="h-5 w-5 text-primary-600" />
+                        </div>
+                     </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/10 backdrop-blur-2xl border border-white/20 px-10 py-6 rounded-[2rem] flex flex-col items-end shadow-3xl">
+                     <p className="text-[10px] font-black uppercase text-primary-200 tracking-widest mb-2 opacity-60">Status Frequency</p>
+                     <span className="text-2xl font-black uppercase tracking-tighter text-white">
+                      {ticket.status.replace(/_/g, ' ')}
+                     </span>
+                  </div>
+                )}
+              </div>
+           </div>
+         </div>
         
         {/* Background Decor */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
@@ -616,6 +583,7 @@ const TicketDetailPage: React.FC = () => {
                       <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester</p>
                          <p className="text-[11px] font-black text-gray-900 truncate">{ticket.requester?.name}</p>
+                         </div>
                   <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Logistical Target</p>
                          <p className="text-[11px] font-black text-gray-900 truncate">{ticket.receiverDept?.name}</p>
@@ -693,6 +661,8 @@ const TicketDetailPage: React.FC = () => {
                               </div>
                            </div>
                         </div>
+                      )}
+
                       {(ticket.status === 'ASSIGNED' || ticket.assignments?.some((a: any) => a.userId === user?.id)) && ticket.status === 'ASSIGNED' && (
                         <button 
                           onClick={async () => {
@@ -723,7 +693,7 @@ const TicketDetailPage: React.FC = () => {
                         </button>
                       )}
                    </div>
-
+                </div>
               )}
           </div>
 
@@ -945,7 +915,7 @@ const TicketDetailPage: React.FC = () => {
         confirmText={actionModal.type === 'delete' ? 'Delete Permanently' : actionModal.type === 'reject' ? 'Reject' : 'Confirm'}
       />
     </div>
-  )
+)
 }
 
 export default TicketDetailPage

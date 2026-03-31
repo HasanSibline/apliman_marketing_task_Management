@@ -16,7 +16,7 @@ import { fetchPhaseCount } from '@/store/slices/tasksSlice'
 import StatsCard from '@/components/dashboard/StatsCard'
 import TaskPhaseChart from '@/components/dashboard/TaskPhaseChart'
 import Avatar from '@/components/common/Avatar'
-import { quartersApi, formatAssetUrl } from '@/services/api'
+import { quartersApi } from '@/services/api'
 
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()

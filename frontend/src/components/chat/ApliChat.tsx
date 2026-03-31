@@ -483,7 +483,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-6 right-6 w-[380px] h-[580px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col z-50 border border-gray-100 overflow-hidden"
+            className="fixed bottom-6 right-6 w-[340px] h-[540px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col z-50 border border-gray-100 overflow-hidden"
           >
             {/* Combined Header, Body and Input - Full Height Layout */}
             <div className="flex flex-col h-full bg-white relative">
