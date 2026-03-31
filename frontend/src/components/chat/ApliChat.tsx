@@ -483,7 +483,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-6 right-6 w-[400px] h-[600px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col z-50 border border-gray-100 overflow-hidden"
+            className="fixed bottom-6 right-6 w-[380px] h-[580px] bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-col z-50 border border-gray-100 overflow-hidden"
           >
             {/* Combined Header, Body and Input - Full Height Layout */}
             <div className="flex flex-col h-full bg-white relative">
@@ -497,11 +497,18 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <div>
-                    <h2 className="text-xl font-black text-gray-900 tracking-tight">ApliChat</h2>
-                    <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase italic">Interactive Intelligence Hub</p>
+                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">ApliChat</h2>
+                    <p className="text-[9px] font-bold text-gray-400 tracking-wider uppercase italic">Intelligence Hub</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={confirmClose}
+                    className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors group"
+                    title="Start New Chat"
+                  >
+                    <ChatBubbleLeftRightIcon className="w-5 h-5" />
+                  </button>
                   <button 
                     onClick={() => setIsMinimized(true)}
                     className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"

@@ -193,8 +193,11 @@ export class AnalyticsService {
     }).then(phases => phases.map(p => p.id));
 
     const topPerformers = await this.prisma.user.findMany({
-      where: { status: 'ACTIVE', ...baseFilter },
-      take: 50, // Increase for scrollable leaderboard
+      where: { 
+        status: { not: 'RETIRED' },
+        ...baseFilter 
+      },
+      take: 100, // Show full company roster
       select: {
         id: true,
         name: true,

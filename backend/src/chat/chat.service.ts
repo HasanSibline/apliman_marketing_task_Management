@@ -173,13 +173,16 @@ export class ChatService {
         },
       });
 
-      // Save user message
+      // Save user message with file metadata included
       const userMessage = await this.prisma.chatMessage.create({
         data: {
           sessionId: session.id,
           role: 'user',
           content: dto.message,
-          metadata: dto.metadata,
+          metadata: {
+            ...dto.metadata,
+            files: dto.files || [],
+          },
         },
       });
 
