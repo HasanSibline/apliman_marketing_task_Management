@@ -77,6 +77,7 @@ export class AuthService {
         role: user.role,
         position: user.position,
         status: user.status,
+        avatar: user.avatar,
         companyId: user.companyId,
         strategyAccess: user.strategyAccess,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
@@ -116,6 +117,7 @@ export class AuthService {
         role: user.role,
         position: user.position,
         status: user.status,
+        avatar: user.avatar,
         companyId: null,
         strategyAccess: user.strategyAccess,
       },
@@ -252,6 +254,7 @@ export class AuthService {
         role: fullUser.role,
         position: fullUser.position,
         status: fullUser.status,
+        avatar: fullUser.avatar,
         companyId: fullUser.companyId,
         strategyAccess: fullUser.strategyAccess,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
