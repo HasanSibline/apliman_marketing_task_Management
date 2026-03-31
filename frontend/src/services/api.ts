@@ -6,7 +6,8 @@ export const BACKEND_URL = API_BASE_URL.replace('/api', '') // Base URL without 
 
 export const formatAssetUrl = (path: string | null | undefined): string => {
   if (!path) return '';
-  if (path.startsWith('http')) return path;
+  // Pass through absolute URLs (http/https), data URIs, and blob URIs unchanged
+  if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path;
   
   // Ensure we have a clean backend base URL without trailing slash
   const baseUrl = (BACKEND_URL && BACKEND_URL !== 'undefined') ? 
@@ -22,7 +23,7 @@ export const formatAssetUrl = (path: string | null | undefined): string => {
   // Ensure path starts with a single slash
   cleanPath = cleanPath.startsWith('/') ? cleanPath : `/${cleanPath}`;
   
-  // If path is just /api/files/public/undefined/..., it's a broken DB entry
+  // If path contains /undefined/, it's a broken DB entry
   if (cleanPath.includes('/undefined/')) {
      return ''; // Triggers fallback to initials
   }
