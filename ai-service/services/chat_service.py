@@ -185,7 +185,14 @@ class ChatService:
 
         if files:
             # Priority: Live Environment Backend URL -> API URL -> Default Localhost
-            backend_base = os.getenv("BACKEND_URL") or "https://marketing-task-management.onrender.com"
+            backend_base = os.getenv("BACKEND_URL")
+            if not backend_base:
+                # If running locally, use localhost:3001
+                if os.getenv("ENVIRONMENT") == "development" or "localhost" in os.getenv("HOST", "localhost"):
+                    backend_base = "http://localhost:3001"
+                else:
+                    backend_base = "https://marketing-task-management.onrender.com"
+            
             backend_base = backend_base.rstrip('/')
             
             for f in files:
@@ -202,6 +209,7 @@ class ChatService:
                     if user_token:
                         headers['Authorization'] = user_token if user_token.startswith('Bearer ') else f'Bearer {user_token}'
 
+                    logger.info(f"📡 Fetching file from: {url}")
                     async with aiohttp.ClientSession() as session:
                         async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as file_res:
                             if file_res.status == 200:
@@ -232,14 +240,18 @@ class ChatService:
                                         import io
                                         doc = Document(io.BytesIO(raw))
                                         text = "\n".join([para.text for para in doc.paragraphs])
+                                        if not text.strip():
+                                            text = "[The Word document appears to be empty or contains only non-text elements.]"
                                         file_context_text += f"\n--- Content of Word Document '{name}' ---\n{text[:15000]}\n---\n"
                                         logger.info(f"✅ Successfully read Word document: {name}")
                                     except Exception as docx_err:
                                         logger.warning(f"⚠️ Failed to parse docx natively: {docx_err}")
-                                        file_context_text += f"\n[File '{name}' is a Word document. Mission context analysis limited to title.]\n"
+                                        file_context_text += f"\n[File '{name}' is a Word document. Analysis limited to title due to parsing error.]\n"
+                            else:
+                                logger.error(f"❌ Backend returned {file_res.status} for file {name}")
                     
                 except Exception as file_err:
-                    logger.error(f"❌ Failed to fetch file {name}: {file_err}")
+                    logger.error(f"❌ Failed to fetch file {name} from {url}: {file_err}")
 
         if file_context_text:
             message = f"=== USER UPLOADED FILE CONTENT (PRIORITY) ===\n{file_context_text}\n=== END OF UPLOADED FILES ===\n\nUser Question about these files: {message}"
@@ -257,7 +269,8 @@ class ChatService:
                     {
                         "role": "user",
                         "parts": [
-                            {"text": f"Recent Conversation Context:\n{history_text}\n\nUser Message: {message}"}
+                            {"text": f"Recent Conversation Context:\n{history_text}\n\nUser Message: {message}\n" + 
+                                     ("(IMPORTANT: See the attached files/images in this message parts for deep analysis. Do not refuse to read them.)" if files else "")}
                         ] + file_parts
                     }
                 ],
