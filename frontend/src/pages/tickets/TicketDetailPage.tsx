@@ -403,7 +403,7 @@ const TicketDetailPage: React.FC = () => {
        </div>
 
        {/* Header Card (Thematic Gradient Match) */}
-       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 rounded-2xl p-8 lg:px-10 lg:py-8 text-white relative overflow-hidden shadow-2xl border border-white/10 min-h-[300px] flex flex-col justify-between">
+       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 rounded-2xl p-8 lg:px-10 lg:py-7 text-white relative overflow-hidden shadow-2xl border border-white/10 min-h-[260px] flex flex-col justify-between">
          
          {/* Top Section: ID & Status (Left) | Actions & Switcher (Right) */}
          <div className="relative z-20 flex flex-col lg:flex-row justify-between items-start gap-6">
@@ -505,7 +505,7 @@ const TicketDetailPage: React.FC = () => {
          </div>
 
          {/* Bottom Section: Logistical Metadata - Stays at Bottom */}
-         <div className="relative z-10 opacity-80 border-t border-white/10 pt-4 mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
+         <div className="relative z-10 opacity-80 border-t border-white/10 pt-4 mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
             <div className="flex items-center gap-2">
                <Avatar src={ticket.requester?.avatar} name={ticket.requester?.name} size="xs" rounded="full" />
                <p className="text-[11px] font-bold text-primary-50">
