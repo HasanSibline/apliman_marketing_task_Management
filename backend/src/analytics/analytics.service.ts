@@ -105,10 +105,13 @@ export class AnalyticsService {
 
     const isAdmin = [UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN].includes(userData.role as any);
     const companyId = userData.role === UserRole.SUPER_ADMIN ? null : userData.companyId;
-    
     const baseFilter = companyId ? { companyId } : {};
-    const roleFilter = isAdmin ? {} : { assignedToId: userId };
-    const companyFilter = { ...baseFilter, ...roleFilter };
+    
+    // Global stats are always company-wide for all users as requested
+    const globalFilter = { ...baseFilter };
+    
+    // Tasks by Workflow/Phase remain personal for non-admins
+    const roleFilter = isAdmin ? { ...baseFilter } : { ...baseFilter, assignedToId: userId };
 
     const [
       totalUsers,
@@ -118,30 +121,30 @@ export class AnalyticsService {
       this.prisma.user.count({
         where: {
           status: { not: 'RETIRED' },
-          ...baseFilter, // User counts are always company-wide
+          ...baseFilter, 
         },
       }),
       this.prisma.user.count({
         where: {
           status: 'ACTIVE',
-          ...baseFilter, // User counts are always company-wide
+          ...baseFilter, 
         },
       }),
       this.prisma.task.count({
-        where: companyFilter,
+        where: globalFilter,
       }),
     ]);
 
-    // Get completed tasks using workflow phases
-    const completedTasks = await this.getCompletedTasksCount(companyFilter);
-    const inProgressTasks = await this.getInProgressTasksCount(companyFilter);
-    const pendingTasks = await this.getPendingTasksCount(companyFilter);
+    // Get completed, in-progress and pending tasks using global company-wide filter (Command View)
+    const completedTasks = await this.getCompletedTasksCount(globalFilter);
+    const inProgressTasks = await this.getInProgressTasksCount(globalFilter);
+    const pendingTasks = await this.getPendingTasksCount(globalFilter);
 
     // Get overdue tasks
     const now = new Date();
     const overdueTasks = await this.prisma.task.count({
       where: {
-        ...companyFilter,
+        ...globalFilter,
         dueDate: { lt: now },
         currentPhaseId: {
           notIn: await this.prisma.phase.findMany({
@@ -173,7 +176,7 @@ export class AnalyticsService {
 
     // Get recent tasks
     const recentTasks = await this.prisma.task.findMany({
-      where: companyFilter,
+      where: globalFilter, // Everyone can see recent company missions in the hub
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
@@ -225,7 +228,7 @@ export class AnalyticsService {
 
     const tasksCompletedThisWeek = await this.prisma.task.count({
       where: {
-        ...companyFilter,
+        ...globalFilter,
         currentPhaseId: { in: completedPhaseIds },
         updatedAt: { gte: oneWeekAgo },
       },

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon, PaperClipIcon } from '@heroicons/react/24/outline'
+import { useNavigate } from 'react-router-dom'
 import { CpuChipIcon } from '@heroicons/react/24/solid'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
@@ -25,6 +26,7 @@ interface ApliChatProps {
 }
 
 export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
+  const navigate = useNavigate()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isTyping, setIsTyping] = useState(false)
@@ -176,15 +178,20 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   const sendMessage = async () => {
     if ((!inputValue.trim() && attachments.length === 0) || isTyping || isUploading) return
 
+    const currentMessage = inputValue;
+    const currentAttachments = [...attachments];
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: inputValue + (attachments.length > 0 ? `\n\n[Attached: ${attachments.map(a => a.name).join(', ')}]` : ''),
+      content: currentMessage,
       createdAt: new Date().toISOString(),
+      metadata: {
+        files: currentAttachments
+      }
     }
 
     setMessages((prev) => [...prev, userMessage])
-    const currentAttachments = [...attachments]
     setInputValue('')
     setAttachments([])
     setIsTyping(true)
@@ -192,7 +199,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
     try {
       const response = await api.post('/chat/message', {
-        message: inputValue,
+        message: currentMessage,
         sessionId,
         files: currentAttachments.map(a => ({ name: a.name, url: a.url, type: a.type }))
       })
@@ -574,10 +581,15 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                               }
                               // Highlight References (#TKT-1001, /TSK-1001, TKT-1001)
                               if (/^([#|\/]?)(TKT|TSK)-\d+$/i.test(part)) {
+                                const code = part.replace(/[#|\/]/g, '').toUpperCase();
                                 return (
-                                  <span key={i} className={`font-black italic underline decoration-2 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-indigo-600 decoration-indigo-200'}`}>
+                                  <button 
+                                    key={i} 
+                                    onClick={() => navigate(`/tickets/code/${code}`)}
+                                    className={`font-black italic underline decoration-2 transition-all hover:scale-105 active:scale-95 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-indigo-600 decoration-indigo-200'}`}
+                                  >
                                     {part}
-                                  </span>
+                                  </button>
                                 );
                               }
                               return part;
@@ -709,7 +721,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Ready to analyze</span>
                           </div>
                           <button 
-                            onClick={() => setAttachments(attachments.filter((_, i) => i !== idx))}
+                            onClick={() => removeAttachment(idx)}
                             className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-100 text-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                           >
                             <XMarkIcon className="w-3 h-3" />

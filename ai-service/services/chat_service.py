@@ -51,9 +51,9 @@ class ChatService:
         knowledge_sources: List[Dict[str, Any]],
         additional_context: Dict[str, Any],
         is_deep_analysis: bool = False,
-        company_name: str = None,  # Add company_name parameter
-        files: Optional[List[Dict[str, Any]]] = None,  # Added for multimodal
-        user_token: Optional[str] = None  # User's access token for file fetching
+        company_name: str = None,
+        files: Optional[List[Dict[str, Any]]] = None,
+        user_token: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         Process a chat message and generate a response
@@ -107,12 +107,17 @@ ApliChat:"""
             response_text = response_text.strip()
 
             # Use AI to intelligently extract and update context
-            learned_context = await self.learning_service.extract_and_update_context(
-                message=message,
-                existing_context=user_context,
-                conversation_history=conversation_history,
-                user_info=user
-            )
+            learned_context = None
+            try:
+                learned_context = await self.learning_service.extract_and_update_context(
+                    message=message,
+                    existing_context=user_context,
+                    conversation_history=conversation_history,
+                    user_info=user
+                )
+            except Exception as learn_err:
+                logger.warning(f"⚠️ Context learning failed (likely rate limited): {learn_err}")
+                learned_context = None
 
             logger.info(f"✅ Generated chat response: {response_text[:100]}...")
             if learned_context:
@@ -128,9 +133,11 @@ ApliChat:"""
             error_msg = str(e)
             logger.error(f"Error processing chat message: {error_msg}")
             
-            # If it's a known AI error, pass it back so the user knows what's wrong
+            # Determine if it's a quota issue to provide a better message
             detailed_msg = "I'm having a bit of trouble understanding that. Could you rephrase?"
-            if any(p in error_msg for p in ["Gemini", "Groq", "AI service"]):
+            if "429" in error_msg:
+                detailed_msg = "It looks like my AI quota just ran out. Please wait a minute and try again!"
+            elif any(p in error_msg for p in ["Gemini", "Groq", "AI service"]):
                 detailed_msg = f"AI service error: {error_msg}. Please check your AI API key and provider settings."
             elif "API key was reported as leaked" in error_msg:
                 detailed_msg = "Your AI API key has been revoked by the provider. Please update your company settings with a new key."

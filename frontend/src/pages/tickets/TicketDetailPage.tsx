@@ -414,8 +414,9 @@ const TicketDetailPage: React.FC = () => {
               <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase border border-white/20">
                 {ticket.ticketNumber}
               </span>
-              {(isAdmin || canAuthoriseRec) ? (
+              {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignee?.id === user?.id) ? (
                 <div className="relative group/status">
+                  <span className="absolute -top-3 left-1 text-[7px] font-black uppercase text-white/50 tracking-widest opacity-0 group-hover/status:opacity-100 transition-opacity">Tactical Override</span>
                   <select 
                     value={ticket.status}
                     onChange={async (e) => {
@@ -629,11 +630,11 @@ const TicketDetailPage: React.FC = () => {
                       </div>
                    )}
 
-                   {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && (canAuthoriseRec || isAdmin) && (
+                    {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && (canAuthoriseRec || isAdmin) && (
                       <div className="space-y-3 pt-2">
                          <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Hand-off Assignment</p>
                          <select
-                            value={ticket.assigneeId || ''}
+                            value={ticket.assignee?.id || ''}
                             onChange={async (e) => {
                               try {
                                 await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
