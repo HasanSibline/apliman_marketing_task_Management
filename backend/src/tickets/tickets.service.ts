@@ -438,10 +438,11 @@ export class TicketsService {
 
   async update(id: string, userId: string, role: string, data: any, companyId: string) {
     const ticket = await this.findOne(id, companyId);
-    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(role);
     const isOwner = ticket.requesterId === userId;
+    const isAssignee = ticket.assigneeId === userId;
 
-    if (!isAdmin && !isOwner) {
+    if (!isAdmin && !isOwner && !isAssignee) {
       throw new ForbiddenException('No permission to edit this ticket');
     }
 

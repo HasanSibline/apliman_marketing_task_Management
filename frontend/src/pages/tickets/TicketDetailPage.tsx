@@ -387,8 +387,8 @@ const TicketDetailPage: React.FC = () => {
 
   if (!ticket) return null
 
-  const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
-  const canEdit = ticket.requesterId === user?.id || isAdmin;
+  const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(user?.role || '');
+  const canEdit = ticket.requesterId === user?.id || ticket.assigneeId === user?.id || isAdmin;
 
   // Approval logic clarity
   const isReqMgrStage = ticket.status === 'PENDING_REQ_MGR';
@@ -411,47 +411,40 @@ const TicketDetailPage: React.FC = () => {
               <ChevronLeftIcon className="h-3 w-3 stroke-[3]" />
               Return to Board
             </button>
-              <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase border border-white/20">
-                {ticket.ticketNumber}
+              <span className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase border border-white/20 shadow-sm">
+                ID: {ticket.ticketNumber}
               </span>
               {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignee?.id === user?.id) ? (
-                <div className="relative group/status">
-                  <span className="absolute -top-3 left-1 text-[7px] font-black uppercase text-white/50 tracking-widest opacity-0 group-hover/status:opacity-100 transition-opacity">Tactical Override</span>
+                <div className="relative group/status flex-shrink-0">
+                  <span className="absolute -top-3.5 left-2 text-[8px] font-black uppercase text-white/60 tracking-widest opacity-0 group-hover/status:opacity-100 transition-all">Status Management</span>
                   <select 
                     value={ticket.status}
                     onChange={async (e) => {
                       try {
-                        await api.patch(`/tickets/${ticketId}`, { status: e.target.value })
+                        const res = await api.patch(`/tickets/${ticketId}`, { status: e.target.value })
                         toast.success('Status synchronized')
-                        fetchTicketDetails()
+                        setTicket(res.data)
                       } catch (err: any) {
                         toast.error(err.response?.data?.message || 'Sync failure')
                       }
                     }}
-                    className="appearance-none bg-white/20 backdrop-blur-md px-3 py-1 pr-8 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/30 cursor-pointer hover:bg-white/30 transition-all focus:outline-none"
+                    className="appearance-none bg-white/20 backdrop-blur-lg px-5 py-2.5 pr-10 rounded-xl text-[11px] font-black uppercase tracking-widest border border-white/30 cursor-pointer hover:bg-white/30 transition-all focus:outline-none shadow-lg focus:ring-2 focus:ring-white/40"
                   >
-                    <option value="PENDING_REQ_MGR" className="bg-gray-800">Pending Approval</option>
-                    <option value="PENDING_REC_MGR" className="bg-gray-800">Pending Assignment</option>
-                    <option value="OPEN" className="bg-gray-800">Open</option>
-                    <option value="ASSIGNED" className="bg-gray-800">Assigned</option>
-                    <option value="IN_PROGRESS" className="bg-gray-800">In Progress</option>
-                    <option value="RESOLVED" className="bg-gray-800">Resolved</option>
-                    <option value="CANCELLED" className="bg-gray-800">Cancelled</option>
+                    <option value="PENDING_REQ_MGR" className="bg-primary-900 text-white">Pending Approval</option>
+                    <option value="PENDING_REC_MGR" className="bg-primary-900 text-white">Pending Assignment</option>
+                    <option value="OPEN" className="bg-primary-900 text-white">Open Status</option>
+                    <option value="ASSIGNED" className="bg-primary-900 text-white">Assigned Status</option>
+                    <option value="IN_PROGRESS" className="bg-primary-900 text-white">In Progress</option>
+                    <option value="RESOLVED" className="bg-primary-900 text-white">Resolved Status</option>
+                    <option value="CANCELLED" className="bg-primary-900 text-white">Cancelled Status</option>
                   </select>
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                    <ArrowDownTrayIcon className="h-4 w-4 text-white/70 rotate-[-90deg] scale-75" />
                   </div>
                 </div>
               ) : (
-                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/20 bg-white/5`}>
-                  {ticket.status === 'PENDING_REQ_MGR' ? 'Pending Approval' :
-                   ticket.status === 'PENDING_REC_MGR' ? 'Pending Assignment' :
-                   ticket.status === 'OPEN' ? 'Open' :
-                   ticket.status === 'ASSIGNED' ? 'Assigned' :
-                   ticket.status === 'IN_PROGRESS' ? 'In Progress' :
-                   ticket.status === 'RESOLVED' ? 'Resolved' :
-                   ticket.status === 'CANCELLED' ? 'Cancelled' :
-                   ticket.status.replace(/_/g, ' ')}
+                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/30 bg-white/20 backdrop-blur-md shadow-sm`}>
+                  {ticket.status.replace(/_/g, ' ')}
                 </span>
               )}
             {isEditing ? (
