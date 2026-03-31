@@ -64,7 +64,7 @@ export class FilesController {
       throw new BadRequestException('Only admins can upload branding assets');
     }
 
-    return this.filesService.uploadSingleFile(file, req.user.id);
+    return this.filesService.uploadSingleFile(file, req.user.id, folder);
   }
 
   @Post('upload/:taskId')

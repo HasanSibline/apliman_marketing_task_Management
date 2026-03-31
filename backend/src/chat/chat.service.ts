@@ -627,14 +627,18 @@ export class ChatService {
         };
       }
 
-      // API-level error (bad key, quota, etc.) — surface it clearly
+       // API-level error (bad key, quota, etc.) — surface it clearly
       const userFacingMessage = statusCode === 401 || statusCode === 403
         ? 'AI authentication failed. Please check the API key in your company settings.'
         : detailedError.includes('API_KEY_INVALID') || detailedError.includes('API key not valid')
           ? 'The AI API key is invalid. Please update it in your company settings.'
-          : `AI service error: ${detailedError}`;
+          : (detailedError && detailedError !== 'Unknown error' ? detailedError : 'The AI service encountered an error.');
 
-      throw new Error(userFacingMessage);
+      return {
+        message: `⚠️ ${userFacingMessage}`,
+        contextUsed: false,
+        learnedContext: null,
+      };
     }
   }
 

@@ -157,7 +157,7 @@ const TicketDetailPage: React.FC = () => {
    const handleDownload = async (fileId: string, fileName: string) => {
     try {
       console.log(`📡 Initiation of asset retrieval for: ${fileName} (${fileId})`);
-      const response = await api.get(`/files/ticket-download/${fileId}`, {
+      const response = await api.get(`/files/download/${fileId}`, {
         responseType: 'blob'
       });
       

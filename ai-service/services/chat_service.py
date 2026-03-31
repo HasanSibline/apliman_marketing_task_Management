@@ -67,6 +67,8 @@ class ChatService:
             additional_context: Task references and user mentions
             is_deep_analysis: Whether to provide detailed response
             company_name: Company name for personalized responses
+            files: Attached files for multimodal processing
+            user_token: Security token for file retrieval
             
         Returns:
             Dict with message, contextUsed, and learnedContext
@@ -192,10 +194,13 @@ ApliChat:"""
                 mime = f.get("type", "")
 
                 # Make relative URLs absolute
-                if url and url.startswith("/"):
+                if url and (url.startswith("/") or not url.startswith("http")):
                     # Use official BACKEND_URL if set, otherwise try to reach same host or fallback
                     backend_base = os.getenv("BACKEND_URL") or os.getenv("API_URL", "").replace("/api", "") or "http://localhost:3001"
-                    url = f"{backend_base}{url}"
+                    # Ensure backend_base doesn't end with slash if url starts with one
+                    backend_base = backend_base.rstrip('/')
+                    url_prefix = "" if url.startswith("/") else "/"
+                    url = f"{backend_base}{url_prefix}{url}"
                     logger.info(f"🔗 Resolving relative URL to absolute: {url}")
                 else:
                     logger.info(f"🔗 Using absolute URL for file fetch: {url}")
