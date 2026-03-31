@@ -5,13 +5,32 @@ import sharp from 'sharp';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { existsSync } from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
 
 @Injectable()
 export class FilesService {
+  private isCloudinaryConfigured = false;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME');
+    const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY');
+    const apiSecret = this.configService.get<string>('CLOUDINARY_API_SECRET');
+
+    if (cloudName && apiKey && apiSecret) {
+      cloudinary.config({
+        cloud_name: cloudName,
+        api_key: apiKey,
+        api_secret: apiSecret,
+      });
+      this.isCloudinaryConfigured = true;
+      console.log('✅ Cloudinary storage initialized');
+    } else {
+      console.log('⚠️ Cloudinary not configured, falling back to local ephemeral storage');
+    }
+  }
 
   async uploadSingleFile(file: Express.Multer.File, userId: string, folder: string = 'temp') {
     try {
@@ -20,6 +39,34 @@ export class FilesService {
       // Compress image if it's an image
       if (file.mimetype.startsWith('image/')) {
         processedFile = await this.compressImage(file);
+      }
+
+      // --- Cloudinary Upload Path ---
+      if (this.isCloudinaryConfigured) {
+        try {
+          const uploadResult = await cloudinary.uploader.upload(processedFile.path, {
+            folder: `apliman/${folder}`,
+            resource_type: 'auto',
+            transformation: folder === 'avatars' || folder === 'branding' 
+              ? [{ width: 800, crop: "limit", quality: "auto", fetch_format: "auto" }]
+              : []
+          });
+
+          // Delete the temporary local file
+          if (existsSync(processedFile.path)) {
+            await fs.unlink(processedFile.path).catch(console.error);
+          }
+
+          return {
+            url: uploadResult.secure_url,
+            fileName: uploadResult.public_id,
+            size: uploadResult.bytes,
+            mimeType: file.mimetype,
+          };
+        } catch (cloudinaryError) {
+          console.error('Cloudinary upload fallback error:', cloudinaryError);
+          // Continue to local storage if Cloudinary fails
+        }
       }
 
       const fileName = path.basename(processedFile.path);
@@ -76,12 +123,32 @@ export class FilesService {
           processedFile = await this.processPDF(file);
         }
 
+        let finalUrl = `/api/files/public/${path.basename(path.dirname(processedFile.path))}/${path.basename(processedFile.path)}`;
+
+        // --- Cloudinary Upload Path ---
+        if (this.isCloudinaryConfigured) {
+          try {
+            const uploadResult = await cloudinary.uploader.upload(processedFile.path, {
+              folder: `apliman/tasks/${taskId}`,
+              resource_type: 'auto'
+            });
+            finalUrl = uploadResult.secure_url;
+            
+            // Delete temp file
+            if (existsSync(processedFile.path)) {
+              await fs.unlink(processedFile.path).catch(console.error);
+            }
+          } catch (err) {
+            console.error('Cloudinary task file upload failed:', err);
+          }
+        }
+
         // Save file record to database
         const fileRecord = await this.prisma.taskFile.create({
           data: {
             taskId,
             fileName: file.originalname,
-            filePath: processedFile.path,
+            filePath: finalUrl, // Storing URL instead of disk path when using Cloudinary
             fileType: path.extname(file.originalname),
             fileSize: processedFile.size,
             mimeType: file.mimetype,
@@ -155,6 +222,15 @@ export class FilesService {
       }
     }
 
+    // Check if cloud file
+    if (file.filePath.startsWith('http')) {
+      return {
+        filePath: file.filePath,
+        fileName: file.fileName,
+        mimeType: file.mimeType,
+      };
+    }
+
     // Check if file exists on disk
     if (!existsSync(file.filePath)) {
       throw new NotFoundException('File not found on disk');
@@ -190,8 +266,17 @@ export class FilesService {
       throw new BadRequestException('Only task creators can delete files');
     }
 
-    // Delete file from disk
-    if (existsSync(file.filePath)) {
+    // Delete from Cloudinary if it's a cloud file
+    if (file.filePath.startsWith('http')) {
+      if (this.isCloudinaryConfigured) {
+        try {
+          const publicId = file.filePath.split('/').pop().split('.')[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (err) {
+          console.error('Cloudinary destroy failed:', err);
+        }
+      }
+    } else if (existsSync(file.filePath)) {
       await fs.unlink(file.filePath).catch(console.error);
     }
 
@@ -398,6 +483,10 @@ export class FilesService {
       }
     }
 
+    if (file.filePath.startsWith('http')) {
+      return { filePath: file.filePath, fileName: file.fileName, mimeType: file.mimeType };
+    }
+
     if (!existsSync(file.filePath)) throw new NotFoundException('File on disk missing');
 
     return {
@@ -421,7 +510,18 @@ export class FilesService {
       throw new BadRequestException('Only requester or admins can delete attachments');
     }
 
-    if (existsSync(file.filePath)) await fs.unlink(file.filePath).catch(console.error);
+    if (file.filePath.startsWith('http')) {
+      if (this.isCloudinaryConfigured) {
+        try {
+          const publicId = file.filePath.split('/').pop().split('.')[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (err) {
+          console.error('Cloudinary destroy failed:', err);
+        }
+      }
+    } else if (existsSync(file.filePath)) {
+      await fs.unlink(file.filePath).catch(console.error);
+    }
     await this.prisma.ticketAttachment.delete({ where: { id: fileId } });
 
     return { message: 'Attachment deleted' };
