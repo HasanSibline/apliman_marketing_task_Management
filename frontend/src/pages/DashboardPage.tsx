@@ -258,17 +258,13 @@ const DashboardPage: React.FC = () => {
                   >
                      <div className="flex items-center gap-4">
                         <div className="relative">
-                           <div className={`h-12 w-12 rounded-xl flex items-center justify-center overflow-hidden border-2
-                             ${isTopThree ? 'border-white/30 bg-white/10' : 'border-white bg-gray-200'}`}>
-                              {performer.avatar ? (
-                                <img src={formatAssetUrl(performer.avatar)} className="h-full w-full object-cover" alt={performer.name} />
-                              ) : (
-                                <div className={`h-full w-full flex items-center justify-center font-black text-sm
-                                  ${isTopThree ? 'text-white' : 'text-gray-500'}`}>
-                                   {performer.name?.charAt(0)}
-                                </div>
-                              )}
-                           </div>
+                           <Avatar
+                              src={performer.avatar}
+                              name={performer.name}
+                              size="md"
+                              rounded="xl"
+                              className={isTopThree ? 'border-white/30 bg-white/10' : 'border-white bg-gray-200'}
+                           />
                            {isTopThree && (
                               <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white flex items-center justify-center border-2 border-gray-900 shadow-none scale-110">
                                  <span className={`text-[10px] font-black ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500' : 'text-orange-600'}`}>

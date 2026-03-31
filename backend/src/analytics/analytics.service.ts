@@ -197,7 +197,7 @@ export class AnalyticsService {
         status: { not: 'RETIRED' },
         ...baseFilter 
       },
-      take: 100, // Show full company roster
+      take: 1000, // Show full company roster
       select: {
         id: true,
         name: true,

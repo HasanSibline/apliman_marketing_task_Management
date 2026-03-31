@@ -388,7 +388,12 @@ const TicketDetailPage: React.FC = () => {
   if (!ticket) return null
 
   const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(user?.role || '');
-  const canEdit = ticket.requesterId === user?.id || ticket.assigneeId === user?.id || isAdmin;
+  const canEdit = isAdmin || 
+                  (ticket.requesterId === user?.id) || 
+                  (ticket.assigneeId === user?.id) || 
+                  (ticket.receiverManagerId === user?.id) || 
+                  (ticket.receiverDept?.managerId === user?.id) ||
+                  (ticket.assignments?.some((a: any) => a.userId === user?.id));
 
   // Approval logic clarity
   const isReqMgrStage = ticket.status === 'PENDING_REQ_MGR';
@@ -401,101 +406,113 @@ const TicketDetailPage: React.FC = () => {
     <div className="space-y-6 pb-12 animate-in fade-in duration-500">
       
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6 font-outfit">
-          <div className="flex-1 min-w-0">
+      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl p-8 text-white relative overflow-hidden shadow-2xl">
+        <div className="relative z-10 font-outfit">
+          {/* Top Row: Navigation and Action */}
+          <div className="flex items-center justify-between mb-6">
             <button 
               onClick={() => navigate('/tickets')}
-              className="flex items-center gap-2 mb-4 font-bold text-primary-100 hover:text-white uppercase tracking-widest text-[10px] transition-colors"
+              className="flex items-center gap-2 font-bold text-primary-100 hover:text-white uppercase tracking-widest text-[10px] transition-all hover:translate-x-[-4px]"
             >
               <ChevronLeftIcon className="h-3 w-3 stroke-[3]" />
               Return to Board
             </button>
-              <span className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase border border-white/20 shadow-sm">
-                ID: {ticket.ticketNumber}
-              </span>
-              {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignee?.id === user?.id) ? (
-                <div className="relative group/status flex-shrink-0">
-                  <span className="absolute -top-3.5 left-2 text-[8px] font-black uppercase text-white/60 tracking-widest opacity-0 group-hover/status:opacity-100 transition-all">Status Management</span>
-                  <select 
-                    value={ticket.status}
-                    onChange={async (e) => {
-                      try {
-                        const res = await api.patch(`/tickets/${ticketId}`, { status: e.target.value })
-                        toast.success('Status synchronized')
-                        setTicket(res.data)
-                      } catch (err: any) {
-                        toast.error(err.response?.data?.message || 'Sync failure')
-                      }
-                    }}
-                    className="appearance-none bg-white/20 backdrop-blur-lg px-5 py-2.5 pr-10 rounded-xl text-[11px] font-black uppercase tracking-widest border border-white/30 cursor-pointer hover:bg-white/30 transition-all focus:outline-none shadow-lg focus:ring-2 focus:ring-white/40"
-                  >
-                    <option value="PENDING_REQ_MGR" className="bg-primary-900 text-white">Pending Approval</option>
-                    <option value="PENDING_REC_MGR" className="bg-primary-900 text-white">Pending Assignment</option>
-                    <option value="OPEN" className="bg-primary-900 text-white">Open Status</option>
-                    <option value="ASSIGNED" className="bg-primary-900 text-white">Assigned Status</option>
-                    <option value="IN_PROGRESS" className="bg-primary-900 text-white">In Progress</option>
-                    <option value="RESOLVED" className="bg-primary-900 text-white">Resolved Status</option>
-                    <option value="CANCELLED" className="bg-primary-900 text-white">Cancelled Status</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ArrowDownTrayIcon className="h-4 w-4 text-white/70 rotate-[-90deg] scale-75" />
-                  </div>
-                </div>
-              ) : (
-                <span className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-white/30 bg-white/20 backdrop-blur-md shadow-sm`}>
-                  {ticket.status.replace(/_/g, ' ')}
-                </span>
-              )}
-            {isEditing ? (
-              <input 
-                type="text"
-                value={editData.title}
-                onChange={(e) => setEditData({...editData, title: e.target.value})}
-                className="w-full max-w-2xl bg-white/10 border-2 border-white/20 rounded-xl px-4 py-2 text-2xl font-black focus:outline-none focus:border-white transition-all"
-              />
-            ) : (
-            <h1 className="text-3xl font-bold mb-1 leading-tight truncate">{ticket.title}</h1>
-            )}
-            <p className="text-primary-100 max-w-2xl mt-1">
-              Requested by <span className="font-bold text-white">{ticket.requester?.name}</span> to <span className="font-bold text-white">{ticket.receiverDept?.name}</span>.
-            </p>
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-3 self-end md:self-center">
-             {/* Tactical Lifecycle Phase Actions */}
-             {ticket.status === 'ASSIGNED' && ticket.assigneeId === user?.id && (
-               <button onClick={handleCommenceExecution} className="flex items-center gap-2 px-6 py-3.5 bg-green-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-600 transition-all shadow-lg shadow-green-500/20 active:scale-95">
-                 <PlayIcon className="h-4 w-4" />
-                 Commence Execution
-               </button>
-             )}
-             {ticket.status === 'IN_PROGRESS' && ticket.assigneeId === user?.id && (
-               <button onClick={handleFinalizeEngagement} className="flex items-center gap-2 px-6 py-3.5 bg-blue-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-blue-500/20 active:scale-95">
-                 <CheckIcon className="h-4 w-4" />
-                 Finalize Engagement
-               </button>
-             )}
 
-             {canEdit && !isEditing && (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 rounded-xl font-black text-xs uppercase tracking-widest transition-all"
-                >
-                   <PencilSquareIcon className="h-4 w-4" /> Edit Detail
-                </button>
-             )}
-             {isAdmin && (
+            <div className="flex items-center gap-3">
+              {isAdmin && (
                 <button 
                   onClick={handleDeleteTicket}
-                  className="p-2.5 bg-rose-500/20 text-rose-100 border border-rose-500/30 rounded-xl hover:bg-rose-500 transition-all"
+                  className="p-2.5 bg-rose-500/20 text-rose-100 border border-rose-500/30 rounded-xl hover:bg-rose-600 hover:text-white transition-all"
+                  title="Strategic Deletion"
                 >
                    <TrashIcon className="h-5 w-5" />
                 </button>
-             )}
+              )}
+              {canEdit && (
+                <button 
+                  onClick={() => setIsEditing(!isEditing)}
+                  className={`p-2.5 rounded-xl border transition-all ${isEditing ? 'bg-emerald-500 text-white border-emerald-400' : 'bg-white/10 text-white border-white/20 hover:bg-white/20'}`}
+                  title={isEditing ? "Sync Changes" : "Edit Detail"}
+                >
+                   <PencilSquareIcon className="h-5 w-5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Main Title Row */}
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div className="flex-1 min-w-0">
+               <div className="flex items-center gap-3 mb-3">
+                  <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-[9px] font-black tracking-widest uppercase border border-white/20">
+                    {ticket.ticketNumber}
+                  </span>
+                  <div className={`h-2 w-2 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-emerald-400' : 'bg-amber-400'} animate-pulse`} />
+               </div>
+               
+               {isEditing ? (
+                  <input 
+                    type="text"
+                    value={editData.title}
+                    onChange={(e) => setEditData({...editData, title: e.target.value})}
+                    className="w-full max-w-3xl bg-white/10 border-b-2 border-white/30 px-0 py-2 text-4xl font-black focus:outline-none focus:border-white transition-all placeholder:text-white/30"
+                    placeholder="Mission Objective..."
+                  />
+               ) : (
+                  <h1 className="text-4xl md:text-5xl font-black mb-2 leading-tight tracking-tight drop-shadow-sm">{ticket.title}</h1>
+               )}
+               <p className="text-primary-100 text-sm font-medium">
+                 Requested by <span className="font-bold text-white underline decoration-primary-400/50 underline-offset-4">{ticket.requester?.name}</span> to the <span className="font-bold text-white italic">{ticket.receiverDept?.name} Team</span>.
+               </p>
+            </div>
+
+            {/* Status Command Center (Right Side) */}
+            <div className="flex flex-col items-end gap-2">
+               {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a:any) => a.userId === user?.id)) ? (
+                <div className="relative group/status w-full md:w-64">
+                   <p className="text-[10px] font-black uppercase text-primary-200 tracking-[0.2em] mb-2 text-right">Status Command</p>
+                   <div className="relative">
+                      <select 
+                        value={ticket.status}
+                        onChange={async (e) => {
+                          try {
+                            const res = await api.patch(`/tickets/${ticketId}`, { status: e.target.value })
+                            toast.success('Status synchronized')
+                            setTicket(res.data)
+                          } catch (err: any) {
+                            toast.error(err.response?.data?.message || 'Sync failure')
+                          }
+                        }}
+                        className="w-full appearance-none bg-white text-primary-900 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest cursor-pointer hover:bg-primary-50 transition-all focus:outline-none shadow-xl ring-4 ring-black/5"
+                      >
+                        <option value="PENDING_REQ_MGR">Pending Approval</option>
+                        <option value="PENDING_REC_MGR">Pending Assignment</option>
+                        <option value="OPEN">Open Status</option>
+                        <option value="ASSIGNED">Assigned Status</option>
+                        <option value="IN_PROGRESS">In Progress</option>
+                        <option value="RESOLVED">Resolved Status</option>
+                        <option value="CANCELLED">Cancelled Status</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <ListBulletIcon className="h-4 w-4 text-primary-600" />
+                      </div>
+                   </div>
+                </div>
+              ) : (
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 px-8 py-4 rounded-2xl flex flex-col items-end">
+                   <p className="text-[9px] font-black uppercase text-primary-200 tracking-widest mb-1">Current Phase</p>
+                   <span className="text-xl font-black uppercase tracking-tighter">
+                    {ticket.status.replace(/_/g, ' ')}
+                   </span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
+        
+        {/* Background Decor */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary-400/20 rounded-full -ml-20 -mb-20 blur-3xl pointer-events-none" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -599,83 +616,115 @@ const TicketDetailPage: React.FC = () => {
                       <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester</p>
                          <p className="text-[11px] font-black text-gray-900 truncate">{ticket.requester?.name}</p>
-                      </div>
-                      <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Logistical Target</p>
                          <p className="text-[11px] font-black text-gray-900 truncate">{ticket.receiverDept?.name}</p>
                       </div>
                    </div>
 
-                   {ticket.assignee && (
-                      <div className="flex items-center gap-3 p-4 bg-primary-50 rounded-xl border border-primary-100">
-                         <div className="h-10 w-10 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm">
-                          <Avatar 
-                            src={ticket.assignee.avatar} 
-                            name={ticket.assignee.name}
-                            size="md"
-                            rounded="xl"
-                          />
-                       </div>
-                         <div>
-                            <p className="text-[8px] font-black text-primary-400 uppercase tracking-widest mb-1 italic">Assigned Personnel</p>
-                            <p className="text-xs font-black text-primary-900 truncate">{ticket.assignee.name}</p>
-                         </div>
+                   {/* Tactical Squad Section */}
+                   <div className="space-y-4 pt-2">
+                      <div className="flex items-center justify-between">
+                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Tactical Squad</p>
+                         <span className="text-[8px] font-bold bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
                       </div>
-                   )}
-
-                    {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && (canAuthoriseRec || isAdmin) && (
-                      <div className="space-y-3 pt-2">
-                         <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Hand-off Assignment</p>
-                         <select
-                            value={ticket.assignee?.id || ''}
-                            onChange={async (e) => {
-                              try {
-                                await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
-                                toast.success('Personnel Assigned')
-                                fetchTicketDetails()
-                              } catch { toast.error('Assignment failed') }
-                            }}
-                            className="w-full text-xs border border-gray-100 rounded-xl p-3 bg-gray-50 focus:bg-white font-black text-gray-800 transition-all font-outfit"
-                          >
-                            <option value="">Select Resource...</option>
-                            {users.filter(u => u.departmentId === ticket.receiverDeptId).map(u => (
-                              <option key={u.id} value={u.id}>{u.name}</option>
-                            ))}
-                          </select>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        {/* Always show lead assignee if exists */}
+                        {ticket.assignee && (
+                          <div className="group relative" title={`${ticket.assignee.name} (Lead)`}>
+                             <div className="h-10 w-10 rounded-xl bg-primary-600 flex items-center justify-center overflow-hidden border-2 border-primary-500 shadow-md">
+                                <Avatar 
+                                  src={ticket.assignee.avatar} 
+                                  name={ticket.assignee.name}
+                                  size="md"
+                                  rounded="xl"
+                                />
+                             </div>
+                             <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-primary-500 rounded-full border-2 border-white flex items-center justify-center">
+                                <SparklesIcon className="h-2 w-2 text-white" />
+                             </div>
+                          </div>
+                        )}
+                        
+                        {/* Show other squad members */}
+                        {ticket.assignments?.filter((a: any) => a.userId !== ticket.assigneeId).map((assignment: any) => (
+                           <div key={assignment.id} className="relative group" title={assignment.user?.name}>
+                              <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm hover:scale-105 transition-all">
+                                 <Avatar 
+                                   src={assignment.user?.avatar} 
+                                   name={assignment.user?.name}
+                                   size="md"
+                                   rounded="xl"
+                                 />
+                              </div>
+                           </div>
+                        ))}
                       </div>
-                   )}
 
-                   {ticket.status === 'ASSIGNED' && ticket.assigneeId === user?.id && (
-                     <button 
-                       onClick={async () => {
-                         try {
-                           await api.patch(`/tickets/${ticketId}/start`)
-                           toast.success('MISSION EXECUTION COMMENCED')
-                           fetchTicketDetails()
-                         } catch { toast.error('Failed to start engagement') }
-                       }}
-                       className="w-full py-4 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-100 hover:scale-[1.02] transition-all"
-                     >
-                       Commence Execution
-                     </button>
-                   )}
+                      {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED' || ticket.status === 'PENDING_REC_MGR') && (canAuthoriseRec || isAdmin) && (
+                        <div className="space-y-2 pt-2">
+                           <p className="text-[9px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Deploy Personnel</p>
+                           <div className="relative">
+                              <select
+                                value=""
+                                onChange={async (e) => {
+                                  if (!e.target.value) return;
+                                  try {
+                                    await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
+                                    toast.success('Personnel Deployed')
+                                    fetchTicketDetails()
+                                  } catch (err: any) { 
+                                    toast.error(err.response?.data?.message || 'Deployment failure') 
+                                  }
+                                }}
+                                className="w-full appearance-none text-xs border-2 border-primary-50 rounded-xl p-3.5 bg-primary-50/20 focus:bg-white focus:border-primary-500 font-black text-gray-800 transition-all font-outfit"
+                              >
+                                <option value="">Assign Specialists...</option>
+                                {/* Cross-departmental search allowed as requested */}
+                                {users.map(u => (
+                                  <option key={u.id} value={u.id}>
+                                    {u.name} ({u.department?.name || 'No Dept'})
+                                  </option>
+                                ))}
+                              </select>
+                              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                                <PlusIcon className="h-4 w-4 text-primary-500" />
+                              </div>
+                           </div>
+                        </div>
+                      {(ticket.status === 'ASSIGNED' || ticket.assignments?.some((a: any) => a.userId === user?.id)) && ticket.status === 'ASSIGNED' && (
+                        <button 
+                          onClick={async () => {
+                            try {
+                              await api.patch(`/tickets/${ticketId}/start`)
+                              toast.success('MISSION EXECUTION COMMENCED')
+                              fetchTicketDetails()
+                            } catch { toast.error('Failed to start engagement') }
+                          }}
+                          className="w-full py-4 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] shadow-xl shadow-primary-100 hover:scale-[1.02] transition-all mt-4"
+                        >
+                          Commence Execution
+                        </button>
+                      )}
 
-                   {(ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS') && (ticket.assigneeId === user?.id || isAdmin) && (
-                     <button 
-                       onClick={async () => {
-                         try {
-                           await api.patch(`/tickets/${ticketId}/resolve`)
-                           toast.success('MISSION OBJECTIVE FINALIZED')
-                           fetchTicketDetails()
-                         } catch { toast.error('Sync error') }
-                       }}
-                       className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-xl' : 'bg-gray-100 text-gray-500'} text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all`}
-                     >
-                       Finalize Engagement
-                     </button>
-                   )}
-                </div>
-             )}
+                      {(ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS') && (ticket.assigneeId === user?.id || isAdmin || ticket.assignments?.some((a: any) => a.userId === user?.id)) && (
+                        <button 
+                          onClick={async () => {
+                            try {
+                              await api.patch(`/tickets/${ticketId}/resolve`)
+                              toast.success('MISSION OBJECTIVE FINALIZED')
+                              fetchTicketDetails()
+                            } catch { toast.error('Sync error') }
+                          }}
+                          className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-xl' : 'bg-gray-100 text-gray-500'} text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all mt-4`}
+                        >
+                          Finalize Engagement
+                        </button>
+                      )}
+                   </div>
+
+              )}
           </div>
 
           {/* Documentation Repository */}

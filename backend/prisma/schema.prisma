@@ -91,40 +91,53 @@ model TeamMember {
 }
 
 model Ticket {
-  id                 String          @id @default(uuid())
+  id                 String             @id @default(uuid())
   ticketNumber       String
   companyId          String
   title              String
   description        String
-  type               TicketType      @default(GENERAL)
-  status             TicketStatus    @default(PENDING_REQ_MGR)
-  priority           String          @default("MEDIUM")
-  isInternal         Boolean         @default(false)
+  type               TicketType         @default(GENERAL)
+  status             TicketStatus       @default(PENDING_REQ_MGR)
+  priority           String             @default("MEDIUM")
+  isInternal         Boolean            @default(false)
   requesterId        String
   requesterManagerId String?
   receiverDeptId     String
   receiverManagerId  String?
-  assigneeId         String?
+  assigneeId         String?            // Deprecated, using assignments instead
   amount             Float?
   providerName       String?
   deadline           DateTime?
-  metadata           Json?           @default("{}")
-  isArchived         Boolean         @default(false)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  taskId             String?         @unique
+  metadata           Json?              @default("{}")
+  isArchived         Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  taskId             String?            @unique
   comments           TicketComment[]
   attachments        TicketAttachment[]
   notifications      Notification[]
-  assignee           User?           @relation("TicketAssignee", fields: [assigneeId], references: [id])
-  company            Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  receiverDept       Department      @relation("ReceiverDepartment", fields: [receiverDeptId], references: [id])
-  receiverManager    User?           @relation("TicketReceiverManager", fields: [receiverManagerId], references: [id])
-  requester          User            @relation("TicketRequester", fields: [requesterId], references: [id])
-  requesterManager   User?           @relation("TicketRequesterManager", fields: [requesterManagerId], references: [id])
-  task               Task?           @relation(fields: [taskId], references: [id])
+  assignments        TicketAssignment[]
+  assignee           User?              @relation("TicketAssignee", fields: [assigneeId], references: [id])
+  company            Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  receiverDept       Department         @relation("ReceiverDepartment", fields: [receiverDeptId], references: [id])
+  receiverManager    User?              @relation("TicketReceiverManager", fields: [receiverManagerId], references: [id])
+  requester          User               @relation("TicketRequester", fields: [requesterId], references: [id])
+  requesterManager   User?              @relation("TicketRequesterManager", fields: [requesterManagerId], references: [id])
+  task               Task?              @relation(fields: [taskId], references: [id])
 
   @@map("tickets")
+}
+
+model TicketAssignment {
+  id         String   @id @default(uuid())
+  ticketId   String
+  userId     String
+  assignedAt DateTime @default(now())
+  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user       User     @relation("TicketAssignments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([ticketId, userId])
+  @@map("ticket_assignments")
 }
 
 model TicketAttachment {
@@ -249,6 +262,7 @@ model User {
   teamMemberships     TeamMember[]      @relation("TeamMemberships")
   ticketComments      TicketComment[]
   assignedTickets     Ticket[]          @relation("TicketAssignee")
+  ticketAssignments   TicketAssignment[] @relation("TicketAssignments")
   receivedTicketsMgr  Ticket[]          @relation("TicketReceiverManager")
   requestedTickets    Ticket[]          @relation("TicketRequester")
   requestedTicketsMgr Ticket[]          @relation("TicketRequesterManager")

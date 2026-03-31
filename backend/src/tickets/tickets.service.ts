@@ -54,6 +54,7 @@ export class TicketsService {
           { requesterManagerId: userId },
           { receiverManagerId: userId },
           { assigneeId: userId },
+          { assignments: { some: { userId } } },
           { receiverDept: { managerId: userId } }
         ]
       }),
@@ -100,19 +101,21 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: {
-        requester: { select: { id: true, name: true, managerId: true, department: { select: { id: true, name: true } } } },
+        requester: { select: { id: true, name: true, avatar: true } },
         requesterManager: { select: { id: true, name: true } },
-        receiverDept: { include: { manager: { select: { id: true, name: true } } } },
         receiverManager: { select: { id: true, name: true } },
         assignee: { select: { id: true, name: true, avatar: true } },
+        assignments: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+        receiverDept: { include: { manager: { select: { id: true, name: true } } } },
         comments: {
           include: { user: { select: { id: true, name: true, avatar: true } } },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: 'asc' }
         },
         attachments: {
           orderBy: { uploadedAt: 'desc' },
         },
-      },
+        task: { select: { id: true, taskNumber: true } }
+      }
     });
 
     if (!ticket || ticket.companyId !== companyId) {
@@ -222,7 +225,7 @@ export class TicketsService {
   }
 
   async reject(id: string, userId: string, companyId: string, reason?: string) {
-    const ticket = await this.findOne(id, companyId);
+    const ticket = await this.findOne(id, companyId) as any;
 
     // Authorization check
     let canReject = false;
@@ -335,30 +338,38 @@ export class TicketsService {
   }
 
   async assign(id: string, managerId: string, assigneeId: string, companyId: string) {
-    const ticket = await this.findOne(id, companyId);
+    const ticket = await this.findOne(id, companyId) as any;
 
-    if (ticket.status !== TicketStatus.OPEN && ticket.status !== TicketStatus.ASSIGNED) {
-      throw new BadRequestException('Ticket cannot be assigned in its current status');
+    // Check if the user is already assigned to the squad
+    const exists = ticket.assignments?.some((a: any) => a.userId === assigneeId);
+    
+    if (!exists) {
+      await this.prisma.ticketAssignment.create({
+        data: {
+          ticketId: id,
+          userId: assigneeId
+        }
+      });
     }
 
     const updated = await this.prisma.ticket.update({
       where: { id },
       data: {
-        assigneeId,
+        assigneeId: ticket.assigneeId || assigneeId, // Lock the first one as lead, squad handles the rest
         status: TicketStatus.ASSIGNED,
       },
     });
 
     const assignee = await this.prisma.user.findUnique({ where: { id: assigneeId } });
-    await this.addSystemComment(id, managerId, `Assigned to ${assignee?.name || 'Personnel'}`, companyId);
+    await this.addSystemComment(id, managerId, `Deployed ${assignee?.name || 'Personnel'} to the mission squad.`, companyId);
 
     // Notify assigned personnel
     await this.notifications.createNotification({
       userId: assigneeId,
       ticketId: id,
       type: 'TICKET_ASSIGNED',
-      title: 'New Personnel Assignment',
-      message: `You have been tacticaly assigned to ticket ${ticket.ticketNumber} for mission execution.`,
+      title: 'Squad Mission Deployment',
+      message: `You have been deployed to the tactical squad for ticket ${ticket.ticketNumber}.`,
       actionUrl: `/tickets/${id}`
     });
 
@@ -437,13 +448,16 @@ export class TicketsService {
   }
 
   async update(id: string, userId: string, role: string, data: any, companyId: string) {
-    const ticket = await this.findOne(id, companyId);
+    const ticket = await this.findOne(id, companyId) as any;
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(role);
     const isOwner = ticket.requesterId === userId;
-    const isAssignee = ticket.assigneeId === userId;
+    const isAssignee = ticket.assigneeId === userId || 
+                      ticket.assignments?.some((a: any) => a.userId === userId);
+    const isReceiverManager = ticket.receiverManagerId === userId || 
+                             ticket.receiverDept?.managerId === userId;
 
-    if (!isAdmin && !isOwner && !isAssignee) {
-      throw new ForbiddenException('No permission to edit this ticket');
+    if (!isAdmin && !isOwner && !isAssignee && !isReceiverManager) {
+      throw new ForbiddenException('You do not have administrative authority over this ticket.');
     }
 
     if (data.receiverDeptId === null || data.receiverDeptId === '') {

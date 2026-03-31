@@ -184,7 +184,8 @@ class ChatService:
         file_context_text = ""
 
         if files:
-            backend_base = os.getenv("BACKEND_URL") or os.getenv("API_URL", "").replace("/api", "") or "http://localhost:3001"
+            # Priority: Live Environment Backend URL -> API URL -> Default Localhost
+            backend_base = os.getenv("BACKEND_URL") or "https://marketing-task-management.onrender.com"
             backend_base = backend_base.rstrip('/')
             
             for f in files:
@@ -226,8 +227,16 @@ class ChatService:
                                     logger.info(f"✅ Successfully read text file: {name}")
                                 
                                 elif name.lower().endswith((".docx", ".doc")):
-                                    # Very basic fallback for docx if library missing: just mention it
-                                    file_context_text += f"\n[File '{name}' is a Word document. Analysis limited to title for now.]\n"
+                                    try:
+                                        from docx import Document
+                                        import io
+                                        doc = Document(io.BytesIO(raw))
+                                        text = "\n".join([para.text for para in doc.paragraphs])
+                                        file_context_text += f"\n--- Content of Word Document '{name}' ---\n{text[:15000]}\n---\n"
+                                        logger.info(f"✅ Successfully read Word document: {name}")
+                                    except Exception as docx_err:
+                                        logger.warning(f"⚠️ Failed to parse docx natively: {docx_err}")
+                                        file_context_text += f"\n[File '{name}' is a Word document. Mission context analysis limited to title.]\n"
                     
                 except Exception as file_err:
                     logger.error(f"❌ Failed to fetch file {name}: {file_err}")
@@ -422,7 +431,7 @@ Due: {task.get('dueDate', 'No due date')}
             prompt += "\n=== Specifically Referenced Tickets ===\n"
             for ticket in additional_context['referencedTickets']:
                 prompt += f"""
-Ticket: {ticket['title']} ({ticket.get('ticketNumber', 'N/A')})
+Ticket: {ticket.get('title', 'Untitled')} ({ticket.get('ticketNumber', 'N/A')})
 Status: {ticket.get('status', 'Unknown')}
 Priority: {ticket.get('priority', 'N/A')}
 Requester: {ticket.get('requester', {}).get('name', 'Unknown')}
