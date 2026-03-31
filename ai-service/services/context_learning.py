@@ -326,70 +326,72 @@ JSON Response:"""
                 pass
         
     async def _generate_via_rest(self, prompt: str) -> str:
-        """Make a stateless request to Gemini API via REST"""
-        # Try both Header and Query Param for maximum compatibility
-        url_query = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
-        url_header = f"{self.base_url}/models/{self.model_name}:generateContent"
-        
-        headers = {
-            'Content-Type': 'application/json',
-            'X-goog-api-key': self.api_key
-        }
+        """Make a stateless request to Gemini API via REST with retry logic for rate limits"""
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
         }
         
+        attempts = 0
+        max_attempts = 2 # Fewer attempts for background learning than for main chat
         last_error = None
         
-        # Try Query Param first
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url_query, headers={'Content-Type': 'application/json'}, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get('candidates') and data['candidates'][0].get('content'):
-                            return data['candidates'][0]['content']['parts'][0]['text']
-                        else:
-                            raise Exception("AI returned an empty response.")
-                    elif response.status == 400 and "API Key not found" in await response.text():
-                        # Fallback to header if query param rejected
-                        pass 
-                    else:
-                        error_text = await response.text()
-                        try:
-                            error_json = json.loads(error_text)
-                            msg = error_json.get('error', {}).get('message', error_text)
-                        except:
-                            msg = error_text
-                        last_error = f"Gemini API failure in learning ({response.status}): {msg}"
-                        logger.error(f"❌ {last_error}")
-                        raise Exception(last_error)
-        except Exception as e:
-            if "Gemini API failure" in str(e):
-                raise e
-            logger.warning(f"Query param learning attempt failed: {str(e)}. Retrying with header auth...")
+        while attempts < max_attempts:
+            # Try both Header and Query Param for maximum compatibility
+            url_query = f"{self.base_url}/models/{self.model_name}:generateContent?key={self.api_key}"
+            url_header = f"{self.base_url}/models/{self.model_name}:generateContent"
+            
+            headers = {
+                'Content-Type': 'application/json',
+                'X-goog-api-key': self.api_key
+            }
+            
+            # --- Attempt 1: Query Param ---
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url_query, headers={'Content-Type': 'application/json'}, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if data.get('candidates') and data['candidates'][0].get('content'):
+                                return data['candidates'][0]['content']['parts'][0]['text']
+                        
+                        if response.status == 429:
+                            wait_time = 2 ** (attempts + 2) # Wait a bit longer for background tasks (4s, 8s)
+                            logger.warning(f"⚠️ Learning rate limited (429). Attempt {attempts + 1}/{max_attempts}. Waiting {wait_time}s...")
+                            await asyncio.sleep(wait_time)
+                            attempts += 1
+                            continue # Retry the loop
+                            
+                        # Fallback to header if not 429
+            except Exception as e:
+                if "Learning rate limited" in str(e): raise e
+                logger.debug(f"Query param learning attempt failed: {str(e)}")
 
-        # Fallback to Header Auth
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url_header, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        if data.get('candidates') and data['candidates'][0].get('content'):
-                            return data['candidates'][0]['content']['parts'][0]['text']
-                        else:
-                            raise Exception("AI returned an empty response (Header Auth).")
-                    else:
+            # --- Attempt 2: Header Auth ---
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url_header, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if data.get('candidates') and data['candidates'][0].get('content'):
+                                return data['candidates'][0]['content']['parts'][0]['text']
+                        
+                        if response.status == 429:
+                                wait_time = 2 ** (attempts + 2)
+                                logger.warning(f"⚠️ Learning rate limited (429, Header). Attempt {attempts + 1}/{max_attempts}. Waiting {wait_time}s...")
+                                await asyncio.sleep(wait_time)
+                                attempts += 1
+                                continue # Retry the loop
+                                
                         error_text = await response.text()
-                        try:
-                            error_json = json.loads(error_text)
-                            msg = error_json.get('error', {}).get('message', error_text)
-                        except:
-                            msg = error_text
-                        last_error = f"Gemini API failure in learning ({response.status}): {msg}"
+                        last_error = f"Gemini API failure in learning ({response.status}): {error_text[:200]}"
                         logger.error(f"❌ {last_error}")
-                        raise Exception(last_error)
-        except Exception as e:
-            logger.error(f"❌ Both auth methods failed for AI learning: {str(e)}")
-            raise e
+            except Exception as e:
+                logger.error(f"❌ Header auth failed for AI learning: {str(e)}")
+                last_error = str(e)
+            
+            attempts += 1
+            if attempts < max_attempts:
+                await asyncio.sleep(2) # Short gap before next attempt if not already slept
+        
+        raise Exception(f"AI learning failed after {attempts} attempts: {last_error}")
 

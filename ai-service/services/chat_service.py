@@ -177,7 +177,6 @@ class ChatService:
     ) -> str:
         """Make a request to Gemini API via REST with rotation and multimodal support"""
         attempts = 0
-        max_attempts = len(self.api_keys)
         last_error = None
 
         # --- Fetch file content from backend URLs and embed in prompt/parts ---
@@ -235,6 +234,7 @@ class ChatService:
 
         if file_context_text:
             message = f"{message}\n\n=== ATTACHED FILE CONTENT ===\n{file_context_text}\n=== END OF ATTACHED FILES ==="
+        max_attempts = max(len(self.api_keys), 3)
 
         while attempts < max_attempts:
             current_key = self.api_key
@@ -261,7 +261,6 @@ class ChatService:
             }
 
             # Try query and header auth
-            success = False
             for auth_method in ["query", "header"]:
                 auth_url = f"{url}?key={current_key}" if auth_method == "query" else url
                 try:
@@ -277,16 +276,26 @@ class ChatService:
                                     return data['candidates'][0]['content']['parts'][0]['text']
                             
                             error_text = await response.text()
+                            
+                            # Handle 429 specifically with backoff
+                            if response.status == 429:
+                                wait_time = 2 ** (attempts + 1)
+                                logger.warning(f"⚠️ Rate limited (429). Attempt {attempts + 1}/{max_attempts}. Waiting {wait_time}s...")
+                                await asyncio.sleep(wait_time)
+                                break # Break auth_method loop to retry with potentially rotated key (or same key after sleep)
+                                
                             logger.warning(f"⚠️ {auth_method} auth failed ({response.status}): {error_text[:200]}")
                             last_error = error_text
                 except Exception as e:
                     last_error = str(e)
                     continue
             
-            # If both auth methods failed for current key, rotate
+            # Rotate key or just increment attempt if we only have one key
             attempts += 1
-            if not self._rotate_api_key():
-                break
+            if not self._rotate_api_key() and attempts < max_attempts:
+                # If we have only one key, we still want to retry after the sleep
+                logger.debug(f"Retrying with the same key (attempt {attempts+1})")
+                continue
 
         raise Exception(f"AI generation failed after {attempts} attempts: {last_error}")
 
