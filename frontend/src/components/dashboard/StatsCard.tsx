@@ -25,7 +25,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl border border-gray-100 p-6 flex items-center justify-between group hover:border-primary-100 transition-all"
+      className="bg-white rounded-xl border border-gray-100 p-6 flex items-start justify-between group hover:border-primary-100 transition-all h-full"
     >
       <div className="flex-1">
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>

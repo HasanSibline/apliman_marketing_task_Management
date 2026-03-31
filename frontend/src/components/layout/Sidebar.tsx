@@ -129,7 +129,7 @@ const Sidebar: React.FC = () => {
                 >
                   <p className="text-sm font-medium text-gray-700">{user?.name}</p>
                   <p className="text-xs text-gray-500 capitalize">
-                    {user?.role?.replace('_', ' ').toLowerCase()}
+                    {user?.position || user?.role?.replace('_', ' ').toLowerCase()}
                   </p>
                 </motion.div>
               )}

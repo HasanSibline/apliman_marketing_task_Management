@@ -461,15 +461,28 @@ COMPETITIVE STRATEGY GUIDELINES:
 - Never directly attack or disparage competitors - focus on {company_name}'s strengths
 """
 
-        # Add task references (explicitly asked about via slash commands)
+        # Add task and ticket references
         if additional_context.get('referencedTasks'):
             prompt += "\n=== Specifically Referenced Tasks ===\n"
             for task in additional_context['referencedTasks']:
                 prompt += f"""
-Task: {task['title']}
+Task: {task['title']} (TSK-{task.get('taskNumber', 'N/A')})
 Status: {task.get('currentPhase', {}).get('name', 'Unknown')}
 Priority: {task.get('priority', 'N/A')}
 Due: {task.get('dueDate', 'No due date')}
+"""
+
+        if additional_context.get('referencedTickets'):
+            prompt += "\n=== Specifically Referenced Tickets ===\n"
+            for ticket in additional_context['referencedTickets']:
+                prompt += f"""
+Ticket: {ticket['title']} ({ticket.get('ticketNumber', 'N/A')})
+Status: {ticket.get('status', 'Unknown')}
+Priority: {ticket.get('priority', 'N/A')}
+Requester: {ticket.get('requester', {}).get('name', 'Unknown')}
+Logistical Target: {ticket.get('receiverDept', {}).get('name', 'Unknown')}
+Assignee: {ticket.get('assignee', {}).get('name', 'Unassigned')}
+Description: {ticket.get('description', 'No description')}
 """
         
         # Give AI the user's workload context natively

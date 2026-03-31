@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { 
   PaperAirplaneIcon,
   CheckCircleIcon,
+  XCircleIcon,
   ChatBubbleLeftRightIcon,
   PencilSquareIcon,
   TrashIcon,
@@ -410,16 +411,48 @@ const TicketDetailPage: React.FC = () => {
               <ChevronLeftIcon className="h-3 w-3 stroke-[3]" />
               Return to Board
             </button>
-            <div className="flex items-center gap-3 mb-3">
               <span className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-[10px] font-black tracking-widest uppercase border border-white/20">
                 {ticket.ticketNumber}
               </span>
-              <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/20 bg-white/5`}>
-                {ticket.status === 'PENDING_REQ_MGR' ? `Awaiting Alignment: ${ticket.requesterManager?.name || 'Initiator Manager'}` :
-                  ticket.status === 'PENDING_REC_MGR' ? `Awaiting Priority: ${ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Target Manager'}` :
-                  ticket.status.replace(/_/g, ' ')}
-              </span>
-            </div>
+              {(isAdmin || canAuthoriseRec) ? (
+                <div className="relative group/status">
+                  <select 
+                    value={ticket.status}
+                    onChange={async (e) => {
+                      try {
+                        await api.patch(`/tickets/${ticketId}`, { status: e.target.value })
+                        toast.success('Status synchronized')
+                        fetchTicketDetails()
+                      } catch (err: any) {
+                        toast.error(err.response?.data?.message || 'Sync failure')
+                      }
+                    }}
+                    className="appearance-none bg-white/20 backdrop-blur-md px-3 py-1 pr-8 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/30 cursor-pointer hover:bg-white/30 transition-all focus:outline-none"
+                  >
+                    <option value="PENDING_REQ_MGR" className="bg-gray-800">Pending Approval</option>
+                    <option value="PENDING_REC_MGR" className="bg-gray-800">Pending Assignment</option>
+                    <option value="OPEN" className="bg-gray-800">Open</option>
+                    <option value="ASSIGNED" className="bg-gray-800">Assigned</option>
+                    <option value="IN_PROGRESS" className="bg-gray-800">In Progress</option>
+                    <option value="RESOLVED" className="bg-gray-800">Resolved</option>
+                    <option value="CANCELLED" className="bg-gray-800">Cancelled</option>
+                  </select>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 9l-7 7-7-7" /></svg>
+                  </div>
+                </div>
+              ) : (
+                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest border border-white/20 bg-white/5`}>
+                  {ticket.status === 'PENDING_REQ_MGR' ? 'Pending Approval' :
+                   ticket.status === 'PENDING_REC_MGR' ? 'Pending Assignment' :
+                   ticket.status === 'OPEN' ? 'Open' :
+                   ticket.status === 'ASSIGNED' ? 'Assigned' :
+                   ticket.status === 'IN_PROGRESS' ? 'In Progress' :
+                   ticket.status === 'RESOLVED' ? 'Resolved' :
+                   ticket.status === 'CANCELLED' ? 'Cancelled' :
+                   ticket.status.replace(/_/g, ' ')}
+                </span>
+              )}
             {isEditing ? (
               <input 
                 type="text"
@@ -487,30 +520,38 @@ const TicketDetailPage: React.FC = () => {
                <div className="space-y-4">
                   <div className={`p-4 rounded-xl border-2 transition-all ${isReqMgrStage ? 'border-amber-500 bg-amber-50 shadow-sm' : 'border-emerald-100 bg-emerald-50 opacity-60'}`}>
                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-tight text-gray-900">Stage 1: Requester Manager</span>
+                        <span className="text-[10px] font-black uppercase tracking-tight text-gray-900">Stage 1: Approval</span>
                         {isReqMgrStage ? <ClockIcon className="h-4 w-4 text-amber-600" /> : <CheckCircleIcon className="h-4 w-4 text-emerald-600" />}
                      </div>
-                     <p className="text-[11px] font-bold text-gray-600">Approval from {ticket.requester?.name}'s department management.</p>
+                     <p className="text-[11px] font-bold text-gray-600">Authorized by {ticket.requesterManager?.name || 'Department Manager'}.</p>
                      
                      {isReqMgrStage && canAuthoriseReq && (
-                        <div className="flex gap-2 mt-4">
-                           <button onClick={handleApprove} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all">Authorize</button>
-                           <button onClick={handleReject} className="flex-1 py-2 bg-white text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all">Reject</button>
+                        <div className="grid grid-cols-2 gap-2 mt-4">
+                           <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
+                             <CheckCircleIcon className="h-4 w-4" /> Approve
+                           </button>
+                           <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all">
+                             <XCircleIcon className="h-4 w-4" /> Reject
+                           </button>
                         </div>
                      )}
                   </div>
 
                   <div className={`p-4 rounded-xl border-2 transition-all ${isRecMgrStage ? 'border-amber-500 bg-amber-50 shadow-sm' : isReqMgrStage ? 'border-gray-100 bg-gray-50 opacity-40' : 'border-emerald-100 bg-emerald-50 opacity-60'}`}>
                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-black uppercase tracking-tight text-gray-900">Stage 2: Receiver Manager</span>
+                        <span className="text-[10px] font-black uppercase tracking-tight text-gray-900">Stage 2: Assignment</span>
                         {isRecMgrStage ? <ClockIcon className="h-4 w-4 text-amber-600" /> : !isReqMgrStage ? <CheckCircleIcon className="h-4 w-4 text-emerald-600" /> : null}
                      </div>
-                     <p className="text-[11px] font-bold text-gray-600">Final authorization from the {ticket.receiverDept?.name} management.</p>
+                     <p className="text-[11px] font-bold text-gray-600">Authorized by {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Target Manager'}.</p>
 
                      {isRecMgrStage && canAuthoriseRec && (
-                        <div className="flex gap-2 mt-4">
-                           <button onClick={handleApprove} className="flex-1 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all">Authorize</button>
-                           <button onClick={handleReject} className="flex-1 py-2 bg-white text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all">Reject</button>
+                        <div className="grid grid-cols-2 gap-2 mt-4">
+                           <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
+                             <CheckCircleIcon className="h-4 w-4" /> Finalize
+                           </button>
+                           <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all">
+                             <XCircleIcon className="h-4 w-4" /> Reject
+                           </button>
                         </div>
                      )}
                   </div>
@@ -692,10 +733,22 @@ const TicketDetailPage: React.FC = () => {
            
            {/* Context Focus Area */}
            <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
-              <div className="flex items-center gap-2">
-                  <SparklesIcon className="h-5 w-5 text-primary-500" />
-                  <h3 className="text-lg font-bold text-gray-900">Description</h3>
-              </div>
+               <div className="flex items-center gap-2">
+                   <SparklesIcon className="h-5 w-5 text-primary-500" />
+                   <h3 className="text-lg font-bold text-gray-900">Description</h3>
+               </div>
+               
+               {ticket.status === 'CANCELLED' && ticket.comments?.some((c: any) => c.comment.startsWith('Rejected:')) && (
+                 <div className="p-5 bg-rose-50 border-l-4 border-rose-500 rounded-xl mb-4 animate-in slide-in-from-top-4 duration-500">
+                   <div className="flex items-center gap-3 mb-2">
+                     <XCircleIcon className="h-5 w-5 text-rose-600" />
+                     <span className="text-xs font-black uppercase tracking-widest text-rose-700">Strategic Rejection Notated</span>
+                   </div>
+                   <p className="text-sm font-bold text-rose-900 leading-relaxed italic">
+                     "{ticket.comments.find((c: any) => c.comment.startsWith('Rejected:'))?.comment.replace('Rejected: ', '')}"
+                   </p>
+                 </div>
+               )}
               
               {isEditing ? (
                  <textarea
@@ -727,6 +780,15 @@ const TicketDetailPage: React.FC = () => {
 
               <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
                   {ticket.comments?.map((comment: any) => (
+                    comment.isSystem ? (
+                      <div key={comment.id} className="flex justify-center my-6">
+                        <div className="bg-gray-100/50 backdrop-blur-sm border border-gray-200/50 px-5 py-2 rounded-full shadow-sm animate-in zoom-in duration-500">
+                          <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center whitespace-pre-wrap">
+                            {comment.comment}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
                     <motion.div 
                       key={comment.id}
                       initial={{ opacity: 0, x: comment.userId === user?.id ? 20 : -20 }}
@@ -759,6 +821,7 @@ const TicketDetailPage: React.FC = () => {
                         </div>
                       </div>
                     </motion.div>
+                    )
                   ))}
                   {ticket.comments?.length === 0 && (
                     <div className="py-20 text-center opacity-30">
@@ -770,46 +833,60 @@ const TicketDetailPage: React.FC = () => {
               </div>
 
               {/* Feed Input */}
-              <div className="p-8 bg-gray-50/50 border-t border-gray-100 relative">
-                  {showMentions && filteredUsers.length > 0 && (
-                     <div className="absolute bottom-full left-8 mb-4 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-20">
-                        <div className="bg-gray-50/80 px-4 py-2 text-[8px] font-black text-gray-400 uppercase border-b border-gray-100 italic tracking-widest">Target Selection</div>
-                        {filteredUsers.map(u => (
-                          <button
-                            key={u.id}
-                            onClick={() => insertMention(u.name)}
-                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
-                          >
-                             <div className="h-8 w-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 group-hover:scale-110 transition-transform">
-                              {u.avatar ? <img src={formatAssetUrl(u.avatar)} className="h-full w-full object-cover" /> : <span className="text-[10px] font-black">{u.name.charAt(0)}</span>}
-                             </div>
-                             <div className="min-w-0">
-                               <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{u.name}</p>
-                               <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest truncate">{u.department?.name || 'External'}</p>
-                             </div>
-                          </button>
-                        ))}
-                     </div>
-                  )}
+              {(ticket.status === 'RESOLVED' || ticket.status === 'CANCELLED') ? (
+                <div className="p-8 bg-gray-100/50 border-t border-gray-100 flex items-center justify-center">
+                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
+                     Intelligence Feed Archived · Mission {ticket.status === 'RESOLVED' ? 'Finalized' : 'Terminated'}
+                   </p>
+                </div>
+              ) : (
+                <div className="p-8 bg-gray-50/50 border-t border-gray-100 relative">
+                    {showMentions && filteredUsers.length > 0 && (
+                       <div className="absolute bottom-full left-8 mb-4 w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-20">
+                          <div className="bg-gray-50/80 px-4 py-2 text-[8px] font-black text-gray-400 uppercase border-b border-gray-100 italic tracking-widest">Target Selection</div>
+                          {filteredUsers.map(u => (
+                            <button
+                              key={u.id}
+                              onClick={() => insertMention(u.name)}
+                              className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
+                            >
+                               <div className="h-8 w-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 group-hover:scale-110 transition-transform">
+                                {u.avatar ? <img src={formatAssetUrl(u.avatar)} className="h-full w-full object-cover" /> : <span className="text-[10px] font-black">{u.name.charAt(0)}</span>}
+                               </div>
+                               <div className="min-w-0">
+                                 <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{u.name}</p>
+                                 <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest truncate">{u.department?.name || 'External'}</p>
+                               </div>
+                            </button>
+                          ))}
+                       </div>
+                    )}
 
-                  <form onSubmit={handleAddComment} className="flex gap-4">
-                     <textarea
-                        ref={commentInputRef}
-                        rows={1}
-                        placeholder="Broadcast new intelligence... (@ to mention)"
-                        value={newComment}
-                        onChange={handleInputChange}
-                        className="flex-1 px-6 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:border-primary-500 transition-all resize-none text-[11px] font-black text-gray-800 font-outfit shadow-sm"
-                     />
-                     <button
-                        type="submit"
-                        disabled={!newComment.trim()}
-                        className="h-[52px] w-[52px] bg-primary-600 text-white rounded-2xl flex items-center justify-center hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 disabled:opacity-30 group flex-shrink-0"
-                     >
-                        <PaperAirplaneIcon className="h-6 w-6 -rotate-45 group-hover:scale-110 transition-transform" />
-                     </button>
-                  </form>
-              </div>
+                    <form onSubmit={handleAddComment} className="flex gap-4">
+                       <textarea
+                          ref={commentInputRef}
+                          rows={1}
+                          placeholder="Leave your message here, mention by using @..."
+                          value={newComment}
+                          onChange={handleInputChange}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault()
+                              handleAddComment()
+                            }
+                          }}
+                          className="w-full px-6 py-4 bg-white border border-gray-200 rounded-2xl text-xs font-bold text-gray-800 placeholder:text-gray-400 placeholder:italic focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all resize-none shadow-sm font-outfit"
+                       />
+                       <button 
+                         type="submit"
+                         disabled={!newComment.trim()}
+                         className="h-12 w-12 bg-primary-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-primary-500/20 hover:scale-110 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
+                       >
+                          <PaperAirplaneIcon className="h-5 w-5" />
+                       </button>
+                    </form>
+                </div>
+              )}
            </div>
         </div>
       </div>

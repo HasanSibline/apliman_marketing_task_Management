@@ -154,9 +154,6 @@ const DashboardPage: React.FC = () => {
                   </div>
                )}
                
-               <p className="text-primary-100 font-bold opacity-70 text-xs italic tracking-tight hidden md:block">
-                 Operational profile verified. Accessing {isAdmin ? "Global Enterprise Intelligence" : "Individual Success Tracker"}.
-               </p>
              </div>
           </div>
         </motion.div>
@@ -170,6 +167,7 @@ const DashboardPage: React.FC = () => {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: index * 0.1 }}
+            className="h-full"
           >
             <StatsCard {...stat} />
           </motion.div>
@@ -251,7 +249,7 @@ const DashboardPage: React.FC = () => {
                  'bg-gradient-to-r from-slate-400 via-slate-300 to-slate-500', // Silver
                  'bg-gradient-to-r from-orange-600 via-orange-500 to-orange-700'  // Bronze
                ];
-               const rankLabels = ['Supreme', 'Excellence', 'Merit'];
+               const rankLabels = ['Leader', 'Top 2', 'Top 3'];
                 return (
                   <div 
                     key={index} 
@@ -288,7 +286,7 @@ const DashboardPage: React.FC = () => {
                      </div>
                      <div className="flex flex-col items-end">
                         <span className={`text-sm font-black ${isTopThree ? 'text-white' : 'text-primary-600'}`}>{performer.tasksCompleted}</span>
-                        <span className={`text-[8px] font-black uppercase tracking-widest ${isTopThree ? 'text-white/40' : 'text-gray-300'}`}>SLA Res</span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${isTopThree ? 'text-white/40' : 'text-gray-300'}`}>Resolved</span>
                      </div>
                   </div>
                 )

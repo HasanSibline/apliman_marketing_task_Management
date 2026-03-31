@@ -24,6 +24,8 @@ export class TicketsService {
       data: { status: 'RESOLVED' }
     });
 
+    await this.addSystemComment(id, userId, 'Status updated to Resolved', companyId);
+
     // Notify requester that the goal is finalized
     await this.notifications.createNotification({
       userId: ticket.requesterId,
@@ -176,6 +178,13 @@ export class TicketsService {
       },
     });
 
+    // Strategy Center: Generate Initialization Briefing
+    const summary = `Mission Initialization: ${ticket.ticketNumber} established.
+    • PRIORITY: ${data.priority || 'MEDIUM'}
+    • LOGISTICAL TARGET: ${receiverDept?.name || 'Unassigned'}
+    • CONTEXT: ${data.title}`;
+    await this.addSystemComment(ticket.id, userId, summary, companyId);
+
     // Notify for tactical authorizations if required
     if (initialStatus === TicketStatus.PENDING_REQ_MGR && user.managerId) {
       await this.notifications.createNotification({
@@ -228,7 +237,8 @@ export class TicketsService {
     }
 
     const comment = reason ? `Rejected: ${reason}` : 'Rejected';
-    await this.addComment(id, userId, comment, companyId);
+    await this.addSystemComment(id, userId, `Status set to Cancelled. Reason: ${reason || 'Denied'}`, companyId);
+    await this.addComment(id, userId, comment, companyId, false);
 
     const updated = await this.prisma.ticket.update({
       where: { id },
@@ -272,6 +282,8 @@ export class TicketsService {
       },
     });
 
+    await this.addSystemComment(id, managerId, 'Status updated to Pending Assignment', companyId);
+
     // Notify receiver manager for the next tactical authorize
     if (receiverDept?.managerId) {
       await this.notifications.createNotification({
@@ -307,6 +319,8 @@ export class TicketsService {
       data: { status: TicketStatus.OPEN },
     });
 
+    await this.addSystemComment(id, managerId, 'Status updated to Open', companyId);
+
     // Notify the requester that the mission is now active
     await this.notifications.createNotification({
       userId: ticket.requesterId,
@@ -335,6 +349,9 @@ export class TicketsService {
       },
     });
 
+    const assignee = await this.prisma.user.findUnique({ where: { id: assigneeId } });
+    await this.addSystemComment(id, managerId, `Assigned to ${assignee?.name || 'Personnel'}`, companyId);
+
     // Notify assigned personnel
     await this.notifications.createNotification({
       userId: assigneeId,
@@ -359,24 +376,31 @@ export class TicketsService {
       throw new ForbiddenException('Only the assigned personnel can start mission execution');
     }
 
-    return this.prisma.ticket.update({
+    const updated = await this.prisma.ticket.update({
       where: { id },
       data: { status: TicketStatus.IN_PROGRESS }
     });
+
+    await this.addSystemComment(id, userId, 'Status updated to In Progress', companyId);
+    return updated;
   }
 
-  async addComment(id: string, userId: string, comment: string, companyId: string) {
+  async addComment(id: string, userId: string, comment: string, companyId: string, isSystem: boolean = false) {
     const ticket = await this.findOne(id, companyId);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
 
     const newComment = await this.prisma.ticketComment.create({
-      data: { ticketId: id, userId, comment },
+      data: { ticketId: id, userId, comment, isSystem },
     });
 
     // Strategy: Parse and notify @mentions
     await this.notifyMentions(id, ticket.ticketNumber, comment, user?.name || 'Someone', userId, companyId);
 
     return newComment;
+  }
+
+  async addSystemComment(id: string, userId: string, comment: string, companyId: string) {
+    return this.addComment(id, userId, comment, companyId, true);
   }
 
   private async notifyMentions(ticketId: string, ticketNumber: string, comment: string, senderName: string, senderId: string, companyId: string) {
@@ -430,6 +454,10 @@ export class TicketsService {
     if (data.receiverDeptId && data.receiverDeptId !== ticket.receiverDeptId) {
       const dept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
       receiverManagerId = dept?.managerId || null;
+    }
+
+    if (data.status && data.status !== ticket.status) {
+      await this.addSystemComment(id, userId, `Manual status override: ${data.status.replace(/_/g, ' ')}`, companyId);
     }
 
     return this.prisma.ticket.update({

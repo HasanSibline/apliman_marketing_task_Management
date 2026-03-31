@@ -373,8 +373,8 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         ${ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
                           ticket.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                           'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
-                        {ticket.status === 'PENDING_REQ_MGR' ? `Awaiting Alignment: ${ticket.requesterManager?.name || 'Initiator Manager'}` :
-                          ticket.status === 'PENDING_REC_MGR' ? `Awaiting Priority: ${ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Target Manager'}` :
+                        {ticket.status === 'PENDING_REQ_MGR' ? `Pending Approval: ${ticket.requesterManager?.name || 'Manager'}` :
+                          ticket.status === 'PENDING_REC_MGR' ? `Pending Assignment: ${ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Dept. Manager'}` :
                           ticket.status.replace(/_/g, ' ')}
                       </span>
                     </div>

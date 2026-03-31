@@ -89,7 +89,7 @@ const Header: React.FC = () => {
               />
               <div className="hidden md:block text-left">
                 <p className="text-sm font-black text-gray-900 tracking-tight leading-none">{user?.name}</p>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.role?.replace('_', ' ')}</p>
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.position || user?.role?.replace('_', ' ')}</p>
               </div>
             </Menu.Button>
 
@@ -116,7 +116,7 @@ const Header: React.FC = () => {
                       } flex items-center px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
                     >
                       <UserCircleIcon className="h-5 w-5 mr-3 opacity-60" />
-                      Management Profile
+                      User Profile
                     </Link>
                   )}
                 </Menu.Item>

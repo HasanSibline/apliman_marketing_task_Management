@@ -326,7 +326,7 @@ class ChatRequest(BaseModel):
     isDeepAnalysis: bool = False
     api_key: Optional[str] = None  # Company-specific API key
     provider: Optional[str] = "gemini"  # Selected AI provider
-    files: Optional[List[dict]] = None # Added for multimodal support
+    files: Optional[List[Any]] = None # Use Any to avoid strict Pydantic dictionary validation if something weird is sent
     userToken: Optional[str] = None # User's access token for file fetching
 
 @app.post("/chat", dependencies=[Depends(require_service_token)])

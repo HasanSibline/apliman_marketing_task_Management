@@ -32,8 +32,8 @@ export class AnalyticsController {
 
   @Get('dashboard')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get dashboard statistics (Admin/Company Admin/Super Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE)
+  @ApiOperation({ summary: 'Get dashboard statistics (All company roles)' })
   @ApiResponse({ status: 200, description: 'Dashboard statistics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   getDashboardStats(@Request() req) {
@@ -81,7 +81,7 @@ export class AnalyticsController {
 
   @Get('user/:userId')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get user analytics by ID (Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'User analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
@@ -97,8 +97,8 @@ export class AnalyticsController {
 
   @Get('team')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
-  @ApiOperation({ summary: 'Get team analytics (Admin/Company Admin/Super Admin only)' })
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.MANAGER, UserRole.EMPLOYEE)
+  @ApiOperation({ summary: 'Get team analytics (All company roles)' })
   @ApiResponse({ status: 200, description: 'Team analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   getTeamAnalytics(@Request() req) {

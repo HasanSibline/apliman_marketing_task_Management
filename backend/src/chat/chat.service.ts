@@ -294,6 +294,7 @@ export class ChatService {
             mentions,
             taskRefs,
             contextUsed: !!aiResponse?.contextUsed,
+            files: aiResponse?.files || [], // For future AI return assets
           },
         },
       });
@@ -404,7 +405,7 @@ export class ChatService {
    */
   private extractTaskReferences(message: string): string[] {
     const taskRegex = /\/([^\s]+)/g;
-    const codeRegex = /\b(TSK|TKT)-(\d+)\b/gi;
+    const codeRegex = /[#|\/]?\b(TSK|TKT)-(\d+)\b/gi;
     const tasks: string[] = [];
     let match;
 
@@ -412,9 +413,11 @@ export class ChatService {
       tasks.push(match[1]);
     }
     
-    // Reset regex index and find codes like TSK-1001
+    // Reset regex index and find codes like TSK-1001 or #TKT-1001
+    codeRegex.lastIndex = 0;
     while ((match = codeRegex.exec(message)) !== null) {
-      tasks.push(match[0].toUpperCase());
+      const code = match[0].replace(/[#|\/]/g, '').toUpperCase();
+      tasks.push(code);
     }
 
     return tasks;

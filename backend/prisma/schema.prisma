@@ -146,6 +146,7 @@ model TicketComment {
   ticketId  String
   userId    String
   comment   String
+  isSystem  Boolean  @default(false)
   createdAt DateTime @default(now())
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
