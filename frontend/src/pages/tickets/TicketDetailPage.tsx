@@ -403,89 +403,69 @@ const TicketDetailPage: React.FC = () => {
        </div>
 
        {/* Header Card (Thematic Gradient Match) */}
-       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 rounded-2xl p-8 lg:p-10 text-white relative overflow-hidden shadow-2xl border border-white/10">
+       <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 rounded-2xl p-8 lg:px-10 lg:py-8 text-white relative overflow-hidden shadow-2xl border border-white/10 min-h-[300px] flex flex-col justify-between">
          
-         {/* Top Actions Group */}
-         <div className="relative z-20 flex justify-end mb-6">
-            <div className="flex items-center gap-2">
-               {isAdmin && (
-                  <button 
-                     onClick={handleDeleteTicket} 
-                     className="p-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-lg backdrop-blur-md"
-                     title="Terminate Mission"
-                  >
-                     <TrashIcon className="h-4 w-4" />
-                  </button>
-               )}
-               {canEdit && (
-                  <button 
-                     onClick={() => setIsEditing(!isEditing)} 
-                     className={`p-2.5 rounded-xl border transition-all shadow-lg backdrop-blur-md ${isEditing ? 'bg-emerald-500 border-emerald-400' : 'bg-white/10 border-white/20 hover:bg-white/20'}`}
-                     title="Strategic Adjustment"
-                  >
-                     <PencilSquareIcon className="h-4 w-4" />
-                  </button>
-               )}
+         {/* Top Section: ID & Status (Left) | Actions & Switcher (Right) */}
+         <div className="relative z-20 flex flex-col lg:flex-row justify-between items-start gap-6">
+            
+            {/* Top Left: ID and Badges */}
+            <div className="space-y-4">
+               <div className="flex flex-wrap items-center gap-2.5">
+                  <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black tracking-[0.2em] uppercase border border-white/10 text-primary-50">
+                     IDENTIFIER: {ticket.ticketNumber}
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-black/10 backdrop-blur-sm rounded-full border border-white/5">
+                     <div className={`h-1.5 w-1.5 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-emerald-400' : ticket.status === 'CANCELLED' ? 'bg-rose-400' : 'bg-amber-400'} animate-pulse`} />
+                     <span className="text-[9px] font-black tracking-widest uppercase text-white/70">{ticket.status.replace(/_/g, ' ')}</span>
+                  </div>
+               </div>
+
+               {/* Mission Objective (Title) - Moved Higher */}
+               <div className="animate-in slide-in-from-left-4 duration-700">
+                  {isEditing ? (
+                     <input 
+                       type="text" 
+                       value={editData.title} 
+                       onChange={(e) => setEditData({...editData, title: e.target.value})} 
+                       className="w-full bg-white/5 border-b-2 border-white/20 px-0 py-1 text-3xl lg:text-4xl font-black focus:outline-none focus:border-white transition-all placeholder:text-white/20 rounded-none shadow-none" 
+                       placeholder="Update Mission Objective..." 
+                     />
+                  ) : (
+                     <h1 className="text-3xl lg:text-5xl font-black leading-tight tracking-tight drop-shadow-xl max-w-4xl">
+                       {ticket.title}
+                     </h1>
+                  )}
+               </div>
             </div>
-         </div>
 
-         <div className="relative z-10 font-outfit">
-           <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
-              
-              {/* Left Wing: ID, Title, Metadata */}
-              <div className="flex-1 min-w-0 space-y-3">
-                 {/* ID and Operational Status Badges */}
-                 <div className="flex flex-wrap items-center gap-2.5">
-                    <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black tracking-[0.2em] uppercase border border-white/10 text-primary-50">
-                       IDENTIFIER: {ticket.ticketNumber}
-                    </div>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-black/10 backdrop-blur-sm rounded-full border border-white/5">
-                       <div className={`h-1.5 w-1.5 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-emerald-400' : ticket.status === 'CANCELLED' ? 'bg-rose-400' : 'bg-amber-400'} animate-pulse`} />
-                       <span className="text-[9px] font-black tracking-widest uppercase text-white/70">{ticket.status.replace(/_/g, ' ')}</span>
-                    </div>
-                 </div>
+            {/* Top Right: Actions + Switcher (Under Actions) */}
+            <div className="flex flex-col items-end gap-3 self-start">
+               {/* Quick Actions */}
+               <div className="flex items-center gap-2 mb-1">
+                  {isAdmin && (
+                     <button 
+                        onClick={handleDeleteTicket} 
+                        className="p-2 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-lg backdrop-blur-md"
+                        title="Terminate Mission"
+                     >
+                        <TrashIcon className="h-4 w-4" />
+                     </button>
+                  )}
+                  {canEdit && (
+                     <button 
+                        onClick={() => setIsEditing(!isEditing)} 
+                        className={`p-2 rounded-lg border transition-all shadow-lg backdrop-blur-md ${isEditing ? 'bg-emerald-500 border-emerald-400' : 'bg-white/10 border-white/20 hover:bg-white/20'}`}
+                        title="Strategic Adjustment"
+                     >
+                        <PencilSquareIcon className="h-4 w-4" />
+                     </button>
+                  )}
+               </div>
 
-                 {/* Mission Objective (Title) */}
-                 <div className="space-y-5">
-                    {isEditing ? (
-                       <input 
-                         type="text" 
-                         value={editData.title} 
-                         onChange={(e) => setEditData({...editData, title: e.target.value})} 
-                         className="w-full bg-white/5 border-b-2 border-white/20 px-0 py-1 text-3xl lg:text-4xl font-black focus:outline-none focus:border-white transition-all placeholder:text-white/20 rounded-none shadow-none" 
-                         placeholder="Update Mission Objective..." 
-                       />
-                    ) : (
-                       <h1 className="text-3xl lg:text-5xl font-black leading-tight tracking-tight drop-shadow-xl max-w-4xl">
-                         {ticket.title}
-                       </h1>
-                    )}
-                    
-                    {/* Logistical Metadata */}
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 opacity-80 border-t border-white/10 pt-4 mt-2">
-                       <div className="flex items-center gap-2">
-                          <Avatar src={ticket.requester?.avatar} name={ticket.requester?.name} size="xs" rounded="full" />
-                          <p className="text-[11px] font-bold text-primary-50">
-                             Initiated by <span className="text-white font-black">{ticket.requester?.name}</span>
-                          </p>
-                       </div>
-                       <div className="h-1 w-1 rounded-full bg-white/20" />
-                       <p className="text-[11px] font-bold text-primary-50 flex items-center gap-2">
-                          <span className="text-white/40 font-black uppercase text-[9px] tracking-widest">Route:</span>
-                          <span className="italic">{ticket.receiverDept?.name} Operation</span>
-                       </p>
-                    </div>
-                 </div>
-              </div>
-
-              {/* Action Hub - Status Selector (Bulky White Pill) */}
-              <div className="flex flex-col items-end gap-3 shrink-0">
-                 {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a:any) => a.userId === user?.id)) ? (
-                  <div className="w-full md:w-80">
-                     <div className="flex items-center justify-end gap-2 mb-2 px-1">
-                        <span className="h-1 w-1 rounded-full bg-primary-300" />
-                        <p className="text-[9px] font-black uppercase text-white/40 tracking-[0.3em]">Operational Phase Switcher</p>
-                     </div>
+               {/* Status Switcher - Moved Up & Scaled Down */}
+               {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a:any) => a.userId === user?.id)) ? (
+                  <div className="w-full md:w-72">
+                     <p className="text-[8px] font-black uppercase text-white/40 tracking-[0.3em] mb-1.5 text-right">Strategic Mission Status</p>
                      <div className="relative group">
                         <select 
                           value={ticket.status}
@@ -498,7 +478,7 @@ const TicketDetailPage: React.FC = () => {
                               toast.error(err.response?.data?.message || 'Sync failure')
                             }
                           }}
-                          className="w-full appearance-none bg-white text-slate-900 pr-14 pl-7 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] cursor-pointer hover:shadow-2xl transition-all focus:outline-none shadow-xl border-b-4 border-slate-100 ring-4 ring-white/5 active:scale-[0.98]"
+                          className="w-full appearance-none bg-white text-slate-800 pr-10 pl-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] cursor-pointer hover:shadow-xl transition-all focus:outline-none shadow-lg border-b-2 border-slate-100 ring-2 ring-white/5"
                         >
                            <option value="PENDING_REQ_MGR">Awaiting Manager Scan</option>
                            <option value="PENDING_REC_MGR">Scanning Specialist Pool</option>
@@ -508,22 +488,35 @@ const TicketDetailPage: React.FC = () => {
                            <option value="RESOLVED">Mission Accomplished</option>
                            <option value="CANCELLED">Mission Aborted</option>
                         </select>
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none">
-                           <ListBulletIcon className="h-5 w-5 text-primary-600" />
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
+                           <ListBulletIcon className="h-4 w-4 text-primary-600" />
                         </div>
                      </div>
                   </div>
                 ) : (
-                  <div className="bg-white text-slate-900 px-8 py-5 rounded-2xl flex flex-col items-end shadow-2xl border-b-4 border-slate-100 ring-4 ring-white/5">
-                     <p className="text-[9px] font-black uppercase text-slate-400 tracking-[0.3em] mb-1">Operational State</p>
-                     <span className="text-2xl font-black uppercase tracking-tighter">
+                  <div className="bg-white text-slate-900 px-6 py-2.5 rounded-xl flex flex-col items-end shadow-xl border-b-2 border-slate-100 ring-4 ring-white/5">
+                     <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.3em] mb-0.5">Operational State</p>
+                     <span className="text-sm font-black uppercase tracking-tight">
                       {ticket.status.replace(/_/g, ' ')}
                      </span>
                   </div>
                 )}
-              </div>
+            </div>
+         </div>
 
-           </div>
+         {/* Bottom Section: Logistical Metadata - Stays at Bottom */}
+         <div className="relative z-10 opacity-80 border-t border-white/10 pt-4 mt-8 flex flex-wrap items-center gap-x-5 gap-y-2">
+            <div className="flex items-center gap-2">
+               <Avatar src={ticket.requester?.avatar} name={ticket.requester?.name} size="xs" rounded="full" />
+               <p className="text-[11px] font-bold text-primary-50">
+                  Initiated by <span className="text-white font-black">{ticket.requester?.name}</span>
+               </p>
+            </div>
+            <div className="h-1 w-1 rounded-full bg-white/20" />
+            <p className="text-[11px] font-bold text-primary-50 flex items-center gap-2">
+               <span className="text-white/40 font-black uppercase text-[9px] tracking-widest">Route:</span>
+               <span className="italic">{ticket.receiverDept?.name} Operation</span>
+            </p>
          </div>
         
          {/* Simple Visual Polish - Glass Accents */}

@@ -503,25 +503,18 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                 </div>
                 <div className="flex items-center gap-1">
                   <button 
-                    onClick={confirmClose}
-                    className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors group"
-                    title="Start New Chat"
+                     onClick={() => setIsMinimized(true)}
+                     className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+                     aria-label="Minimize Chat"
                   >
-                    <ChatBubbleLeftRightIcon className="w-5 h-5" />
+                     <MinusIcon className="w-5 h-5" />
                   </button>
                   <button 
-                    onClick={() => setIsMinimized(true)}
-                    className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
-                    aria-label="Minimize Chat"
+                     onClick={handleClose}
+                     className="p-1.5 hover:bg-gray-100 text-gray-400 rounded-lg transition-colors"
+                     aria-label="Close Chat"
                   >
-                    <MinusIcon className="w-5 h-5" />
-                  </button>
-                  <button 
-                    onClick={onClose}
-                    className="p-1.5 hover:bg-gray-100 text-gray-400 rounded-lg transition-colors"
-                    aria-label="Close Chat"
-                  >
-                    <XMarkIcon className="w-5 h-5" />
+                     <XMarkIcon className="w-5 h-5" />
                   </button>
                 </div>
               </div>
@@ -794,22 +787,31 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                 <XMarkIcon className="w-8 h-8 text-error-600" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">End Chat Session?</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Your conversation history will be saved and you can continue it later.
+              <p className="text-gray-600 text-[11px] font-medium leading-relaxed italic uppercase opacity-60">
+                Strategic Choice Required
               </p>
             </div>
-            <div className="flex gap-3">
-              <button
-                onClick={cancelClose}
-                className="flex-1 px-5 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-all font-medium"
-              >
-                Cancel
-              </button>
+            <div className="flex flex-col gap-2.5">
               <button
                 onClick={confirmClose}
-                className="flex-1 px-5 py-2.5 bg-error-600 text-white rounded-lg hover:bg-error-700 transition-all font-medium shadow-sm"
+                className="w-full px-5 py-3.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-red-100"
               >
-                End Chat
+                End & Reset Session
+              </button>
+              <button
+                onClick={() => {
+                  setShowConfirmClose(false)
+                  onClose()
+                }}
+                className="w-full px-5 py-3.5 bg-gray-50 text-gray-700 border border-gray-100 rounded-xl hover:bg-gray-100 transition-all font-black uppercase tracking-[0.2em] text-[10px]"
+              >
+                Just Close Window
+              </button>
+              <button
+                onClick={cancelClose}
+                className="w-full py-2 text-gray-400 hover:text-gray-600 font-bold text-[10px] uppercase tracking-widest transition-colors mt-2"
+              >
+                Return to Chat
               </button>
             </div>
           </div>
