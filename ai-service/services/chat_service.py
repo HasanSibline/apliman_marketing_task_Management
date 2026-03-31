@@ -57,21 +57,6 @@ class ChatService:
     ) -> Dict[str, Any]:
         """
         Process a chat message and generate a response
-        
-        Args:
-            message: The user's message
-            user_context: Learned information about the user
-            user: Current user details
-            conversation_history: Recent conversation history
-            knowledge_sources: Company and competitor knowledge sources
-            additional_context: Task references and user mentions
-            is_deep_analysis: Whether to provide detailed response
-            company_name: Company name for personalized responses
-            files: Attached files for multimodal processing
-            user_token: Security token for file retrieval
-            
-        Returns:
-            Dict with message, contextUsed, and learnedContext
         """
         try:
             logger.info(f"Processing chat message: {message[:50]}...")
@@ -84,25 +69,26 @@ class ChatService:
                 additional_context,
                 is_deep_analysis,
                 company_name,
-                files is not None
+                files is not None and len(files) > 0
             )
 
             # Build conversation history
             history_text = self._build_conversation_history(conversation_history)
 
-            # Construct the full prompt
-            full_prompt = f"""{system_prompt}
-
-{history_text}
-
-User: {message}
-ApliChat:"""
-
             # Generate response via appropriate provider
             if self.provider == "groq":
+                # For Groq, we still use a flattened prompt for now
+                full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
                 response_text = await self._generate_via_groq(full_prompt)
             else:
-                response_text = await self._generate_via_rest(full_prompt, files=files, user_token=user_token)
+                # For Gemini, we use separate fields for better reliability
+                response_text = await self._generate_via_rest(
+                    message=message,
+                    system_prompt=system_prompt,
+                    history_text=history_text,
+                    files=files, 
+                    user_token=user_token
+                )
                 
             response_text = response_text.strip()
 
@@ -119,9 +105,9 @@ ApliChat:"""
                 logger.warning(f"⚠️ Context learning failed (likely rate limited): {learn_err}")
                 learned_context = None
 
-            logger.info(f"✅ Generated chat response: {response_text[:100]}...")
+            logger.info(f"✅ Generated chat response using {self.provider}")
             if learned_context:
-                logger.info(f"✅ Learned new context: {learned_context}")
+                logger.debug(f"✅ Learned new context")
 
             return {
                 "message": response_text,
@@ -176,15 +162,20 @@ ApliChat:"""
                     else:
                         error_text = await response.text()
                         logger.error(f"❌ Groq Chat API error ({response.status}): {error_text}")
-                        # Fallback ONLY if we have environment keys AND this wasn't a specific company key
-                        # But for now, just fail to avoid key leakage to different providers
                         raise Exception(f"Groq API failure ({response.status}): {error_text}")
         except Exception as e:
             logger.error(f"❌ Groq Chat request failed: {str(e)}")
             raise e
 
-    async def _generate_via_rest(self, prompt: str, files: Optional[List[Dict[str, Any]]] = None, user_token: Optional[str] = None) -> str:
-        """Make a stateless request to Gemini API via REST with rotation support"""
+    async def _generate_via_rest(
+        self, 
+        message: str, 
+        system_prompt: str,
+        history_text: str,
+        files: Optional[List[Dict[str, Any]]] = None, 
+        user_token: Optional[str] = None
+    ) -> str:
+        """Make a request to Gemini API via REST with rotation and multimodal support"""
         attempts = 0
         max_attempts = len(self.api_keys)
         last_error = None
@@ -194,171 +185,110 @@ ApliChat:"""
         file_context_text = ""
 
         if files:
-            backend_base = os.getenv("BACKEND_URL", "http://localhost:3001")
+            backend_base = os.getenv("BACKEND_URL") or os.getenv("API_URL", "").replace("/api", "") or "http://localhost:3001"
+            backend_base = backend_base.rstrip('/')
+            
             for f in files:
                 url = f.get("url", "")
                 name = f.get("name", "file")
                 mime = f.get("type", "")
 
-                # Make relative URLs absolute
                 if url and (url.startswith("/") or not url.startswith("http")):
-                    # Use official BACKEND_URL if set, otherwise try to reach same host or fallback
-                    backend_base = os.getenv("BACKEND_URL") or os.getenv("API_URL", "").replace("/api", "") or "http://localhost:3001"
-                    # Ensure backend_base doesn't end with slash if url starts with one
-                    backend_base = backend_base.rstrip('/')
                     url_prefix = "" if url.startswith("/") else "/"
                     url = f"{backend_base}{url_prefix}{url}"
-                    logger.info(f"🔗 Resolving relative URL to absolute: {url}")
-                else:
-                    logger.info(f"🔗 Using absolute URL for file fetch: {url}")
-
+                
                 try:
-                    # Pass user token if available for authenticated backend fetches
                     headers = {}
                     if user_token:
                         headers['Authorization'] = user_token if user_token.startswith('Bearer ') else f'Bearer {user_token}'
 
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=45)) as resp:
-                            if resp.status != 200:
-                                error_body = await resp.text()
-                                logger.warning(f"⚠️ Could not fetch file {name} from {url}: HTTP {resp.status} - {error_body[:200]}")
-                                file_context_text += f"\n[File '{name}' could not be downloaded (HTTP {resp.status})]\n"
-                                continue
- 
-                            raw = await resp.read()
-                            logger.info(f"✅ Successfully fetched {name} ({len(raw)} bytes)")
+                        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as file_res:
+                            if file_res.status == 200:
+                                raw = await file_res.read()
+                                
+                                # Process binary vs text
+                                if any(mime.startswith(t) for t in ["image/", "application/pdf"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".pdf")):
+                                    import base64
+                                    # Fallback mime detection
+                                    actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
+                                    b64 = base64.b64encode(raw).decode("utf-8")
+                                    file_parts.append({
+                                        "inline_data": {
+                                            "mime_type": actual_mime,
+                                            "data": b64
+                                        }
+                                    })
+                                    logger.info(f"✅ Successfully attached binary file: {name}")
+                                
+                                elif any(ext in name.lower() for ext in [".txt", ".md", ".csv", ".json", ".xml", ".html", ".js", ".ts", ".py", ".go", ".c", ".cpp", ".java"]):
+                                    text = raw.decode("utf-8", errors="replace")
+                                    file_context_text += f"\n--- Content of '{name}' ---\n{text[:10000]}\n---\n"
+                                    logger.info(f"✅ Successfully read text file: {name}")
+                                
+                                elif name.lower().endswith((".docx", ".doc")):
+                                    # Very basic fallback for docx if library missing: just mention it
+                                    file_context_text += f"\n[File '{name}' is a Word document. Analysis limited to title for now.]\n"
+                    
+                except Exception as file_err:
+                    logger.error(f"❌ Failed to fetch file {name}: {file_err}")
 
-                    # PDFs & Images → inline_data for Gemini multimodal
-                    if mime.startswith("image/") or mime == "application/pdf" or name.lower().endswith(".pdf"):
-                        import base64
-                        b64 = base64.b64encode(raw).decode("utf-8")
-                        file_parts.append({
-                            "inline_data": {
-                                "mime_type": mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/png"),
-                                "data": b64
-                            }
-                        })
-                        logger.info(f"📎 Attached multimodal asset '{name}' ({len(raw)} bytes) as inline_data")
- 
-                    # Text-based files → embed content directly in prompt for better reasoning 
-                    elif mime.startswith("text/") or name.lower().endswith((".txt", ".md", ".csv", ".json", ".xml", ".html", ".js", ".ts", ".py")):
-                        try:
-                            text = raw.decode("utf-8", errors="replace")
-                            file_context_text += f"\n--- Content of '{name}' ---\n{text[:10000]}\n---\n"
-                            logger.info(f"📝 Embedded text file '{name}' ({len(text)} chars)")
-                        except Exception as txt_err:
-                            logger.warning(f"⚠️ Text decode failed for '{name}': {txt_err}")
-
-                    # Word docs → try basic text extraction
-                    elif name.lower().endswith((".docx", ".doc")):
-                        try:
-                            import io
-                            try:
-                                from docx import Document
-                                doc = Document(io.BytesIO(raw))
-                                text = "\n".join(p.text for p in doc.paragraphs)
-                                file_context_text += f"\n--- Content of '{name}' ---\n{text[:4000]}\n---\n"
-                                logger.info(f"📝 Extracted {len(text)} chars from DOCX '{name}'")
-                            except ImportError:
-                                file_context_text += f"\n[File '{name}' is a Word document. Install python-docx to extract text.]\n"
-                        except Exception as docx_err:
-                            logger.warning(f"⚠️ DOCX extraction failed for '{name}': {docx_err}")
-
-                    else:
-                        file_context_text += f"\n[File '{name}' (type: {mime}) was attached but cannot be read as text]\n"
-
-                except Exception as fetch_err:
-                    logger.warning(f"⚠️ Failed to fetch file '{name}': {fetch_err}")
-                    file_context_text += f"\n[File '{name}' could not be fetched: {fetch_err}]\n"
-
-        # Append file content to prompt if we extracted text
         if file_context_text:
-            prompt = prompt + f"\n\n=== ATTACHED FILE CONTENT ===\n{file_context_text}\n=== END OF ATTACHED FILES ==="
+            message = f"{message}\n\n=== ATTACHED FILE CONTENT ===\n{file_context_text}\n=== END OF ATTACHED FILES ==="
 
         while attempts < max_attempts:
             current_key = self.api_key
-            url_query = f"{self.base_url}/models/{self.model_name}:generateContent?key={current_key}"
-            url_header = f"{self.base_url}/models/{self.model_name}:generateContent"
-
-            headers = {
-                'Content-Type': 'application/json',
-                'X-goog-api-key': current_key
-            }
-
-            # Build parts: text prompt + any inline image data
-            parts = [{"text": prompt}]
-            parts.extend(file_parts)
-
+            url = f"{self.base_url}/models/{self.model_name}:generateContent"
+            
             payload = {
-                "contents": [{"parts": parts}]
+                "system_instruction": {
+                    "parts": [{"text": system_prompt}]
+                },
+                "contents": [
+                    {
+                        "role": "user",
+                        "parts": [
+                            {"text": f"Recent Conversation Context:\n{history_text}\n\nUser Message: {message}"}
+                        ] + file_parts
+                    }
+                ],
+                "generationConfig": {
+                    "temperature": 0.5,
+                    "maxOutputTokens": 4096,
+                    "topP": 0.95,
+                    "topK": 40
+                }
             }
 
-            try:
-                # Try both Query Param and Header Auth (loop over auth methods)
-                for auth_method, url in [("query", url_query), ("header", url_header)]:
-                    try:
-                        async with aiohttp.ClientSession() as session:
-                            request_headers = {'Content-Type': 'application/json'}
-                            if auth_method == "header":
-                                request_headers['X-goog-api-key'] = current_key
+            # Try query and header auth
+            success = False
+            for auth_method in ["query", "header"]:
+                auth_url = f"{url}?key={current_key}" if auth_method == "query" else url
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        request_headers = {'Content-Type': 'application/json'}
+                        if auth_method == "header":
+                            request_headers['X-goog-api-key'] = current_key
 
-                            async with session.post(url, headers=request_headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
-                                if response.status == 200:
-                                    data = await response.json()
-                                    if data.get('candidates') and data['candidates'][0].get('content'):
-                                        return data['candidates'][0]['content']['parts'][0]['text']
-                                    else:
-                                        msg = "AI returned an empty response (likely blocked by safety filters)."
-                                        logger.warning(f"⚠️ {msg}")
-                                        raise Exception(msg)
-
-                                error_text = await response.text()
-                                try:
-                                    error_json = json.loads(error_text)
-                                    error_msg = error_json.get('error', {}).get('message', error_text)
-                                except:
-                                    error_msg = error_text
-
-                                # CRITICAL: Rotate on key errors or quota exceed
-                                is_key_error = any(m in error_msg.lower() for m in ["api key expired", "invalid api key", "key not found", "api_key_invalid"])
-                                is_quota_error = response.status == 429
-
-                                if is_key_error or is_quota_error:
-                                    logger.warning(f"❌ Chat API key {self.current_key_index} error ({response.status}): {error_msg}")
-                                    if self._rotate_api_key():
-                                        raise StopIteration("rotate")
-                                    else:
-                                        raise Exception(f"All API keys exhausted: {error_msg}")
-
-                                if auth_method == "query":
-                                    logger.warning(f"Query auth failed ({response.status}), trying header auth...")
-                                    continue
-                                else:
-                                    raise Exception(f"Gemini API failure ({response.status}): {error_msg}")
-
-                    except StopIteration:
-                        break
-                    except Exception as e:
-                        if auth_method == "query":
-                            continue
-                        last_error = str(e)
-                        raise e
-                else:
-                    attempts += 1
+                        async with session.post(auth_url, headers=request_headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                            if response.status == 200:
+                                data = await response.json()
+                                if data.get('candidates') and data['candidates'][0].get('content'):
+                                    return data['candidates'][0]['content']['parts'][0]['text']
+                            
+                            error_text = await response.text()
+                            logger.warning(f"⚠️ {auth_method} auth failed ({response.status}): {error_text[:200]}")
+                            last_error = error_text
+                except Exception as e:
+                    last_error = str(e)
                     continue
+            
+            # If both auth methods failed for current key, rotate
+            attempts += 1
+            if not self._rotate_api_key():
+                break
 
-                attempts += 1
-                continue
-
-            except Exception as e:
-                last_error = str(e)
-                attempts += 1
-                logger.warning(f"Attempt {attempts} failed: {last_error}")
-                if not self._rotate_api_key():
-                    break
-
-        raise Exception(last_error or "All AI generation attempts failed")
+        raise Exception(f"AI generation failed after {attempts} attempts: {last_error}")
 
 
     def _build_system_prompt(

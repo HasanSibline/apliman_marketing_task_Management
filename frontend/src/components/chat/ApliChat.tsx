@@ -439,7 +439,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full border-2 border-white"></div>
             </div>
             <div>
-              <h3 className="font-bold text-base">ApliChat AI</h3>
+              <h3 className="font-bold text-base">ApliChat</h3>
               <p className="text-xs text-white/90 flex items-center gap-1">
                 <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
                 {messages.length} messages
@@ -497,11 +497,8 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <div>
-                    <h3 className="font-black text-[13px] text-gray-900 leading-tight">ApliChat Intelligence</h3>
-                    <div className="flex items-center mt-0.5">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5 animate-pulse"></span>
-                      <span className="text-[10px] font-black text-primary-600 tracking-wider uppercase">System Active</span>
-                    </div>
+                    <h2 className="text-xl font-black text-gray-900 tracking-tight">ApliChat</h2>
+                    <p className="text-[10px] font-black text-gray-400 tracking-[0.2em] uppercase italic">Interactive Intelligence Hub</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
