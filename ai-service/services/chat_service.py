@@ -187,9 +187,9 @@ class ChatService:
             # Priority: Live Environment Backend URL -> API URL -> Default Localhost
             backend_base = os.getenv("BACKEND_URL")
             if not backend_base:
-                # If running locally, use localhost:3001
+                # Optimized local resolution for Windows/Docker loops
                 if os.getenv("ENVIRONMENT") == "development" or "localhost" in os.getenv("HOST", "localhost"):
-                    backend_base = "http://localhost:3001"
+                    backend_base = "http://127.0.0.1:3001"
                 else:
                     backend_base = "https://marketing-task-management.onrender.com"
             
@@ -200,25 +200,28 @@ class ChatService:
                 name = f.get("name", "file")
                 mime = f.get("type", "")
 
-                if url and (url.startswith("/") or not url.startswith("http")):
+                if url.startswith("/") or not url.startswith("http"):
+                    # Robust local/prod URL resolution
                     url_prefix = "" if url.startswith("/") else "/"
-                    url = f"{backend_base}{url_prefix}{url}"
+                    full_url = f"{backend_base}{url_prefix}{url}"
+                else:
+                    full_url = url
                 
                 try:
+                    logger.info(f"✨ MULTIMODAL: Preparing to fetch {name} from {full_url}")
                     headers = {}
                     if user_token:
                         headers['Authorization'] = user_token if user_token.startswith('Bearer ') else f'Bearer {user_token}'
 
-                    logger.info(f"📡 Fetching file from: {url}")
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as file_res:
+                        async with session.get(full_url, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as file_res:
                             if file_res.status == 200:
                                 raw = await file_res.read()
+                                logger.info(f"💾 File {name} fetched successfully ({len(raw)} bytes)")
                                 
                                 # Process binary vs text
                                 if any(mime.startswith(t) for t in ["image/", "application/pdf"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".pdf")):
                                     import base64
-                                    # Fallback mime detection
                                     actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
                                     b64 = base64.b64encode(raw).decode("utf-8")
                                     file_parts.append({
@@ -227,34 +230,37 @@ class ChatService:
                                             "data": b64
                                         }
                                     })
-                                    logger.info(f"✅ Successfully attached binary file: {name}")
+                                    logger.info(f"🖼️ Attached binary part for {name} ({actual_mime})")
                                 
-                                elif any(ext in name.lower() for ext in [".txt", ".md", ".csv", ".json", ".xml", ".html", ".js", ".ts", ".py", ".go", ".c", ".cpp", ".java"]):
-                                    text = raw.decode("utf-8", errors="replace")
-                                    file_context_text += f"\n--- Content of '{name}' ---\n{text[:10000]}\n---\n"
-                                    logger.info(f"✅ Successfully read text file: {name}")
-                                
-                                elif name.lower().endswith((".docx", ".doc")):
-                                    try:
-                                        from docx import Document
-                                        import io
-                                        doc = Document(io.BytesIO(raw))
-                                        text = "\n".join([para.text for para in doc.paragraphs])
-                                        if not text.strip():
-                                            text = "[The Word document appears to be empty or contains only non-text elements.]"
-                                        file_context_text += f"\n--- Content of Word Document '{name}' ---\n{text[:15000]}\n---\n"
-                                        logger.info(f"✅ Successfully read Word document: {name}")
-                                    except Exception as docx_err:
-                                        logger.warning(f"⚠️ Failed to parse docx natively: {docx_err}")
-                                        file_context_text += f"\n[File '{name}' is a Word document. Analysis limited to title due to parsing error.]\n"
+                                elif any(ext in name.lower() for ext in [".txt", ".md", ".csv", ".json", ".xml", ".html", ".js", ".ts", ".py", ".go", ".doc", ".docx"]):
+                                    # Handle Docx vs Plain Text
+                                    if name.lower().endswith((".docx", ".doc")):
+                                        try:
+                                            from docx import Document
+                                            import io
+                                            doc = Document(io.BytesIO(raw))
+                                            text = "\n".join([para.text for para in doc.paragraphs])
+                                            if not text.strip():
+                                                text = "[Empty or non-text content detected in Word Document]"
+                                            content = f"--- BEGIN CONTENT OF ATTACHED WORD DOC '{name}' ---\n{text[:20000]}\n--- END DOCUMENT ---"
+                                            file_parts.append({"text": content})
+                                            logger.info(f"📄 Read text from Word doc {name}")
+                                        except Exception as docx_err:
+                                            logger.error(f"❌ Docx Parse Error ({name}): {docx_err}")
+                                            file_parts.append({"text": f"[Error reading Word Document '{name}']: {str(docx_err)}"})
+                                    else:
+                                        # Plain text
+                                        text = raw.decode("utf-8", errors="replace")
+                                        content = f"--- BEGIN CONTENT OF ATTACHED FILE '{name}' ---\n{text[:20000]}\n--- END FILE ---"
+                                        file_parts.append({"text": content})
+                                        logger.info(f"📝 Read text from file {name}")
                             else:
-                                logger.error(f"❌ Backend returned {file_res.status} for file {name}")
+                                logger.error(f"❌ Backend returned {file_res.status} for {full_url}")
+                                file_parts.append({"text": f"Error: Could not retrieve file '{name}' (Server returned {file_res.status})"})
                     
                 except Exception as file_err:
-                    logger.error(f"❌ Failed to fetch file {name} from {url}: {file_err}")
-
-        if file_context_text:
-            message = f"=== USER UPLOADED FILE CONTENT (PRIORITY) ===\n{file_context_text}\n=== END OF UPLOADED FILES ===\n\nUser Question about these files: {message}"
+                    logger.error(f"❌ MULTIMODAL FETCH FAILURE ({name}): {file_err}\n{traceback.format_exc()}")
+                    file_parts.append({"text": f"Error: System failed to fetch file '{name}' during analysis."})
         max_attempts = max(len(self.api_keys), 3)
 
         while attempts < max_attempts:
@@ -269,8 +275,7 @@ class ChatService:
                     {
                         "role": "user",
                         "parts": [
-                            {"text": f"Recent Conversation Context:\n{history_text}\n\nUser Message: {message}\n" + 
-                                     ("(IMPORTANT: See the attached files/images in this message parts for deep analysis. Do not refuse to read them.)" if files else "")}
+                            {"text": f"Recent Conversation Context:\n{history_text}\n\nUser Message: {message}\n(INSTRUCTION: I have attached the documents/images mentioned above or below in the parts list. Please analyze them and respond accordingly.)"}
                         ] + file_parts
                     }
                 ],
