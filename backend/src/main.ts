@@ -12,6 +12,10 @@ async function bootstrap() {
   // Apply Helmet middleware for security headers
   app.use(helmet());
 
+  // Increase payload size limit for multimodal AI attachments
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
   const configService = app.get(ConfigService);
   const port = configService.get('PORT') || 3001;
   const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:5173';

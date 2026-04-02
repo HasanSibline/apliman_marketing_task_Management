@@ -76,11 +76,24 @@ class ChatService:
             history_text = self._build_conversation_history(conversation_history)
 
             # Generate response via appropriate provider
-            if self.provider == "groq":
+            if self.provider == "groq" and not (files and len(files) > 0):
                 # For Groq, we still use a flattened prompt for now
                 full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
                 response_text = await self._generate_via_groq(full_prompt)
             else:
+                # Fallback mechanism: Groq lacks native multimodal vision endpoints.
+                # If files are present and provider is Groq, forcibly trigger Gemini fallback.
+                if self.provider == "groq" and files and len(files) > 0:
+                    logger.warning("Files attached! Groq lacks vision. Falling back to Gemini.")
+                    self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+                    self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+                    
+                    from config import get_config
+                    fallback_keys = get_config().get_api_keys()
+                    if fallback_keys:
+                        self.api_key = fallback_keys[0]
+                        self.api_keys = fallback_keys
+
                 # For Gemini, we use separate fields for better reliability
                 response_text = await self._generate_via_rest(
                     message=message,

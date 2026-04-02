@@ -642,7 +642,9 @@ export class ChatService {
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/chat`, data, {
           headers: this.aiServiceHeaders,
-          timeout: 30000,
+          timeout: 45000, // Slightly longer timeout since multimodal processing might take longer
+          maxBodyLength: Infinity,
+          maxContentLength: Infinity,
         }),
       );
 
