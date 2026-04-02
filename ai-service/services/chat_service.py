@@ -181,19 +181,21 @@ class ChatService:
 
         # --- Fetch file content from backend URLs and embed in prompt/parts ---
         file_parts = []
-        file_context_text = ""
+        file_count = 0
 
         if files:
             # Priority: Live Environment Backend URL -> API URL -> Default Localhost
             backend_base = os.getenv("BACKEND_URL")
             if not backend_base:
                 # Optimized local resolution for Windows/Docker loops
-                if os.getenv("ENVIRONMENT") == "development" or "localhost" in os.getenv("HOST", "localhost"):
-                    backend_base = "http://127.0.0.1:3001"
+                is_local = os.getenv("ENVIRONMENT") == "development" or "localhost" in os.getenv("HOST", "localhost")
+                if is_local:
+                    backend_base = "http://localhost:3001" # Try localhost first for native dev
                 else:
                     backend_base = "https://marketing-task-management.onrender.com"
             
             backend_base = backend_base.rstrip('/')
+            logger.info(f"🔍 MULTIMODAL: Using backend base URL: {backend_base}")
             
             for f in files:
                 url = f.get("url", "")
@@ -218,6 +220,7 @@ class ChatService:
                             if file_res.status == 200:
                                 raw = await file_res.read()
                                 logger.info(f"💾 File {name} fetched successfully ({len(raw)} bytes)")
+                                file_count += 1
                                 
                                 # Process binary vs text
                                 if any(mime.startswith(t) for t in ["image/", "application/pdf"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".pdf")):
@@ -256,11 +259,16 @@ class ChatService:
                                         logger.info(f"📝 Read text from file {name}")
                             else:
                                 logger.error(f"❌ Backend returned {file_res.status} for {full_url}")
-                                file_parts.append({"text": f"Error: Could not retrieve file '{name}' (Server returned {file_res.status})"})
+                                file_parts.append({"text": f"Error: Could not retrieve file '{name}' during analysis (Server returned {file_res.status})"})
                     
                 except Exception as file_err:
-                    logger.error(f"❌ MULTIMODAL FETCH FAILURE ({name}): {file_err}\n{traceback.format_exc()}")
+                    logger.error(f"❌ MULTIMODAL FETCH FAILURE ({name}): {file_err}")
                     file_parts.append({"text": f"Error: System failed to fetch file '{name}' during analysis."})
+
+        # Final prompt strengthening
+        effective_message = message if message and message.strip() else f"(Analyzing attached file: {files[0].get('name')})" if files else "(Processing request...)"
+        file_instruction = f"\n(SYSTEM NOTICE: The user has attached {file_count} file(s) for your review. Please prioritize analyzing them.)" if file_count > 0 else ""
+
         max_attempts = max(len(self.api_keys), 3)
 
         while attempts < max_attempts:
@@ -275,7 +283,7 @@ class ChatService:
                     {
                         "role": "user",
                         "parts": [
-                            {"text": f"Recent Conversation Context:\n{history_text}\n\nUser Message: {message}\n(INSTRUCTION: I have attached the documents/images mentioned above or below in the parts list. Please analyze them and respond accordingly.)"}
+                            {"text": f"Contextual Conversation History:\n{history_text}\n\nUser Message: {effective_message}{file_instruction}"}
                         ] + file_parts
                     }
                 ],
@@ -309,7 +317,7 @@ class ChatService:
                                 wait_time = 2 ** (attempts + 1)
                                 logger.warning(f"⚠️ Rate limited (429). Attempt {attempts + 1}/{max_attempts}. Waiting {wait_time}s...")
                                 await asyncio.sleep(wait_time)
-                                break # Break auth_method loop to retry with potentially rotated key (or same key after sleep)
+                                break # Break auth_method loop to retry
                                 
                             logger.warning(f"⚠️ {auth_method} auth failed ({response.status}): {error_text[:200]}")
                             last_error = error_text
@@ -320,12 +328,9 @@ class ChatService:
             # Rotate key or just increment attempt if we only have one key
             attempts += 1
             if not self._rotate_api_key() and attempts < max_attempts:
-                # If we have only one key, we still want to retry after the sleep
-                logger.debug(f"Retrying with the same key (attempt {attempts+1})")
                 continue
 
         raise Exception(f"AI generation failed after {attempts} attempts: {last_error}")
-
 
     def _build_system_prompt(
         self,
