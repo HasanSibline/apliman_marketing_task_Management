@@ -214,8 +214,8 @@ class ChatService:
                     if is_image or name.lower().endswith(".pdf"):
                         actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
                         media_parts.append({
-                            "inline_data": {
-                                "mime_type": actual_mime,
+                            "inlineData": {
+                                "mimeType": actual_mime,
                                 "data": embedded_b64
                             }
                         })
@@ -269,8 +269,8 @@ class ChatService:
                                     actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
                                     b64 = base64.b64encode(raw).decode("utf-8")
                                     media_parts.append({
-                                        "inline_data": {
-                                            "mime_type": actual_mime,
+                                        "inlineData": {
+                                            "mimeType": actual_mime,
                                             "data": b64
                                         }
                                     })
