@@ -371,10 +371,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       </div>
                       <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border
                         ${ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                          ticket.status === 'REJECTED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                          ticket.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                           'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
-                        {ticket.status === 'PENDING_REQ_MGR' ? `Pending Approval: ${ticket.requesterManager?.name || 'Manager'}` :
-                          ticket.status === 'PENDING_REC_MGR' ? `Pending Assignment: ${ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Dept. Manager'}` :
+                        {ticket.status === 'PENDING_REC_MGR' ? `Pending Assignment: ${ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Dept. Manager'}` :
                           ticket.status.replace(/_/g, ' ')}
                       </span>
                     </div>
@@ -403,7 +402,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                               onChange={(e) => setEditData({...editData, status: e.target.value})}
                               className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white focus:border-rose-500 transition-all font-black text-gray-800"
                             >
-                                {['PENDING_REQ_MGR', 'PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'].map(s => (
+                                {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                                   <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
                                 ))}
                             </select>
@@ -440,10 +439,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         </div>
 
                         {/* Approvals */}
-                        {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) || 
-                           (ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id))) ||
+                        {((ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id)) ||
                            isAdmin) && 
-                           (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
+                           ticket.status === 'PENDING_REC_MGR' && (
                             <div className="grid grid-cols-1 gap-2">
                               <button onClick={handleApprove} className="w-full bg-emerald-600 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all">
                                 <CheckCircleIcon className="h-4 w-4" /> Finalize Approval

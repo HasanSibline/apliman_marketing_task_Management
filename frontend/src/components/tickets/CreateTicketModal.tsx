@@ -24,6 +24,8 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [deptUsers, setDeptUsers] = useState<any[]>([])
   const [assigneeId, setAssigneeId] = useState('')
+  const [requiresApproval, setRequiresApproval] = useState(false)
+  const [approverId, setApproverId] = useState('')
 
   const ticketTypes = [
     { id: 'GENERAL', label: 'General Request' },
@@ -240,7 +242,9 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         type,
         priority,
         deadline: deadline || undefined,
-        metadata
+        metadata,
+        requiresApproval,
+        approverId: requiresApproval ? approverId : undefined
       })
       toast.success('Ticket submitted successfully')
       resetForm()
@@ -261,6 +265,8 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     setPriority('MEDIUM')
     setDeadline('')
     setMetadata({})
+    setRequiresApproval(false)
+    setApproverId('')
   }
 
 
@@ -331,14 +337,51 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
                   </select>
-                  {!assigneeId && receiverDeptId && (
-                    <p className="mt-1 text-[9px] text-gray-400 italic">Requires Dept. Manager Approval</p>
-                  )}
-                  {assigneeId && (
-                    <p className="mt-1 text-[9px] text-primary-600 font-bold italic uppercase tracking-tighter">Bypasses Approval - Direct Entry</p>
-                  )}
                 </div>
               </div>
+
+              {/* Approval Checkbox */}
+              <div className="flex items-center gap-3 p-3 bg-primary-50/50 rounded-xl border border-primary-100">
+                <input 
+                  type="checkbox" 
+                  id="requiresApproval"
+                  checked={requiresApproval}
+                  onChange={(e) => setRequiresApproval(e.target.checked)}
+                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+                />
+                <label htmlFor="requiresApproval" className="text-xs font-bold text-gray-700 cursor-pointer flex flex-col">
+                  Require manager approval
+                  <span className="text-[9px] font-medium text-gray-400 normal-case italic">If checked, the target department manager must authorize this mission before it goes LIVE.</span>
+                </label>
+              </div>
+
+              {requiresApproval && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  className="space-y-2 p-3 bg-white border border-primary-50 rounded-xl shadow-sm"
+                >
+                  <label className="block text-[10px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Selecting Authorization Authority *</label>
+                  <select
+                    value={approverId}
+                    onChange={(e) => setApproverId(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-gray-100 rounded-lg text-xs bg-gray-50 focus:border-primary-500 font-black text-gray-800 transition-all"
+                  >
+                    <option value="">Designate Approver...</option>
+                    {deptUsers.filter(u => ['MANAGER', 'ADMIN', 'COMPANY_ADMIN'].includes(u.role)).map(u => (
+                      <option key={u.id} value={u.id}>{u.name}</option>
+                    ))}
+                    {deptUsers.filter(u => !['MANAGER', 'ADMIN', 'COMPANY_ADMIN'].includes(u.role)).length > 0 && (
+                       <optgroup label="Core Personnel">
+                         {deptUsers.filter(u => !['MANAGER', 'ADMIN', 'COMPANY_ADMIN'].includes(u.role)).map(u => (
+                            <option key={u.id} value={u.id}>{u.name}</option>
+                         ))}
+                       </optgroup>
+                    )}
+                  </select>
+                  <p className="text-[10px] font-bold text-gray-400 px-1 italic leading-none">The selected individual will automatically be deployed to the Tactical Squad.</p>
+                </motion.div>
+              )}
 
               {/* Type */}
               <div>

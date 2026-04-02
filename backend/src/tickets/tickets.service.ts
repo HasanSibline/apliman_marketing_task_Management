@@ -136,6 +136,8 @@ export class TicketsService {
     amount?: number;
     providerName?: string;
     deadline?: string;
+    requiresApproval?: boolean;
+    approverId?: string;
   }) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -147,18 +149,14 @@ export class TicketsService {
     const receiverDept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
 
     // Determine initial status:
-    // 1. If specifically to a user, no manager approval required.
-    // 2. If to a department, requires manager approval.
-    let initialStatus: TicketStatus = TicketStatus.PENDING_REQ_MGR;
-    const isDirectToUser = !!data.assigneeId;
-    const isSameDept = user.departmentId === data.receiverDeptId;
-    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user.role);
-
-    if (isDirectToUser) {
-      initialStatus = TicketStatus.OPEN;
-    } else if (!user.managerId || isAdmin || isSameDept) {
+    // 1. If requiresApproval is true, wait for Receiver Manager
+    // 2. Otherwise, status is OPEN
+    let initialStatus: TicketStatus = TicketStatus.OPEN;
+    if (data.requiresApproval) {
       initialStatus = TicketStatus.PENDING_REC_MGR;
     }
+
+    const isSameDept = user.departmentId === receiverDept?.id;
 
     const ticket = await this.prisma.ticket.create({
       data: {
@@ -171,14 +169,20 @@ export class TicketsService {
         receiverDeptId: data.receiverDeptId,
         assigneeId: data.assigneeId || null,
         requesterId: userId,
-        requesterManagerId: user.managerId,
-        receiverManagerId: receiverDept?.managerId || null,
+        receiverManagerId: data.requiresApproval ? (data.approverId || receiverDept?.managerId || null) : null,
         isInternal: data.isInternal || isSameDept || false,
         amount: data.amount ? parseFloat(data.amount.toString()) : null,
         providerName: data.providerName || null,
         deadline: data.deadline ? new Date(data.deadline) : null,
         status: initialStatus,
+        assignments: {
+          create: data.requiresApproval && data.approverId ? [{ userId: data.approverId }] : []
+        }
       },
+      include: {
+        receiverDept: true,
+        requester: true
+      }
     });
 
     // Strategy Center: Generate Initialization Briefing
@@ -189,22 +193,14 @@ export class TicketsService {
     await this.addSystemComment(ticket.id, userId, summary, companyId);
 
     // Notify for tactical authorizations if required
-    if (initialStatus === TicketStatus.PENDING_REQ_MGR && user.managerId) {
+    const targetApproverId = ticket.receiverManagerId;
+    if (initialStatus === TicketStatus.PENDING_REC_MGR && targetApproverId) {
       await this.notifications.createNotification({
-        userId: user.managerId,
+        userId: targetApproverId,
         ticketId: ticket.id,
         type: 'TICKET_APPROVAL_NEEDED',
         title: 'Authorization Requested',
         message: `${user.name} has initiated an engagement (${ticket.ticketNumber}) that requires your managerial authorization.`,
-        actionUrl: `/tickets/${ticket.id}`
-      });
-    } else if (initialStatus === TicketStatus.PENDING_REC_MGR && receiverDept?.managerId) {
-      await this.notifications.createNotification({
-        userId: receiverDept.managerId,
-        ticketId: ticket.id,
-        type: 'TICKET_APPROVAL_NEEDED',
-        title: 'Logistical Authorization Needed',
-        message: `An incoming engagement request (${ticket.ticketNumber}) for the ${receiverDept.name} department requires your review.`,
         actionUrl: `/tickets/${ticket.id}`
       });
     }
@@ -215,9 +211,7 @@ export class TicketsService {
   async approve(id: string, userId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
 
-    if (ticket.status === TicketStatus.PENDING_REQ_MGR) {
-      return this.approveByRequesterManager(id, userId, companyId);
-    } else if (ticket.status === TicketStatus.PENDING_REC_MGR) {
+    if (ticket.status === TicketStatus.PENDING_REC_MGR) {
       return this.approveByReceiverManager(id, userId, companyId);
     } else {
       throw new BadRequestException('Ticket is not in an approval stage');
@@ -229,9 +223,7 @@ export class TicketsService {
 
     // Authorization check
     let canReject = false;
-    if (ticket.status === TicketStatus.PENDING_REQ_MGR && ticket.requesterManagerId === userId) {
-      canReject = true;
-    } else if (ticket.status === TicketStatus.PENDING_REC_MGR && (ticket.receiverManagerId === userId || ticket.receiverDept?.managerId === userId)) {
+    if (ticket.status === TicketStatus.PENDING_REC_MGR && (ticket.receiverManagerId === userId || ticket.receiverDept?.managerId === userId)) {
       canReject = true;
     }
 
@@ -261,46 +253,7 @@ export class TicketsService {
     return updated;
   }
 
-  async approveByRequesterManager(id: string, managerId: string, companyId: string) {
-    const ticket = await this.findOne(id, companyId);
-    const manager = await this.prisma.user.findUnique({ where: { id: managerId } });
 
-    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(manager?.role || '');
-    if (ticket.requesterManagerId !== managerId && !isAdmin) {
-      throw new ForbiddenException('Only the requester manager or system admin can approve this stage');
-    }
-
-    if (ticket.status !== TicketStatus.PENDING_REQ_MGR) {
-      throw new BadRequestException('Ticket is not in requester approval stage');
-    }
-
-    // Move to receiver manager stage
-    const receiverDept = await this.prisma.department.findUnique({ where: { id: ticket.receiverDeptId } });
-
-    const updated = await this.prisma.ticket.update({
-      where: { id },
-      data: {
-        status: TicketStatus.PENDING_REC_MGR,
-        receiverManagerId: receiverDept?.managerId || null,
-      },
-    });
-
-    await this.addSystemComment(id, managerId, 'Status updated to Pending Assignment', companyId);
-
-    // Notify receiver manager for the next tactical authorize
-    if (receiverDept?.managerId) {
-      await this.notifications.createNotification({
-        userId: receiverDept.managerId,
-        ticketId: id,
-        type: 'TICKET_APPROVAL_NEEDED',
-        title: 'Authorization Required',
-        message: `An engagement request (${ticket.ticketNumber}) has cleared departmental approval and requires your logistical sign-off.`,
-        actionUrl: `/tickets/${id}`
-      });
-    }
-
-    return updated;
-  }
 
   async approveByReceiverManager(id: string, managerId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
@@ -340,22 +293,18 @@ export class TicketsService {
   async assign(id: string, managerId: string, assigneeId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId) as any;
 
-    // Check if the user is already assigned to the squad
     const exists = ticket.assignments?.some((a: any) => a.userId === assigneeId);
     
     if (!exists) {
       await this.prisma.ticketAssignment.create({
-        data: {
-          ticketId: id,
-          userId: assigneeId
-        }
+        data: { ticketId: id, userId: assigneeId }
       });
     }
 
     const updated = await this.prisma.ticket.update({
       where: { id },
       data: {
-        assigneeId: ticket.assigneeId || assigneeId, // Lock the first one as lead, squad handles the rest
+        assigneeId: ticket.assigneeId || assigneeId,
         status: TicketStatus.ASSIGNED,
       },
     });
@@ -363,7 +312,6 @@ export class TicketsService {
     const assignee = await this.prisma.user.findUnique({ where: { id: assigneeId } });
     await this.addSystemComment(id, managerId, `Deployed ${assignee?.name || 'Personnel'} to the mission squad.`, companyId);
 
-    // Notify assigned personnel
     await this.notifications.createNotification({
       userId: assigneeId,
       ticketId: id,
@@ -374,6 +322,32 @@ export class TicketsService {
     });
 
     return updated;
+  }
+
+  async invite(id: string, inviterId: string, personId: string, companyId: string) {
+    const ticket = await this.findOne(id, companyId) as any;
+    const inviter = await this.prisma.user.findUnique({ where: { id: inviterId } });
+
+    const exists = ticket.assignments?.some((a: any) => a.userId === personId);
+    if (!exists) {
+      await this.prisma.ticketAssignment.create({
+        data: { ticketId: id, userId: personId }
+      });
+    }
+
+    const person = await this.prisma.user.findUnique({ where: { id: personId } });
+    await this.addSystemComment(id, inviterId, `${inviter?.name} invited ${person?.name} to collaborate.`, companyId);
+
+    await this.notifications.createNotification({
+      userId: personId,
+      ticketId: id,
+      type: 'TICKET_INVITE',
+      title: 'Mission Invitation',
+      message: `${inviter?.name} has requested your tactical support on mission ${ticket.ticketNumber}.`,
+      actionUrl: `/tickets/${id}`
+    });
+
+    return { success: true };
   }
 
   async startProgress(id: string, userId: string, companyId: string) {

@@ -16,7 +16,7 @@ import { useNavigate } from 'react-router-dom'
 import ActionModal from '@/components/ui/ActionModal'
 import CreateTicketModal from '@/components/tickets/CreateTicketModal'
 
-type TicketStatus = 'PENDING_REQ_MGR' | 'PENDING_REC_MGR' | 'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'RESOLVED' | 'CANCELLED'
+type TicketStatus = 'PENDING_REC_MGR' | 'OPEN' | 'ASSIGNED' | 'RESOLVED' | 'CANCELLED' | 'IN_PROGRESS'
 
 const TicketsPage: React.FC = () => {
   const navigate = useNavigate()
@@ -132,13 +132,10 @@ const TicketsPage: React.FC = () => {
 
   const getStatusBadge = (ticket: any) => {
     switch (ticket.status as TicketStatus) {
-      case 'PENDING_REQ_MGR': 
-        return <span className="px-3 py-1 bg-amber-50 text-amber-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-amber-100 italic">Pending: {ticket.requesterManager?.name || 'Manager'}</span>
       case 'PENDING_REC_MGR': 
-        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Pending Priority: {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Dept. Manager'}</span>
+        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Pending Approval: {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Dept. Manager'}</span>
       case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-blue-100">Open</span>
       case 'ASSIGNED': return <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-indigo-100">Assigned</span>
-      case 'IN_PROGRESS': return <span className="px-3 py-1 bg-purple-50 text-purple-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-purple-100">In Progress</span>
       case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-emerald-100">Resolved</span>
       case 'CANCELLED': return <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-rose-100">Cancelled</span>
       default: return null
@@ -289,10 +286,9 @@ const TicketsPage: React.FC = () => {
                             <TrashIcon className="h-4 w-4" />
                           </button>
                         )}
-                        {(((ticket.status === 'PENDING_REQ_MGR' && (ticket.requesterManagerId === user?.id || ticket.requesterDept?.managerId === user?.id)) ||
-                          (ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id))) ||
+                        {((ticket.status === 'PENDING_REC_MGR' && (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id)) ||
                           isAdmin) &&
-                          (ticket.status === 'PENDING_REQ_MGR' || ticket.status === 'PENDING_REC_MGR') && (
+                          ticket.status === 'PENDING_REC_MGR' && (
                           <>
                             <button onClick={(e) => promptAction(e, 'approve', ticket.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><CheckCircleIcon className="h-4 w-4" /></button>
                             <button onClick={(e) => promptAction(e, 'reject', ticket.id)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><XCircleIcon className="h-4 w-4" /></button>

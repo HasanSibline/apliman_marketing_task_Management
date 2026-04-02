@@ -35,9 +35,10 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   const [showConfirmClose, setShowConfirmClose] = useState(false)
   const [isMinimized, setIsMinimized] = useState(false)
   const [suggestions, setSuggestions] = useState<any[]>([])
-  const [suggestionType, setSuggestionType] = useState<'user' | 'task' | null>(null)
   const [allUsers, setAllUsers] = useState<any[]>([])
   const [allTasks, setAllTasks] = useState<any[]>([])
+  const [allTickets, setAllTickets] = useState<any[]>([])
+  const [suggestionType, setSuggestionType] = useState<'user' | 'task' | 'ticket' | null>(null)
   const [cursorPosition, setCursorPosition] = useState(0)
   const [inlineCompletion, setInlineCompletion] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -102,14 +103,19 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   // Fetch users and tasks for autocomplete
   const fetchUsersAndTasks = async () => {
     try {
-      const [usersRes, tasksRes] = await Promise.all([
+      const [usersRes, tasksRes, ticketsRes] = await Promise.all([
         api.get('/users'),
-        api.get('/tasks')
+        api.get('/tasks'),
+        api.get('/tickets')
       ])
       setAllUsers(usersRes.data || [])
       // Handle both direct array and paginated response
       const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : (tasksRes.data?.tasks || [])
       setAllTasks(tasks)
+      
+      const tickets = Array.isArray(ticketsRes.data) ? ticketsRes.data : (ticketsRes.data?.tickets || [])
+      setAllTickets(tickets)
+      console.log('Fetched entities for autocomplete:', { users: usersRes.data?.length, tasks: tasks.length, tickets: tickets.length })
       console.log('Fetched tasks for autocomplete:', tasks.length)
     } catch (error) {
       console.error('Error fetching users and tasks:', error)
@@ -351,6 +357,36 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
       }
     }
 
+    // Check for # ticket reference (inline autocomplete)
+    const hashMatch = textBeforeCursor.match(/#([\w\s-]*)$/)
+    if (hashMatch) {
+      const query = hashMatch[1].toLowerCase().trim()
+      
+      // Filter only active tickets (not rejected/cancelled as requested)
+      const activeTickets = allTickets.filter(t => !['REJECTED', 'CANCELLED'].includes(t.status))
+      
+      if (query.length >= 1) {
+        const matchedTicket = activeTickets.find((t: any) => 
+          t.title.toLowerCase().includes(query) || t.ticketNumber.toLowerCase().includes(query)
+        )
+        
+        if (matchedTicket) {
+          setInlineCompletion(matchedTicket.ticketNumber.substring(query.indexOf(matchedTicket.ticketNumber.toLowerCase()) === 0 ? query.length : 0))
+          // For tickets, we might want to just show the list if it's tricky to inline complete
+          setSuggestionType('ticket')
+          setSuggestions(activeTickets.filter(t => 
+            t.title.toLowerCase().includes(query) || t.ticketNumber.toLowerCase().includes(query)
+          ).slice(0, 5))
+          return
+        }
+      } else {
+        // Show all active tickets if just # is typed
+        setSuggestionType('ticket')
+        setSuggestions(activeTickets.slice(0, 5))
+        return
+      }
+    }
+
     // No match, hide completion
     setInlineCompletion('')
     setSuggestions([])
@@ -392,6 +428,11 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
       const beforeTask = textBeforeCursor.substring(0, slashIndex)
       newText = beforeTask + `/${suggestion.title} ` + textAfterCursor
       newCursorPos = beforeTask.length + suggestion.title.length + 2
+    } else if (suggestionType === 'ticket') {
+      const hashIndex = textBeforeCursor.lastIndexOf('#')
+      const beforeTicket = textBeforeCursor.substring(0, hashIndex)
+      newText = beforeTicket + `#${suggestion.ticketNumber} ` + textAfterCursor
+      newCursorPos = beforeTicket.length + suggestion.ticketNumber.length + 2
     }
     
     setInputValue(newText)
@@ -527,21 +568,25 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mt-12 px-6"
                   >
-                    <div className="mb-6 inline-block p-6 bg-primary-50 rounded-3xl">
-                      <ChatBubbleLeftRightIcon className="w-16 h-16 mx-auto text-primary-600" />
+                    <div className="mb-6 inline-block p-5 bg-primary-50 rounded-full">
+                      <ChatBubbleLeftRightIcon className="w-12 h-12 mx-auto text-primary-600" />
                     </div>
-                    <h4 className="text-lg font-black text-gray-900 mb-3">Initialize Connection?</h4>
-                    <p className="text-sm text-gray-500 mb-6 font-medium">Ask about tasks, company goals, or attach files for deep multimodal analysis.</p>
-                    <div className="flex flex-wrap justify-center gap-2 max-w-sm mx-auto">
-                      {["List my tasks", "Our competitors", "Goal for Q2"].map(q => (
-                        <button 
-                          key={q}
-                          onClick={() => setInputValue(q)}
-                          className="px-3 py-1.5 bg-white border border-gray-100 rounded-full text-[11px] font-black text-gray-600 shadow-sm hover:border-primary-200 hover:text-primary-600 transition-all"
-                        >
-                          "{q}"
-                        </button>
-                      ))}
+                    <h4 className="text-base font-black text-gray-900 mb-2">ApliChat Intelligence</h4>
+                    <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-4">
+                      Ready for multimodal analysis
+                    </p>
+                    
+                    {/* Compact Mention Hints */}
+                    <div className="flex items-center justify-center gap-3 text-[12px] text-gray-500">
+                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        <span className="font-black text-primary-600">@</span> members
+                      </span>
+                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        <span className="font-black text-primary-600">/</span> tasks
+                      </span>
+                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                        <span className="font-black text-primary-600">#</span> tickets
+                      </span>
                     </div>
                   </motion.div>
                 )}
@@ -667,7 +712,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     >
                       <div className="p-2 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
                         <span className="text-[9px] font-black text-gray-400 tracking-widest uppercase">
-                          Select {suggestionType === 'user' ? 'a Team Member' : 'a Task'}
+                          Select {suggestionType === 'user' ? 'a Team Member' : suggestionType === 'task' ? 'a Task' : 'a Ticket'}
                         </span>
                       </div>
                       <div className="overflow-y-auto max-h-32">
@@ -678,10 +723,10 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                             className="w-full text-left px-4 py-2 text-[12px] hover:bg-primary-50 border-b border-gray-50 last:border-0 transition-colors flex items-center justify-between group"
                           >
                             <span className="text-gray-700 font-medium group-hover:text-primary-700 truncate max-w-[200px]">
-                              {suggestionType === 'user' ? item.name : item.title}
+                              {suggestionType === 'user' ? item.name : suggestionType === 'task' ? item.title : item.title}
                             </span>
                             <span className="text-[10px] font-black text-gray-300 group-hover:text-primary-300">
-                              {suggestionType === 'user' ? item.email : item.taskNumber || 'TSK'}
+                              {suggestionType === 'user' ? item.email : suggestionType === 'task' ? (item.taskNumber || 'TSK') : item.ticketNumber}
                             </span>
                           </button>
                         ))}

@@ -97,7 +97,7 @@ model Ticket {
   title              String
   description        String
   type               TicketType         @default(GENERAL)
-  status             TicketStatus       @default(PENDING_REQ_MGR)
+  status             TicketStatus       @default(OPEN)
   priority           String             @default("MEDIUM")
   isInternal         Boolean            @default(false)
   requesterId        String
@@ -663,7 +663,6 @@ model TaskDependency {
 }
 
 enum TicketStatus {
-  PENDING_REQ_MGR
   PENDING_REC_MGR
   OPEN
   ASSIGNED

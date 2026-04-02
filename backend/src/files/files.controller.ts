@@ -168,6 +168,12 @@ export class FilesController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const fileInfo = await this.filesService.downloadTicketFile(fileId, req.user.id, req.user.role);
+    
+    // Handle Cloudinary/external URL by redirecting
+    if (fileInfo.filePath.startsWith('http')) {
+      return res.redirect(fileInfo.filePath);
+    }
+
     const file = createReadStream(fileInfo.filePath);
     res.set({
       'Content-Type': fileInfo.mimeType,

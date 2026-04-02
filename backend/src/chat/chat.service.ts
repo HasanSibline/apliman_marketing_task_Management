@@ -186,9 +186,10 @@ export class ChatService {
         },
       });
 
-      // Process mentions and task references
+      // Process mentions, task references, and ticket references
       const mentions = this.extractMentions(dto.message);
       const taskRefs = this.extractTaskReferences(dto.message);
+      const ticketRefs = this.extractTicketReferences(dto.message);
       const isDeepAnalysis = /\b(deep|details|detailed|explain|elaborate)\b/i.test(dto.message);
 
       // Get user's company ID for filtering
@@ -248,11 +249,12 @@ export class ChatService {
         this.logger.log(`  - ${ks.name} (${ks.type}): ${ks.content ? `${ks.content.length} chars` : 'NO CONTENT'}`);
       });
 
-      // Fetch additional context based on mentions and task references
+      // Fetch additional context based on mentions, task references, and ticket references
       const additionalContext = await this.fetchAdditionalContext(
         userId,
         mentions,
         taskRefs,
+        ticketRefs
       );
 
       // Prepare conversation history
@@ -296,6 +298,7 @@ export class ChatService {
           metadata: {
             mentions,
             taskRefs,
+            ticketRefs,
             contextUsed: !!aiResponse?.contextUsed,
             files: aiResponse?.files || [], // For future AI return assets
           },
@@ -408,7 +411,6 @@ export class ChatService {
    */
   private extractTaskReferences(message: string): string[] {
     const taskRegex = /\/([^\s]+)/g;
-    const codeRegex = /[#|\/]?\b(TSK|TKT)-(\d+)\b/gi;
     const tasks: string[] = [];
     let match;
 
@@ -416,14 +418,34 @@ export class ChatService {
       tasks.push(match[1]);
     }
     
-    // Reset regex index and find codes like TSK-1001 or #TKT-1001
-    codeRegex.lastIndex = 0;
-    while ((match = codeRegex.exec(message)) !== null) {
-      const code = match[0].replace(/[#|\/]/g, '').toUpperCase();
-      tasks.push(code);
+    // Also find codes like TSK-1001
+    const tskRegex = /\bTSK-(\d+)\b/gi;
+    while ((match = tskRegex.exec(message)) !== null) {
+      tasks.push(match[0].toUpperCase());
     }
 
     return tasks;
+  }
+
+  /**
+   * Extract #ticket references from message
+   */
+  private extractTicketReferences(message: string): string[] {
+    const ticketRegex = /#([^\s]+)/g;
+    const tickets: string[] = [];
+    let match;
+
+    while ((match = ticketRegex.exec(message)) !== null) {
+      tickets.push(match[1]);
+    }
+    
+    // Also find codes like TKT-1001
+    const tktRegex = /\bTKT-(\d+)\b/gi;
+    while ((match = tktRegex.exec(message)) !== null) {
+      tickets.push(match[0].toUpperCase());
+    }
+
+    return tickets;
   }
 
   /**
@@ -434,6 +456,7 @@ export class ChatService {
     userId: string,
     mentions: string[],
     taskRefs: string[],
+    ticketRefs: string[],
   ) {
     const context: any = {};
 

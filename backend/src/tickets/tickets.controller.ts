@@ -47,10 +47,6 @@ export class TicketsController {
     return this.ticketsService.reject(id, req.user.id, req.user.companyId, reason);
   }
 
-  @Patch(':id/approve-requester')
-  approveByRequesterManager(@Param('id') id: string, @Request() req) {
-    return this.ticketsService.approveByRequesterManager(id, req.user.id, req.user.companyId);
-  }
 
   @Patch(':id/approve-receiver')
   approveByReceiverManager(@Param('id') id: string, @Request() req) {
@@ -60,6 +56,11 @@ export class TicketsController {
   @Post(':id/assign')
   assign(@Param('id') id: string, @Body('assigneeId') assigneeId: string, @Request() req) {
     return this.ticketsService.assign(id, req.user.id, assigneeId, req.user.companyId);
+  }
+
+  @Post(':id/invite')
+  invite(@Param('id') id: string, @Body('personId') personId: string, @Request() req) {
+    return this.ticketsService.invite(id, req.user.id, personId, req.user.companyId);
   }
 
   @Patch(':id/start')
