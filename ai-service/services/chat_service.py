@@ -165,8 +165,6 @@ class ChatService:
                         raise Exception(f"Groq API failure ({response.status}): {error_text}")
         except Exception as e:
             logger.error(f"❌ Groq Chat request failed: {str(e)}")
-            raise e
-
     async def _generate_via_rest(
         self, 
         message: str, 
@@ -175,99 +173,99 @@ class ChatService:
         files: Optional[List[Dict[str, Any]]] = None, 
         user_token: Optional[str] = None
     ) -> str:
-        """Make a request to Gemini API via REST with rotation and multimodal support"""
+        """Make a request to Gemini API via REST with multi-modal parts"""
         attempts = 0
         last_error = None
 
-        # --- Fetch file content from backend URLs and embed in prompt/parts ---
-        file_parts = []
+        # --- Multimodal Support: Fetch assets and binary content ---
+        media_parts = []
+        text_content_parts = []
         file_count = 0
 
         if files:
-            # Priority: Live Environment Backend URL -> API URL -> Default Localhost
-            backend_base = os.getenv("BACKEND_URL")
-            if not backend_base:
-                # Optimized local resolution for Windows/Docker loops
-                is_local = os.getenv("ENVIRONMENT") == "development" or "localhost" in os.getenv("HOST", "localhost")
-                if is_local:
-                    backend_base = "http://localhost:3001" # Try localhost first for native dev
-                else:
-                    backend_base = "https://marketing-task-management.onrender.com"
-            
-            backend_base = backend_base.rstrip('/')
-            logger.info(f"🔍 MULTIMODAL: Using backend base URL: {backend_base}")
+            # Prefer absolute URLs sent by backend; fallback to robust local/remote guessing
+            backend_base = os.getenv("BACKEND_URL", "").rstrip('/')
             
             for f in files:
                 url = f.get("url", "")
                 name = f.get("name", "file")
                 mime = f.get("type", "")
 
-                if url.startswith("/") or not url.startswith("http"):
-                    # Robust local/prod URL resolution
-                    url_prefix = "" if url.startswith("/") else "/"
-                    full_url = f"{backend_base}{url_prefix}{url}"
-                else:
-                    full_url = url
+                # Normalize URL for fetching
+                full_url = url
+                if not (url.startswith("http://") or url.startswith("https://")):
+                    if backend_base:
+                        url_sep = "" if url.startswith("/") else "/"
+                        full_url = f"{backend_base}{url_sep}{url}"
+                    else:
+                        full_url = f"http://localhost:3001/{url.lstrip('/')}"
                 
                 try:
-                    logger.info(f"✨ MULTIMODAL: Preparing to fetch {name} from {full_url}")
+                    logger.info(f"✨ MULTIMODAL FETCH: Trying {name} from {full_url}")
                     headers = {}
                     if user_token:
                         headers['Authorization'] = user_token if user_token.startswith('Bearer ') else f'Bearer {user_token}'
 
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(full_url, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as file_res:
+                        async with session.get(full_url, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as file_res:
                             if file_res.status == 200:
                                 raw = await file_res.read()
-                                logger.info(f"💾 File {name} fetched successfully ({len(raw)} bytes)")
+                                logger.info(f"✅ Downloaded {name} ({len(raw)} bytes)")
                                 file_count += 1
                                 
-                                # Process binary vs text
-                                if any(mime.startswith(t) for t in ["image/", "application/pdf"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".pdf")):
+                                # 1. Binary Parts (Gemini Inline Data)
+                                is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+                                if is_image or name.lower().endswith(".pdf"):
                                     import base64
                                     actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
                                     b64 = base64.b64encode(raw).decode("utf-8")
-                                    file_parts.append({
+                                    media_parts.append({
                                         "inline_data": {
                                             "mime_type": actual_mime,
                                             "data": b64
                                         }
                                     })
-                                    logger.info(f"🖼️ Attached binary part for {name} ({actual_mime})")
+                                    logger.info(f"🖼️ Attached visual/binary part: {name}")
                                 
-                                elif any(ext in name.lower() for ext in [".txt", ".md", ".csv", ".json", ".xml", ".html", ".js", ".ts", ".py", ".go", ".doc", ".docx"]):
-                                    # Handle Docx vs Plain Text
+                                # 2. Text Parts (Extracted content)
+                                else:
+                                    content = None
                                     if name.lower().endswith((".docx", ".doc")):
                                         try:
                                             from docx import Document
                                             import io
                                             doc = Document(io.BytesIO(raw))
                                             text = "\n".join([para.text for para in doc.paragraphs])
-                                            if not text.strip():
-                                                text = "[Empty or non-text content detected in Word Document]"
-                                            content = f"--- BEGIN CONTENT OF ATTACHED WORD DOC '{name}' ---\n{text[:20000]}\n--- END DOCUMENT ---"
-                                            file_parts.append({"text": content})
-                                            logger.info(f"📄 Read text from Word doc {name}")
-                                        except Exception as docx_err:
-                                            logger.error(f"❌ Docx Parse Error ({name}): {docx_err}")
-                                            file_parts.append({"text": f"[Error reading Word Document '{name}']: {str(docx_err)}"})
+                                            content = f"[Attached Word Document '{name}']:\n{text[:15000]}"
+                                        except Exception as e:
+                                            content = f"[Error reading Word Doc '{name}': {str(e)}]"
                                     else:
-                                        # Plain text
-                                        text = raw.decode("utf-8", errors="replace")
-                                        content = f"--- BEGIN CONTENT OF ATTACHED FILE '{name}' ---\n{text[:20000]}\n--- END FILE ---"
-                                        file_parts.append({"text": content})
-                                        logger.info(f"📝 Read text from file {name}")
+                                        # Plain text, CSV, JSON, MD, etc.
+                                        try:
+                                            text = raw.decode("utf-8", errors="replace")
+                                            content = f"[Attached File '{name}']:\n{text[:15000]}"
+                                        except:
+                                            content = f"[Attached Binary File '{name}' - Length: {len(raw)} bytes]"
+                                    
+                                    if content:
+                                        text_content_parts.append({"text": content})
+                                        logger.info(f"📄 Attached textual part: {name}")
                             else:
-                                logger.error(f"❌ Backend returned {file_res.status} for {full_url}")
-                                file_parts.append({"text": f"Error: Could not retrieve file '{name}' during analysis (Server returned {file_res.status})"})
-                    
-                except Exception as file_err:
-                    logger.error(f"❌ MULTIMODAL FETCH FAILURE ({name}): {file_err}")
-                    file_parts.append({"text": f"Error: System failed to fetch file '{name}' during analysis."})
+                                logger.error(f"❌ FETCH FAILED (Status {file_res.status}) for {full_url}")
+                                text_content_parts.append({"text": f"(System Error: Could not retrieve file '{name}' for analysis. Status {file_res.status})"})
+                except Exception as e:
+                    logger.error(f"❌ MULTIMODAL EXCEPTION ({name}): {str(e)}")
+                    text_content_parts.append({"text": f"(System Error: Failed to fetch file '{name}')"})
 
-        # Final prompt strengthening
-        effective_message = message if message and message.strip() else f"(Analyzing attached file: {files[0].get('name')})" if files else "(Processing request...)"
-        file_instruction = f"\n(SYSTEM NOTICE: The user has attached {file_count} file(s) for your review. Please prioritize analyzing them.)" if file_count > 0 else ""
+        # Final Prompt Construction
+        # NOTE: Moving media_parts to the beginning is often more effective for vision logic
+        user_message_text = message if (message and message.strip()) else "(Analyzing attached assets...)"
+        parts = media_parts + text_content_parts + [
+            {"text": f"Contextual History Reference:\n{history_text}\n\nUser Message: {user_message_text}"}
+        ]
+
+        if file_count > 0:
+            parts.append({"text": f"\n[ANALYSIS INSTRUCTION: Please review the {file_count} attached images/documents and provide a detailed response.]"})
 
         max_attempts = max(len(self.api_keys), 3)
 
@@ -282,55 +280,48 @@ class ChatService:
                 "contents": [
                     {
                         "role": "user",
-                        "parts": [
-                            {"text": f"Contextual Conversation History:\n{history_text}\n\nUser Message: {effective_message}{file_instruction}"}
-                        ] + file_parts
+                        "parts": parts
                     }
                 ],
                 "generationConfig": {
-                    "temperature": 0.5,
+                    "temperature": 0.4,
                     "maxOutputTokens": 4096,
-                    "topP": 0.95,
-                    "topK": 40
+                    "topP": 0.8,
                 }
             }
 
-            # Try query and header auth
             for auth_method in ["query", "header"]:
                 auth_url = f"{url}?key={current_key}" if auth_method == "query" else url
                 try:
                     async with aiohttp.ClientSession() as session:
-                        request_headers = {'Content-Type': 'application/json'}
+                        headers = {'Content-Type': 'application/json'}
                         if auth_method == "header":
-                            request_headers['X-goog-api-key'] = current_key
+                            headers['X-goog-api-key'] = current_key
 
-                        async with session.post(auth_url, headers=request_headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
+                        async with session.post(auth_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=50)) as response:
                             if response.status == 200:
                                 data = await response.json()
                                 if data.get('candidates') and data['candidates'][0].get('content'):
                                     return data['candidates'][0]['content']['parts'][0]['text']
                             
                             error_text = await response.text()
-                            
-                            # Handle 429 specifically with backoff
                             if response.status == 429:
-                                wait_time = 2 ** (attempts + 1)
-                                logger.warning(f"⚠️ Rate limited (429). Attempt {attempts + 1}/{max_attempts}. Waiting {wait_time}s...")
-                                await asyncio.sleep(wait_time)
-                                break # Break auth_method loop to retry
+                                logger.warning(f"Rate limited (429). Attempt {attempts+1}. Roating keys...")
+                                break
                                 
-                            logger.warning(f"⚠️ {auth_method} auth failed ({response.status}): {error_text[:200]}")
+                            logger.warning(f"API Attempt failed ({response.status}): {error_text[:250]}")
                             last_error = error_text
                 except Exception as e:
                     last_error = str(e)
                     continue
             
-            # Rotate key or just increment attempt if we only have one key
             attempts += 1
             if not self._rotate_api_key() and attempts < max_attempts:
+                await asyncio.sleep(1)
                 continue
 
-        raise Exception(f"AI generation failed after {attempts} attempts: {last_error}")
+        raise Exception(f"AI Multimodal analysis failed: {last_error}")
+
 
     def _build_system_prompt(
         self,
@@ -342,48 +333,35 @@ class ChatService:
         company_name: str = None,
         has_files: bool = False
     ) -> str:
-        """Build the system prompt with all context"""
+        """Build the system prompt with vision identity preservation"""
         
-        response_style = "detailed and comprehensive" if is_deep_analysis else "concise and conversational"
+        response_style = "comprehensive" if is_deep_analysis else "conversational"
+        company_name = company_name or "the company"
         
-        # Use provided company name, or extract from knowledge sources, or use generic fallback
-        if not company_name:
-            company_name = "the company"
-            if knowledge_sources:
-                company_sources = [s for s in knowledge_sources if s.get('type') in ['COMPANY', 'OWN_COMPANY']]
-                if company_sources and company_sources[0].get('name'):
-                    company_name = company_sources[0].get('name').replace(' - ', '').replace('About ', '')
-        
-        prompt = f"""You are ApliChat, a helpful and versatile AI assistant for {company_name}. 
+        prompt = f"""You are ApliChat, a state-of-the-art MULTIMODAL AI assistant for {company_name}. 
 
-IMPORTANT: When users ask about "{company_name}" or "our company" or "this company", they are asking about {company_name} THE BUSINESS/ORGANIZATION, NOT about the task management platform they're using. Use the knowledge sources provided below to answer questions about {company_name}'s actual business, services, products, and operations.
+IMPORTANT IDENTITY GUIDELINES:
+- You are a VISION-CAPABLE model (Gemini 1.5 Flash). 
+- If files or images are attached, you CAN see and analyze them perfectly.
+- NEVER say "I am a text-based model" or "I cannot see images". If a file is attached, analyze it!
+- If a file is attached, it takes ABSOLUTE PRIORITY over other context.
 
 Your capabilities:
-- Answer questions about {company_name}'s business, services, and operations (use knowledge sources below)
-- Answer general questions on any topic (technology, business, science, etc.)
-- Help with task management features (creating tasks, tracking progress, etc.)
-- Access real-time information about tasks, users, and workflows
-- Remember past conversations and user preferences
-- Know about {company_name}'s competitors
+- Multimodal analysis of images, PDFs, and documents
+- Answering questions about {company_name}'s business and operations
+- Task and lifecycle management assistance
+- Deep analytical reasoning
 
-Your personality:
-- Friendly, professional, and conversational
-- Provide {response_style} responses
-- Helpful for both general queries and domain-specific questions
-- Natural and engaging, like chatting with a knowledgeable colleague
+Current User Context:
+- Name: {user.get('name', 'Analyst')}
+- Role: {user.get('role', 'User')}
+- Department: {user.get('department', {}).get('name', 'N/A')}
 
-Current user: {user.get('name', 'User')} ({user.get('role', 'Unknown role')})
-Position: {user.get('position', 'Not specified')}
-Department: {user.get('department', {}).get('name', 'Not assigned')}
-
-=== ENTERPRISE CAPABILITIES ===
-- You are aware of the company hierarchy and departments.
-- You can reference tasks using TSK-XXXX numbers and tickets using TKT-XXXX numbers.
-- If a user mentions a code like TKT-1001, they are referring to a specific ticket.
-- You can analyze files and images if they are provided in the chat.
-{"- (IMPORTANT: ANALYST MODE ACTIVE) The user has attached files/images. These files take ABSOLUTE PRIORITY over any other knowledge source. If the file content contradicts your general knowledge, follow the file content." if has_files else ""}
+=== ANALYST MODE ===
+{"[MODE: ACTIVE] Multiple files/images have been attached to this message. Review them immediately." if has_files else "[MODE: STANDARD] No new files attached."}
 
 """
+
 
         # Add user context (memory from past conversations)
         if user_context and len(user_context) > 0:

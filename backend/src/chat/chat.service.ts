@@ -7,21 +7,26 @@ import { Inject, forwardRef } from '@nestjs/common';
 import { CompaniesService } from '../companies/companies.service';
 import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from './dto/chat.dto';
 
+import { ConfigService } from '@nestjs/config';
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private readonly aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8001';
+  private readonly aiServiceUrl: string;
 
   constructor(
     private prisma: PrismaService,
     private httpService: HttpService,
+    private configService: ConfigService,
     @Inject(forwardRef(() => CompaniesService))
     private companiesService: CompaniesService,
-  ) { }
+  ) {
+    this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
+  }
 
   /** Authorization headers sent with every AI service request */
   private get aiServiceHeaders(): Record<string, string> {
-    const secret = process.env.AI_SERVICE_SECRET || '';
+    const secret = this.configService.get<string>('AI_SERVICE_SECRET', '');
     return secret ? { Authorization: `Bearer ${secret}` } : {};
   }
 
@@ -269,6 +274,16 @@ export class ChatService {
         },
       });
 
+      // Normalize file URLs to absolute paths so the AI service can fetch them
+      const backendUrl = this.configService.get<string>('BACKEND_URL', 'http://localhost:3001').replace(/\/$/, '');
+      const normalizedFiles = (dto.files || []).map(file => {
+        if (file.url && (file.url.startsWith('/') || !file.url.startsWith('http'))) {
+          const prefix = file.url.startsWith('/') ? '' : '/';
+          return { ...file, url: `${backendUrl}${prefix}${file.url}` };
+        }
+        return file;
+      });
+
       // Call AI service with company name
       const aiResponse = await this.callAiChatService({
         message: dto.message,
@@ -281,7 +296,7 @@ export class ChatService {
         api_key: aiApiKey, // CRITICAL: Pass company-specific API key (snake_case for Python)
         provider: company.aiProvider || 'gemini', // CRITICAL: Pass company provider
         companyName: company.name, // CRITICAL: Pass actual company name
-        files: dto.files, // Pass files for multimodal support
+        files: normalizedFiles, // Pass absolute URL files for multimodal support
         userToken, // Pass user's access token for file fetching
       });
 
