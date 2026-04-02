@@ -49,15 +49,21 @@ class ChatService:
         user: Dict[str, Any],
         conversation_history: List[Dict[str, Any]],
         knowledge_sources: List[Dict[str, Any]],
-        additional_context: Dict[str, Any],
+        additional_context: Dict[str, Any] = None,
         is_deep_analysis: bool = False,
         company_name: str = None,
         files: Optional[List[Dict[str, Any]]] = None,
         user_token: Optional[str] = None
     ) -> Dict[str, Any]:
-        """
-        Process a chat message and generate a response
-        """
+        """Process an incoming chat message with dynamic provider routing and multimodal support"""
+        
+        additional_context = additional_context or {}
+        
+        logger.info(f"FILES RECEIVED: {len(files) if files else 'NONE'} files")
+        if files:
+            import json
+            logger.info(f"FILES PAYLOAD (first item struct): {json.dumps(files[0], default=str)[:1000]}")
+            
         try:
             logger.info(f"Processing chat message: {message[:50]}...")
             
@@ -93,6 +99,11 @@ class ChatService:
                     if fallback_keys:
                         self.api_key = fallback_keys[0]
                         self.api_keys = fallback_keys
+                    else:
+                        raise Exception("Company uses Groq but attached a file. System requires GOOGLE_API_KEY environment variable for Gemini Vision Fallback!")
+
+                if self.api_key and self.api_key.startswith("gsk_") and "generativelanguage" in self.base_url:
+                    raise Exception("A Groq API key is being inappropriately sent to Google's Gemini endpoint. Please check system fallback keys.")
 
                 # For Gemini, we use separate fields for better reliability
                 response_text = await self._generate_via_rest(
@@ -132,12 +143,10 @@ class ChatService:
             error_msg = str(e)
             logger.error(f"Error processing chat message: {error_msg}")
             
-            # Determine if it's a quota issue to provide a better message
-            detailed_msg = "I'm having a bit of trouble understanding that. Could you rephrase?"
+            # Surface the actual error message to the user/frontend for debugging
+            detailed_msg = f"I encountered an error: {error_msg}"
             if "429" in error_msg:
                 detailed_msg = "It looks like my AI quota just ran out. Please wait a minute and try again!"
-            elif any(p in error_msg for p in ["Gemini", "Groq", "AI service"]):
-                detailed_msg = f"AI service error: {error_msg}. Please check your AI API key and provider settings."
             elif "API key was reported as leaked" in error_msg:
                 detailed_msg = "Your AI API key has been revoked by the provider. Please update your company settings with a new key."
             
@@ -178,6 +187,7 @@ class ChatService:
                         raise Exception(f"Groq API failure ({response.status}): {error_text}")
         except Exception as e:
             logger.error(f"❌ Groq Chat request failed: {str(e)}")
+            raise e
     async def _generate_via_rest(
         self, 
         message: str, 
