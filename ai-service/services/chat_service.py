@@ -257,15 +257,27 @@ class ChatService:
                     logger.error(f"❌ MULTIMODAL EXCEPTION ({name}): {str(e)}")
                     text_content_parts.append({"text": f"(System Error: Failed to fetch file '{name}')"})
 
-        # Final Prompt Construction
-        # NOTE: Moving media_parts to the beginning is often more effective for vision logic
+        # Final Prompt Construction: ATTACHMENTS FIRST, THEN RECENT HISTORY, THEN MESSAGE
+        # This reordering is proven more effective for Gemini 1.5 context prioritization
         user_message_text = message if (message and message.strip()) else "(Analyzing attached assets...)"
-        parts = media_parts + text_content_parts + [
-            {"text": f"Contextual History Reference:\n{history_text}\n\nUser Message: {user_message_text}"}
-        ]
+        
+        # Build prioritized parts list
+        parts = []
+        
+        if media_parts:
+            parts.extend(media_parts)
+            logger.info(f"⚡ Vision: Attached {len(media_parts)} binary/media parts to prompt.")
+            
+        if text_content_parts:
+            parts.extend(text_content_parts)
+            logger.info(f"⚡ Documents: Attached {len(text_content_parts)} text/doc parts to prompt.")
+            
+        parts.append({
+            "text": f"IMPORTANT: ANALYZE THE ABOVE ASSETS FIRST.\n\nRecent History:\n{history_text}\n\nUser Message: {user_message_text}"
+        })
 
         if file_count > 0:
-            parts.append({"text": f"\n[ANALYSIS INSTRUCTION: Please review the {file_count} attached images/documents and provide a detailed response.]"})
+            parts.append({"text": f"\n[SYSTEM NOTICE: Task-specific analysis mode is ACTIVE for the {file_count} file(s) above. If the user asks about these files, ignore generic company knowledge and focus on the file content.]"})
 
         max_attempts = max(len(self.api_keys), 3)
 
@@ -284,7 +296,7 @@ class ChatService:
                     }
                 ],
                 "generationConfig": {
-                    "temperature": 0.4,
+                    "temperature": 0.3, # Lower temperature for factual analysis from files
                     "maxOutputTokens": 4096,
                     "topP": 0.8,
                 }

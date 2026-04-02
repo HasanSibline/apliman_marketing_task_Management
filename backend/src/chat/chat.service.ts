@@ -275,11 +275,15 @@ export class ChatService {
       });
 
       // Normalize file URLs to absolute paths so the AI service can fetch them
-      const backendUrl = this.configService.get<string>('BACKEND_URL', 'http://localhost:3001').replace(/\/$/, '');
+      const backendUrlConfig = this.configService.get<string>('BACKEND_URL', 'http://localhost:3001');
+      const backendUrl = backendUrlConfig.replace(/\/$/, '');
+      
       const normalizedFiles = (dto.files || []).map(file => {
         if (file.url && (file.url.startsWith('/') || !file.url.startsWith('http'))) {
           const prefix = file.url.startsWith('/') ? '' : '/';
-          return { ...file, url: `${backendUrl}${prefix}${file.url}` };
+          const fullUrl = `${backendUrl}${prefix}${file.url}`;
+          this.logger.log(`🔗 Normalizing file URL: ${file.url} -> ${fullUrl}`);
+          return { ...file, url: fullUrl };
         }
         return file;
       });
