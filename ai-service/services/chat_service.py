@@ -191,6 +191,42 @@ class ChatService:
                 name = f.get("name", "file")
                 mime = f.get("type", "")
 
+                # --- STEP 1: PREFER EMBEDDED BASE64 (Eliminates Fetch Failures) ---
+                embedded_b64 = f.get("base64")
+                if embedded_b64:
+                    logger.info(f"🚀 MULTIMODAL: Using embedded Base64 for {name}")
+                    file_count += 1
+                    
+                    is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
+                    if is_image or name.lower().endswith(".pdf"):
+                        actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
+                        media_parts.append({
+                            "inline_data": {
+                                "mime_type": actual_mime,
+                                "data": embedded_b64
+                            }
+                        })
+                        logger.info(f"🖼️ Attached visual/binary part via Base64: {name}")
+                    else:
+                        # Extract text from Base64 if possible
+                        try:
+                            import base64 as b64_lib
+                            decoded = b64_lib.b64decode(embedded_b64)
+                            if name.lower().endswith((".docx", ".doc")):
+                                from docx import Document
+                                import io
+                                doc = Document(io.BytesIO(decoded))
+                                text = "\n".join([para.text for para in doc.paragraphs])
+                                text_content_parts.append({"text": f"[Attached Word Document '{name}']: {text[:15000]}"})
+                            else:
+                                text = decoded.decode("utf-8", errors="replace")
+                                text_content_parts.append({"text": f"[Attached File '{name}']: {text[:15000]}"})
+                            logger.info(f"📄 Attached textual part via Base64: {name}")
+                        except Exception as e:
+                            logger.error(f"❌ Base64 decode error for {name}: {str(e)}")
+                    continue # Skip fetching if we already have the data
+
+                # --- STEP 2: FALLBACK TO URL FETCHING ---
                 # Normalize URL for fetching
                 full_url = url
                 if not (url.startswith("http://") or url.startswith("https://")):

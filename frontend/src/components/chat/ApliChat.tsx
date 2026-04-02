@@ -156,20 +156,30 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         const formData = new FormData()
         formData.append('file', file)
         
+        // 1. Upload to server for persistence
         const res = await api.post('/files/upload/temp', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         })
+
+        // 2. Read as Base64 for IMMEDIATE AI analysis (eliminates fetch failures)
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
         
         newAttachments.push({
           name: file.name,
           url: res.data.url,
-          type: file.type
+          type: file.type,
+          base64: base64.split(',')[1] // Just the raw data (strip prefix)
         })
       }
       
       setAttachments(newAttachments)
       toast.success('Asset(s) Attached')
     } catch (error) {
+      console.error('File select error:', error);
       toast.error('Tactical failure during asset retrieval')
     } finally {
       setIsUploading(false)
@@ -207,7 +217,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
       const response = await api.post('/chat/message', {
         message: currentMessage,
         sessionId,
-        files: currentAttachments.map(a => ({ name: a.name, url: a.url, type: a.type }))
+        files: currentAttachments.map(a => ({ name: a.name, url: a.url, type: a.type, base64: a.base64 }))
       })
 
       if (response.data.sessionId && !sessionId) {
