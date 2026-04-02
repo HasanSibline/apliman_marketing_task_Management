@@ -58,7 +58,39 @@ class ChatService:
         """Process an incoming chat message with dynamic provider routing and multimodal support"""
         
         additional_context = additional_context or {}
+        user_context = user_context or {}
+        knowledge_sources = knowledge_sources or []
+        files = files or []
+
+        # Defensive flattening for double-nested lists (frequent frontend issue)
+        if isinstance(user, list) and len(user) > 0:
+            user = user[0]
+        if isinstance(user_context, list) and len(user_context) > 0:
+            user_context = user_context[0]
+        if isinstance(additional_context, list) and len(additional_context) > 0:
+            additional_context = additional_context[0]
         
+        # Flatten knowledge_sources if it contains a list
+        norm_ks = []
+        for ks in knowledge_sources:
+            if isinstance(ks, list):
+                norm_ks.extend([x for x in ks if isinstance(x, dict)])
+            elif isinstance(ks, dict):
+                norm_ks.append(ks)
+        knowledge_sources = norm_ks
+
+        # Flatten files if double nested array received
+        norm_files = []
+        for f in files:
+            if isinstance(f, list):
+                norm_files.extend([x for x in f if isinstance(x, dict)])
+            elif isinstance(f, dict):
+                norm_files.append(f)
+        files = norm_files
+
+        if not isinstance(user, dict):
+            user = {}
+
         logger.info(f"FILES RECEIVED: {len(files) if files else 'NONE'} files")
         if files:
             import json
