@@ -24,7 +24,7 @@ class ChatService:
             self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
             self.base_url = "https://api.groq.com/openai/v1"
         else:
-            self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+            self.model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
             
         self.learning_service = ContextLearningService(self.api_key, self.model_name)
@@ -96,63 +96,63 @@ class ChatService:
             import json
             logger.info(f"FILES PAYLOAD (first item struct): {json.dumps(files[0], default=str)[:1000]}")
             
-        # Determine if we have IMAGES and extract any TEXT from documents early
-        has_media = False
-        document_text = ""
-        if files and len(files) > 0:
-            for file in files:
-                mime = file.get("type", "")
-                name = file.get("name", "")
-                b64 = file.get("base64", "")
-                
-                is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
-                if is_image:
-                    has_media = True
-                elif b64 and name.lower().endswith(".pdf"):
-                    # Extract PDF text upfront so Groq can use it without Vision fallback
-                    try:
-                        import base64 as b64_lib
-                        import PyPDF2
-                        import io
-                        decoded = b64_lib.b64decode(b64)
-                        reader = PyPDF2.PdfReader(io.BytesIO(decoded))
-                        for page in reader.pages:
-                            txt = page.extract_text()
-                            if txt: document_text += txt + "\n"
-                        logger.info(f"📄 Pre-extracted {len(document_text)} chars from {name} for Groq transit")
-                    except Exception as e:
-                        logger.error(f"❌ Early PyPDF2 extraction failed: {str(e)}")
+            # Determine if we have IMAGES or PDF/DOCX for multimodal/text extraction
+            has_media = False
+            has_docs = False
+            document_text = ""
+            if files and len(files) > 0:
+                for file in files:
+                    mime = file.get("type", "")
+                    name = file.get("name", "")
+                    b64 = file.get("base64", "")
+                    
+                    is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+                    is_pdf = name.lower().endswith(".pdf") or mime == "application/pdf"
+                    is_doc = name.lower().endswith((".docx", ".doc")) or "word" in mime.lower()
 
-        # Append document text to the user's message natively so any text provider can read it
-        if document_text:
-            message = f"{message}\n\n[Attached Extracted Document Content]:\n{document_text[:25000]}"
+                    if is_image:
+                        has_media = True
+                    if is_pdf or is_doc:
+                        has_docs = True
+
+                    # Extraction for all models (text context)
+                    if b64 and is_pdf:
+                        try:
+                            import base64 as b64_lib
+                            import PyPDF2
+                            import io
+                            decoded = b64_lib.b64decode(b64)
+                            reader = PyPDF2.PdfReader(io.BytesIO(decoded))
+                            for page in reader.pages:
+                                txt = page.extract_text()
+                                if txt: document_text += txt + "\n"
+                            logger.info(f"📄 Pre-extracted {len(document_text)} chars from PDF {name}")
+                        except Exception as e:
+                            logger.error(f"❌ PDF extraction failed: {str(e)}")
+                    elif b64 and is_doc:
+                        try:
+                            import base64 as b64_lib
+                            from docx import Document
+                            import io
+                            decoded = b64_lib.b64decode(b64)
+                            doc = Document(io.BytesIO(decoded))
+                            text = "\n".join([para.text for para in doc.paragraphs])
+                            if text: document_text += text + "\n"
+                            logger.info(f"📄 Pre-extracted text from Word doc {name}")
+                        except Exception as e:
+                            logger.error(f"❌ DOCX extraction failed: {str(e)}")
+
+            # Append document text to the user's message natively so any text provider can read it
+            if document_text:
+                document_text_header = "\n\n=== ATTACHED DOCUMENT CONTENT ===\n"
+                message = f"{message}{document_text_header}{document_text[:30000]}"
 
         try:
-            logger.info(f"Processing chat message: {message[:50]}...")
+            logger.info(f"Processing chat message (Files: {len(files) if files else 0}, HasMedia: {has_media}, HasDocs: {has_docs})")
             
-            # Get API keys config
-            from config import get_config
-            config = get_config()
-            
-            # CRITICAL: Use company-provided API key if available
-            api_key_to_use = getattr(user, 'api_key', None)
-            
-            if not api_key_to_use:
-                api_keys = config.get_api_keys()
-                api_key_to_use = api_keys[0] if api_keys else None
-                
-            if not api_key_to_use:
-                raise ValueError("No API key configured. Set GOOGLE_API_KEY environment variable.")
-                
-            # Update API key dynamically if it was overridden
-            if api_key_to_use != self.api_key:
-                self.api_key = api_key_to_use
-                self.api_keys = [self.api_key]
-                self.learning_service.api_key = self.api_key
-
-            # Construct dynamic history block to preserve chat
+            # Construct dynamic history block
             history_text = "CHAT HISTORY:\n"
-            for msg in reversed(conversation_history[-5:]): # Only use last 5 back-and-forth for speed
+            for msg in reversed(conversation_history[-7:]): # Last 7 for better context
                 role_label = "ApliChat" if msg.get("role") == "assistant" else "User"
                 history_text += f"{role_label}: {msg.get('content', '')}\n"
 
@@ -164,7 +164,7 @@ class ChatService:
                 additional_context=additional_context,
                 is_deep_analysis=is_deep_analysis,
                 company_name=company_name,
-                has_files=has_media # ONLY specify files if it's actual visual media
+                has_files=(has_media or has_docs) # Flag active if any asset is attached
             )
 
             # Generate response via appropriate provider
@@ -329,9 +329,11 @@ class ChatService:
                 # --- STEP 1: PREFER EMBEDDED BASE64 (Eliminates Fetch Failures) ---
                 embedded_b64 = f.get("base64")
                 if embedded_b64:
-                    logger.info(f"🚀 MULTIMODAL: Using embedded Base64 for {name}")
+                    logger.info(f"🚀 MULTIMODAL: Processing embedded Base64 for {name} ({mime})")
                     file_count += 1
                     is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+                    is_pdf = name.lower().endswith(".pdf") or mime == "application/pdf"
+                    
                     if is_image:
                         actual_mime = mime if mime else "image/jpeg"
                         media_parts.append({
@@ -340,27 +342,31 @@ class ChatService:
                                 "data": embedded_b64
                             }
                         })
-                        logger.info(f"🖼️ Attached visual/binary part via Base64: {name}")
+                        logger.info(f"🖼️ Attached visual part via Base64: {name}")
+                    elif is_pdf:
+                        # Gemini 1.5/2.0 natively supports PDF parts!
+                        media_parts.append({
+                            "inlineData": {
+                                "mimeType": "application/pdf",
+                                "data": embedded_b64
+                            }
+                        })
+                        logger.info(f"📄 Attached binary PDF part via Base64: {name}")
                     else:
-                        # Extract text from Base64 if possible
+                        # Fallback for Word/Text docs: they are already in the text message, but we can add them here too
                         try:
                             import base64 as b64_lib
                             decoded = b64_lib.b64decode(embedded_b64)
                             if name.lower().endswith((".docx", ".doc")):
-                                from docx import Document
-                                import io
-                                doc = Document(io.BytesIO(decoded))
-                                text = "\n".join([para.text for para in doc.paragraphs])
-                                text_content_parts.append({"text": f"[Attached Word Document '{name}']: {text[:25000]}"})
-                                logger.info(f"📄 Extracted text from Word Doc Base64: {name}")
-                            elif not name.lower().endswith(".pdf"):
-                                # PDFs are already pre-extracted in process_chat_message
+                                # Word already handled by early extraction, adding a placeholder
+                                text_content_parts.append({"text": f"[Analyzing Document: {name}]"})
+                            else:
                                 text = decoded.decode("utf-8", errors="replace")
-                                text_content_parts.append({"text": f"[Attached File '{name}']: {text[:25000]}"})
-                                logger.info(f"📄 Attached textual part via Base64: {name}")
+                                text_content_parts.append({"text": f"[Attached File '{name}']: {text[:15000]}"})
+                                logger.info(f"📄 Attached textual doc part via Base64: {name}")
                         except Exception as e:
                             logger.error(f"❌ Base64 decode error for {name}: {str(e)}")
-                    continue # Skip fetching if we already have the data
+                    continue 
 
                 # --- STEP 2: FALLBACK TO URL FETCHING ---
                 # Normalize URL for fetching
@@ -473,7 +479,7 @@ class ChatService:
             url = f"{self.base_url}/models/{self.model_name}:generateContent"
             
             payload = {
-                "system_instruction": {
+                "systemInstruction": {
                     "parts": [{"text": system_prompt}]
                 },
                 "contents": [
@@ -483,9 +489,9 @@ class ChatService:
                     }
                 ],
                 "generationConfig": {
-                    "temperature": 0.3, # Lower temperature for factual analysis from files
+                    "temperature": 0.2, # Slightly lower for more reliable file analysis
                     "maxOutputTokens": 4096,
-                    "topP": 0.8,
+                    "topP": 0.9,
                 }
             }
 
@@ -552,10 +558,11 @@ class ChatService:
         prompt = f"""You are ApliChat, a state-of-the-art MULTIMODAL AI assistant for {company_name}. 
 
 IMPORTANT IDENTITY GUIDELINES:
-- You are a VISION-CAPABLE model (Gemini 1.5 Flash). 
-- If files or images are attached, you CAN see and analyze them perfectly.
-- NEVER say "I am a text-based model" or "I cannot see images". If a file is attached, analyze it!
-- If a file is attached, it takes ABSOLUTE PRIORITY over other context.
+- You are a VISION-CAPABLE model (Gemini 2.0 Flash). 
+- If files or images are attached, you CAN see and analyze them perfectly using your multimodal capabilities.
+- NEVER say "I am a text-based model" or "I cannot see images/files". If a file is attached, analyze it deeply!
+- If a file is attached, it takes ABSOLUTE PRIORITY. Provide a helpful summary or description immediately.
+- You can read PDFs, images, and Word documents.
 
 Your capabilities:
 - Multimodal analysis of images, PDFs, and documents
