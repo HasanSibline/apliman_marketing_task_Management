@@ -405,12 +405,22 @@ class ChatService:
                         async with session.post(auth_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=50)) as response:
                             if response.status == 200:
                                 data = await response.json()
-                                if data.get('candidates') and data['candidates'][0].get('content'):
-                                    return data['candidates'][0]['content']['parts'][0]['text']
+                                if data.get('candidates'):
+                                    candidate = data['candidates'][0]
+                                    if candidate.get('content'):
+                                        return candidate['content']['parts'][0]['text']
+                                    elif candidate.get('finishReason'):
+                                        return f"⚠️ Google Gemini chose not to respond due to Safety/Policy settings (Finish Reason: {candidate['finishReason']})"
                             
-                            error_text = await response.text()
+                            # Handle errors
+                            try:
+                                error_text = await response.text()
+                            except Exception:
+                                error_text = "Unknown Error"
+                                
                             if response.status == 429:
-                                logger.warning(f"Rate limited (429). Attempt {attempts+1}. Roating keys...")
+                                logger.warning(f"Rate limited (429). Attempt {attempts+1}. Rotating keys...")
+                                last_error = "Google Gemini Rate Limit Exceeded (429). Please wait a minute and try again."
                                 break
                                 
                             logger.warning(f"API Attempt failed ({response.status}): {error_text[:250]}")
@@ -421,7 +431,9 @@ class ChatService:
             
             attempts += 1
             if not self._rotate_api_key() and attempts < max_attempts:
-                await asyncio.sleep(1)
+                await asyncio.sleep(2)  # Wait longer for rate limits
+                continue
+            elif attempts < max_attempts:
                 continue
 
         raise Exception(f"AI Multimodal analysis failed: {last_error}")
