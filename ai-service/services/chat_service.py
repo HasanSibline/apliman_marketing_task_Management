@@ -96,34 +96,86 @@ class ChatService:
             import json
             logger.info(f"FILES PAYLOAD (first item struct): {json.dumps(files[0], default=str)[:1000]}")
             
+        # Determine if we have IMAGES and extract any TEXT from documents early
+        has_media = False
+        document_text = ""
+        if files and len(files) > 0:
+            for file in files:
+                mime = file.get("type", "")
+                name = file.get("name", "")
+                b64 = file.get("base64", "")
+                
+                is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+                if is_image:
+                    has_media = True
+                elif b64 and name.lower().endswith(".pdf"):
+                    # Extract PDF text upfront so Groq can use it without Vision fallback
+                    try:
+                        import base64 as b64_lib
+                        import PyPDF2
+                        import io
+                        decoded = b64_lib.b64decode(b64)
+                        reader = PyPDF2.PdfReader(io.BytesIO(decoded))
+                        for page in reader.pages:
+                            txt = page.extract_text()
+                            if txt: document_text += txt + "\n"
+                        logger.info(f"📄 Pre-extracted {len(document_text)} chars from {name} for Groq transit")
+                    except Exception as e:
+                        logger.error(f"❌ Early PyPDF2 extraction failed: {str(e)}")
+
+        # Append document text to the user's message natively so any text provider can read it
+        if document_text:
+            message = f"{message}\n\n[Attached Extracted Document Content]:\n{document_text[:25000]}"
+
         try:
             logger.info(f"Processing chat message: {message[:50]}...")
             
-            # Build the system prompt with context
+            # Get API keys config
+            from config import get_config
+            config = get_config()
+            
+            # CRITICAL: Use company-provided API key if available
+            api_key_to_use = getattr(user, 'api_key', None)
+            
+            if not api_key_to_use:
+                api_keys = config.get_api_keys()
+                api_key_to_use = api_keys[0] if api_keys else None
+                
+            if not api_key_to_use:
+                raise ValueError("No API key configured. Set GOOGLE_API_KEY environment variable.")
+                
+            # Update API key dynamically if it was overridden
+            if api_key_to_use != self.api_key:
+                self.api_key = api_key_to_use
+                self.api_keys = [self.api_key]
+                self.learning_service.api_key = self.api_key
+
+            # Construct dynamic history block to preserve chat
+            history_text = "CHAT HISTORY:\n"
+            for msg in reversed(conversation_history[-5:]): # Only use last 5 back-and-forth for speed
+                role_label = "ApliChat" if msg.get("role") == "assistant" else "User"
+                history_text += f"{role_label}: {msg.get('content', '')}\n"
+
+            # Create highly dynamic system prompt
             system_prompt = self._build_system_prompt(
-                user,
-                user_context,
-                knowledge_sources,
-                additional_context,
-                is_deep_analysis,
-                company_name,
-                files is not None and len(files) > 0
+                user=user,
+                user_context=user_context,
+                knowledge_sources=knowledge_sources,
+                additional_context=additional_context,
+                is_deep_analysis=is_deep_analysis,
+                company_name=company_name,
+                has_files=has_media # ONLY specify files if it's actual visual media
             )
 
-            # Build conversation history
-            history_text = self._build_conversation_history(conversation_history)
-
             # Generate response via appropriate provider
-            if self.provider == "groq" and not (files and len(files) > 0):
-                # For Groq, we still use a flattened prompt for now
+            if self.provider == "groq" and not has_media:
+                # For Groq, we still use a flattened prompt for now (it has the appended document text!)
                 full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
                 response_text = await self._generate_via_groq(full_prompt)
             else:
                 # Fallback mechanism: Groq lacks native multimodal vision endpoints.
-                # If files are present and provider is Groq, forcibly trigger Gemini fallback.
-                if self.provider == "groq" and files and len(files) > 0:
-                    logger.warning("Files attached! Groq lacks vision. Falling back to Gemini.")
-                    from config import get_config
+                if self.provider == "groq" and has_media:
+                    logger.warning("Visual files attached! Groq lacks vision. Falling back to Gemini.")
                     config_instance = get_config()
                     self.model_name = config_instance.GEMINI_MODEL
                     self.base_url = "https://generativelanguage.googleapis.com/v1beta"
@@ -267,29 +319,15 @@ class ChatService:
                         try:
                             import base64 as b64_lib
                             decoded = b64_lib.b64decode(embedded_b64)
-                            if name.lower().endswith(".pdf"):
-                                import PyPDF2
-                                import io
-                                try:
-                                    reader = PyPDF2.PdfReader(io.BytesIO(decoded))
-                                    pdf_text = ""
-                                    for page in reader.pages:
-                                        text_extract = page.extract_text()
-                                        if text_extract:
-                                            pdf_text += text_extract + "\n"
-                                    text_content_parts.append({"text": f"[Attached PDF '{name}']: {pdf_text[:25000]}"})
-                                    logger.info(f"📄 Extracted {len(pdf_text)} chars from PDF Base64: {name}")
-                                except Exception as pdf_e:
-                                    logger.error(f"❌ PyPDF2 extraction failed for {name}: {str(pdf_e)}")
-                                    text_content_parts.append({"text": f"[Failed to read PDF '{name}': {str(pdf_e)}]"})
-                            elif name.lower().endswith((".docx", ".doc")):
+                            if name.lower().endswith((".docx", ".doc")):
                                 from docx import Document
                                 import io
                                 doc = Document(io.BytesIO(decoded))
                                 text = "\n".join([para.text for para in doc.paragraphs])
                                 text_content_parts.append({"text": f"[Attached Word Document '{name}']: {text[:25000]}"})
                                 logger.info(f"📄 Extracted text from Word Doc Base64: {name}")
-                            else:
+                            elif not name.lower().endswith(".pdf"):
+                                # PDFs are already pre-extracted in process_chat_message
                                 text = decoded.decode("utf-8", errors="replace")
                                 text_content_parts.append({"text": f"[Attached File '{name}']: {text[:25000]}"})
                                 logger.info(f"📄 Attached textual part via Base64: {name}")
