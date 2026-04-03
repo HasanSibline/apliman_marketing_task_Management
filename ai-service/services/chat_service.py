@@ -190,14 +190,41 @@ class ChatService:
                 if self.api_key and self.api_key.startswith("gsk_") and "generativelanguage" in self.base_url:
                     raise Exception("A Groq API key is being inappropriately sent to Google's Gemini endpoint. Please check system fallback keys.")
 
-                # For Gemini, we use separate fields for better reliability
-                response_text = await self._generate_via_rest(
-                    message=message,
-                    system_prompt=system_prompt,
-                    history_text=history_text,
-                    files=files, 
-                    user_token=user_token
-                )
+                # Primary attempt via REST (Gemini)
+                try:
+                    response_text = await self._generate_via_rest(
+                        message=message,
+                        system_prompt=system_prompt,
+                        history_text=history_text,
+                        files=files, 
+                        user_token=user_token
+                    )
+                except Exception as rest_e:
+                    error_msg = str(rest_e)
+                    # CROSS-PROVIDER HOT SWAP: If Gemini entirely ran out of quota (429) and NO literal images are attached (has_media=False)
+                    if "429" in error_msg and not has_media:
+                        logger.critical("⚠️ Google Gemini hit a Hard 429 Rate Limit! Attempting violent cross-provider failover to Groq (Llama-3)...")
+                        
+                        # Dynamically aggressively extract Groq keys to save the response
+                        import os
+                        groq_keys = os.getenv("GROQ_API_KEYS", "").split(",")
+                        if not groq_keys or not groq_keys[0].strip():
+                            groq_keys = [os.getenv("GROQ_API_KEY", "")]
+                            
+                        groq_key = groq_keys[0].strip() if groq_keys and groq_keys[0].strip() else None
+                        
+                        if groq_key:
+                            self.api_key = groq_key
+                            self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+                            self.base_url = "https://api.groq.com/openai/v1"
+                            logger.info(f"🔄 Cross-Provider Failover Initialized using {self.model_name}")
+                            
+                            full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
+                            response_text = await self._generate_via_groq(full_prompt)
+                        else:
+                            raise rest_e # Give up if no Groq keys loaded natively
+                    else:
+                        raise rest_e # Propagate if not a 429 or requires vision
                 
             response_text = response_text.strip()
 
