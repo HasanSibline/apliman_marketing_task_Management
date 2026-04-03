@@ -24,7 +24,7 @@ class ChatService:
             self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
             self.base_url = "https://api.groq.com/openai/v1"
         else:
-            self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+            self.model_name = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
             
         self.learning_service = ContextLearningService(self.api_key, self.model_name)
@@ -123,11 +123,12 @@ class ChatService:
                 # If files are present and provider is Groq, forcibly trigger Gemini fallback.
                 if self.provider == "groq" and files and len(files) > 0:
                     logger.warning("Files attached! Groq lacks vision. Falling back to Gemini.")
-                    self.model_name = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")
+                    from config import get_config
+                    config_instance = get_config()
+                    self.model_name = config_instance.GEMINI_MODEL
                     self.base_url = "https://generativelanguage.googleapis.com/v1beta"
                     
-                    from config import get_config
-                    fallback_keys = get_config().get_api_keys()
+                    fallback_keys = config_instance.get_api_keys()
                     if fallback_keys:
                         self.api_key = fallback_keys[0]
                         self.api_keys = fallback_keys
