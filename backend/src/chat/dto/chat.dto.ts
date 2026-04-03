@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsBoolean, IsArray, IsObject } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsArray, IsObject, Allow } from 'class-validator';
 
 export class SendMessageDto {
   @IsString()
@@ -14,6 +14,7 @@ export class SendMessageDto {
 
   @IsOptional()
   @IsArray()
+  @Allow()
   files?: any[];
 }
 

@@ -288,6 +288,9 @@ export class ChatService {
         return file;
       });
 
+      this.logger.log(`📦 Payload DTO files: ${dto.files?.length || 0}`);
+      this.logger.log(`📦 Normalized files to send to AI: ${normalizedFiles.length}`);
+
       // Call AI service with company name
       const aiResponse = await this.callAiChatService({
         message: dto.message,
