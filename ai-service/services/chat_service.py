@@ -252,10 +252,9 @@ class ChatService:
                 if embedded_b64:
                     logger.info(f"🚀 MULTIMODAL: Using embedded Base64 for {name}")
                     file_count += 1
-                    
-                    is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
-                    if is_image or name.lower().endswith(".pdf"):
-                        actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
+                    is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+                    if is_image:
+                        actual_mime = mime if mime else "image/jpeg"
                         media_parts.append({
                             "inlineData": {
                                 "mimeType": actual_mime,
@@ -268,16 +267,32 @@ class ChatService:
                         try:
                             import base64 as b64_lib
                             decoded = b64_lib.b64decode(embedded_b64)
-                            if name.lower().endswith((".docx", ".doc")):
+                            if name.lower().endswith(".pdf"):
+                                import PyPDF2
+                                import io
+                                try:
+                                    reader = PyPDF2.PdfReader(io.BytesIO(decoded))
+                                    pdf_text = ""
+                                    for page in reader.pages:
+                                        text_extract = page.extract_text()
+                                        if text_extract:
+                                            pdf_text += text_extract + "\n"
+                                    text_content_parts.append({"text": f"[Attached PDF '{name}']: {pdf_text[:25000]}"})
+                                    logger.info(f"📄 Extracted {len(pdf_text)} chars from PDF Base64: {name}")
+                                except Exception as pdf_e:
+                                    logger.error(f"❌ PyPDF2 extraction failed for {name}: {str(pdf_e)}")
+                                    text_content_parts.append({"text": f"[Failed to read PDF '{name}': {str(pdf_e)}]"})
+                            elif name.lower().endswith((".docx", ".doc")):
                                 from docx import Document
                                 import io
                                 doc = Document(io.BytesIO(decoded))
                                 text = "\n".join([para.text for para in doc.paragraphs])
-                                text_content_parts.append({"text": f"[Attached Word Document '{name}']: {text[:15000]}"})
+                                text_content_parts.append({"text": f"[Attached Word Document '{name}']: {text[:25000]}"})
+                                logger.info(f"📄 Extracted text from Word Doc Base64: {name}")
                             else:
                                 text = decoded.decode("utf-8", errors="replace")
-                                text_content_parts.append({"text": f"[Attached File '{name}']: {text[:15000]}"})
-                            logger.info(f"📄 Attached textual part via Base64: {name}")
+                                text_content_parts.append({"text": f"[Attached File '{name}']: {text[:25000]}"})
+                                logger.info(f"📄 Attached textual part via Base64: {name}")
                         except Exception as e:
                             logger.error(f"❌ Base64 decode error for {name}: {str(e)}")
                     continue # Skip fetching if we already have the data
@@ -306,10 +321,10 @@ class ChatService:
                                 file_count += 1
                                 
                                 # 1. Binary Parts (Gemini Inline Data)
-                                is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp"))
-                                if is_image or name.lower().endswith(".pdf"):
+                                is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+                                if is_image:
                                     import base64
-                                    actual_mime = mime if mime else ("application/pdf" if name.lower().endswith(".pdf") else "image/jpeg")
+                                    actual_mime = mime if mime else "image/jpeg"
                                     b64 = base64.b64encode(raw).decode("utf-8")
                                     media_parts.append({
                                         "inlineData": {
@@ -317,18 +332,33 @@ class ChatService:
                                             "data": b64
                                         }
                                     })
-                                    logger.info(f"🖼️ Attached visual/binary part: {name}")
+                                    logger.info(f"🖼️ Attached visual part via URL: {name}")
                                 
                                 # 2. Text Parts (Extracted content)
                                 else:
                                     content = None
-                                    if name.lower().endswith((".docx", ".doc")):
+                                    if name.lower().endswith(".pdf"):
+                                        import PyPDF2
+                                        import io
+                                        try:
+                                            reader = PyPDF2.PdfReader(io.BytesIO(raw))
+                                            pdf_text = ""
+                                            for page in reader.pages:
+                                                text_extract = page.extract_text()
+                                                if text_extract:
+                                                    pdf_text += text_extract + "\n"
+                                            content = f"[Attached PDF '{name}']:\n{pdf_text[:25000]}"
+                                            logger.info(f"📄 Extracted {len(pdf_text)} chars from downloaded PDF: {name}")
+                                        except Exception as e:
+                                            content = f"[Error reading PDF '{name}': {str(e)}]"
+                                            logger.error(f"❌ PyPDF2 error for URL fetch {name}: {str(e)}")
+                                    elif name.lower().endswith((".docx", ".doc")):
                                         try:
                                             from docx import Document
                                             import io
                                             doc = Document(io.BytesIO(raw))
                                             text = "\n".join([para.text for para in doc.paragraphs])
-                                            content = f"[Attached Word Document '{name}']:\n{text[:15000]}"
+                                            content = f"[Attached Word Document '{name}']:\n{text[:25000]}"
                                         except Exception as e:
                                             content = f"[Error reading Word Doc '{name}': {str(e)}]"
                                     else:
