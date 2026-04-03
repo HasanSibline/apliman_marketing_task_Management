@@ -1,4 +1,23 @@
-import { IsString, IsOptional, IsBoolean, IsArray, IsObject, Allow } from 'class-validator';
+import { IsString, IsOptional, IsBoolean, IsArray, IsObject, Allow, ValidateNested } from 'class-validator';
+import { Type } from 'class-transformer';
+
+export class FileDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  url?: string;
+
+  @IsString()
+  @IsOptional()
+  type?: string;
+
+  @IsString()
+  @IsOptional()
+  base64?: string;
+}
 
 export class SendMessageDto {
   @IsString()
@@ -14,8 +33,9 @@ export class SendMessageDto {
 
   @IsOptional()
   @IsArray()
-  @Allow()
-  files?: any[];
+  @ValidateNested({ each: true })
+  @Type(() => FileDto)
+  files?: FileDto[];
 }
 
 export class CreateSessionDto {
