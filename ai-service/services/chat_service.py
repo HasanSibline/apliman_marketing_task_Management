@@ -91,56 +91,57 @@ class ChatService:
         if not isinstance(user, dict):
             user = {}
 
+        # ── File-type flags (MUST be initialized before the try block regardless of whether files exist) ──
+        has_media = False   # True if at least one image is attached
+        has_docs = False    # True if at least one PDF/DOCX is attached
+        document_text = ""  # Pre-extracted text from PDF/DOCX files
+
         logger.info(f"FILES RECEIVED: {len(files) if files else 'NONE'} files")
         if files:
             import json
             logger.info(f"FILES PAYLOAD (first item struct): {json.dumps(files[0], default=str)[:1000]}")
             
             # Determine if we have IMAGES or PDF/DOCX for multimodal/text extraction
-            has_media = False
-            has_docs = False
-            document_text = ""
-            if files and len(files) > 0:
-                for file in files:
-                    mime = file.get("type", "")
-                    name = file.get("name", "")
-                    b64 = file.get("base64", "")
-                    
-                    is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
-                    is_pdf = name.lower().endswith(".pdf") or mime == "application/pdf"
-                    is_doc = name.lower().endswith((".docx", ".doc")) or "word" in mime.lower()
+            for file in files:
+                mime = file.get("type", "")
+                name = file.get("name", "")
+                b64 = file.get("base64", "")
+                
+                is_image = any(mime.startswith(t) for t in ["image/"]) or name.lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif"))
+                is_pdf = name.lower().endswith(".pdf") or mime == "application/pdf"
+                is_doc = name.lower().endswith((".docx", ".doc")) or "word" in mime.lower()
 
-                    if is_image:
-                        has_media = True
-                    if is_pdf or is_doc:
-                        has_docs = True
+                if is_image:
+                    has_media = True
+                if is_pdf or is_doc:
+                    has_docs = True
 
-                    # Extraction for all models (text context)
-                    if b64 and is_pdf:
-                        try:
-                            import base64 as b64_lib
-                            import PyPDF2
-                            import io
-                            decoded = b64_lib.b64decode(b64)
-                            reader = PyPDF2.PdfReader(io.BytesIO(decoded))
-                            for page in reader.pages:
-                                txt = page.extract_text()
-                                if txt: document_text += txt + "\n"
-                            logger.info(f"📄 Pre-extracted {len(document_text)} chars from PDF {name}")
-                        except Exception as e:
-                            logger.error(f"❌ PDF extraction failed: {str(e)}")
-                    elif b64 and is_doc:
-                        try:
-                            import base64 as b64_lib
-                            from docx import Document
-                            import io
-                            decoded = b64_lib.b64decode(b64)
-                            doc = Document(io.BytesIO(decoded))
-                            text = "\n".join([para.text for para in doc.paragraphs])
-                            if text: document_text += text + "\n"
-                            logger.info(f"📄 Pre-extracted text from Word doc {name}")
-                        except Exception as e:
-                            logger.error(f"❌ DOCX extraction failed: {str(e)}")
+                # Extraction for all models (text context)
+                if b64 and is_pdf:
+                    try:
+                        import base64 as b64_lib
+                        import PyPDF2
+                        import io
+                        decoded = b64_lib.b64decode(b64)
+                        reader = PyPDF2.PdfReader(io.BytesIO(decoded))
+                        for page in reader.pages:
+                            txt = page.extract_text()
+                            if txt: document_text += txt + "\n"
+                        logger.info(f"📄 Pre-extracted {len(document_text)} chars from PDF {name}")
+                    except Exception as e:
+                        logger.error(f"❌ PDF extraction failed: {str(e)}")
+                elif b64 and is_doc:
+                    try:
+                        import base64 as b64_lib
+                        from docx import Document
+                        import io
+                        decoded = b64_lib.b64decode(b64)
+                        doc = Document(io.BytesIO(decoded))
+                        text = "\n".join([para.text for para in doc.paragraphs])
+                        if text: document_text += text + "\n"
+                        logger.info(f"📄 Pre-extracted text from Word doc {name}")
+                    except Exception as e:
+                        logger.error(f"❌ DOCX extraction failed: {str(e)}")
 
             # Append document text to the user's message natively so any text provider can read it
             if document_text:
@@ -176,6 +177,7 @@ class ChatService:
                 # Fallback mechanism: Groq lacks native multimodal vision endpoints.
                 if self.provider == "groq" and has_media:
                     logger.warning("Visual files attached! Groq lacks vision. Falling back to Gemini.")
+                    from config import get_config
                     config_instance = get_config()
                     self.model_name = config_instance.GEMINI_MODEL
                     self.base_url = "https://generativelanguage.googleapis.com/v1beta"
@@ -300,6 +302,7 @@ class ChatService:
         except Exception as e:
             logger.error(f"❌ Groq Chat request failed: {str(e)}")
             raise e
+
     async def _generate_via_rest(
         self, 
         message: str, 

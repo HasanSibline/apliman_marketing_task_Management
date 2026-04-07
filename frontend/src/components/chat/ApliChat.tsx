@@ -248,9 +248,12 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         setSessionId(response.data.sessionId)
       }
 
-      // Simulate typing effect
-      const fullMessage = response.data.message.content
-      const assistantMessageId = response.data.message.id
+      // Safely extract the assistant response content
+      const rawContent = response.data?.message?.content
+      const fullMessage = typeof rawContent === 'string' ? rawContent : (
+        typeof response.data?.message === 'string' ? response.data.message : 'I encountered an issue processing the response.'
+      )
+      const assistantMessageId = response.data?.message?.id || Date.now().toString()
       const words = fullMessage.split(' ')
       let currentText = ''
 
@@ -787,7 +790,11 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                         >
                           <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
                             {file.type?.startsWith('image/') ? (
-                              <img src={file.url} className="w-full h-full object-cover" alt="" />
+                              <img 
+                                src={file.base64 ? `data:${file.type};base64,${file.base64}` : file.url} 
+                                className="w-full h-full object-cover" 
+                                alt="" 
+                              />
                             ) : (
                               <PaperClipIcon className="w-4 h-4 text-primary-600" />
                             )}
@@ -849,6 +856,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   multiple 
                   ref={fileInputRef} 
                   onChange={handleFileSelect} 
+                  accept="image/*,.pdf,.doc,.docx,.txt,.csv,.json,.md"
                   className="hidden" 
                 />
               </div>

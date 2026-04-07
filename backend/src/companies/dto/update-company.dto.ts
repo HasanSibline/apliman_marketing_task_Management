@@ -56,9 +56,9 @@ export class UpdateCompanyDto {
   @IsString()
   aiApiKey?: string;
 
-  @ApiProperty({ example: 'openai', enum: ['gemini', 'openai', 'groq'], description: 'AI provider', required: false })
+  @ApiProperty({ example: 'gemini', enum: ['gemini', 'openai', 'groq', 'anthropic'], description: 'AI provider', required: false })
   @IsOptional()
-  @IsEnum(['gemini', 'openai', 'groq'])
+  @IsEnum(['gemini', 'openai', 'groq', 'anthropic'])
   aiProvider?: string;
 
   @ApiProperty({ example: false, description: 'AI enabled status', required: false })

@@ -442,10 +442,10 @@ export default function EditCompany() {
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="gemini">Google Gemini</option>
-                  <option value="openai">OpenAI</option>
-                  <option value="anthropic">Anthropic Claude</option>
-                  <option value="groq">Groq (High Performance)</option>
+                  <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal support)</option>
+                  <option value="groq">Groq — Llama 3 (High speed text; images auto-fallback to Gemini)</option>
+                  <option value="openai">OpenAI (Routes via Gemini fallback)</option>
+                  <option value="anthropic">Anthropic Claude (Routes via Gemini fallback)</option>
                 </select>
               </div>
             </div>
