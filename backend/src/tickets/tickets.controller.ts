@@ -63,6 +63,16 @@ export class TicketsController {
     return this.ticketsService.invite(id, req.user.id, personId, req.user.companyId);
   }
 
+  @Post(':id/accept')
+  acceptAssignment(@Param('id') id: string, @Request() req) {
+    return this.ticketsService.acceptAssignment(id, req.user.id, req.user.companyId);
+  }
+
+  @Post(':id/decline')
+  declineAssignment(@Param('id') id: string, @Body('reason') reason: string, @Request() req) {
+    return this.ticketsService.declineAssignment(id, req.user.id, reason, req.user.companyId);
+  }
+
   @Patch(':id/start')
   startProgress(@Param('id') id: string, @Request() req) {
     return this.ticketsService.startProgress(id, req.user.id, req.user.companyId);
@@ -81,6 +91,11 @@ export class TicketsController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateDto: any, @Request() req) {
     return this.ticketsService.update(id, req.user.id, req.user.role, updateDto, req.user.companyId);
+  }
+
+  @Delete(':id/assignments/:assignmentId')
+  removeAssignment(@Param('id') id: string, @Param('assignmentId') assignmentId: string, @Request() req) {
+    return this.ticketsService.removeAssignment(id, assignmentId, req.user.id, req.user.role, req.user.companyId);
   }
 
   @Delete(':id')

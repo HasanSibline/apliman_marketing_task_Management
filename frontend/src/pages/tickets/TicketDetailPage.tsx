@@ -291,10 +291,20 @@ const TicketDetailPage: React.FC = () => {
   const handleInvite = async (personId: string) => {
     try {
       await api.post(`/tickets/${ticketId}/invite`, { personId })
-      toast.success('Personnel Invited Successfully')
+      toast.success('Colleague added successfully')
       fetchTicketDetails()
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Invitation failed')
+    }
+  }
+
+  const handleRemoveAssignment = async (assignmentId: string) => {
+    try {
+      await api.delete(`/tickets/${ticketId}/assignments/${assignmentId}`)
+      toast.success('Personnel access revoked')
+      fetchTicketDetails()
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to remove colleague')
     }
   }
 
@@ -519,7 +529,7 @@ const TicketDetailPage: React.FC = () => {
                     <option value="CANCELLED">Cancelled</option>
                   </select>
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <ListBulletIcon className="h-4 w-4 text-primary-600" />
+                    {/* Arrow removed per request */}
                   </div>
                 </div>
               </div>
@@ -709,13 +719,20 @@ const TicketDetailPage: React.FC = () => {
                             rounded="xl"
                           />
                         </div>
+                        {/* Remove button for colleague */}
+                        <button 
+                          onClick={() => handleRemoveAssignment(assignment.id)}
+                          className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10"
+                        >
+                          <span className="text-[10px]">&times;</span>
+                        </button>
                       </div>
                     ))}
                   </div>
 
                   {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED' || ticket.status === 'PENDING_REC_MGR') && (canAuthoriseRec || isAdmin) && (
                     <div className="space-y-2 pt-2">
-                      <p className="text-[9px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Deploy Personnel</p>
+                      <p className="text-[9px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Add more colleagues</p>
                       <div className="relative">
                         <select
                           value=""
@@ -830,7 +847,6 @@ const TicketDetailPage: React.FC = () => {
           {/* Context Focus Area */}
           <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2">
-              <SparklesIcon className="h-5 w-5 text-primary-500" />
               <h3 className="text-lg font-bold text-gray-900">Description</h3>
             </div>
 
@@ -861,15 +877,15 @@ const TicketDetailPage: React.FC = () => {
           </div>
 
           {/* Communication Feed */}
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden min-h-[600px]">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm flex flex-col overflow-hidden h-[700px]">
             <div className="p-6 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center border border-primary-200 shadow-sm">
                   <ChatBubbleLeftRightIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-black text-gray-900 uppercase tracking-tight leading-none">Intelligence Feed</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Personnel Interaction Log</p>
+                  <h3 className="text-xs font-black text-gray-900 uppercase tracking-tight leading-none">Ticket conversation</h3>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Conversation on this ticket will be logged</p>
                 </div>
               </div>
             </div>
@@ -878,9 +894,9 @@ const TicketDetailPage: React.FC = () => {
               {ticket.comments?.map((comment: any) => (
                 comment.isSystem ? (
                   <div key={comment.id} className="flex justify-center my-6">
-                    <div className="bg-gray-100/50 backdrop-blur-sm border border-gray-200/50 px-5 py-2 rounded-full shadow-sm animate-in zoom-in duration-500">
+                    <div className="bg-gray-100/50 backdrop-blur-sm border border-gray-200/50 px-5 py-3 rounded-xl shadow-sm animate-in zoom-in duration-500 max-w-[90%]">
                       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center whitespace-pre-wrap">
-                        {comment.comment}
+                        {comment.comment.replace(/^\s*[\u2022\-\*]\s+/, '')}
                       </p>
                     </div>
                   </div>

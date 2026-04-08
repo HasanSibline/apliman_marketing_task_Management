@@ -86,6 +86,7 @@ export class TicketsService {
           receiverDept: { include: { manager: { select: { id: true, name: true } } } },
           receiverManager: { select: { id: true, name: true } },
           assignee: { select: { id: true, name: true } },
+          assignments: { where: { userId }, select: { id: true, status: true, userId: true } },
         },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -176,7 +177,7 @@ export class TicketsService {
         deadline: data.deadline ? new Date(data.deadline) : null,
         status: initialStatus,
         assignments: {
-          create: data.requiresApproval && data.approverId ? [{ userId: data.approverId }] : []
+          create: data.requiresApproval && data.approverId ? [{ userId: data.approverId, status: 'ACCEPTED' as any }] : []
         }
       },
       include: {
@@ -187,9 +188,9 @@ export class TicketsService {
 
     // Strategy Center: Generate Initialization Briefing
     const summary = `Mission Initialization: ${ticket.ticketNumber} established.
-    • PRIORITY: ${data.priority || 'MEDIUM'}
-    • LOGISTICAL TARGET: ${receiverDept?.name || 'Unassigned'}
-    • CONTEXT: ${data.title}`;
+    PRIORITY: ${data.priority || 'MEDIUM'}
+    LOGISTICAL TARGET: ${receiverDept?.name || 'Unassigned'}
+    CONTEXT: ${data.title}`;
     await this.addSystemComment(ticket.id, userId, summary, companyId);
 
     // Notify for tactical authorizations if required
@@ -297,7 +298,7 @@ export class TicketsService {
     
     if (!exists) {
       await this.prisma.ticketAssignment.create({
-        data: { ticketId: id, userId: assigneeId }
+        data: { ticketId: id, userId: assigneeId, status: 'ACCEPTED' as any }
       });
     }
 
@@ -310,7 +311,8 @@ export class TicketsService {
     });
 
     const assignee = await this.prisma.user.findUnique({ where: { id: assigneeId } });
-    await this.addSystemComment(id, managerId, `Deployed ${assignee?.name || 'Personnel'} to the mission squad.`, companyId);
+    const manager = await this.prisma.user.findUnique({ where: { id: managerId } });
+    await this.addSystemComment(id, managerId, `${assignee?.name} has been added to this ticket by ${manager?.name}`, companyId);
 
     await this.notifications.createNotification({
       userId: assigneeId,
@@ -331,12 +333,12 @@ export class TicketsService {
     const exists = ticket.assignments?.some((a: any) => a.userId === personId);
     if (!exists) {
       await this.prisma.ticketAssignment.create({
-        data: { ticketId: id, userId: personId }
+        data: { ticketId: id, userId: personId, status: 'PENDING' as any }
       });
     }
 
     const person = await this.prisma.user.findUnique({ where: { id: personId } });
-    await this.addSystemComment(id, inviterId, `${inviter?.name} invited ${person?.name} to collaborate.`, companyId);
+    await this.addSystemComment(id, inviterId, `${person?.name} has been added to this ticket by ${inviter?.name}`, companyId);
 
     await this.notifications.createNotification({
       userId: personId,
@@ -346,6 +348,42 @@ export class TicketsService {
       message: `${inviter?.name} has requested your tactical support on mission ${ticket.ticketNumber}.`,
       actionUrl: `/tickets/${id}`
     });
+
+    return { success: true };
+  }
+
+  async acceptAssignment(ticketId: string, userId: string, companyId: string) {
+    const assignment = await this.prisma.ticketAssignment.findUnique({
+      where: { ticketId_userId: { ticketId, userId } }
+    });
+
+    if (!assignment) throw new NotFoundException('Invitation not found');
+
+    await this.prisma.ticketAssignment.update({
+      where: { id: assignment.id },
+      data: { status: 'ACCEPTED' as any }
+    });
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    await this.addSystemComment(ticketId, userId, `${user?.name} has accepted the invitation and joined the ticket.`, companyId);
+
+    return { success: true };
+  }
+
+  async declineAssignment(ticketId: string, userId: string, reason: string, companyId: string) {
+    const assignment = await this.prisma.ticketAssignment.findUnique({
+      where: { ticketId_userId: { ticketId, userId } }
+    });
+
+    if (!assignment) throw new NotFoundException('Invitation not found');
+
+    await this.prisma.ticketAssignment.update({
+      where: { id: assignment.id },
+      data: { status: 'DECLINED' as any, declineReason: reason }
+    });
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    await this.addSystemComment(ticketId, userId, `${user?.name} declined the invitation. Reason: ${reason}`, companyId);
 
     return { success: true };
   }
@@ -419,6 +457,28 @@ export class TicketsService {
         actionUrl: `/tickets/${ticketId}`
       });
     }
+  }
+
+  async removeAssignment(ticketId: string, assignmentId: string, userId: string, role: string, companyId: string) {
+    const ticket = await this.findOne(ticketId, companyId);
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(role);
+    const isOwner = ticket.requesterId === userId;
+    
+    if (!isAdmin && !isOwner) {
+      throw new ForbiddenException('Only Administrators or the ticket initiator can revoke personnel access.');
+    }
+
+    const assignment = await this.prisma.ticketAssignment.findUnique({ where: { id: assignmentId } });
+    if (!assignment) throw new NotFoundException('Assignment record not found');
+
+    const userToRemove = await this.prisma.user.findUnique({ where: { id: assignment.userId } });
+
+    await this.prisma.ticketAssignment.delete({ where: { id: assignmentId } });
+    
+    const remover = await this.prisma.user.findUnique({ where: { id: userId } });
+    await this.addSystemComment(ticketId, userId, `${userToRemove?.name}'s access to this ticket has been revoked by ${remover?.name}.`, companyId);
+
+    return { success: true };
   }
 
   async update(id: string, userId: string, role: string, data: any, companyId: string) {

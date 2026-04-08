@@ -33,7 +33,7 @@ const TicketsPage: React.FC = () => {
   // Tactical Modal States
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
-    type: 'approve' | 'reject' | 'delete';
+    type: 'approve' | 'reject' | 'delete' | 'accept_invite' | 'decline_invite';
     title: string;
     description: string;
     targetId?: string;
@@ -92,6 +92,12 @@ const TicketsPage: React.FC = () => {
       } else if (type === 'delete') {
         await api.delete(`/tickets/${targetId}`)
         toast.success('Record Pruned')
+      } else if (type === 'accept_invite') {
+        await api.post(`/tickets/${targetId}/accept`)
+        toast.success('Invitation Accepted')
+      } else if (type === 'decline_invite') {
+        await api.post(`/tickets/${targetId}/decline`, { reason })
+        toast.error('Invitation Declined')
       }
       fetchData()
     } catch (error) {
@@ -99,7 +105,7 @@ const TicketsPage: React.FC = () => {
     }
   }
 
-  const promptAction = (e: React.MouseEvent, type: 'approve' | 'reject' | 'delete', id: string) => {
+  const promptAction = (e: React.MouseEvent, type: 'approve' | 'reject' | 'delete' | 'accept_invite' | 'decline_invite', id: string) => {
     e.stopPropagation()
     if (type === 'delete') {
       setActionModal({
@@ -126,6 +132,24 @@ const TicketsPage: React.FC = () => {
         title: 'Operational Authorization',
         description: 'Authorize this engagement stage and proceed to the next industrial phase?',
         targetId: id
+      })
+    } else if (type === 'accept_invite') {
+      setActionModal({
+        isOpen: true,
+        type: 'accept_invite',
+        title: 'Accept Invitation',
+        description: 'Join the mission and collaborate with the tactical squad?',
+        targetId: id
+      })
+    } else if (type === 'decline_invite') {
+      setActionModal({
+        isOpen: true,
+        type: 'decline_invite',
+        title: 'Decline Invitation',
+        description: 'Specify the tactical reason for declining this support request.',
+        targetId: id,
+        requireReason: true,
+        reasons: ['Personnel Overload', 'Lacks Expertise', 'Conflicting Mission', 'Resource Reallocation', 'Out of Department Scope']
       })
     }
   }
@@ -171,6 +195,46 @@ const TicketsPage: React.FC = () => {
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16 blur-2xl pointer-events-none" />
       </div>
+
+      {/* Pending Requests Section */}
+      {tickets.some(t => t.assignments?.some((a: any) => a.userId === user?.id && a.status === 'PENDING')) && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 shadow-sm animate-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            <h3 className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Pending Requests</h3>
+          </div>
+          <div className="space-y-3">
+            {tickets.filter(t => t.assignments?.some((a: any) => a.userId === user?.id && a.status === 'PENDING')).map(ticket => (
+              <div key={ticket.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:border-amber-300 transition-all">
+                <div className="flex items-center gap-4">
+                   <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <TicketIcon className="h-5 w-5 text-amber-600" />
+                   </div>
+                   <div className="min-w-0">
+                      <p className="text-[10px] font-black text-amber-600 uppercase tracking-tight mb-0.5">{ticket.ticketNumber}</p>
+                      <h4 className="text-sm font-black text-gray-900 truncate max-w-md">{ticket.title}</h4>
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Invited by {ticket.requester?.name}</p>
+                   </div>
+                </div>
+                <div className="flex items-center gap-2">
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); promptAction(e, 'accept_invite', ticket.id); }}
+                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 flex items-center gap-2"
+                   >
+                     <CheckCircleIcon className="h-4 w-4" /> Access
+                   </button>
+                   <button 
+                     onClick={(e) => { e.stopPropagation(); promptAction(e, 'decline_invite', ticket.id); }}
+                     className="px-4 py-2 bg-white text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center gap-2"
+                   >
+                     <XCircleIcon className="h-4 w-4" /> Decline
+                   </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Controls Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">

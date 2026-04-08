@@ -8,23 +8,26 @@ import aiohttp
 import asyncio
 from .context_learning import ContextLearningService
 
+from config import get_config
+
 logger = logging.getLogger(__name__)
 
 class ChatService:
     """Service for handling conversational AI chat with context and memory"""
 
     def __init__(self, api_keys: List[str], provider: str = "gemini"):
+        self.config = get_config()
         self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
         self.current_key_index = 0
         self.api_key = self.api_keys[0] # For backwards compatibility with internal services
         self.provider = provider.lower()
         
-        # Use the same model as content generation (from config)
+        # Use the global config model if no environment override
         if self.provider == "groq":
-            self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+            self.model_name = self.config.GROQ_MODEL
             self.base_url = "https://api.groq.com/openai/v1"
         else:
-            self.model_name = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
+            self.model_name = self.config.GEMINI_MODEL
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
             
         self.learning_service = ContextLearningService(self.api_key, self.model_name)

@@ -129,12 +129,14 @@ model Ticket {
 }
 
 model TicketAssignment {
-  id         String   @id @default(uuid())
-  ticketId   String
-  userId     String
-  assignedAt DateTime @default(now())
-  ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user       User     @relation("TicketAssignments", fields: [userId], references: [id], onDelete: Cascade)
+  id            String           @id @default(uuid())
+  ticketId      String
+  userId        String
+  status        AssignmentStatus @default(ACCEPTED)
+  declineReason String?
+  assignedAt    DateTime         @default(now())
+  ticket        Ticket           @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user          User             @relation("TicketAssignments", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([ticketId, userId])
   @@map("ticket_assignments")
@@ -728,4 +730,10 @@ enum StrategyAccess {
   NONE
   READ
   EDIT
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
 }
