@@ -157,7 +157,7 @@ const TicketsPage: React.FC = () => {
   const getStatusBadge = (ticket: any) => {
     switch (ticket.status as TicketStatus) {
       case 'PENDING_REC_MGR': 
-        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Pending Approval: {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Dept. Manager'}</span>
+        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Pending Approval</span>
       case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-blue-100">Open</span>
       case 'ASSIGNED': return <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-indigo-100">Assigned</span>
       case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-emerald-100">Resolved</span>

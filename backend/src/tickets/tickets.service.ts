@@ -148,6 +148,12 @@ export class TicketsService {
 
     const ticketNumber = await this.generateTicketNumber(companyId);
     const receiverDept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
+    const isSameDept = user.departmentId === data.receiverDeptId;
+
+    // VALIDATION: If no approval is required, a target personnel MUST be assigned
+    if (!data.requiresApproval && !data.assigneeId) {
+      throw new BadRequestException('Target Personnel is required when manager approval is not requested.');
+    }
 
     // Determine initial status:
     // 1. If requiresApproval is true, wait for Receiver Manager
@@ -157,16 +163,18 @@ export class TicketsService {
       initialStatus = TicketStatus.PENDING_REC_MGR;
     }
 
-    const isSameDept = user.departmentId === receiverDept?.id;
-    const squad = [{ userId: userId, status: 'ACCEPTED' as any }];
-    if (data.requiresApproval && data.approverId) {
-      if (!squad.some(s => s.userId === data.approverId)) squad.push({ userId: data.approverId, status: 'ACCEPTED' as any });
-    } else if (receiverDept?.managerId) {
-      if (!squad.some(s => s.userId === receiverDept.managerId)) squad.push({ userId: receiverDept.managerId, status: 'ACCEPTED' as any });
-    }
+    const squad: any[] = [{ userId: userId, status: 'ACCEPTED' }];
     
-    if (data.assigneeId && !squad.some(s => s.userId === data.assigneeId)) {
-      squad.push({ userId: data.assigneeId, status: 'ACCEPTED' as any });
+    // Add targeted manager/assignee as PENDING
+    if (data.requiresApproval) {
+      const targetApprover = data.approverId || receiverDept?.managerId;
+      if (targetApprover && targetApprover !== userId) {
+        squad.push({ userId: targetApprover, status: 'PENDING' });
+      }
+    } else if (data.assigneeId) {
+      if (data.assigneeId !== userId) {
+        squad.push({ userId: data.assigneeId, status: 'PENDING' });
+      }
     }
 
     const ticket = await this.prisma.ticket.create({
@@ -286,6 +294,12 @@ export class TicketsService {
       data: { status: TicketStatus.OPEN },
     });
 
+    // Strategy: Also accept the squad invitation for the manager if they are in the squad
+    await this.prisma.ticketAssignment.updateMany({
+      where: { ticketId: id, userId: managerId, status: 'PENDING' },
+      data: { status: 'ACCEPTED' as any }
+    });
+
     await this.addSystemComment(id, managerId, 'Status updated to Open', companyId);
 
     // Notify the requester that the ticket is now active
@@ -376,6 +390,16 @@ export class TicketsService {
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     await this.addSystemComment(ticketId, userId, `${user?.name} has accepted the invitation and joined the ticket.`, companyId);
+
+    // If this was the designated assignee, move ticket to ASSIGNED
+    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (ticket?.assigneeId === userId && ticket.status === TicketStatus.OPEN) {
+      await this.prisma.ticket.update({
+        where: { id: ticketId },
+        data: { status: TicketStatus.ASSIGNED }
+      });
+      await this.addSystemComment(ticketId, userId, 'Status updated to Assigned', companyId);
+    }
 
     return { success: true };
   }

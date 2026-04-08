@@ -537,7 +537,7 @@ const TicketDetailPage: React.FC = () => {
               <div className="bg-white text-slate-900 px-6 py-2.5 rounded-xl flex flex-col items-end shadow-xl border-b-2 border-slate-100 ring-4 ring-white/5">
                 <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.3em] mb-0.5">Operational State</p>
                 <span className="text-sm font-black uppercase tracking-tight">
-                  {ticket.status === 'PENDING_REC_MGR' ? 'Departmental Approval' : 
+                  {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' : 
                    ticket.status.replace(/_/g, ' ')}
                 </span>
               </div>

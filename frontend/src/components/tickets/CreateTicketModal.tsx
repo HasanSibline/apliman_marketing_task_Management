@@ -228,8 +228,13 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
   const handleSubmit = async () => {
     if (!title || !receiverDeptId) {
-      toast.error('Please fill all required fields')
-      return
+      toast.error('Please fill all required fields');
+      return;
+    }
+
+    if (!requiresApproval && !assigneeId) {
+      toast.error('Target Personnel is mandatory if no approval is requested.');
+      return;
     }
 
     setIsSubmitting(true)
@@ -324,7 +329,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 {/* Target User */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Target Personnel (Optional)
+                    Target Personnel {!requiresApproval && '*'}
                   </label>
                   <select
                     value={assigneeId}
