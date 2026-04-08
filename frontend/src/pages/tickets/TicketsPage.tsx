@@ -138,7 +138,7 @@ const TicketsPage: React.FC = () => {
         isOpen: true,
         type: 'accept_invite',
         title: 'Accept Invitation',
-        description: 'Join the mission and collaborate with the tactical squad?',
+        description: 'Join the ticket and collaborate with the tactical squad?',
         targetId: id
       })
     } else if (type === 'decline_invite') {
@@ -149,7 +149,7 @@ const TicketsPage: React.FC = () => {
         description: 'Specify the tactical reason for declining this support request.',
         targetId: id,
         requireReason: true,
-        reasons: ['Personnel Overload', 'Lacks Expertise', 'Conflicting Mission', 'Resource Reallocation', 'Out of Department Scope']
+        reasons: ['Personnel Overload', 'Lacks Expertise', 'Conflicting Ticket', 'Resource Reallocation', 'Out of Department Scope']
       })
     }
   }
@@ -179,7 +179,7 @@ const TicketsPage: React.FC = () => {
               Logistics Hub
             </div>
             <h1 className="text-3xl font-black mb-1 leading-tight font-outfit uppercase tracking-tight">Logistics & Requests</h1>
-            <p className="text-primary-50 font-medium max-w-lg opacity-90">Universal Organizational Interaction Log · Real-time mission tracking and tactical coordination.</p>
+            <p className="text-primary-50 font-medium max-w-lg opacity-90">Universal Organizational Interaction Log · Real-time ticket tracking and tactical coordination.</p>
           </div>
           <div className="flex items-center gap-3">
             <button 

@@ -664,6 +664,12 @@ Logistical Target: {ticket.get('receiverDept', {}).get('name', 'Unknown')}
 Assignee: {ticket.get('assignee', {}).get('name', 'Unassigned')}
 Description: {ticket.get('description', 'No description')}
 """
+
+        # User's Active Tickets Context
+        if additional_context.get('userActiveTickets'):
+            prompt += "\n=== User's Active Tickets ===\n"
+            for t in additional_context['userActiveTickets']:
+                prompt += f"- Ticket: {t.get('title')} ({t.get('ticketNumber')}) | Status: {t.get('status')} | Priority: {t.get('priority', 'N/A')}\n"
         
         # Give AI the user's workload context natively
         if additional_context.get('userAnalytics'):

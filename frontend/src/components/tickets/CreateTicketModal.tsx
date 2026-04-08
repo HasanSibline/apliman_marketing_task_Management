@@ -351,7 +351,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 />
                 <label htmlFor="requiresApproval" className="text-xs font-bold text-gray-700 cursor-pointer flex flex-col">
                   Require manager approval
-                  <span className="text-[9px] font-medium text-gray-400 normal-case italic">If checked, the target department manager must authorize this mission before it goes LIVE.</span>
+                  <span className="text-[9px] font-medium text-gray-400 normal-case italic">If checked, the target department manager must authorize this ticket before it goes LIVE.</span>
                 </label>
               </div>
 

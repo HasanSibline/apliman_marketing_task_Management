@@ -203,7 +203,7 @@ const TicketDetailPage: React.FC = () => {
         fetchTicketDetails()
       } else if (type === 'cancel') {
         await api.patch(`/tickets/${ticketId}`, { status: 'CANCELLED', metadata: { ...ticket.metadata, cancelReason: reason } })
-        toast.error('Mission Aborted')
+        toast.error('Ticket Aborted')
         fetchTicketDetails()
       } else if (type === 'remove_attachment' && targetId) {
         await api.delete(`/files/ticket-delete/${targetId}`)
@@ -281,8 +281,8 @@ const TicketDetailPage: React.FC = () => {
     setActionModal({
       isOpen: true,
       type: 'cancel',
-      title: 'Mission Cancellation',
-      description: 'Specify the reason for aborting this mission permanently.',
+      title: 'Ticket Cancellation',
+      description: 'Specify the reason for cancelling this ticket permanently.',
       requireReason: true,
       reasons: ['Resource Reallocation', 'Client Request', 'Objective Obsolete', 'Budgetary Cut', 'Technical Impossibility']
     })
@@ -455,7 +455,7 @@ const TicketDetailPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Mission Objective (Title) - Moved Higher */}
+            {/* Ticket Objective (Title) - Moved Higher */}
             <div className="animate-in slide-in-from-left-4 duration-700">
               {isEditing ? (
                 <input
@@ -463,7 +463,7 @@ const TicketDetailPage: React.FC = () => {
                   value={editData.title}
                   onChange={(e) => setEditData({ ...editData, title: e.target.value })}
                   className="w-full bg-white/5 border-b-2 border-white/20 px-0 py-1 text-3xl lg:text-4xl font-black focus:outline-none focus:border-white transition-all placeholder:text-white/20 rounded-none shadow-none"
-                  placeholder="Update Mission Objective..."
+                  placeholder="Update Ticket Title..."
                 />
               ) : (
                 <h1 className="text-3xl lg:text-5xl font-black leading-tight tracking-tight drop-shadow-xl max-w-4xl">
@@ -481,7 +481,7 @@ const TicketDetailPage: React.FC = () => {
                 <button
                   onClick={handleDeleteTicket}
                   className="p-2 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-lg backdrop-blur-md"
-                  title="Terminate Mission"
+                  title="Terminate Ticket"
                 >
                   <TrashIcon className="h-4 w-4" />
                 </button>
@@ -500,7 +500,7 @@ const TicketDetailPage: React.FC = () => {
             {/* Status Switcher - Moved Up & Scaled Down */}
             {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a: any) => a.userId === user?.id)) ? (
               <div className="w-full md:w-80">
-                <p className="text-[8px] font-black uppercase text-white/40 tracking-[0.3em] mb-1.5 text-right">Strategic Mission Status</p>
+                <p className="text-[8px] font-black uppercase text-white/40 tracking-[0.3em] mb-1.5 text-right">Strategic Ticket Status</p>
                 <div className="relative group">
                     <select
                     value={ticket.status}
@@ -587,7 +587,7 @@ const TicketDetailPage: React.FC = () => {
                     <ClockIcon className="h-4 w-4 text-amber-600" />
                   </div>
                   <p className="text-[11px] font-bold text-gray-600 italic">
-                    Wait for {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Department Manager'} to authorize this mission.
+                    Wait for {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Department Manager'} to authorize this ticket.
                   </p>
 
                   {(isRecMgrStage && canAuthoriseRec) && (
@@ -768,7 +768,7 @@ const TicketDetailPage: React.FC = () => {
                       onClick={async () => {
                         try {
                           await api.patch(`/tickets/${ticketId}/start`)
-                          toast.success('MISSION EXECUTION COMMENCED')
+                          toast.success('TICKET EXECUTION COMMENCED')
                           fetchTicketDetails()
                         } catch { toast.error('Failed to start engagement') }
                       }}
@@ -783,7 +783,7 @@ const TicketDetailPage: React.FC = () => {
                       onClick={async () => {
                         try {
                           await api.patch(`/tickets/${ticketId}/resolve`)
-                          toast.success('MISSION OBJECTIVE FINALIZED')
+                          toast.success('TICKET FINALIZED')
                           fetchTicketDetails()
                         } catch { toast.error('Sync error') }
                       }}
@@ -948,7 +948,7 @@ const TicketDetailPage: React.FC = () => {
             {(ticket.status === 'RESOLVED' || ticket.status === 'CANCELLED') ? (
               <div className="p-8 bg-gray-100/50 border-t border-gray-100 flex items-center justify-center">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
-                  Intelligence Feed Archived · Mission {ticket.status === 'RESOLVED' ? 'Finalized' : 'Terminated'}
+                  Intelligence Feed Archived · Ticket {ticket.status === 'RESOLVED' ? 'Finalized' : 'Terminated'}
                 </p>
               </div>
             ) : (

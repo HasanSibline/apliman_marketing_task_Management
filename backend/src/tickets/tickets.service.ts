@@ -32,7 +32,7 @@ export class TicketsService {
       ticketId: id,
       type: 'TICKET_RESOLVED',
       title: 'Engagement Finalized',
-      message: `The mission objectives for ${ticket.ticketNumber} have been successfully localized and resolved.`,
+      message: `The objectives for ticket ${ticket.ticketNumber} have been successfully localized and resolved.`,
       actionUrl: `/tickets/${id}`
     });
 
@@ -158,6 +158,16 @@ export class TicketsService {
     }
 
     const isSameDept = user.departmentId === receiverDept?.id;
+    const squad = [{ userId: userId, status: 'ACCEPTED' as any }];
+    if (data.requiresApproval && data.approverId) {
+      if (!squad.some(s => s.userId === data.approverId)) squad.push({ userId: data.approverId, status: 'ACCEPTED' as any });
+    } else if (receiverDept?.managerId) {
+      if (!squad.some(s => s.userId === receiverDept.managerId)) squad.push({ userId: receiverDept.managerId, status: 'ACCEPTED' as any });
+    }
+    
+    if (data.assigneeId && !squad.some(s => s.userId === data.assigneeId)) {
+      squad.push({ userId: data.assigneeId, status: 'ACCEPTED' as any });
+    }
 
     const ticket = await this.prisma.ticket.create({
       data: {
@@ -170,14 +180,14 @@ export class TicketsService {
         receiverDeptId: data.receiverDeptId,
         assigneeId: data.assigneeId || null,
         requesterId: userId,
-        receiverManagerId: data.requiresApproval ? (data.approverId || receiverDept?.managerId || null) : null,
+        receiverManagerId: data.requiresApproval ? (data.approverId || receiverDept?.managerId || null) : (receiverDept?.managerId || null),
         isInternal: data.isInternal || isSameDept || false,
         amount: data.amount ? parseFloat(data.amount.toString()) : null,
         providerName: data.providerName || null,
         deadline: data.deadline ? new Date(data.deadline) : null,
         status: initialStatus,
         assignments: {
-          create: data.requiresApproval && data.approverId ? [{ userId: data.approverId, status: 'ACCEPTED' as any }] : []
+          create: squad
         }
       },
       include: {
@@ -187,7 +197,7 @@ export class TicketsService {
     });
 
     // Strategy Center: Generate Initialization Briefing
-    const summary = `Mission Initialization: ${ticket.ticketNumber} established.
+    const summary = `Ticket Initialization: ${ticket.ticketNumber} established.
     PRIORITY: ${data.priority || 'MEDIUM'}
     LOGISTICAL TARGET: ${receiverDept?.name || 'Unassigned'}
     CONTEXT: ${data.title}`;
@@ -241,7 +251,7 @@ export class TicketsService {
       data: { status: TicketStatus.CANCELLED },
     });
 
-    // Notify the initiator that the mission was aborted
+    // Notify the initiator that the ticket was aborted
     await this.notifications.createNotification({
       userId: ticket.requesterId,
       ticketId: id,
@@ -278,7 +288,7 @@ export class TicketsService {
 
     await this.addSystemComment(id, managerId, 'Status updated to Open', companyId);
 
-    // Notify the requester that the mission is now active
+    // Notify the requester that the ticket is now active
     await this.notifications.createNotification({
       userId: ticket.requesterId,
       ticketId: id,
@@ -318,7 +328,7 @@ export class TicketsService {
       userId: assigneeId,
       ticketId: id,
       type: 'TICKET_ASSIGNED',
-      title: 'Squad Mission Deployment',
+      title: 'Squad Deployment',
       message: `You have been deployed to the tactical squad for ticket ${ticket.ticketNumber}.`,
       actionUrl: `/tickets/${id}`
     });
@@ -344,8 +354,8 @@ export class TicketsService {
       userId: personId,
       ticketId: id,
       type: 'TICKET_INVITE',
-      title: 'Mission Invitation',
-      message: `${inviter?.name} has requested your tactical support on mission ${ticket.ticketNumber}.`,
+      title: 'Ticket Invitation',
+      message: `${inviter?.name} has requested your tactical support on ticket ${ticket.ticketNumber}.`,
       actionUrl: `/tickets/${id}`
     });
 
@@ -396,7 +406,7 @@ export class TicketsService {
     }
 
     if (ticket.assigneeId !== userId) {
-      throw new ForbiddenException('Only the assigned personnel can start mission execution');
+      throw new ForbiddenException('Only the assigned personnel can start ticket execution');
     }
 
     const updated = await this.prisma.ticket.update({

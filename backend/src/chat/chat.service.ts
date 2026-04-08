@@ -513,6 +513,28 @@ export class ChatService {
     });
     context.userActiveTasks = activeTasks;
 
+    // ALWAYS fetch the user's active tickets
+    const activeTickets = await this.prisma.ticket.findMany({
+      where: {
+        companyId: user.companyId,
+        status: { notIn: ['RESOLVED', 'CANCELLED'] },
+        OR: [
+          { requesterId: userId },
+          { assignments: { some: { userId } } },
+          { receiverManagerId: userId }
+        ]
+      },
+      select: {
+        id: true,
+        ticketNumber: true,
+        title: true,
+        status: true,
+        priority: true,
+      },
+      take: 10
+    });
+    context.userActiveTickets = activeTickets;
+
     // ALWAYS fetch the user's latest stats (optional but helpful)
     const completedTasksCount = await this.prisma.task.count({
       where: {
@@ -617,17 +639,25 @@ export class ChatService {
       });
       context.referencedTasks = tasks;
 
-      // Also fetch referenced tickets
-      if (ticketCodes.length > 0) {
+      // Always fetch referenced tickets (TKT-1001 or #TKT-1001)
+      const allTicketRefs = [...new Set([...ticketRefs, ...taskRefs.filter(r => r.startsWith('TKT-'))])];
+      
+      if (allTicketRefs.length > 0) {
         const tickets = await this.prisma.ticket.findMany({
           where: {
             companyId: user.companyId,
-            ticketNumber: { in: ticketCodes },
+            ticketNumber: { in: allTicketRefs },
           },
           include: {
             requester: { select: { name: true } },
             receiverDept: { select: { name: true } },
             assignee: { select: { name: true } },
+            comments: {
+               where: { isSystem: false },
+               take: 5,
+               orderBy: { createdAt: 'desc' },
+               select: { comment: true, user: { select: { name: true } } }
+            }
           },
         });
         context.referencedTickets = tickets;

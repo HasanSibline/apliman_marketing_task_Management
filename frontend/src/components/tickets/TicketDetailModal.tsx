@@ -482,7 +482,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             onClick={async () => {
                               try {
                                 await api.patch(`/tickets/${ticketId}/start`)
-                                toast.success('MISSION EXECUTION COMMENCED')
+                                toast.success('TICKET EXECUTION COMMENCED')
                                 fetchTicketDetails()
                                 onUpdate()
                               } catch { toast.error('Failed to start engagement') }
@@ -498,7 +498,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             onClick={async () => {
                               try {
                                 await api.patch(`/tickets/${ticketId}/resolve`)
-                                toast.success('MISSION OBJECTIVE FINALIZED')
+                                toast.success('TICKET FINALIZED')
                                 fetchTicketDetails()
                                 onUpdate()
                               } catch { toast.error('Sync error') }

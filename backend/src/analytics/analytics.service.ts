@@ -176,7 +176,7 @@ export class AnalyticsService {
 
     // Get recent tasks
     const recentTasks = await this.prisma.task.findMany({
-      where: globalFilter, // Everyone can see recent company missions in the hub
+      where: globalFilter, // Everyone can see recent company tickets in the hub
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
