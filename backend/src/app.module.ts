@@ -24,9 +24,11 @@ import { AppService } from './app.service';
 import { DepartmentsModule } from './departments/departments.module';
 import { TeamsModule } from './teams/teams.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { MicrosoftModule } from './microsoft/microsoft.module';
 
 @Module({
   imports: [
+
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',

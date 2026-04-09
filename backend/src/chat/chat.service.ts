@@ -5,6 +5,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Inject, forwardRef } from '@nestjs/common';
 import { CompaniesService } from '../companies/companies.service';
+import { MicrosoftService } from '../microsoft/microsoft.service';
 import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from './dto/chat.dto';
 
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +19,7 @@ export class ChatService {
     private prisma: PrismaService,
     private httpService: HttpService,
     private configService: ConfigService,
+    private microsoftService: MicrosoftService,
     @Inject(forwardRef(() => CompaniesService))
     private companiesService: CompaniesService,
   ) {
@@ -671,6 +673,16 @@ export class ChatService {
           description: t.description?.substring(0, 1000) + (t.description?.length > 1000 ? '...' : '')
         }));
       }
+    }
+
+    // NEW: Fetch recent Microsoft meeting transcripts for context
+    try {
+        const meetingContext = await this.microsoftService.getRecentMeetingContext(userId, 3);
+        if (meetingContext.length > 0) {
+            context.recentMeetings = meetingContext;
+        }
+    } catch (error) {
+        this.logger.error('Failed to fetch meeting context for chat', error.message);
     }
 
     return context;

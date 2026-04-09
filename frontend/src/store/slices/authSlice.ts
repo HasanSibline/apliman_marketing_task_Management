@@ -17,6 +17,7 @@ export interface User {
   strategyAccess: 'NONE' | 'READ' | 'EDIT'
   companyLogo?: string | null
   companyColor?: string | null
+  isMicrosoftSynced?: boolean
 }
 
 interface AuthState {

@@ -736,6 +736,29 @@ Respond with ONLY the JSON array, no other text."""
             logger.error(f"Error generating subtasks: {str(e)}")
             return self._generate_fallback_subtasks(title, task_type)
 
+    async def summarize_text(self, text: str, max_length: int = 150) -> str:
+        """Summarize long text into a concise summary"""
+        try:
+            await self._rate_limit()
+            
+            prompt = f"""
+            Summarize the following text into a concise, professional summary.
+            Max Length: {max_length} characters.
+            Focus on: Key decisions, action items, and main themes.
+            
+            Text to summarize:
+            {text[:10000]}  # Limit input to 10k chars for safety
+            
+            Respond with ONLY the summary text.
+            """
+            
+            summary = await self._make_request(prompt)
+            return summary.strip()[:max_length]
+            
+        except Exception as e:
+            logger.error(f"Error in summarize_text: {str(e)}")
+            return "Unable to generate summary at this time."
+
     def _generate_fallback_subtasks(self, title: str, task_type: str) -> list:
         """Generate basic subtasks as fallback"""
         templates = {

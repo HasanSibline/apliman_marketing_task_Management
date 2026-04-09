@@ -269,6 +269,11 @@ model User {
   requestedTickets    Ticket[]          @relation("TicketRequester")
   requestedTicketsMgr Ticket[]          @relation("TicketRequesterManager")
   chatContext         UserChatContext?
+  microsoftId         String?           @unique
+  microsoftAccessToken String?
+  microsoftRefreshToken String?
+  microsoftTokenExpiry DateTime?
+  isMicrosoftSynced   Boolean           @default(false)
   company             Company?          @relation(fields: [companyId], references: [id], onDelete: Cascade)
   department          Department?       @relation("UserDepartment", fields: [departmentId], references: [id])
   manager             User?             @relation("UserManager", fields: [managerId], references: [id])

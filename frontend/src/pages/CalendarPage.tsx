@@ -5,23 +5,33 @@ import Calendar from '@/components/calendar/Calendar'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 
+import { useAppSelector } from '@/hooks/redux'
+
 const CalendarPage: React.FC = () => {
     const navigate = useNavigate()
+    const { user } = useAppSelector((state) => state.auth)
     const [events, setEvents] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         fetchSchedule()
-    }, [])
+    }, [user?.isMicrosoftSynced])
 
     const fetchSchedule = async () => {
         setLoading(true)
         try {
-            // Fetch both tasks and tickets concurrently
-            const [tasksRes, ticketsRes] = await Promise.all([
+            // Build api calls list
+            const apiCalls = [
                 api.get('/tasks', { params: { limit: 1000 } }),
                 api.get('/tickets', { params: { limit: 1000 } })
-            ]);
+            ];
+
+            // Only fetch MS events if user is synced
+            if (user?.isMicrosoftSynced) {
+                apiCalls.push(api.get('/microsoft/events'));
+            }
+
+            const [tasksRes, ticketsRes, msRes] = await Promise.all(apiCalls);
 
             const tasks = (tasksRes.data.tasks || []).map((t: any) => ({
                 ...t,
@@ -35,9 +45,18 @@ const CalendarPage: React.FC = () => {
                 priority: t.priority === 'URGENT' ? 5 : t.priority === 'HIGH' ? 4 : t.priority === 'MEDIUM' ? 3 : 1,
                 ticketNumber: t.ticketNumber,
                 type: 'TICKET'
-            })).filter((t: any) => t.dueDate); // Only show tickets with deadlines
+            })).filter((t: any) => t.dueDate);
 
-            setEvents([...tasks, ...tickets])
+            const msEvents = msRes ? (msRes.data || []).map((e: any) => ({
+                id: e.id,
+                title: e.title,
+                dueDate: e.start,
+                type: 'MICROSOFT_EVENT',
+                priority: 2, // Default secondary priority for external meetings
+                isTeams: e.isTeams
+            })) : [];
+
+            setEvents([...tasks, ...tickets, ...msEvents])
         } catch {
             toast.error('Failed to synchronize schedule')
         } finally {
@@ -68,6 +87,7 @@ const CalendarPage: React.FC = () => {
                     events={events} 
                     onEventClick={(id, type) => {
                         if (type === 'TICKET') navigate(`/tickets/${id}`)
+                        else if (type === 'MICROSOFT_EVENT') navigate(`/meetings/${id}`)
                         else navigate(`/tasks/${id}`)
                     }} 
                 />

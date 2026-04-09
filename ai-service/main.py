@@ -298,6 +298,24 @@ async def generate_content(request: GenerateContentRequest):
             }
         )
 
+class SummarizeRequest(BaseModel):
+    text: str
+    max_length: int = 150
+    api_key: Optional[str] = None
+    provider: Optional[str] = "gemini"
+
+@app.post("/summarize", dependencies=[Depends(require_service_token)])
+async def summarize(request: SummarizeRequest):
+    """Summarize text using configured AI provider"""
+    try:
+        # Use temp generator for summarization with company key
+        temp_generator = ContentGenerator(request.api_key, provider=request.provider)
+        summary = await temp_generator.summarize_text(request.text, request.max_length)
+        return {"summary": summary}
+    except Exception as e:
+        logger.error(f"Summarization failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/scrape-url", dependencies=[Depends(require_service_token)])
 async def scrape_url(request: ScrapeUrlRequest):
     """Scrape content from a URL"""

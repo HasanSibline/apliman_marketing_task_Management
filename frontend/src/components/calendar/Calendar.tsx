@@ -1,6 +1,9 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
+import { useAppSelector } from '@/hooks/redux'
+import api from '@/services/api'
+import toast from 'react-hot-toast'
 import {
     ChevronLeftIcon,
     ChevronRightIcon,
@@ -8,6 +11,7 @@ import {
     ClockIcon,
     PlusIcon,
     ArrowPathIcon,
+    VideoCameraIcon
 } from '@heroicons/react/24/outline'
 import { 
     format, 
@@ -32,14 +36,14 @@ interface CalendarEvent {
     taskType?: string
     dueDate?: string
     priority?: number
-    type: 'TASK' | 'TICKET'
+    type: 'TASK' | 'TICKET' | 'MICROSOFT_EVENT'
     ticketNumber?: string
     assignedTo?: { name: string }
 }
 
 interface CalendarProps {
     events: CalendarEvent[]
-    onEventClick?: (id: string, type: 'TASK' | 'TICKET') => void
+    onEventClick?: (id: string, type: 'TASK' | 'TICKET' | 'MICROSOFT_EVENT') => void
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
@@ -54,11 +58,13 @@ type ViewType = 'workWeek' | 'week' | 'day'
 
 export default function Calendar({ events, onEventClick }: CalendarProps) {
     const navigate = useNavigate()
+    const { user } = useAppSelector((state) => state.auth)
     const [currentDate, setCurrentDate] = useState(new Date())
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [viewType, setViewType] = useState<ViewType>('week')
     const [isRefreshing, setIsRefreshing] = useState(false)
+    const [isSyncing, setIsSyncing] = useState(false)
     const [filterType, setFilterType] = useState<'all' | 'milestone' | 'tickets'>('all')
     const scrollContainerRef = useRef<HTMLDivElement>(null)
 
@@ -110,6 +116,25 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
     const handleRefresh = () => {
         setIsRefreshing(true)
         setTimeout(() => setIsRefreshing(false), 800)
+    }
+
+    const handleMicrosoftSync = async () => {
+        if (user?.isMicrosoftSynced) {
+            toast.success('Your Microsoft Calendar is already synced!')
+            return
+        }
+
+        setIsSyncing(true)
+        try {
+            const res = await api.get('/microsoft/auth-url')
+            if (res.data?.url) {
+                window.location.href = res.data.url
+            }
+        } catch (error) {
+            toast.error('Failed to initialize Microsoft sync')
+        } finally {
+            setIsSyncing(false)
+        }
     }
 
     const renderMiniCalendar = () => {
@@ -263,6 +288,20 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
                             ))}
                         </div>
                         <button 
+                            onClick={handleMicrosoftSync}
+                            disabled={isSyncing}
+                            className={`flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${
+                                user?.isMicrosoftSynced 
+                                ? 'bg-green-50 text-green-700 border border-green-200' 
+                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                            }`}
+                        >
+                            <div className={`h-2 w-2 rounded-full ${user?.isMicrosoftSynced ? 'bg-green-500' : 'bg-gray-300'}`} />
+                            <span>{user?.isMicrosoftSynced ? 'Microsoft Synced' : 'Sync Microsoft'}</span>
+                            {isSyncing && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
+                        </button>
+
+                        <button 
                             onClick={() => navigate('/tasks')}
                             className="flex items-center space-x-2 px-4 py-1.5 bg-primary-600 text-white text-sm font-bold rounded-lg hover:bg-primary-700 transition-colors"
                         >
@@ -378,6 +417,12 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
                                                         <span className="text-[10px] font-black">{format(date, 'h:mm a')}</span>
                                                         {event.type === 'TICKET' && (
                                                             <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded uppercase">TICKET</span>
+                                                        )}
+                                                        {event.type === 'MICROSOFT_EVENT' && (
+                                                            <span className="text-[9px] font-black bg-[#6264A7] text-white px-1.5 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm">
+                                                                <VideoCameraIcon className="h-2 w-2" />
+                                                                TEAMS
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </motion.div>

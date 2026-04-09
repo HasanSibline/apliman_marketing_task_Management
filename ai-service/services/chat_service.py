@@ -698,6 +698,14 @@ Description: {ticket.get('description', 'No description')}
             for q in additional_context['companyQuarters']:
                 prompt += f"- Quarter: {q.get('name')} {q.get('year')} | Status: {q.get('status')} | Period: {q.get('startDate')} to {q.get('endDate')}\n"
 
+        # Add recent Microsoft meeting transcripts
+        if additional_context.get('recentMeetings'):
+            prompt += "\n=== Recent Microsoft Teams Meetings ===\n"
+            prompt += "Use these transcripts to answer questions about recent discussions or decisions.\n"
+            for meeting in additional_context['recentMeetings']:
+                prompt += f"Meeting: {meeting.get('title')} ({meeting.get('date')})\n"
+                prompt += f"Transcript Highlight:\n{meeting.get('transcript')[:1000]}\n---\n"
+
         # Add mentioned users
         if additional_context.get('mentionedUsers'):
             prompt += "\n=== Mentioned Users ===\n"

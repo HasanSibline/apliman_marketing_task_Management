@@ -31,6 +31,8 @@ import ObjectivesPage from '@/pages/objectives/ObjectivesPage'
 import ObjectiveDetailPage from '@/pages/objectives/ObjectiveDetailPage'
 import TicketsPage from '@/pages/tickets/TicketsPage'
 import TicketDetailPage from '@/pages/tickets/TicketDetailPage'
+import AuthCallback from '@/pages/auth/AuthCallback'
+import MeetingDetailPage from '@/pages/MeetingDetailPage'
 
 // Super Admin Pages
 import AdminLogin from '@/pages/AdminLogin'
@@ -212,7 +214,10 @@ function App() {
         />
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="tickets/:id" element={<TicketDetailPage />} />
+        <Route path="meetings/:id" element={<MeetingDetailPage />} />
       </Route>
+
+      <Route path="/auth/microsoft/callback" element={<AuthCallback />} />
 
       {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
