@@ -64,6 +64,7 @@ import { MicrosoftModule } from './microsoft/microsoft.module';
     DepartmentsModule,
     TeamsModule,
     TicketsModule,
+    MicrosoftModule,
   ],
   controllers: [AppController],
   providers: [AppService],

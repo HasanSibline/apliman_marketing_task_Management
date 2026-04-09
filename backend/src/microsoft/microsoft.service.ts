@@ -21,7 +21,7 @@ export class MicrosoftService {
       clientId: this.configService.get<string>('MS_CLIENT_ID'),
       clientSecret: this.configService.get<string>('MS_CLIENT_SECRET'),
       tenantId: this.configService.get<string>('MS_TENANT_ID'),
-      redirectUri: this.configService.get<string>('MS_REDIRECT_URI'),
+      redirectUri: this.configService.get<string>('MS_REDIRECT_URI')?.trim(),
     };
   }
 
