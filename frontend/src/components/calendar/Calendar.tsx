@@ -45,6 +45,7 @@ interface CalendarEvent {
 interface CalendarProps {
     events: CalendarEvent[]
     onEventClick?: (id: string, type: 'TASK' | 'TICKET' | 'MICROSOFT_EVENT') => void
+    onRefresh?: () => void
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
@@ -57,7 +58,7 @@ const PRIORITY_COLORS: Record<number, string> = {
 
 type ViewType = 'workWeek' | 'week' | 'day'
 
-export default function Calendar({ events, onEventClick }: CalendarProps) {
+export default function Calendar({ events, onEventClick, onRefresh }: CalendarProps) {
     const navigate = useNavigate()
     const { user } = useAppSelector((state) => state.auth)
     const [currentDate, setCurrentDate] = useState(new Date())
@@ -116,6 +117,7 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
 
     const handleRefresh = () => {
         setIsRefreshing(true)
+        onRefresh?.()
         setTimeout(() => setIsRefreshing(false), 800)
     }
 

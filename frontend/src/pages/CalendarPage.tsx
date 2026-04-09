@@ -20,18 +20,10 @@ const CalendarPage: React.FC = () => {
     const fetchSchedule = async () => {
         setLoading(true)
         try {
-            // Build api calls list
-            const apiCalls = [
+            const [tasksRes, ticketsRes] = await Promise.all([
                 api.get('/tasks', { params: { limit: 1000 } }),
                 api.get('/tickets', { params: { limit: 1000 } })
-            ];
-
-            // Only fetch MS events if user is synced
-            if (user?.isMicrosoftSynced) {
-                apiCalls.push(api.get('/microsoft/events'));
-            }
-
-            const [tasksRes, ticketsRes, msRes] = await Promise.all(apiCalls);
+            ]);
 
             const tasks = (tasksRes.data.tasks || []).map((t: any) => ({
                 ...t,
@@ -47,14 +39,23 @@ const CalendarPage: React.FC = () => {
                 type: 'TICKET'
             })).filter((t: any) => t.dueDate);
 
-            const msEvents = msRes ? (msRes.data || []).map((e: any) => ({
-                id: e.id,
-                title: e.title,
-                dueDate: e.start,
-                type: 'MICROSOFT_EVENT',
-                priority: 2, // Default secondary priority for external meetings
-                isTeams: e.isTeams
-            })) : [];
+            let msEvents = [];
+            if (user?.isMicrosoftSynced) {
+                try {
+                    const msRes = await api.get('/microsoft/events');
+                    msEvents = (msRes.data || []).map((e: any) => ({
+                        id: e.id,
+                        title: e.title,
+                        dueDate: e.start,
+                        type: 'MICROSOFT_EVENT',
+                        priority: 2,
+                        isTeams: e.isTeams,
+                        status: e.status
+                    }));
+                } catch (msErr) {
+                    console.error('Failed to fetch Microsoft events', msErr);
+                }
+            }
 
             setEvents([...tasks, ...tickets, ...msEvents])
         } catch {
@@ -85,6 +86,7 @@ const CalendarPage: React.FC = () => {
             >
                 <Calendar 
                     events={events} 
+                    onRefresh={fetchSchedule}
                     onEventClick={(id, type) => {
                         if (type === 'TICKET') navigate(`/tickets/${id}`)
                         else if (type === 'MICROSOFT_EVENT') navigate(`/meetings/${id}`)
