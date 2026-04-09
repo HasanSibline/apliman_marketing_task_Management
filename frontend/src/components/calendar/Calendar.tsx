@@ -399,42 +399,45 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                                     style={{ 
                                                         position: 'absolute',
                                                         top: `${topPos}px`,
-                                                        height: '52px',
+                                                        height: '75px',
                                                         left: '6px',
                                                         right: '6px',
                                                     }}
                                                     className={`
-                                                        z-10 rounded-lg border-l-4 shadow-md p-3 cursor-pointer
-                                                        flex flex-col justify-center overflow-hidden border border-gray-200/50
+                                                        z-10 rounded-lg border-l-4 shadow-md p-2 cursor-pointer
+                                                        flex flex-col justify-between overflow-hidden border border-gray-200/50
                                                         ${PRIORITY_COLORS[event.priority || 1]}
                                                     `}
                                                 >
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-xs font-bold truncate leading-tight tracking-tight uppercase">
-                                                            {event.type === 'TICKET' && <span className="text-[10px] opacity-50 mr-1">{event.ticketNumber}</span>}
+                                                    <div className="flex items-start justify-between gap-1 overflow-hidden">
+                                                        <span className="text-[11px] font-black truncate leading-tight tracking-tight uppercase">
+                                                            {event.type === 'TICKET' && <span className="text-[9px] opacity-50 mr-1">{event.ticketNumber}</span>}
                                                             {event.title}
                                                         </span>
                                                         <ClockIcon className="h-3 w-3 opacity-30 shrink-0" />
                                                     </div>
-                                                    <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
-                                                        <span className="text-[10px] font-black">{format(date, 'h:mm a')}</span>
+
+                                                    <div className="flex flex-wrap items-center gap-1.5 mt-auto">
+                                                        <span className="text-[10px] font-black opacity-70 whitespace-nowrap">{format(date, 'h:mm a')}</span>
+                                                        
                                                         {event.type === 'TICKET' && (
-                                                            <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded uppercase">TICKET</span>
+                                                            <span className="text-[8px] font-black bg-white/20 px-1 py-0.5 rounded uppercase">TICKET</span>
                                                         )}
+                                                        
                                                         {event.type === 'MICROSOFT_EVENT' && (
-                                                            <div className="flex items-center gap-1">
+                                                            <div className="flex flex-wrap items-center gap-1">
                                                                 <span className={`
-                                                                    text-[9px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm
+                                                                    text-[8px] font-black px-1 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm
                                                                     ${event.status === 'Live' ? 'bg-indigo-600 text-white animate-pulse' : 'bg-[#6264A7] text-white opacity-80'}
                                                                 `}>
                                                                     <VideoCameraIcon className="h-2 w-2" />
                                                                     TEAMS
                                                                 </span>
                                                                 {event.status === 'Live' && (
-                                                                    <span className="text-[8px] font-black bg-green-500 text-white px-1 rounded-sm uppercase tracking-tighter">LIVE</span>
+                                                                    <span className="text-[8px] font-black bg-green-500 text-white px-1 rounded-sm uppercase tracking-tighter shadow-sm animate-bounce">LIVE</span>
                                                                 )}
                                                                 {event.status === 'Completed' && (
-                                                                    <span className="text-[8px] font-black bg-gray-200 text-gray-500 px-1 rounded-sm uppercase tracking-tighter">DONE</span>
+                                                                    <span className="text-[8px] font-black bg-gray-200 text-gray-500 px-1 rounded-sm uppercase tracking-tighter mt-1">DONE</span>
                                                                 )}
                                                             </div>
                                                         )}
