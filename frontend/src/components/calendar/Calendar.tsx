@@ -25,19 +25,21 @@ import {
     setHours,
 } from 'date-fns'
 
-interface Task {
+interface CalendarEvent {
     id: string
     title: string
-    phase: string
+    phase?: string
     taskType?: string
     dueDate?: string
     priority?: number
+    type: 'TASK' | 'TICKET'
+    ticketNumber?: string
     assignedTo?: { name: string }
 }
 
 interface CalendarProps {
-    tasks: Task[]
-    onTaskClick?: (id: string) => void
+    events: CalendarEvent[]
+    onEventClick?: (id: string, type: 'TASK' | 'TICKET') => void
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
@@ -50,14 +52,14 @@ const PRIORITY_COLORS: Record<number, string> = {
 
 type ViewType = 'workWeek' | 'week' | 'day'
 
-export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
+export default function Calendar({ events, onEventClick }: CalendarProps) {
     const navigate = useNavigate()
     const [currentDate, setCurrentDate] = useState(new Date())
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedDate, setSelectedDate] = useState(new Date())
     const [viewType, setViewType] = useState<ViewType>('week')
     const [isRefreshing, setIsRefreshing] = useState(false)
-    const [filterType, setFilterType] = useState<'all' | 'milestone'>('all')
+    const [filterType, setFilterType] = useState<'all' | 'milestone' | 'tickets'>('all')
     const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     // Center scroll on business hours initially
@@ -79,14 +81,16 @@ export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
 
     const hours = Array.from({ length: 24 }, (_, i) => i)
 
-    const filteredTasks = useMemo(() => {
-        const safeTasks = Array.isArray(tasks) ? tasks : []
-        return safeTasks.filter(task => {
-            const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase())
-            const matchesFilter = filterType === 'all' || task.taskType === 'MILESTONE'
+    const sortedEvents = useMemo(() => {
+        const safeEvents = Array.isArray(events) ? events : []
+        return safeEvents.filter(event => {
+            const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase())
+            let matchesFilter = true
+            if (filterType === 'milestone') matchesFilter = event.taskType === 'MILESTONE'
+            if (filterType === 'tickets') matchesFilter = event.type === 'TICKET'
             return matchesSearch && matchesFilter
         })
-    }, [tasks, searchQuery, filterType])
+    }, [events, searchQuery, filterType])
 
     const nextInterval = () => {
         if (viewType === 'day') setCurrentDate(addDays(currentDate, 1))
@@ -204,13 +208,13 @@ export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
                                     <span className={filterType === 'all' ? 'font-bold text-gray-900' : 'font-medium'}>My Tasks</span>
                                 </button>
                                 <button 
-                                    onClick={() => setFilterType('milestone')}
+                                    onClick={() => setFilterType('tickets')}
                                     className={`w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg text-left transition-all ${
-                                        filterType === 'milestone' ? 'bg-white shadow-sm border border-gray-100 ring-1 ring-primary-500/10' : 'text-gray-500 hover:bg-white/50'
+                                        filterType === 'tickets' ? 'bg-white shadow-sm border border-gray-100 ring-1 ring-primary-500/10' : 'text-gray-500 hover:bg-white/50'
                                     }`}
                                 >
-                                    <div className={`h-3 w-3 rounded-full ${filterType === 'milestone' ? 'bg-amber-500 shadow-sm' : 'border-2 border-gray-200'}`} />
-                                    <span className={filterType === 'milestone' ? 'font-bold text-gray-900' : 'font-medium'}>Milestones</span>
+                                    <div className={`h-3 w-3 rounded-full ${filterType === 'tickets' ? 'bg-primary-600 shadow-sm' : 'border-2 border-gray-200'}`} />
+                                    <span className={filterType === 'tickets' ? 'font-bold text-gray-900' : 'font-medium'}>Tickets</span>
                                 </button>
                             </div>
                         </div>
@@ -323,12 +327,12 @@ export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
 
                             {/* Column content */}
                             {displayDays.map((day: Date) => {
-                                const dayTasks = filteredTasks.filter((t: Task) => t.dueDate && isSameDay(new Date(t.dueDate), day))
+                                const dayEvents = sortedEvents.filter((e: CalendarEvent) => e.dueDate && isSameDay(new Date(e.dueDate), day))
                                 const isCurrentDay = isToday(day)
 
                                 return (
                                     <div key={day.toString()} className="relative border-r border-gray-100 last:border-r-0 h-full group">
-                                        {/* Current Time Line like Teams (Purple/Blue) */}
+                                        {/* Current Time Line */}
                                         {isCurrentDay && (
                                             <div 
                                                 className="absolute left-0 right-0 z-30 flex items-center pointer-events-none"
@@ -339,17 +343,17 @@ export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
                                             </div>
                                         )}
 
-                                        {dayTasks.map((task: Task) => {
-                                            const date = new Date(task.dueDate!)
+                                        {dayEvents.map((event: CalendarEvent) => {
+                                            const date = new Date(event.dueDate!)
                                             const topPos = (date.getHours() * 60) + date.getMinutes()
                                             
                                             return (
                                                 <motion.div
-                                                    key={task.id}
+                                                    key={event.id}
                                                     initial={{ opacity: 0, scale: 0.95 }}
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     whileHover={{ scale: 1.01, zIndex: 10 }}
-                                                    onClick={() => onTaskClick?.(task.id)}
+                                                    onClick={() => onEventClick?.(event.id, event.type)}
                                                     style={{ 
                                                         position: 'absolute',
                                                         top: `${topPos}px`,
@@ -360,15 +364,21 @@ export default function Calendar({ tasks, onTaskClick }: CalendarProps) {
                                                     className={`
                                                         z-10 rounded-lg border-l-4 shadow-md p-3 cursor-pointer
                                                         flex flex-col justify-center overflow-hidden border border-gray-200/50
-                                                        ${PRIORITY_COLORS[task.priority || 1]}
+                                                        ${PRIORITY_COLORS[event.priority || 1]}
                                                     `}
                                                 >
                                                     <div className="flex items-center justify-between gap-2">
-                                                        <span className="text-xs font-bold truncate leading-tight tracking-tight uppercase">{task.title}</span>
+                                                        <span className="text-xs font-bold truncate leading-tight tracking-tight uppercase">
+                                                            {event.type === 'TICKET' && <span className="text-[10px] opacity-50 mr-1">{event.ticketNumber}</span>}
+                                                            {event.title}
+                                                        </span>
                                                         <ClockIcon className="h-3 w-3 opacity-30 shrink-0" />
                                                     </div>
                                                     <div className="flex items-center gap-1.5 mt-0.5 opacity-60">
                                                         <span className="text-[10px] font-black">{format(date, 'h:mm a')}</span>
+                                                        {event.type === 'TICKET' && (
+                                                            <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded uppercase">TICKET</span>
+                                                        )}
                                                     </div>
                                                 </motion.div>
                                             )

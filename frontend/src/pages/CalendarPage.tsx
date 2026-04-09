@@ -7,20 +7,39 @@ import toast from 'react-hot-toast'
 
 const CalendarPage: React.FC = () => {
     const navigate = useNavigate()
-    const [tasks, setTasks] = useState([])
+    const [events, setEvents] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetchTasks()
+        fetchSchedule()
     }, [])
 
-    const fetchTasks = async () => {
+    const fetchSchedule = async () => {
         setLoading(true)
         try {
-            const { data } = await api.get('/tasks', { params: { limit: 1000 } })
-            setTasks(data.tasks || [])
+            // Fetch both tasks and tickets concurrently
+            const [tasksRes, ticketsRes] = await Promise.all([
+                api.get('/tasks', { params: { limit: 1000 } }),
+                api.get('/tickets', { params: { limit: 1000 } })
+            ]);
+
+            const tasks = (tasksRes.data.tasks || []).map((t: any) => ({
+                ...t,
+                type: 'TASK'
+            }));
+
+            const tickets = (ticketsRes.data.tickets || []).map((t: any) => ({
+                id: t.id,
+                title: t.title,
+                dueDate: t.deadline,
+                priority: t.priority === 'URGENT' ? 5 : t.priority === 'HIGH' ? 4 : t.priority === 'MEDIUM' ? 3 : 1,
+                ticketNumber: t.ticketNumber,
+                type: 'TICKET'
+            })).filter((t: any) => t.dueDate); // Only show tickets with deadlines
+
+            setEvents([...tasks, ...tickets])
         } catch {
-            toast.error('Failed to load tasks for calendar')
+            toast.error('Failed to synchronize schedule')
         } finally {
             setLoading(false)
         }
@@ -46,8 +65,11 @@ const CalendarPage: React.FC = () => {
                 className="h-full"
             >
                 <Calendar 
-                    tasks={tasks} 
-                    onTaskClick={(id) => navigate(`/tasks/${id}`)} 
+                    events={events} 
+                    onEventClick={(id, type) => {
+                        if (type === 'TICKET') navigate(`/tickets/${id}`)
+                        else navigate(`/tasks/${id}`)
+                    }} 
                 />
             </motion.div>
         </div>

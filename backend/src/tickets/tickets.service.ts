@@ -362,7 +362,7 @@ export class TicketsService {
     }
 
     const person = await this.prisma.user.findUnique({ where: { id: personId } });
-    await this.addSystemComment(id, inviterId, `${person?.name} has been added to this ticket by ${inviter?.name}`, companyId);
+    await this.addSystemComment(id, inviterId, `${person?.name} has been invited to this ticket by ${inviter?.name}`, companyId);
 
     await this.notifications.createNotification({
       userId: personId,
@@ -391,9 +391,13 @@ export class TicketsService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     await this.addSystemComment(ticketId, userId, `${user?.name} has accepted the invitation and joined the ticket.`, companyId);
 
-    // If this was the designated assignee, move ticket to ASSIGNED
-    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
-    if (ticket?.assigneeId === userId && ticket.status === TicketStatus.OPEN) {
+    // If status was OPEN, move to ASSIGNED now that we have an active squad member
+    const ticket = await this.prisma.ticket.findUnique({ 
+        where: { id: ticketId },
+        include: { assignments: { where: { status: 'ACCEPTED' } } }
+    });
+    
+    if (ticket && ticket.status === TicketStatus.OPEN && (ticket.assignments?.length || 0) >= 1) {
       await this.prisma.ticket.update({
         where: { id: ticketId },
         data: { status: TicketStatus.ASSIGNED }

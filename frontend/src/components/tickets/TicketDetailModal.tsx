@@ -374,6 +374,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           ticket.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                           'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
                         {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' :
+                          ticket.status === 'ASSIGNED' ? (() => {
+                            const count = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
+                            if (count > 1) return `Assigned: ${count} Specialists`;
+                            if (count === 1) return `Assigned: ${ticket.assignments.find((a: any) => a.status === 'ACCEPTED')?.user?.name || '1 Specialist'}`;
+                            return 'Assigned';
+                          })() : 
                           ticket.status.replace(/_/g, ' ')}
                       </span>
                     </div>

@@ -579,7 +579,7 @@ Your capabilities:
 Current User Context:
 - Name: {user.get('name', 'Analyst')}
 - Role: {user.get('role', 'User')}
-- Department: {user.get('department', {}).get('name', 'N/A')}
+- Department: {(user.get('department') or {}).get('name', 'N/A')}
 
 === ANALYST MODE ===
 {"[MODE: ACTIVE] Multiple files/images have been attached to this message. Review them immediately." if has_files else "[MODE: STANDARD] No new files attached."}
@@ -655,13 +655,17 @@ Due: {task.get('dueDate', 'No due date')}
         if additional_context.get('referencedTickets'):
             prompt += "\n=== Specifically Referenced Tickets ===\n"
             for ticket in additional_context['referencedTickets']:
+                requester_name = (ticket.get('requester') or {}).get('name', 'Unknown')
+                target_dept = (ticket.get('receiverDept') or {}).get('name', 'Unknown')
+                assignee_name = (ticket.get('assignee') or {}).get('name', 'Unassigned')
+                
                 prompt += f"""
 Ticket: {ticket.get('title', 'Untitled')} ({ticket.get('ticketNumber', 'N/A')})
 Status: {ticket.get('status', 'Unknown')}
 Priority: {ticket.get('priority', 'N/A')}
-Requester: {ticket.get('requester', {}).get('name', 'Unknown')}
-Logistical Target: {ticket.get('receiverDept', {}).get('name', 'Unknown')}
-Assignee: {ticket.get('assignee', {}).get('name', 'Unassigned')}
+Requester: {requester_name}
+Logistical Target: {target_dept}
+Assignee: {assignee_name}
 Description: {ticket.get('description', 'No description')}
 """
 
@@ -681,7 +685,7 @@ Description: {ticket.get('description', 'No description')}
         if additional_context.get('userActiveTasks'):
             prompt += "\n=== User's Active Tasks ===\n"
             for task in additional_context['userActiveTasks']:
-                phase_name = task.get('currentPhase', {}).get('name', 'Unknown') if task.get('currentPhase') else 'Unknown'
+                phase_name = (task.get('currentPhase') or {}).get('name', 'Unknown')
                 prompt += f"- Task: {task.get('title', 'Untitled')} | Phase: {phase_name} | Priority: {task.get('priority', 'N/A')} | Due: {task.get('dueDate', 'No due date')}\n"
 
         if additional_context.get('companyObjectives'):

@@ -524,7 +524,14 @@ const TicketDetailPage: React.FC = () => {
                   >
                     <option value="PENDING_REC_MGR">Pending approval</option>
                     <option value="OPEN">Open</option>
-                    <option value="ASSIGNED">Assigned to {ticket.assignments?.length > 0 ? (ticket.assignments.length === 1 ? ticket.assignee?.name : `${ticket.assignments.length} Specialists`) : 'Specialists'}</option>
+                    <option value="ASSIGNED">
+                      Assigned to {(() => {
+                        const count = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
+                        if (count > 1) return `${count} Specialists`;
+                        if (count === 1) return ticket.assignments.find((a: any) => a.status === 'ACCEPTED')?.user?.name || '1 Specialist';
+                        return 'Specialists';
+                      })()}
+                    </option>
                     <option value="RESOLVED">Resolved</option>
                     <option value="CANCELLED">Cancelled</option>
                   </select>
@@ -538,6 +545,12 @@ const TicketDetailPage: React.FC = () => {
                 <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.3em] mb-0.5">Operational State</p>
                 <span className="text-sm font-black uppercase tracking-tight">
                   {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' : 
+                   ticket.status === 'ASSIGNED' ? (() => {
+                     const count = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
+                     if (count > 1) return `Assigned: ${count} Specialists`;
+                     if (count === 1) return `Assigned: ${ticket.assignments.find((a: any) => a.status === 'ACCEPTED')?.user?.name || '1 Specialist'}`;
+                     return 'Assigned';
+                   })() : 
                    ticket.status.replace(/_/g, ' ')}
                 </span>
               </div>
@@ -661,7 +674,7 @@ const TicketDetailPage: React.FC = () => {
                 {/* Tactical Squad Section */}
                 <div id="deployment-section" className="space-y-4 pt-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Tactical Squad</p>
+                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Members Included</p>
                     <div className="flex items-center gap-2">
                       <span className="text-[8px] font-bold bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
                       <div className="relative group">
@@ -710,8 +723,8 @@ const TicketDetailPage: React.FC = () => {
 
                     {/* Show other squad members */}
                     {ticket.assignments?.filter((a: any) => a.userId !== ticket.assigneeId).map((assignment: any) => (
-                      <div key={assignment.id} className="relative group" title={assignment.user?.name}>
-                        <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm hover:scale-105 transition-all">
+                      <div key={assignment.id} className="relative group" title={`${assignment.user?.name}${assignment.status === 'PENDING' ? ' (Pending)' : ''}`}>
+                        <div className={`h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border-2 border-white shadow-sm hover:scale-105 transition-all ${assignment.status === 'PENDING' ? 'opacity-50 grayscale' : ''}`}>
                           <Avatar
                             src={assignment.user?.avatar}
                             name={assignment.user?.name}
@@ -719,6 +732,9 @@ const TicketDetailPage: React.FC = () => {
                             rounded="xl"
                           />
                         </div>
+                        {assignment.status === 'PENDING' && (
+                          <div className="absolute -top-1 -left-1 h-3 w-3 bg-amber-500 rounded-full border border-white" />
+                        )}
                         {/* Remove button for colleague */}
                         <button 
                           onClick={() => handleRemoveAssignment(assignment.id)}
@@ -740,7 +756,7 @@ const TicketDetailPage: React.FC = () => {
                             if (!e.target.value) return;
                             try {
                               await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
-                              toast.success('Personnel Deployed')
+                              toast.success('Personnel Invited')
                               fetchTicketDetails()
                             } catch (err: any) {
                               toast.error(err.response?.data?.message || 'Deployment failure')
