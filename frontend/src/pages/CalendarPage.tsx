@@ -17,6 +17,15 @@ const CalendarPage: React.FC = () => {
         fetchSchedule()
     }, [user?.isMicrosoftSynced])
 
+    // Auto-refresh every 2 minutes for Teams sync
+    useEffect(() => {
+        const interval = setInterval(() => {
+            fetchSchedule()
+        }, 120000) // 120,000ms = 2 mins
+        
+        return () => clearInterval(interval)
+    }, [])
+
     const fetchSchedule = async () => {
         setLoading(true)
         try {
