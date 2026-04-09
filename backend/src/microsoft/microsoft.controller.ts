@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Req, Res, Post, Param } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards, Req, Res, Post, Param, Body } from '@nestjs/common';
 import { MicrosoftService } from './microsoft.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Response } from 'express';
@@ -58,6 +58,3 @@ export class MicrosoftController {
     return this.microsoftService.disconnect(req.user.id);
   }
 }
-
-// Add Body decorator since it was missing in import
-import { Body } from '@nestjs/common';
