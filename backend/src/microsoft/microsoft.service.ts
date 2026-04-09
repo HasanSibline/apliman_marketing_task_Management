@@ -148,23 +148,37 @@ export class MicrosoftService {
       authProvider: (done) => done(null, accessToken),
     });
 
-    let query = graphClient.api('/me/calendar/events').select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting');
+    let query = graphClient.api('/me/calendar/events')
+      .header('Prefer', 'outlook.timezone="UTC"')
+      .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting');
     
     if (start && end) {
       query = query.filter(`start/dateTime ge '${start}' and end/dateTime le '${end}'`);
     }
 
     const result = await query.get();
-    return result.value.map((event: any) => ({
-      id: event.id,
-      title: event.subject,
-      start: event.start.dateTime,
-      end: event.end.dateTime,
-      location: event.location?.displayName,
-      isTeams: event.isOnlineMeeting,
-      joinUrl: event.onlineMeeting?.joinUrl,
-      type: 'MICROSOFT_EVENT'
-    }));
+    const now = new Date();
+
+    return result.value.map((event: any) => {
+      const start = new Date(event.start.dateTime + 'Z');
+      const end = new Date(event.end.dateTime + 'Z');
+      let status = 'Upcoming';
+      
+      if (now >= start && now <= end) status = 'Live';
+      else if (now > end) status = 'Completed';
+
+      return {
+        id: event.id,
+        title: event.subject,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        location: event.location?.displayName,
+        isTeams: event.isOnlineMeeting,
+        joinUrl: event.onlineMeeting?.joinUrl,
+        status,
+        type: 'MICROSOFT_EVENT'
+      };
+    });
   }
 
   async getMeeting(userId: string, meetingId: string) {
@@ -174,13 +188,23 @@ export class MicrosoftService {
     });
 
     try {
-      const event = await graphClient.api(`/me/calendar/events/${meetingId}`).select('id,subject,start,end,attendees,organizer,onlineMeeting').get();
+      const event = await graphClient.api(`/me/calendar/events/${meetingId}`)
+        .header('Prefer', 'outlook.timezone="UTC"')
+        .select('id,subject,start,end,attendees,organizer,onlineMeeting').get();
       
+      const start = new Date(event.start.dateTime + 'Z');
+      const end = new Date(event.end.dateTime + 'Z');
+      const now = new Date();
+      let status = 'Upcoming';
+      if (now >= start && now <= end) status = 'Live';
+      else if (now > end) status = 'Completed';
+
       return {
         id: event.id,
         subject: event.subject,
-        start: event.start.dateTime,
-        end: event.end.dateTime,
+        start: start.toISOString(),
+        end: end.toISOString(),
+        status,
         organizer: event.organizer.emailAddress,
         attendees: event.attendees.map((a: any) => ({
           name: a.emailAddress.name,

@@ -39,6 +39,7 @@ interface CalendarEvent {
     type: 'TASK' | 'TICKET' | 'MICROSOFT_EVENT'
     ticketNumber?: string
     assignedTo?: { name: string }
+    status?: 'Upcoming' | 'Live' | 'Completed'
 }
 
 interface CalendarProps {
@@ -419,10 +420,21 @@ export default function Calendar({ events, onEventClick }: CalendarProps) {
                                                             <span className="text-[9px] font-black bg-white/20 px-1.5 py-0.5 rounded uppercase">TICKET</span>
                                                         )}
                                                         {event.type === 'MICROSOFT_EVENT' && (
-                                                            <span className="text-[9px] font-black bg-[#6264A7] text-white px-1.5 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm">
-                                                                <VideoCameraIcon className="h-2 w-2" />
-                                                                TEAMS
-                                                            </span>
+                                                            <div className="flex items-center gap-1">
+                                                                <span className={`
+                                                                    text-[9px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm
+                                                                    ${event.status === 'Live' ? 'bg-indigo-600 text-white animate-pulse' : 'bg-[#6264A7] text-white opacity-80'}
+                                                                `}>
+                                                                    <VideoCameraIcon className="h-2 w-2" />
+                                                                    TEAMS
+                                                                </span>
+                                                                {event.status === 'Live' && (
+                                                                    <span className="text-[8px] font-black bg-green-500 text-white px-1 rounded-sm uppercase tracking-tighter">LIVE</span>
+                                                                )}
+                                                                {event.status === 'Completed' && (
+                                                                    <span className="text-[8px] font-black bg-gray-200 text-gray-500 px-1 rounded-sm uppercase tracking-tighter">DONE</span>
+                                                                )}
+                                                            </div>
                                                         )}
                                                     </div>
                                                 </motion.div>
