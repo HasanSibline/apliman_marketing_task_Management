@@ -492,7 +492,7 @@ export class ChatService {
       return context; // No company, no context
     }
 
-    // ALWAYS fetch the user's active tasks
+    // ALWAYS fetch the user's active tasks (limit for token safety)
     const activeTasks = await this.prisma.task.findMany({
       where: {
         companyId: user.companyId,
@@ -507,13 +507,18 @@ export class ChatService {
         title: true,
         priority: true,
         dueDate: true,
+        description: true, // Need this for context but truncate it later
         currentPhase: { select: { name: true } },
       },
-      take: 20
+      take: 10 // Reduced from 20
     });
-    context.userActiveTasks = activeTasks;
+    
+    context.userActiveTasks = activeTasks.map(t => ({
+      ...t,
+      description: t.description?.substring(0, 300) + (t.description?.length > 300 ? '...' : '')
+    }));
 
-    // ALWAYS fetch the user's active tickets
+    // ALWAYS fetch the user's active tickets (limit for token safety)
     const activeTickets = await this.prisma.ticket.findMany({
       where: {
         companyId: user.companyId,
@@ -530,10 +535,14 @@ export class ChatService {
         title: true,
         status: true,
         priority: true,
+        description: true,
       },
-      take: 10
+      take: 5 // Reduced from 10
     });
-    context.userActiveTickets = activeTickets;
+    context.userActiveTickets = activeTickets.map(t => ({
+      ...t,
+      description: t.description?.substring(0, 300) + (t.description?.length > 300 ? '...' : '')
+    }));
 
     // ALWAYS fetch the user's latest stats (optional but helpful)
     const completedTasksCount = await this.prisma.task.count({
@@ -563,7 +572,7 @@ export class ChatService {
         title: true,
         status: true,
       },
-      take: 10
+      take: 5 // Reduced from 10
     });
     context.companyObjectives = activeObjectives;
 
@@ -581,7 +590,7 @@ export class ChatService {
         startDate: true,
         endDate: true,
       },
-      take: 4
+      take: 2 // Reduced from 4
     });
     context.companyQuarters = activeQuarters;
 
@@ -589,7 +598,7 @@ export class ChatService {
     if (mentions.length > 0) {
       const users = await this.prisma.user.findMany({
         where: {
-          companyId: user.companyId, // CRITICAL: Same company only
+          companyId: user.companyId, 
           name: {
             in: mentions,
             mode: 'insensitive',
@@ -598,19 +607,13 @@ export class ChatService {
         select: {
           id: true,
           name: true,
-          email: true,
           role: true,
           position: true,
+          // Limit nested tasks to avoid token bloat
           assignedTasks: {
-            where: {
-              completedAt: null,
-            },
-            select: {
-              id: true,
-              title: true,
-              priority: true,
-              dueDate: true,
-            },
+            where: { completedAt: null },
+            select: { title: true, priority: true },
+            take: 3
           },
         },
       });
@@ -619,7 +622,6 @@ export class ChatService {
 
     // Fetch referenced tasks (SAME COMPANY ONLY)
     if (taskRefs.length > 0) {
-      // Split into number codes (TSK-1001) and text slugs
       const codes = taskRefs.filter(r => r.startsWith('TSK-'));
       const ticketCodes = taskRefs.filter(r => r.startsWith('TKT-'));
       const slugs = taskRefs.filter(r => !r.includes('-'));
@@ -633,11 +635,15 @@ export class ChatService {
           ],
         },
         include: {
-          assignedTo: { select: { id: true, name: true, email: true } },
-          currentPhase: { select: { id: true, name: true } },
+          assignedTo: { select: { name: true } },
+          currentPhase: { select: { name: true } },
         },
+        take: 5
       });
-      context.referencedTasks = tasks;
+      context.referencedTasks = tasks.map(t => ({
+        ...t,
+        description: t.description?.substring(0, 500) + (t.description?.length > 500 ? '...' : '')
+      }));
 
       // Always fetch referenced tickets (TKT-1001 or #TKT-1001)
       const allTicketRefs = [...new Set([...ticketRefs, ...taskRefs.filter(r => r.startsWith('TKT-'))])];
@@ -654,13 +660,16 @@ export class ChatService {
             assignee: { select: { name: true } },
             comments: {
                where: { isSystem: false },
-               take: 5,
+               take: 3, // Reduced from 5
                orderBy: { createdAt: 'desc' },
                select: { comment: true, user: { select: { name: true } } }
             }
           },
         });
-        context.referencedTickets = tickets;
+        context.referencedTickets = tickets.map(t => ({
+          ...t,
+          description: t.description?.substring(0, 1000) + (t.description?.length > 1000 ? '...' : '')
+        }));
       }
     }
 
