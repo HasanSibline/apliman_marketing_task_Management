@@ -167,6 +167,34 @@ export class MicrosoftService {
     }));
   }
 
+  async getMeeting(userId: string, meetingId: string) {
+    const accessToken = await this.getAccessToken(userId);
+    const graphClient = Client.init({
+      authProvider: (done) => done(null, accessToken),
+    });
+
+    try {
+      const event = await graphClient.api(`/me/calendar/events/${meetingId}`).select('id,subject,start,end,attendees,organizer,onlineMeeting').get();
+      
+      return {
+        id: event.id,
+        subject: event.subject,
+        start: event.start.dateTime,
+        end: event.end.dateTime,
+        organizer: event.organizer.emailAddress,
+        attendees: event.attendees.map((a: any) => ({
+          name: a.emailAddress.name,
+          email: a.emailAddress.address,
+          type: a.type,
+          status: a.status.response
+        }))
+      };
+    } catch (error) {
+      this.logger.error('Failed to fetch meeting details', error.message);
+      return null;
+    }
+  }
+
   async getMeetingTranscript(userId: string, meetingId: string) {
     const accessToken = await this.getAccessToken(userId);
     

@@ -80,6 +80,7 @@ export class AuthService {
         avatar: user.avatar,
         companyId: user.companyId,
         strategyAccess: user.strategyAccess,
+        isMicrosoftSynced: user.isMicrosoftSynced,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
         companyLogo: company?.logo || null,
         companyColor: company?.primaryColor || null,
@@ -257,6 +258,7 @@ export class AuthService {
         avatar: fullUser.avatar,
         companyId: fullUser.companyId,
         strategyAccess: fullUser.strategyAccess,
+        isMicrosoftSynced: fullUser.isMicrosoftSynced,
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
         companyLogo: company?.logo || null,
         companyColor: company?.primaryColor || null,

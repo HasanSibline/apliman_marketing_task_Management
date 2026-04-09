@@ -40,6 +40,12 @@ export class MicrosoftController {
     return this.microsoftService.getCalendarEvents(req.user.id, start, end);
   }
 
+  @Get('details/:meetingId')
+  @UseGuards(JwtAuthGuard)
+  async getDetails(@Req() req, @Param('meetingId') meetingId: string) {
+    return this.microsoftService.getMeeting(req.user.id, meetingId);
+  }
+
   @Get('transcripts/:meetingId')
   @UseGuards(JwtAuthGuard)
   async getTranscript(@Req() req, @Param('meetingId') meetingId: string) {

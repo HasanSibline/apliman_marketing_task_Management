@@ -31,20 +31,13 @@ const MeetingDetailPage: React.FC = () => {
     const fetchMeetingDetails = async () => {
         setLoading(true)
         try {
-            const transcriptRes = await api.get(`/microsoft/transcripts/${id}`)
-            setTranscript(transcriptRes.data.transcript)
+            const [transcriptRes, detailsRes] = await Promise.all([
+                api.get(`/microsoft/transcripts/${id}`),
+                api.get(`/microsoft/details/${id}`)
+            ])
             
-            // Placeholder: In a real app we'd fetch event meta too
-            setMeeting({
-                subject: 'Marketing Strategy Sync',
-                id: id,
-                start: new Date().toISOString(),
-                end: new Date(Date.now() + 3600000).toISOString(),
-                attendees: [
-                    { name: 'Hasan Sibline', role: 'Organizer', joined: '10:00 AM' },
-                    { name: 'Sarah Wilson', role: 'Guest', joined: '10:02 AM' },
-                ]
-            })
+            setTranscript(transcriptRes.data.transcript)
+            setMeeting(detailsRes.data)
         } catch (error) {
             toast.error('Failed to load meeting details or you do not have access.')
             navigate('/calendar')
@@ -208,19 +201,26 @@ const MeetingDetailPage: React.FC = () => {
                             </h2>
                         </div>
                         <div className="space-y-4">
-                            {meeting?.attendees.map((attendee: any, i: number) => (
+                            {meeting?.attendees && meeting.attendees.map((attendee: any, i: number) => (
                                 <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
                                     <div className="flex items-center space-x-3">
-                                        <div className="h-10 w-10 rounded-full bg-primary-50 border border-primary-100 flex items-center justify-center text-primary-600 font-bold">
-                                            {attendee.name[0]}
+                                        <div className="relative">
+                                            <img 
+                                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(attendee.name)}&background=6366f1&color=fff&bold=true`} 
+                                                className="h-10 w-10 rounded-full border-2 border-white shadow-sm" 
+                                                alt={attendee.name}
+                                            />
+                                            {attendee.status === 'accepted' && (
+                                                <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 border-2 border-white rounded-full" title="Accepted" />
+                                            )}
                                         </div>
                                         <div>
                                             <p className="text-sm font-bold text-gray-900">{attendee.name}</p>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{attendee.role}</p>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{attendee.type === 'required' ? 'Required' : 'Optional'}</p>
                                         </div>
                                     </div>
                                     <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">
-                                        Joined {attendee.joined}
+                                        {attendee.status === 'none' ? 'Pending' : attendee.status.charAt(0).toUpperCase() + attendee.status.slice(1)}
                                     </div>
                                 </div>
                             ))}
