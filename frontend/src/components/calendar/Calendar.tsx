@@ -290,19 +290,45 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 </button>
                             ))}
                         </div>
-                        <button 
-                            onClick={handleMicrosoftSync}
-                            disabled={isSyncing}
-                            className={`flex items-center space-x-2 px-4 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${
-                                user?.isMicrosoftSynced 
-                                ? 'bg-green-50 text-green-700 border border-green-200' 
-                                : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
-                            }`}
-                        >
-                            <div className={`h-2 w-2 rounded-full ${user?.isMicrosoftSynced ? 'bg-green-500' : 'bg-gray-300'}`} />
-                            <span>{user?.isMicrosoftSynced ? 'Microsoft Synced' : 'Sync Microsoft'}</span>
-                            {isSyncing && <ArrowPathIcon className="h-4 w-4 animate-spin" />}
-                        </button>
+                        <div className={`flex items-center space-x-3 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${
+                            user?.isMicrosoftSynced 
+                            ? 'bg-blue-50 text-blue-700 border border-blue-100' 
+                            : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50'
+                        }`}>
+                            <div className="flex items-center space-x-2">
+                                <svg className="h-4 w-4" viewBox="0 0 23 23" fill="currentColor">
+                                    <path d="M0 0h11v11H0z" fill="#f25022"/><path d="M12 0h11v11H12z" fill="#7fba00"/><path d="M0 12h11v11H0z" fill="#00a4ef"/><path d="M12 12h11v11H12z" fill="#ffb900"/>
+                                </svg>
+                                <span>{user?.isMicrosoftSynced ? 'Microsoft Synced' : 'Sync Microsoft'}</span>
+                            </div>
+                            
+                            {user?.isMicrosoftSynced ? (
+                                <button 
+                                    onClick={async () => {
+                                        if (window.confirm('Are you sure you want to disconnect your Microsoft account?')) {
+                                            try {
+                                                await api.post('/microsoft/disconnect')
+                                                toast.success('Disconnected successfully')
+                                                window.location.reload() 
+                                            } catch {
+                                                toast.error('Failed to disconnect')
+                                            }
+                                        }
+                                    }}
+                                    className="ml-2 pl-2 border-l border-blue-200 text-[10px] text-blue-400 hover:text-red-500 transition-colors uppercase tracking-tighter"
+                                >
+                                    Unsync
+                                </button>
+                            ) : (
+                                <button 
+                                    onClick={handleMicrosoftSync}
+                                    disabled={isSyncing}
+                                    className="ml-2 text-[10px] text-primary-500 hover:underline uppercase tracking-tighter"
+                                >
+                                    {isSyncing ? 'Connecting...' : 'Connect'}
+                                </button>
+                            )}
+                        </div>
 
                         <button 
                             onClick={() => navigate('/tasks')}

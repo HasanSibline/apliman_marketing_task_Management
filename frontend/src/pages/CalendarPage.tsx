@@ -51,7 +51,8 @@ const CalendarPage: React.FC = () => {
             let msEvents = [];
             if (user?.isMicrosoftSynced) {
                 try {
-                    const msRes = await api.get('/microsoft/events');
+                    // Added timestamp to bypass any browser or proxy caching
+                    const msRes = await api.get(`/microsoft/events?t=${Date.now()}`);
                     msEvents = (msRes.data || []).map((e: any) => ({
                         id: e.id,
                         title: e.title,

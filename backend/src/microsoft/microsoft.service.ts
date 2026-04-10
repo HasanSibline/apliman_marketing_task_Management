@@ -150,6 +150,7 @@ export class MicrosoftService {
 
     let query = graphClient.api('/me/calendar/events')
       .header('Prefer', 'outlook.timezone="UTC"')
+      .header('Cache-Control', 'no-cache, no-store, must-revalidate')
       .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting');
     
     if (start && end) {
