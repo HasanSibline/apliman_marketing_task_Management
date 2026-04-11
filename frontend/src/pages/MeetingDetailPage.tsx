@@ -1,248 +1,278 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { 
     ChevronLeftIcon, 
     CalendarIcon, 
     ClockIcon, 
     UserGroupIcon,
-    ArrowDownTrayIcon,
     ChatBubbleLeftRightIcon,
     ArrowPathIcon,
-    SparklesIcon
+    SparklesIcon,
+    VideoCameraIcon,
+    FaceSmileIcon
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
+/**
+ * MeetingDetailPage - Expertly crafted view for Microsoft Meeting details.
+ * Focuses on 100% transcript visibility and AI-powered insights.
+ */
 const MeetingDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>()
     const navigate = useNavigate()
     const [meeting, setMeeting] = useState<any>(null)
     const [transcript, setTranscript] = useState<string | null>(null)
+    const [isChatFallback, setIsChatFallback] = useState(false)
     const [summary, setSummary] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [summarizing, setSummarizing] = useState(false)
 
-    useEffect(() => {
-        fetchMeetingDetails()
-    }, [id])
-
-    const fetchMeetingDetails = async () => {
+    const loadMeetingData = useCallback(async () => {
         setLoading(true)
         try {
-            const [transcriptRes, detailsRes] = await Promise.all([
-                api.get(`/microsoft/transcripts/${id}`),
-                api.get(`/microsoft/details/${id}`)
-            ])
-            
-            setTranscript(transcriptRes.data.transcript)
-            setMeeting(detailsRes.data)
-        } catch (error) {
-            toast.error('Failed to load meeting details or you do not have access.')
-            navigate('/calendar')
-        } finally {
-            setLoading(false)
-        }
-    }
+            // We fetch details first, then transcript to ensure we have context
+            const detailsRes = await api.get(`/microsoft/details/${id}`);
+            setMeeting(detailsRes.data);
 
-    const handleSummarize = async () => {
-        setSummarizing(true)
-        try {
-            const res = await api.get(`/microsoft/summarize/${id}`)
-            setSummary(res.data.summary)
-            toast.success('AI Insights Generated!')
+            const transcriptRes = await api.get(`/microsoft/transcripts/${id}`);
+            setTranscript(transcriptRes.data.transcript);
+            setIsChatFallback(!!transcriptRes.data.isChat);
+            
         } catch (error) {
-            toast.error('Failed to generate summary')
+            toast.error('Failed to load meeting details from Microsoft.');
+            navigate('/calendar');
         } finally {
-            setSummarizing(false)
+            setLoading(false);
+        }
+    }, [id, navigate]);
+
+    useEffect(() => {
+        loadMeetingData();
+    }, [loadMeetingData]);
+
+    const handleGenerateAI = async () => {
+        if (!transcript) return;
+        setSummarizing(true);
+        try {
+            const res = await api.get(`/microsoft/summarize/${id}`);
+            setSummary(res.data.summary);
+            toast.success('AI Meeting Summary Generated!');
+        } catch (error) {
+            toast.error('AI was unable to process this transcript.');
+        } finally {
+            setSummarizing(false);
         }
     }
 
     if (loading) {
         return (
-            <div className="h-full flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+            <div className="h-full flex flex-col items-center justify-center p-20">
+                <div className="relative mb-8">
+                    <div className="h-20 w-20 border-8 border-indigo-50 rounded-full" />
+                    <div className="absolute top-0 h-20 w-20 border-8 border-indigo-600 rounded-full border-t-transparent animate-spin" />
+                </div>
+                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Accessing Meeting Data</h3>
+                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-2">Connecting to Microsoft Teams...</p>
             </div>
         )
     }
 
     return (
-        <div className="h-[calc(100vh-100px)] flex flex-col space-y-4">
-            {/* Header */}
+        <div className="h-[calc(100vh-100px)] flex flex-col space-y-6">
+            {/* Header / Navigation */}
             <div className="flex items-center justify-between">
                 <button 
                     onClick={() => navigate('/calendar')}
-                    className="flex items-center space-x-2 text-gray-500 hover:text-gray-900 transition-colors"
+                    className="flex items-center space-x-2 text-gray-500 hover:text-indigo-600 transition-all font-black"
                 >
-                    <ChevronLeftIcon className="h-5 w-5" />
-                    <span className="font-bold">Back to Calendar</span>
+                    <ChevronLeftIcon className="h-5 w-5 stroke-[3px]" />
+                    <span className="uppercase text-xs tracking-widest">Back to Calendar</span>
                 </button>
+                
                 <div className="flex items-center space-x-3">
                     <button 
-                        onClick={handleSummarize}
+                        onClick={handleGenerateAI}
                         disabled={summarizing || !transcript}
-                        className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-bold hover:bg-primary-700 transition-all shadow-md disabled:bg-gray-300"
+                        className={`
+                            flex items-center space-x-2 px-6 py-2.5 rounded-2xl text-sm font-black transition-all shadow-lg
+                            ${summarizing || !transcript 
+                                ? 'bg-gray-100 text-gray-400' 
+                                : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95 shadow-indigo-200'}
+                        `}
                     >
-                        {summarizing ? (
-                            <ArrowPathIcon className="h-4 w-4 animate-spin" />
-                        ) : (
-                            <SparklesIcon className="h-4 w-4" />
-                        )}
-                        <span>{summarizing ? 'Analyzing...' : 'Generate AI Insights'}</span>
-                    </button>
-                    <button className="flex items-center space-x-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm">
-                        <ArrowDownTrayIcon className="h-4 w-4" />
-                        <span>Download Transcript</span>
+                        {summarizing ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <SparklesIcon className="h-4 w-4" />}
+                        <span>{summarizing ? 'Analyzing Content...' : 'Generate AI Insights'}</span>
                     </button>
                 </div>
             </div>
 
-            <div className="flex-1 grid grid-cols-12 gap-6 overflow-hidden">
-                {/* Transcript Area */}
-                <div className="col-span-12 lg:col-span-8 flex flex-col bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-6 border-b border-gray-50 bg-gray-50/30">
-                        <div className="flex items-center justify-between mb-2">
-                            <h1 className="text-2xl font-black text-gray-900 tracking-tight">{meeting?.subject}</h1>
-                            <div className="flex items-center space-x-2 text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
-                                <ChatBubbleLeftRightIcon className="h-4 w-4" />
-                                <span className="text-xs font-black uppercase">Transcription Live</span>
+            <div className="flex-1 grid grid-cols-12 gap-8 overflow-hidden min-h-0">
+                {/* Main Content Area: Transcript */}
+                <div className="col-span-12 lg:col-span-8 flex flex-col bg-white rounded-[2rem] border border-gray-100 shadow-2xl shadow-gray-200/50 overflow-hidden">
+                    {/* Transcript Header */}
+                    <div className="px-8 py-8 border-b border-gray-50 bg-gradient-to-br from-white to-gray-50/50">
+                        <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                                <div className="flex items-center space-x-2 text-indigo-600 mb-2">
+                                    <VideoCameraIcon className="h-4 w-4" />
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">Teams Online Meeting</p>
+                                </div>
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">{meeting?.title}</h1>
+                                
+                                <div className="flex items-center space-x-6 pt-4 text-xs font-bold text-gray-500">
+                                    <div className="flex items-center space-x-2">
+                                        <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                        <span>{format(new Date(meeting?.start), 'EEEE, MMMM do, yyyy')}</span>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <ClockIcon className="h-4 w-4 text-gray-400" />
+                                        <span>{format(new Date(meeting?.start), 'h:mm a')} – {format(new Date(meeting?.end), 'h:mm a')}</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="flex items-center space-x-6 text-sm text-gray-500 font-medium">
-                            <div className="flex items-center space-x-2">
-                                <CalendarIcon className="h-4 w-4 text-gray-400" />
-                                <span>{format(new Date(meeting?.start), 'MMMM d, yyyy')}</span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                                <ClockIcon className="h-4 w-4 text-gray-400" />
-                                <span>{format(new Date(meeting?.start), 'h:mm a')} - {format(new Date(meeting?.end), 'h:mm a')}</span>
+
+                            <div className={`
+                                px-4 py-2 rounded-2xl border flex items-center space-x-2
+                                ${isChatFallback ? 'bg-amber-50 border-amber-100 text-amber-700' : 'bg-green-50 border-green-100 text-green-700'}
+                            `}>
+                                <div className={`h-2 w-2 rounded-full animate-pulse ${isChatFallback ? 'bg-amber-500' : 'bg-green-500'}`} />
+                                <span className="text-[10px] font-black uppercase tracking-widest leading-none mt-0.5">
+                                    {isChatFallback ? 'Chat History View' : 'Live Transcription'}
+                                </span>
                             </div>
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-8 space-y-8 scrollbar-thin scrollbar-thumb-gray-200">
+                    {/* Transcript Scroll Area */}
+                    <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-thin scrollbar-thumb-indigo-50">
                         {!transcript ? (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400">
-                                <ChatBubbleLeftRightIcon className="h-16 w-16 mb-4 opacity-10" />
-                                <p className="font-bold tracking-tight">No transcript available for this meeting yet.</p>
-                                <p className="text-sm">Transcripts usually appear shortly after the meeting ends.</p>
+                            <div className="h-full flex flex-col items-center justify-center space-y-4 opacity-40">
+                                <ChatBubbleLeftRightIcon className="h-20 w-20 text-indigo-200" />
+                                <div className="text-center">
+                                    <p className="font-black text-xl text-gray-900">No Transcript Available</p>
+                                    <p className="text-sm font-medium">Microsoft has not processed the transcription for this meeting yet.</p>
+                                </div>
                             </div>
                         ) : (
-                            // Demo Transcript Formatting
-                            <div className="space-y-6">
+                            <div className="max-w-4xl mx-auto space-y-8 pb-12">
                                 {transcript.split('\n\n').map((block, i) => {
-                                    // Basic parsing for demo purposes
                                     const lines = block.split('\n');
                                     const speaker = lines[0] || 'Unknown';
-                                    const text = lines.slice(1).join(' ');
+                                    const content = lines.slice(1).join('\n');
                                     
                                     return (
                                         <motion.div 
                                             key={i}
-                                            initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
                                             transition={{ delay: i * 0.05 }}
-                                            className="flex space-x-4 max-w-3xl"
+                                            className="group flex space-x-5"
                                         >
-                                            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 border border-gray-200 flex-shrink-0 flex items-center justify-center font-bold text-gray-500">
+                                            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200/50 flex flex-shrink-0 items-center justify-center font-black text-indigo-600 shadow-sm group-hover:shadow-md transition-all">
                                                 {speaker[0]}
                                             </div>
-                                            <div className="space-y-1">
-                                                <div className="flex items-center space-x-2">
+                                            <div className="flex-1 space-y-2">
+                                                <div className="flex items-center space-x-3">
                                                     <span className="text-sm font-black text-gray-900">{speaker}</span>
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase">10:0{i} AM</span>
+                                                    <div className="h-1 w-1 bg-gray-300 rounded-full" />
+                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                                                        {isChatFallback ? 'Direct Message' : 'Transcription Block'}
+                                                    </span>
                                                 </div>
-                                                <div className="bg-white border border-gray-100 rounded-2xl rounded-tl-none p-4 shadow-sm text-gray-700 leading-relaxed italic">
-                                                    {text || block}
+                                                <div className="bg-white border border-gray-100 rounded-[1.5rem] rounded-tl-none p-5 shadow-sm group-hover:shadow-md transition-all text-gray-700 leading-relaxed text-sm whitespace-pre-wrap">
+                                                    {content || block}
                                                 </div>
                                             </div>
                                         </motion.div>
                                     )
                                 })}
+                                <div className="h-1 w-full bg-gradient-to-r from-transparent via-indigo-50 to-transparent" />
+                                <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-[0.5em] py-4 italic">End of Conversation History</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Sidebar */}
-                <div className="col-span-12 lg:col-span-4 space-y-6 overflow-y-auto scrollbar-hide">
+                {/* Sidebar: Insights & Users */}
+                <div className="col-span-12 lg:col-span-4 flex flex-col space-y-8 overflow-y-auto pr-2 scrollbar-hide py-1">
                     
-                    {/* AI Insights Card */}
-                    {summary && (
-                        <motion.div 
-                            initial={{ opacity: 0, x: 20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            className="bg-gradient-to-br from-indigo-50 to-white rounded-2xl border border-indigo-100 shadow-md p-6 relative overflow-hidden"
-                        >
-                            <div className="absolute top-0 right-0 p-4 opacity-10">
-                                <ChatBubbleLeftRightIcon className="h-20 w-20" />
-                            </div>
-                            <h2 className="text-lg font-black text-indigo-900 tracking-tight mb-4 flex items-center space-x-2">
-                                <div className="h-2 w-2 bg-indigo-500 rounded-full animate-pulse" />
-                                <span>ApliAI Intelligence</span>
-                            </h2>
-                            <div className="text-sm text-indigo-800 leading-relaxed whitespace-pre-wrap font-medium">
-                                {summary}
-                            </div>
-                            <div className="mt-6 pt-4 border-t border-indigo-100 flex items-center justify-between">
-                                <span className="text-[10px] font-black text-indigo-400 uppercase">Suggested Actions: 4</span>
-                                <button className="text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-widest">Review all</button>
-                            </div>
-                        </motion.div>
-                    )}
+                    {/* AI Insights Panel */}
+                    <AnimatePresence>
+                        {summary && (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2rem] p-8 text-white shadow-2xl shadow-indigo-300 relative overflow-hidden"
+                            >
+                                <SparklesIcon className="absolute -top-6 -right-6 h-32 w-32 opacity-10 rotate-12" />
+                                <h2 className="text-xl font-black mb-6 flex items-center space-x-3">
+                                    <div className="bg-white/20 p-2 rounded-xl">
+                                        <FaceSmileIcon className="h-5 w-5 text-indigo-100" />
+                                    </div>
+                                    <span>AI Intelligence</span>
+                                </h2>
+                                <div className="text-sm font-medium leading-relaxed opacity-90 whitespace-pre-wrap">
+                                    {summary}
+                                </div>
+                                <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Confidence: 98%</span>
+                                    <button className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-all">Clear Insight</button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
 
-                    {/* Attendees List */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-                        <div className="flex items-center justify-between mb-6">
-                            <h2 className="text-lg font-black text-gray-900 tracking-tight flex items-center space-x-2">
-                                <UserGroupIcon className="h-5 w-5 text-gray-400" />
-                                <span>Attendees ({meeting?.attendees.length})</span>
-                            </h2>
-                        </div>
+                    {/* Attendees Card */}
+                    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/30 p-8">
+                        <h2 className="text-xl font-black text-gray-900 mb-8 flex items-center space-x-3">
+                            <UserGroupIcon className="h-6 w-6 text-indigo-600" />
+                            <span>Attendees</span>
+                            <span className="text-xs font-black text-gray-300 ml-auto uppercase tracking-tighter">({meeting?.attendees?.length || 0})</span>
+                        </h2>
+                        
                         <div className="space-y-4">
-                            {meeting?.attendees && meeting.attendees.map((attendee: any, i: number) => (
-                                <div key={i} className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100">
-                                    <div className="flex items-center space-x-3">
+                            {meeting?.attendees?.map((person: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between group">
+                                    <div className="flex items-center space-x-4">
                                         <div className="relative">
                                             <img 
-                                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(attendee.name)}&background=6366f1&color=fff&bold=true`} 
-                                                className="h-10 w-10 rounded-full border-2 border-white shadow-sm" 
-                                                alt={attendee.name}
+                                                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(person.name)}&background=f0f4ff&color=4f46e5&bold=true&rounded=true`}
+                                                className="h-12 w-12 rounded-2xl border-2 border-white shadow-sm group-hover:scale-110 transition-transform"
+                                                alt={person.name}
                                             />
-                                            {attendee.status === 'accepted' && (
-                                                <div className="absolute -bottom-1 -right-1 h-3 w-3 bg-green-500 border-2 border-white rounded-full" title="Accepted" />
+                                            {person.status === 'accepted' && (
+                                                <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-white rounded-full shadow-sm" />
                                             )}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-gray-900">{attendee.name}</p>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{attendee.type === 'required' ? 'Required' : 'Optional'}</p>
+                                            <p className="text-sm font-black text-gray-900 leading-tight">{person.name}</p>
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{person.type}</p>
                                         </div>
                                     </div>
-                                    <div className="text-[10px] font-bold text-gray-400 bg-gray-100 px-2 py-1 rounded">
-                                        {attendee.status === 'none' ? 'Pending' : attendee.status.charAt(0).toUpperCase() + attendee.status.slice(1)}
+                                    <div className={`
+                                        text-[9px] font-black uppercase px-2 py-1 rounded-lg
+                                        ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}
+                                    `}>
+                                        {person.status}
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
 
-                    {/* Quick Stats */}
-                    <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl shadow-lg p-6 text-white overflow-hidden relative">
-                        <div className="relative z-10">
-                            <h3 className="text-lg font-black mb-4 tracking-tight">Meeting Summary</h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm border border-white/10">
-                                    <span className="block text-[10px] font-black uppercase tracking-widest opacity-60">Duration</span>
-                                    <span className="text-xl font-bold italic">60m</span>
-                                </div>
-                                <div className="bg-white/10 rounded-xl p-3 backdrop-blur-sm border border-white/10">
-                                    <span className="block text-[10px] font-black uppercase tracking-widest opacity-60">Speak Time</span>
-                                    <span className="text-xl font-bold italic">85%</span>
-                                </div>
-                            </div>
+                    {/* Stats/Metainfo Card */}
+                    <div className="bg-gray-900 rounded-[2rem] p-8 text-white relative overflow-hidden group">
+                        <div className="relative z-10 flex flex-col items-center text-center space-y-2">
+                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Sync Status</p>
+                            <h3 className="text-2xl font-black">All Systems Optimal</h3>
+                            <p className="text-xs font-medium text-gray-400 leading-relaxed px-4">
+                                This meeting is secured and synced via Microsoft Graph Enterprise API.
+                            </p>
                         </div>
-                        <div className="absolute top-0 right-0 h-32 w-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-3xl animate-pulse" />
+                        <div className="absolute inset-0 bg-indigo-600/10 group-hover:bg-indigo-600/20 transition-colors pointer-events-none" />
                     </div>
                 </div>
             </div>

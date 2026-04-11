@@ -14,14 +14,10 @@ export class MicrosoftController {
   }
 
   @Get('callback')
-  async handleCallback(@Query('code') code: string, @Query('state') state: string, @Res() res: Response) {
-    // Note: state should ideally contain the userId or we use another session mechanism
-    // For simplicity in this demo environment, we might need to handle the linkage differently
-    // In a real app, 'state' would be a secure token we check
-    
-    // REDIRECT back to frontend with the code if needed, or handle here
-    // But since this is a callback from MS, we usually redirect to frontend callback page
-    res.redirect(`${process.env.FRONTEND_URL}/auth/microsoft/callback?code=${code}`);
+  async handleCallback(@Query('code') code: string, @Res() res: Response) {
+    // Redirect to frontend callback page which will then call the sync endpoint
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    res.redirect(`${frontendUrl}/auth/microsoft/callback?code=${code}`);
   }
 
   @Post('sync')
