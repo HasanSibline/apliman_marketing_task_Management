@@ -14,26 +14,27 @@ const CalendarPage: React.FC = () => {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        fetchSchedule()
+        fetchSchedule(true)
     }, [user?.isMicrosoftSynced])
 
     // Auto-refresh every 30 seconds for near-immediate sync
     useEffect(() => {
         const interval = setInterval(() => {
-            fetchSchedule()
+            fetchSchedule(false)
         }, 12000) // 12s
         
+        const handleFocus = () => fetchSchedule(false)
         // Refresh when user returns to tab
-        window.addEventListener('focus', fetchSchedule)
+        window.addEventListener('focus', handleFocus)
         
         return () => {
             clearInterval(interval)
-            window.removeEventListener('focus', fetchSchedule)
+            window.removeEventListener('focus', handleFocus)
         }
     }, [])
 
-    const fetchSchedule = async () => {
-        setLoading(true)
+    const fetchSchedule = async (showSpinner = false) => {
+        if (showSpinner) setLoading(true)
         try {
             const [tasksRes, ticketsRes] = await Promise.all([
                 api.get('/tasks', { params: { limit: 1000 } }),

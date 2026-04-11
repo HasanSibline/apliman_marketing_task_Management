@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppDispatch } from '@/hooks/redux'
 import { updateUser } from '@/store/slices/authSlice'
@@ -9,8 +9,12 @@ const AuthCallback: React.FC = () => {
     const [searchParams] = useSearchParams()
     const navigate = useNavigate()
     const dispatch = useAppDispatch()
+    const hasFetched = useRef(false)
 
     useEffect(() => {
+        if (hasFetched.current) return
+        hasFetched.current = true
+
         const handleCallback = async () => {
             const code = searchParams.get('code')
             if (!code) {
