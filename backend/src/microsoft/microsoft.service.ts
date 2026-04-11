@@ -137,14 +137,14 @@ export class MicrosoftService {
       authProvider: (done) => done(null, accessToken),
     });
 
-    const queryStart = start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
-    const queryEnd = end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
-
     try {
-      const result = await graphClient.api('/me/calendar/calendarView')
-        .query({ startDateTime: queryStart, endDateTime: queryEnd })
+      const queryStart = start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+      const queryEnd = end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
+
+      const result = await graphClient.api('/me/calendar/events')
         .header('Prefer', 'outlook.timezone="UTC"')
         .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        .filter(`start/dateTime ge '${queryStart}' and end/dateTime le '${queryEnd}'`)
         .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
         .top(999)
         .get();
@@ -164,7 +164,7 @@ export class MicrosoftService {
 
         return {
           id: event.id,
-          title: event.subject,
+          title: event.subject || 'Microsoft Event',
           start: startObj.toISOString(),
           end: endObj.toISOString(),
           location: event.location?.displayName,
