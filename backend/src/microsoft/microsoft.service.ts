@@ -148,44 +148,66 @@ export class MicrosoftService {
       authProvider: (done) => done(null, accessToken),
     });
 
-    // Use /calendarView instead of /events to correctly expand recurrences and reflect deleted instances
-    // If start/end not provided, use a default range of current month
+    // We use calendarView because it's the only way to correctly get recurrences
     const queryStart = start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     const queryEnd = end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
 
-    const result = await graphClient.api('/me/calendar/calendarView')
-      .query({
-        startDateTime: queryStart,
-        endDateTime: queryEnd
-      })
-      .header('Prefer', 'outlook.timezone="UTC"')
-      .header('Cache-Control', 'no-cache, no-store, must-revalidate')
-      .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
-      .top(100)
-      .get();
-    
-    const now = new Date();
+    try {
+      const result = await graphClient.api('/me/calendar/calendarView')
+        .query({
+          startDateTime: queryStart,
+          endDateTime: queryEnd
+        })
+        .header('Prefer', 'outlook.timezone="UTC"')
+        .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
+        .top(999)
+        .get();
 
-    return result.value.map((event: any) => {
-      const start = new Date(event.start.dateTime + 'Z');
-      const end = new Date(event.end.dateTime + 'Z');
-      let status = 'Upcoming';
-      
-      if (now >= start && now <= end) status = 'Live';
-      else if (now > end) status = 'Completed';
+      const now = new Date();
+      const nowTime = now.getTime();
 
-      return {
-        id: event.id,
-        title: event.subject,
-        start: start.toISOString(),
-        end: end.toISOString(),
-        location: event.location?.displayName,
-        isTeams: event.isOnlineMeeting,
-        joinUrl: event.onlineMeeting?.joinUrl,
-        status,
-        type: 'MICROSOFT_EVENT'
-      };
-    });
+      const events = [];
+      for (const event of result.value || []) {
+        try {
+          // Robust date parsing with UTC fallback
+          const s = event.start?.dateTime;
+          const e = event.end?.dateTime;
+          if (!s || !e) continue;
+
+          const startObj = new Date(s.endsWith('Z') ? s : s + 'Z');
+          const endObj = new Date(e.endsWith('Z') ? e : e + 'Z');
+          
+          if (isNaN(startObj.getTime())) continue;
+
+          const startTime = startObj.getTime();
+          const endTime = endObj.getTime();
+
+          let status = 'Upcoming';
+          if (nowTime >= startTime && nowTime <= endTime) status = 'Live';
+          else if (nowTime > endTime) status = 'Completed';
+
+          events.push({
+            id: event.id,
+            title: event.subject || 'Microsoft Event',
+            start: startObj.toISOString(),
+            end: endObj.toISOString(),
+            location: event.location?.displayName,
+            isTeams: event.isOnlineMeeting,
+            joinUrl: event.onlineMeeting?.joinUrl,
+            status,
+            type: 'MICROSOFT_EVENT'
+          });
+        } catch (err) {
+          this.logger.warn(`Skipping malformed meeting ${event.id}: ${err.message}`);
+        }
+      }
+
+      return events;
+    } catch (error) {
+      this.logger.error('Graph API calendar fetch failed', error.response?.data || error.message);
+      return [];
+    }
   }
 
   async getMeeting(userId: string, meetingId: string) {
