@@ -78,8 +78,9 @@ export class MicrosoftService {
 
       return { success: true };
     } catch (error) {
-      this.logger.error('Failed to exchange Microsoft code for tokens', error.response?.data || error.message);
-      throw new BadRequestException('Failed to synchronize with Microsoft');
+      const msError = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+      this.logger.error('Failed to exchange Microsoft code for tokens', msError);
+      throw new BadRequestException('Failed to synchronize with Microsoft: ' + msError);
     }
   }
 
@@ -139,39 +140,44 @@ export class MicrosoftService {
     const queryStart = start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     const queryEnd = end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
 
-    const result = await graphClient.api('/me/calendar/calendarView')
-      .query({ startDateTime: queryStart, endDateTime: queryEnd })
-      .header('Prefer', 'outlook.timezone="UTC"')
-      .header('Cache-Control', 'no-cache, no-store, must-revalidate')
-      .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
-      .top(100)
-      .get();
-    
-    const now = new Date();
-    const nowTime = now.getTime();
-    
-    return result.value.map((event: any) => {
-      const startObj = this.parseMsDate(event.start);
-      const endObj = this.parseMsDate(event.end);
-      const startTime = startObj.getTime();
-      const endTime = endObj.getTime();
+    try {
+      const result = await graphClient.api('/me/calendar/calendarView')
+        .query({ startDateTime: queryStart, endDateTime: queryEnd })
+        .header('Prefer', 'outlook.timezone="UTC"')
+        .header('Cache-Control', 'no-cache, no-store, must-revalidate')
+        .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
+        .top(999)
+        .get();
       
-      let status = 'Upcoming';
-      if (nowTime >= startTime && nowTime <= endTime) status = 'Live';
-      else if (nowTime > endTime) status = 'Completed';
+      const now = new Date();
+      const nowTime = now.getTime();
+      
+      return result.value.map((event: any) => {
+        const startObj = this.parseMsDate(event.start);
+        const endObj = this.parseMsDate(event.end);
+        const startTime = startObj.getTime();
+        const endTime = endObj.getTime();
+        
+        let status = 'Upcoming';
+        if (nowTime >= startTime && nowTime <= endTime) status = 'Live';
+        else if (nowTime > endTime) status = 'Completed';
 
-      return {
-        id: event.id,
-        title: event.subject,
-        start: startObj.toISOString(),
-        end: endObj.toISOString(),
-        location: event.location?.displayName,
-        isTeams: event.isOnlineMeeting,
-        joinUrl: event.onlineMeeting?.joinUrl,
-        status,
-        type: 'MICROSOFT_EVENT'
-      };
-    });
+        return {
+          id: event.id,
+          title: event.subject,
+          start: startObj.toISOString(),
+          end: endObj.toISOString(),
+          location: event.location?.displayName,
+          isTeams: event.isOnlineMeeting,
+          joinUrl: event.onlineMeeting?.joinUrl,
+          status,
+          type: 'MICROSOFT_EVENT'
+        };
+      });
+    } catch (error) {
+      this.logger.error('Failed to fetch calendar events from Graph API', error?.response?.data || error?.message);
+      return [];
+    }
   }
 
   async getMeeting(userId: string, meetingId: string) {
