@@ -51,8 +51,20 @@ const CalendarPage: React.FC = () => {
             let msEvents = [];
             if (user?.isMicrosoftSynced) {
                 try {
-                    // Added timestamp to bypass any browser or proxy caching
-                    const msRes = await api.get(`/microsoft/events?t=${Date.now()}`);
+                    // Fetch for a wide range (30 days before/after today) to be safe
+                    // but we should pass these to narrow the sync and handle deleted items correctly
+                    const viewStart = new Date();
+                    viewStart.setDate(viewStart.getDate() - 30);
+                    const viewEnd = new Date();
+                    viewEnd.setDate(viewEnd.getDate() + 30);
+                    
+                    const params = {
+                        start: viewStart.toISOString(),
+                        end: viewEnd.toISOString(),
+                        t: Date.now()
+                    };
+                    
+                    const msRes = await api.get('/microsoft/events', { params });
                     msEvents = (msRes.data || []).map((e: any) => ({
                         id: e.id,
                         title: e.title,

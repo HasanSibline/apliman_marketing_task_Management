@@ -148,16 +148,22 @@ export class MicrosoftService {
       authProvider: (done) => done(null, accessToken),
     });
 
-    let query = graphClient.api('/me/calendar/events')
+    // Use /calendarView instead of /events to correctly expand recurrences and reflect deleted instances
+    // If start/end not provided, use a default range of current month
+    const queryStart = start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
+    const queryEnd = end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
+
+    const result = await graphClient.api('/me/calendar/calendarView')
+      .query({
+        startDateTime: queryStart,
+        endDateTime: queryEnd
+      })
       .header('Prefer', 'outlook.timezone="UTC"')
       .header('Cache-Control', 'no-cache, no-store, must-revalidate')
-      .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting');
+      .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
+      .top(100)
+      .get();
     
-    if (start && end) {
-      query = query.filter(`start/dateTime ge '${start}' and end/dateTime le '${end}'`);
-    }
-
-    const result = await query.get();
     const now = new Date();
 
     return result.value.map((event: any) => {
