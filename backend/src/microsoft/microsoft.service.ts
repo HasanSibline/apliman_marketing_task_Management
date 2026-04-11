@@ -245,13 +245,23 @@ export class MicrosoftService {
         return { transcript: null, message: 'No transcript available for this meeting' };
       }
 
-      // Get the latest transcript content
-      const transcriptId = transcripts.value[0].id;
-      const content = await graphClient.api(`/me/onlineMeetings/${resolvedMeetingId}/transcripts/${transcriptId}/content`).get();
+      // Aggregate all transcript segments if multiple exist
+      let fullTranscript = '';
+      for (const transcriptInfo of transcripts.value) {
+          const transcriptId = transcriptInfo.id;
+          // Request plain text format explicitly to avoid VTT junk
+          const content = await graphClient.api(`/me/onlineMeetings/${resolvedMeetingId}/transcripts/${transcriptId}/content`)
+            .query({ '$format': 'text/plain' })
+            .get();
+          
+          if (content) {
+              fullTranscript += (fullTranscript ? '\n\n' : '') + content;
+          }
+      }
       
-      return { transcript: content };
+      return { transcript: fullTranscript || null };
     } catch (error) {
-      this.logger.error('Failed to fetch transcript', error.message);
+      this.logger.error(`Failed to fetch transcript for meeting ${meetingId}: ${error.message}`);
       return { transcript: null, error: error.message };
     }
   }
@@ -265,23 +275,37 @@ export class MicrosoftService {
     });
 
     try {
-      // 1. Try if it's already an OnlineMeeting ID (they usually contain Base64-like strings)
-      if (meetingId.includes('MSow')) return meetingId;
+      // 1. Check if it's already an OnlineMeeting ID
+      // OnlineMeeting IDs are often prefixed or in a specific format like MSow...
+      if (meetingId.startsWith('MSow') || meetingId.length > 50) return meetingId;
 
-      // 2. Try fetching the event to get the joinUrl
-      const event = await graphClient.api(`/me/calendar/events/${meetingId}`).select('onlineMeeting,subject').get();
+      // 2. Try fetching as calendar event to get onlineMeeting data
+      const event = await graphClient.api(`/me/calendar/events/${meetingId}`)
+        .select('onlineMeeting,subject,isOnlineMeeting')
+        .get();
       
       if (event.onlineMeeting?.joinUrl) {
           const joinUrl = event.onlineMeeting.joinUrl;
           // Search for the online meeting by joinUrl
-          const meetings = await graphClient.api('/me/onlineMeetings').filter(`joinWebUrl eq '${joinUrl}'`).get();
+          const meetings = await graphClient.api('/me/onlineMeetings')
+            .filter(`joinWebUrl eq '${joinUrl}'`)
+            .get();
+            
           if (meetings.value?.length > 0) {
               return meetings.value[0].id;
           }
       }
       
-      return meetingId; // Fallback
+      // 3. Last fallback: try fetching the onlineMeeting directly by the meeting ID 
+      // some IDs passed can be the meeting ID itself
+      try {
+          const meeting = await graphClient.api(`/me/onlineMeetings/${meetingId}`).get();
+          if (meeting?.id) return meeting.id;
+      } catch (e) { /* ignore */ }
+
+      return meetingId;
     } catch (error) {
+      this.logger.warn(`Could not resolve online meeting ID for ${meetingId}: ${error.message}`);
       return meetingId;
     }
   }
@@ -334,7 +358,7 @@ export class MicrosoftService {
               contextItems.push({
                   title: event.subject,
                   date: event.start.dateTime,
-                  transcript: transcript.substring(0, 2000) // Limit context size
+                  transcript: transcript.substring(0, 5000) // Limit context size
               });
           }
       }

@@ -659,6 +659,13 @@ Due: {task.get('dueDate', 'No due date')}
                 target_dept = (ticket.get('receiverDept') or {}).get('name', 'Unknown')
                 assignee_name = (ticket.get('assignee') or {}).get('name', 'Unassigned')
                 
+                comments_text = ""
+                if ticket.get('comments'):
+                    comments_text = "\nComments:\n"
+                    for comment in ticket['comments']:
+                        user_name = (comment.get('user') or {}).get('name', 'User')
+                        comments_text += f"- {user_name}: {comment.get('comment', '')}\n"
+
                 prompt += f"""
 Ticket: {ticket.get('title', 'Untitled')} ({ticket.get('ticketNumber', 'N/A')})
 Status: {ticket.get('status', 'Unknown')}
@@ -667,6 +674,7 @@ Requester: {requester_name}
 Logistical Target: {target_dept}
 Assignee: {assignee_name}
 Description: {ticket.get('description', 'No description')}
+{comments_text}
 """
 
         # User's Active Tickets Context
@@ -704,7 +712,7 @@ Description: {ticket.get('description', 'No description')}
             prompt += "Use these transcripts to answer questions about recent discussions or decisions.\n"
             for meeting in additional_context['recentMeetings']:
                 prompt += f"Meeting: {meeting.get('title')} ({meeting.get('date')})\n"
-                prompt += f"Transcript Highlight:\n{meeting.get('transcript')[:1000]}\n---\n"
+                prompt += f"Transcript (up to 4000 chars):\n{meeting.get('transcript')[:4000]}\n---\n"
 
         # Add mentioned users
         if additional_context.get('mentionedUsers'):

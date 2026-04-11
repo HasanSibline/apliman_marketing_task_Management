@@ -639,13 +639,22 @@ export class ChatService {
         include: {
           assignedTo: { select: { name: true } },
           currentPhase: { select: { name: true } },
+          comments: {
+             take: 5,
+             orderBy: { createdAt: 'desc' },
+             select: { comment: true, user: { select: { name: true } } }
+          }
         },
         take: 5
       });
-      context.referencedTasks = tasks.map(t => ({
-        ...t,
-        description: t.description?.substring(0, 500) + (t.description?.length > 500 ? '...' : '')
-      }));
+        context.referencedTasks = tasks.map(t => ({
+          ...t,
+          description: t.description?.substring(0, 1000) + (t.description?.length > 1000 ? '...' : ''),
+          comments: t.comments?.map(c => ({
+            ...c,
+            comment: c.comment.substring(0, 500) + (c.comment.length > 500 ? '...' : '')
+          })) || []
+        }));
 
       // Always fetch referenced tickets (TKT-1001 or #TKT-1001)
       const allTicketRefs = [...new Set([...ticketRefs, ...taskRefs.filter(r => r.startsWith('TKT-'))])];
@@ -662,7 +671,7 @@ export class ChatService {
             assignee: { select: { name: true } },
             comments: {
                where: { isSystem: false },
-               take: 3, // Reduced from 5
+               take: 10, // Increased from 3
                orderBy: { createdAt: 'desc' },
                select: { comment: true, user: { select: { name: true } } }
             }
@@ -670,7 +679,11 @@ export class ChatService {
         });
         context.referencedTickets = tickets.map(t => ({
           ...t,
-          description: t.description?.substring(0, 1000) + (t.description?.length > 1000 ? '...' : '')
+          description: t.description?.substring(0, 2000) + (t.description?.length > 2000 ? '...' : ''),
+          comments: t.comments.map(c => ({
+            ...c,
+            comment: c.comment.substring(0, 1000) + (c.comment.length > 1000 ? '...' : '')
+          }))
         }));
       }
     }
