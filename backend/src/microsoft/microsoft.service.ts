@@ -141,10 +141,10 @@ export class MicrosoftService {
       const queryStart = start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
       const queryEnd = end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
 
-      const result = await graphClient.api('/me/calendar/events')
+      const result = await graphClient.api('/me/calendar/calendarView')
+        .query({ startDateTime: queryStart, endDateTime: queryEnd })
         .header('Prefer', 'outlook.timezone="UTC"')
         .header('Cache-Control', 'no-cache, no-store, must-revalidate')
-        .filter(`start/dateTime ge '${queryStart}' and end/dateTime le '${queryEnd}'`)
         .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
         .top(999)
         .get();
@@ -152,28 +152,36 @@ export class MicrosoftService {
       const now = new Date();
       const nowTime = now.getTime();
       
-      return result.value.map((event: any) => {
-        const startObj = this.parseMsDate(event.start);
-        const endObj = this.parseMsDate(event.end);
-        const startTime = startObj.getTime();
-        const endTime = endObj.getTime();
-        
-        let status = 'Upcoming';
-        if (nowTime >= startTime && nowTime <= endTime) status = 'Live';
-        else if (nowTime > endTime) status = 'Completed';
+      const safeEvents = [];
+      for (const event of result.value || []) {
+        try {
+          const startObj = this.parseMsDate(event.start);
+          const endObj = this.parseMsDate(event.end);
+          const startTime = startObj.getTime();
+          const endTime = endObj.getTime();
+          
+          if (isNaN(startTime) || isNaN(endTime)) continue;
 
-        return {
-          id: event.id,
-          title: event.subject || 'Microsoft Event',
-          start: startObj.toISOString(),
-          end: endObj.toISOString(),
-          location: event.location?.displayName,
-          isTeams: event.isOnlineMeeting,
-          joinUrl: event.onlineMeeting?.joinUrl,
-          status,
-          type: 'MICROSOFT_EVENT'
-        };
-      });
+          let status = 'Upcoming';
+          if (nowTime >= startTime && nowTime <= endTime) status = 'Live';
+          else if (nowTime > endTime) status = 'Completed';
+
+          safeEvents.push({
+            id: event.id,
+            title: event.subject || 'Microsoft Event',
+            start: startObj.toISOString(),
+            end: endObj.toISOString(),
+            location: event.location?.displayName,
+            isTeams: event.isOnlineMeeting,
+            joinUrl: event.onlineMeeting?.joinUrl,
+            status,
+            type: 'MICROSOFT_EVENT'
+          });
+        } catch (e) {
+          this.logger.warn(`Skipping malformed Microsoft event ${event.id}:`, e.message);
+        }
+      }
+      return safeEvents;
     } catch (error) {
       this.logger.error('Failed to fetch calendar events from Graph API', error?.response?.data || error?.message);
       return [];
