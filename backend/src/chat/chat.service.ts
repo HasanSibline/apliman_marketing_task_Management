@@ -168,12 +168,12 @@ export class ChatService {
       // Get user details (including companyId for filtering)
       const user = await this.prisma.user.findUnique({
         where: { id: userId },
-        select: { 
-          id: true, 
-          name: true, 
-          email: true, 
-          role: true, 
-          position: true, 
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          position: true,
           companyId: true,
           department: { select: { name: true } },
           manager: { select: { name: true } },
@@ -228,7 +228,7 @@ export class ChatService {
 
       // CRITICAL: Decrypt the AI API key using centralized decryption
       const aiApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
-      
+
       if (!aiApiKey || aiApiKey.includes('[DECRYPTION_FAILED]')) {
         this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
         throw new Error('Internal error decrypting your AI key. Please contact support.');
@@ -279,7 +279,7 @@ export class ChatService {
       // Normalize file URLs to absolute paths so the AI service can fetch them
       const backendUrlConfig = this.configService.get<string>('BACKEND_URL', 'http://localhost:3001');
       const backendUrl = backendUrlConfig.replace(/\/$/, '');
-      
+
       const normalizedFiles = (dto.files || []).map(file => {
         if (file.url && (file.url.startsWith('/') || !file.url.startsWith('http'))) {
           const prefix = file.url.startsWith('/') ? '' : '/';
@@ -310,8 +310,8 @@ export class ChatService {
       });
 
       // Save assistant message (Safety first: ensure content is a string)
-      const assistantContent = typeof aiResponse === 'string' 
-        ? aiResponse 
+      const assistantContent = typeof aiResponse === 'string'
+        ? aiResponse
         : (aiResponse?.message || aiResponse?.content || "I encountered an error processing your request.");
 
       const assistantMessage = await this.prisma.chatMessage.create({
@@ -441,7 +441,7 @@ export class ChatService {
     while ((match = taskRegex.exec(message)) !== null) {
       tasks.push(match[1]);
     }
-    
+
     // Also find codes like TSK-1001
     const tskRegex = /\bTSK-(\d+)\b/gi;
     while ((match = tskRegex.exec(message)) !== null) {
@@ -462,7 +462,7 @@ export class ChatService {
     while ((match = ticketRegex.exec(message)) !== null) {
       tickets.push(match[1]);
     }
-    
+
     // Also find codes like TKT-1001
     const tktRegex = /\bTKT-(\d+)\b/gi;
     while ((match = tktRegex.exec(message)) !== null) {
@@ -514,7 +514,7 @@ export class ChatService {
       },
       take: 10 // Reduced from 20
     });
-    
+
     context.userActiveTasks = activeTasks.map(t => ({
       ...t,
       description: t.description?.substring(0, 300) + (t.description?.length > 300 ? '...' : '')
@@ -600,7 +600,7 @@ export class ChatService {
     if (mentions.length > 0) {
       const users = await this.prisma.user.findMany({
         where: {
-          companyId: user.companyId, 
+          companyId: user.companyId,
           name: {
             in: mentions,
             mode: 'insensitive',
@@ -640,25 +640,25 @@ export class ChatService {
           assignedTo: { select: { name: true } },
           currentPhase: { select: { name: true } },
           comments: {
-             take: 5,
-             orderBy: { createdAt: 'desc' },
-             select: { comment: true, user: { select: { name: true } } }
+            take: 5,
+            orderBy: { createdAt: 'desc' },
+            select: { comment: true, user: { select: { name: true } } }
           }
         },
         take: 5
       });
-        context.referencedTasks = tasks.map(t => ({
-          ...t,
-          description: t.description?.substring(0, 1000) + (t.description?.length > 1000 ? '...' : ''),
-          comments: t.comments?.map(c => ({
-            ...c,
-            comment: c.comment.substring(0, 500) + (c.comment.length > 500 ? '...' : '')
-          })) || []
-        }));
+      context.referencedTasks = tasks.map(t => ({
+        ...t,
+        description: t.description?.substring(0, 1000) + (t.description?.length > 1000 ? '...' : ''),
+        comments: t.comments?.map(c => ({
+          ...c,
+          comment: c.comment.substring(0, 500) + (c.comment.length > 500 ? '...' : '')
+        })) || []
+      }));
 
       // Always fetch referenced tickets (TKT-1001 or #TKT-1001)
       const allTicketRefs = [...new Set([...ticketRefs, ...taskRefs.filter(r => r.startsWith('TKT-'))])];
-      
+
       if (allTicketRefs.length > 0) {
         const tickets = await this.prisma.ticket.findMany({
           where: {
@@ -670,10 +670,10 @@ export class ChatService {
             receiverDept: { select: { name: true } },
             assignee: { select: { name: true } },
             comments: {
-               where: { isSystem: false },
-               take: 10, // Increased from 3
-               orderBy: { createdAt: 'desc' },
-               select: { comment: true, user: { select: { name: true } } }
+              where: { isSystem: false },
+              take: 10, // Increased from 3
+              orderBy: { createdAt: 'desc' },
+              select: { comment: true, user: { select: { name: true } } }
             }
           },
         });
@@ -690,12 +690,12 @@ export class ChatService {
 
     // NEW: Fetch recent Microsoft meeting transcripts for context
     try {
-        const meetingContext = await this.microsoftService.getRecentMeetingContext(userId, 3);
-        if (meetingContext.length > 0) {
-            context.recentMeetings = meetingContext;
-        }
+      const meetingContext = await this.microsoftService.getRecentMeetingContext(userId, 3);
+      if (meetingContext.length > 0) {
+        context.recentMeetings = meetingContext;
+      }
     } catch (error) {
-        this.logger.error('Failed to fetch meeting context for chat', error.message);
+      this.logger.error('Failed to fetch meeting context for chat', error.message);
     }
 
     return context;
@@ -744,7 +744,7 @@ export class ChatService {
         };
       }
 
-       // API-level error (bad key, quota, etc.) — surface it clearly
+      // API-level error (bad key, quota, etc.) — surface it clearly
       const userFacingMessage = statusCode === 401 || statusCode === 403
         ? 'AI authentication failed. Please check the API key in your company settings.'
         : detailedError.includes('API_KEY_INVALID') || detailedError.includes('API key not valid')

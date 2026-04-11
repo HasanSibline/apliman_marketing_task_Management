@@ -53,24 +53,18 @@ export class MicrosoftService {
           redirect_uri: redirectUri,
           grant_type: 'authorization_code',
         }).toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        },
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
       );
 
       const { access_token, refresh_token, expires_in } = response.data;
       const expiryDate = new Date();
       expiryDate.setSeconds(expiryDate.getSeconds() + expires_in);
 
-      // Get User Profile to get their Microsoft ID
       const graphClient = Client.init({
         authProvider: (done) => done(null, access_token),
       });
       const profile = await graphClient.api('/me').get();
 
-      // Update User in DB
       await this.prisma.user.update({
         where: { id: userId },
         data: {
@@ -98,13 +92,11 @@ export class MicrosoftService {
       throw new BadRequestException('User not synchronized with Microsoft');
     }
 
-    // Check if token is expired (with 5-minute buffer)
     const now = new Date();
     if (user.microsoftTokenExpiry && user.microsoftTokenExpiry.getTime() > now.getTime() + 300000) {
       return user.microsoftAccessToken;
     }
 
-    // Refresh Token
     const { clientId, clientSecret, tenantId } = this.clientCredentials;
     try {
       const response = await axios.post(
@@ -115,11 +107,7 @@ export class MicrosoftService {
           refresh_token: user.microsoftRefreshToken,
           grant_type: 'refresh_token',
         }).toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        },
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
       );
 
       const { access_token, refresh_token, expires_in } = response.data;
@@ -148,16 +136,11 @@ export class MicrosoftService {
       authProvider: (done) => done(null, accessToken),
     });
 
-    // Use /calendarView instead of /events to correctly expand recurrences and reflect deleted instances
-    // If start/end not provided, use a default range of current month
     const queryStart = start || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString();
     const queryEnd = end || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString();
 
     const result = await graphClient.api('/me/calendar/calendarView')
-      .query({
-        startDateTime: queryStart,
-        endDateTime: queryEnd
-      })
+      .query({ startDateTime: queryStart, endDateTime: queryEnd })
       .header('Prefer', 'outlook.timezone="UTC"')
       .header('Cache-Control', 'no-cache, no-store, must-revalidate')
       .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting')
@@ -165,20 +148,23 @@ export class MicrosoftService {
       .get();
     
     const now = new Date();
-
+    const nowTime = now.getTime();
+    
     return result.value.map((event: any) => {
-      const start = new Date(event.start.dateTime + 'Z');
-      const end = new Date(event.end.dateTime + 'Z');
-      let status = 'Upcoming';
+      const startObj = this.parseMsDate(event.start);
+      const endObj = this.parseMsDate(event.end);
+      const startTime = startObj.getTime();
+      const endTime = endObj.getTime();
       
-      if (now >= start && now <= end) status = 'Live';
-      else if (now > end) status = 'Completed';
+      let status = 'Upcoming';
+      if (nowTime >= startTime && nowTime <= endTime) status = 'Live';
+      else if (nowTime > endTime) status = 'Completed';
 
       return {
         id: event.id,
         title: event.subject,
-        start: start.toISOString(),
-        end: end.toISOString(),
+        start: startObj.toISOString(),
+        end: endObj.toISOString(),
         location: event.location?.displayName,
         isTeams: event.isOnlineMeeting,
         joinUrl: event.onlineMeeting?.joinUrl,
@@ -199,26 +185,28 @@ export class MicrosoftService {
         .header('Prefer', 'outlook.timezone="UTC"')
         .select('id,subject,start,end,attendees,organizer,onlineMeeting').get();
       
-      const start = new Date(event.start.dateTime + 'Z');
-      const end = new Date(event.end.dateTime + 'Z');
+      const startObj = this.parseMsDate(event.start);
+      const endObj = this.parseMsDate(event.end);
       const now = new Date();
+      const startTime = startObj.getTime();
+      const endTime = endObj.getTime();
+      const nowTime = now.getTime();
+
       let status = 'Upcoming';
-      if (now >= start && now <= end) status = 'Live';
-      else if (now > end) status = 'Completed';
+      if (nowTime >= startTime && nowTime <= endTime) status = 'Live';
+      else if (nowTime > endTime) status = 'Completed';
 
       return {
         id: event.id,
-        subject: event.subject,
-        start: start.toISOString(),
-        end: end.toISOString(),
+        title: event.subject,
+        start: startObj.toISOString(),
+        end: endObj.toISOString(),
         status,
-        organizer: event.organizer.emailAddress,
-        attendees: event.attendees.map((a: any) => ({
-          name: a.emailAddress.name,
-          email: a.emailAddress.address,
-          type: a.type,
-          status: a.status.response
-        }))
+        organizer: event.organizer?.emailAddress?.name,
+        attendees: event.attendees?.map((a: any) => a.emailAddress?.name),
+        isTeams: !!event.onlineMeeting,
+        joinUrl: event.onlineMeeting?.joinUrl,
+        type: 'MICROSOFT_EVENT'
       };
     } catch (error) {
       this.logger.error('Failed to fetch meeting details', error.message);
@@ -228,106 +216,85 @@ export class MicrosoftService {
 
   async getMeetingTranscript(userId: string, meetingId: string) {
     const accessToken = await this.getAccessToken(userId);
-    
-    // We need the onlineMeeting ID. If the meetingId provided is an Event ID, 
-    // we try to resolve it to an OnlineMeeting ID.
-    const resolvedMeetingId = await this.resolveOnlineMeetingId(userId, meetingId, accessToken);
-    
     const graphClient = Client.init({
       authProvider: (done) => done(null, accessToken),
     });
 
     try {
-      // Fetch transcripts for the meeting
+      const resolvedMeetingId = await this.resolveOnlineMeetingId(userId, meetingId, accessToken);
+      if (!resolvedMeetingId) return { transcript: null, message: 'Could not resolve Teams meeting' };
+
       const transcripts = await graphClient.api(`/me/onlineMeetings/${resolvedMeetingId}/transcripts`).get();
       
-      if (!transcripts.value || transcripts.value.length === 0) {
-        return { transcript: null, message: 'No transcript available for this meeting' };
+      if (transcripts.value && transcripts.value.length > 0) {
+        let fullTranscript = '';
+        for (const tInfo of transcripts.value) {
+            const content = await graphClient.api(`/me/onlineMeetings/${resolvedMeetingId}/transcripts/${tInfo.id}/content`)
+              .query({ '$format': 'text/plain' })
+              .get();
+            if (content) fullTranscript += (fullTranscript ? '\n\n' : '') + content;
+        }
+        if (fullTranscript) return { transcript: fullTranscript };
       }
 
-      // Aggregate all transcript segments if multiple exist
-      let fullTranscript = '';
-      for (const transcriptInfo of transcripts.value) {
-          const transcriptId = transcriptInfo.id;
-          // Request plain text format explicitly to avoid VTT junk
-          const content = await graphClient.api(`/me/onlineMeetings/${resolvedMeetingId}/transcripts/${transcriptId}/content`)
-            .query({ '$format': 'text/plain' })
-            .get();
-          
-          if (content) {
-              fullTranscript += (fullTranscript ? '\n\n' : '') + content;
+      // Fallback to meeting chat
+      const meetingDetails = await graphClient.api(`/me/onlineMeetings/${resolvedMeetingId}`).get();
+      const chatId = meetingDetails?.chatInfo?.threadId;
+      
+      if (chatId) {
+          const messages = await graphClient.api(`/chats/${chatId}/messages`).top(50).get();
+          if (messages.value && messages.value.length > 0) {
+              const chatItems = messages.value
+                  .filter((m: any) => m.messageType === 'message' && m.body?.content)
+                  .reverse()
+                  .map((m: any) => {
+                      const from = m.from?.user?.displayName || 'Unknown';
+                      const body = m.body.content.replace(/<[^>]*>?/gm, '');
+                      return `${from}\n${body}`;
+                  });
+              
+              if (chatItems.length > 0) {
+                  return { transcript: chatItems.join('\n\n'), isChat: true, message: 'Synced from meeting chat' };
+              }
           }
       }
-      
-      return { transcript: fullTranscript || null };
+
+      return { transcript: null, message: 'No conversation available yet.' };
     } catch (error) {
-      this.logger.error(`Failed to fetch transcript for meeting ${meetingId}: ${error.message}`);
+      this.logger.error(`Transcript fetch failed: ${error.message}`);
       return { transcript: null, error: error.message };
     }
   }
 
-  /**
-   * Resolves a Calendar Event ID or Join URL to an Online Meeting ID
-   */
-  private async resolveOnlineMeetingId(userId: string, meetingId: string, accessToken: string): Promise<string> {
-    const graphClient = Client.init({
-      authProvider: (done) => done(null, accessToken),
-    });
+  private parseMsDate(dateObj: any): Date {
+    if (!dateObj || !dateObj.dateTime) return new Date();
+    const dt = dateObj.dateTime;
+    return new Date(dt.endsWith('Z') ? dt : dt + 'Z');
+  }
+
+  private async resolveOnlineMeetingId(userId: string, meetingId: string, accessToken: string): Promise<string | null> {
+    const graphClient = Client.init({ authProvider: (done) => done(null, accessToken) });
 
     try {
-      // 1. Check if it's already an OnlineMeeting ID
-      // OnlineMeeting IDs are often prefixed or in a specific format like MSow...
       if (meetingId.startsWith('MSow') || meetingId.length > 50) return meetingId;
 
-      // 2. Try fetching as calendar event to get onlineMeeting data
-      const event = await graphClient.api(`/me/calendar/events/${meetingId}`)
-        .select('onlineMeeting,subject,isOnlineMeeting')
-        .get();
-      
+      const event = await graphClient.api(`/me/calendar/events/${meetingId}`).select('onlineMeeting').get();
       if (event.onlineMeeting?.joinUrl) {
-          const joinUrl = event.onlineMeeting.joinUrl;
-          // Search for the online meeting by joinUrl
-          const meetings = await graphClient.api('/me/onlineMeetings')
-            .filter(`joinWebUrl eq '${joinUrl}'`)
-            .get();
-            
-          if (meetings.value?.length > 0) {
-              return meetings.value[0].id;
-          }
+          const meetings = await graphClient.api('/me/onlineMeetings').filter(`joinWebUrl eq '${event.onlineMeeting.joinUrl}'`).get();
+          if (meetings.value?.length > 0) return meetings.value[0].id;
       }
-      
-      // 3. Last fallback: try fetching the onlineMeeting directly by the meeting ID 
-      // some IDs passed can be the meeting ID itself
-      try {
-          const meeting = await graphClient.api(`/me/onlineMeetings/${meetingId}`).get();
-          if (meeting?.id) return meeting.id;
-      } catch (e) { /* ignore */ }
-
       return meetingId;
-    } catch (error) {
-      this.logger.warn(`Could not resolve online meeting ID for ${meetingId}: ${error.message}`);
+    } catch {
       return meetingId;
     }
   }
 
   async summarizeMeeting(userId: string, meetingId: string) {
     const { transcript, error } = await this.getMeetingTranscript(userId, meetingId);
-    
-    if (error || !transcript) {
-        throw new BadRequestException(error || 'No transcript found to summarize');
-    }
+    if (error || !transcript) throw new BadRequestException(error || 'No transcript found');
 
-    // Call AI Service to summarize
-    // We use a custom prompt for meeting intelligence
     const summary = await this.aiService.summarizeText(
-        `Please provide a professional summary of this meeting transcript. 
-        Include:
-        1. Key Decisions Made
-        2. Main Themes
-        3. Sentiment/Atmosphere
-        4. Action Items (List them clearly)
-        
-        Transcript: ${transcript}`,
+        `Summarize this meeting: ${transcript.substring(0, 10000)}`,
         1000,
         userId
     );
@@ -339,26 +306,25 @@ export class MicrosoftService {
     const accessToken = await this.getAccessToken(userId).catch(() => null);
     if (!accessToken) return [];
 
-    const graphClient = Client.init({
-      authProvider: (done) => done(null, accessToken),
-    });
-
     try {
-      const events = await graphClient.api('/me/calendar/events')
-        .filter('isOnlineMeeting eq true')
-        .orderby('start/dateTime desc')
-        .top(limit)
-        .select('id,subject,start,onlineMeeting')
-        .get();
+      const events = await this.getCalendarEvents(userId, 
+          new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+          new Date().toISOString()
+      );
+
+      const completedMeetings = events
+          .filter(e => e.status === 'Completed' || e.status === 'Live')
+          .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
+          .slice(0, limit);
 
       const contextItems = [];
-      for (const event of events.value) {
-          const { transcript } = await this.getMeetingTranscript(userId, event.id).catch(() => ({ transcript: null }));
+      for (const meeting of completedMeetings) {
+          const { transcript } = await this.getMeetingTranscript(userId, meeting.id).catch(() => ({ transcript: null }));
           if (transcript) {
               contextItems.push({
-                  title: event.subject,
-                  date: event.start.dateTime,
-                  transcript: transcript.substring(0, 5000) // Limit context size
+                  title: meeting.title,
+                  date: meeting.start,
+                  transcript: transcript.substring(0, 5000)
               });
           }
       }
