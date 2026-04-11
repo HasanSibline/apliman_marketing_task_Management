@@ -72,15 +72,7 @@ const CalendarPage: React.FC = () => {
                     };
                     
                     const msRes = await api.get('/microsoft/events', { params });
-                    msEvents = (msRes.data || []).map((e: any) => ({
-                        id: e.id,
-                        title: e.title,
-                        dueDate: e.start,
-                        type: 'MICROSOFT_EVENT',
-                        priority: 2,
-                        isTeams: e.isTeams,
-                        status: e.status
-                    }));
+                    msEvents = (msRes.data || []);
                 } catch (msErr) {
                     console.error('Failed to fetch Microsoft events', msErr);
                 }

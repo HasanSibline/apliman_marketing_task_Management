@@ -170,6 +170,7 @@ export class MicrosoftService {
             id: event.id,
             title: event.subject || 'Microsoft Event',
             start: startObj.toISOString(),
+            dueDate: startObj.toISOString(), // Add dueDate to match Frontend expectation
             end: endObj.toISOString(),
             location: event.location?.displayName,
             isTeams: event.isOnlineMeeting,
