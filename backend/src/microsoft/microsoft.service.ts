@@ -159,24 +159,35 @@ export class MicrosoftService {
       const calendarsRes = await graphClient.api('/me/calendars').select('id,name').get();
       const calendars = calendarsRes.value || [];
       
-      let allEvents: any[] = [];
-
-      // 2. Fetch events from EACH calendar in parallel
-      await Promise.all(calendars.map(async (cal: any) => {
+      // 2. Fetch events from EACH calendar safely
+      const calendarPromises = calendars.map(async (cal: any) => {
         try {
           const res = await graphClient.api(`/me/calendars/${cal.id}/calendarView`)
             .query({ startDateTime: queryStart, endDateTime: queryEnd })
             .header('Prefer', 'outlook.timezone="UTC"')
             .top(100)
             .get();
-          
-          if (res.value) {
-            allEvents = [...allEvents, ...res.value];
-          }
+          return res.value || [];
         } catch (err: any) {
           this.logger.warn(`Failed to fetch from calendar ${cal.name}: ${err.message}`);
+          return [];
         }
-      }));
+      });
+
+      // Also fetch from the default main calendar view (the most common source)
+      calendarPromises.push((async () => {
+        try {
+          const res = await graphClient.api('/me/calendar/calendarView')
+            .query({ startDateTime: queryStart, endDateTime: queryEnd })
+            .header('Prefer', 'outlook.timezone="UTC"')
+            .top(100)
+            .get();
+          return res.value || [];
+        } catch { return []; }
+      })());
+
+      const results = await Promise.all(calendarPromises);
+      let allEvents = results.flat();
 
       // 3. Fallback to /me/events if no calendars returned anything (safety)
       if (allEvents.length === 0) {
