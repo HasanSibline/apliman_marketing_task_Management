@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useAppDispatch } from '@/hooks/redux'
 import { updateUser } from '@/store/slices/authSlice'
@@ -7,8 +7,14 @@ import toast from 'react-hot-toast'
 
 /**
  * AuthCallback — handles Microsoft OAuth redirect.
- * Uses a ref-based lock (not module-level) to survive Strict Mode double-fire.
- * Has a 40-second timeout so it never stays stuck indefinitely.
+ *
+ * Lock strategy: sessionStorage keyed to the first 20 chars of the OAuth code.
+ * - Survives component remounts caused by App.tsx checkAuth re-renders (unlike useRef)
+ * - Unique per code value (unlike a generic boolean flag)
+ * - Cleared automatically when the browser tab closes (unlike localStorage)
+ *
+ * If the code was already redeemed successfully (AADSTS54005), we treat that as
+ * a success and navigate to the calendar — the first attempt worked.
  */
 const AuthCallback: React.FC = () => {
     const [searchParams] = useSearchParams()
@@ -16,13 +22,8 @@ const AuthCallback: React.FC = () => {
     const dispatch = useAppDispatch()
     const [status, setStatus] = useState('Connecting to Microsoft...')
     const [timedOut, setTimedOut] = useState(false)
-    const hasRun = useRef(false)
 
     useEffect(() => {
-        // Prevent double-fire in React 18 Strict Mode
-        if (hasRun.current) return
-        hasRun.current = true
-
         const code = searchParams.get('code')
         const error = searchParams.get('error')
 
@@ -38,10 +39,18 @@ const AuthCallback: React.FC = () => {
             return
         }
 
-        // Safety timeout — if the request hangs for 40s, tell the user and redirect
+        // Deduplicate: if this exact code was already exchanged in this tab session, skip
+        const lockKey = `ms_sync_${code.substring(0, 20)}`
+        if (sessionStorage.getItem(lockKey)) {
+            navigate('/calendar')
+            return
+        }
+        sessionStorage.setItem(lockKey, '1')
+
+        // Safety timeout — prevents stuck screen if Render is cold-starting
         const timeout = setTimeout(() => {
             setTimedOut(true)
-            toast.error('Microsoft sync timed out. Render may be starting up — please try again in 1 minute.')
+            toast.error('Microsoft sync timed out. Render may be cold-starting — please try again.')
             navigate('/calendar')
         }, 40000)
 
@@ -49,17 +58,23 @@ const AuthCallback: React.FC = () => {
             setStatus('Synchronizing with Microsoft...')
             try {
                 await api.post('/microsoft/sync', { code }, { timeout: 35000 })
-                dispatch(updateUser({ isMicrosoftSynced: true }))
                 clearTimeout(timeout)
+                dispatch(updateUser({ isMicrosoftSynced: true }))
                 toast.success('Microsoft Calendar connected! Meetings will appear shortly.')
                 navigate('/calendar')
             } catch (err: any) {
                 clearTimeout(timeout)
                 const msg = err.response?.data?.message || err.message || 'Unknown error'
                 console.error('[MS Callback] Sync failed:', msg)
-                if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('invalid')) {
-                    toast.error('Auth code expired or invalid. Please try syncing again.')
-                } else if (err.code === 'ECONNABORTED') {
+
+                // AADSTS54005 = code already redeemed = first attempt succeeded
+                if (msg.includes('54005') || msg.toLowerCase().includes('already redeemed')) {
+                    dispatch(updateUser({ isMicrosoftSynced: true }))
+                    navigate('/calendar')
+                    return
+                }
+
+                if (err.code === 'ECONNABORTED') {
                     toast.error('Microsoft sync timed out. Please wait a moment and try again.')
                 } else {
                     toast.error(`Microsoft Sync Error: ${msg}`)
@@ -81,9 +96,11 @@ const AuthCallback: React.FC = () => {
                     <div className="absolute top-0 h-24 w-24 border-[12px] border-indigo-600 rounded-full border-t-transparent animate-spin" />
                 )}
                 <div className="absolute inset-0 flex items-center justify-center">
-                    <svg className="h-10 w-10 text-indigo-600" viewBox="0 0 23 23" fill="currentColor">
-                        <path d="M0 0h11v11H0z" fill="#f25022"/><path d="M12 0h11v11H12z" fill="#7fba00"/>
-                        <path d="M0 12h11v11H0z" fill="#00a4ef"/><path d="M12 12h11v11H12z" fill="#ffb900"/>
+                    <svg className="h-10 w-10" viewBox="0 0 23 23" fill="currentColor">
+                        <path d="M0 0h11v11H0z" fill="#f25022"/>
+                        <path d="M12 0h11v11H12z" fill="#7fba00"/>
+                        <path d="M0 12h11v11H0z" fill="#00a4ef"/>
+                        <path d="M12 12h11v11H12z" fill="#ffb900"/>
                     </svg>
                 </div>
             </div>
