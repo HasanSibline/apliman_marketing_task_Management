@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+﻿import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
@@ -227,7 +227,21 @@ export class MicrosoftService {
         .select('id,subject,start,end,organizer,attendees,onlineMeeting,isOnlineMeeting')
         .get();
       
-      return this.mapGraphEvent(event);
+      const mapped = this.mapGraphEvent(event);
+      // Inject organizer into attendees (Graph API excludes organizer from attendees array)
+      if (event.organizer?.emailAddress) {
+        const orgEmail = event.organizer.emailAddress.address;
+        const alreadyListed = (mapped.attendees || []).some((a: any) => a.email === orgEmail);
+        if (!alreadyListed) {
+          mapped.attendees = [{
+            name: event.organizer.emailAddress.name || 'Organizer',
+            email: orgEmail,
+            status: 'organizer',
+            type: 'organizer'
+          }, ...(mapped.attendees || [])];
+        }
+      }
+      return mapped;
     } catch (error: any) {
       this.logger.error('Get Meeting Logic Error', error.message);
       throw new BadRequestException('Could not find meeting details');
@@ -257,11 +271,13 @@ export class MicrosoftService {
             return { transcript: null, message: 'This event is not a Teams online meeting.' };
           }
 
-          // Use joinWebUrl as a query parameter (NOT OData filter - URLs contain special chars that break OData)
+          // Use OData filter to find the online meeting by joinUrl.
+          // Teams URLs may contain special chars but NOT single quotes, so OData filter is safe.
           const joinUrl = event.onlineMeeting.joinUrl;
+          const escapedUrl = joinUrl.replace(/'/g, "''");
           const meetingsRes = await graphClient
             .api('/me/onlineMeetings')
-            .query({ joinWebUrl: encodeURIComponent(joinUrl) })
+            .filter("joinWebUrl eq '" + escapedUrl + "'")
             .get()
             .catch(() => ({ value: [] }));
 

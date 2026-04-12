@@ -6,7 +6,6 @@ import {
     CalendarIcon, 
     ClockIcon, 
     UserGroupIcon,
-    ChatBubbleLeftRightIcon,
     ArrowPathIcon,
     SparklesIcon,
     VideoCameraIcon,
