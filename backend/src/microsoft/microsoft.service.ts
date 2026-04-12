@@ -271,18 +271,50 @@ export class MicrosoftService {
             return { transcript: null, message: 'This event is not a Teams online meeting.' };
           }
 
-          // Use OData filter to find the online meeting by joinUrl.
-          // Teams URLs may contain special chars but NOT single quotes, so OData filter is safe.
+          // Strategy 1: OData filter by joinWebUrl (exact URL match)
           const joinUrl = event.onlineMeeting.joinUrl;
-          const escapedUrl = joinUrl.replace(/'/g, "''");
-          const meetingsRes = await graphClient
-            .api('/me/onlineMeetings')
-            .filter("joinWebUrl eq '" + escapedUrl + "'")
-            .get()
-            .catch(() => ({ value: [] }));
+          try {
+            const escapedUrl = joinUrl.replace(/'/g, "''");
+            const filterRes = await graphClient
+              .api('/me/onlineMeetings')
+              .filter("joinWebUrl eq '" + escapedUrl + "'")
+              .get()
+              .catch(() => ({ value: [] }));
+            if (filterRes.value?.length > 0) {
+              onlineMeetingId = filterRes.value[0].id;
+              this.logger.log(`Transcript: resolved via joinWebUrl filter`);
+            }
+          } catch (_) {}
 
-          if (meetingsRes.value?.length > 0) {
-            onlineMeetingId = meetingsRes.value[0].id;
+          // Strategy 2: Match by start time (robust fallback — OData filter fails when URL
+          // encoding differs between calendar event joinUrl and onlineMeeting joinWebUrl)
+          if (!onlineMeetingId) {
+            try {
+              const eventStart = new Date(
+                event.start?.dateTime
+                  ? (event.start.dateTime.endsWith('Z') ? event.start.dateTime : event.start.dateTime + 'Z')
+                  : Date.now()
+              ).getTime();
+
+              const allMeetings = await graphClient
+                .api('/me/onlineMeetings')
+                .top(50)
+                .get()
+                .catch(() => ({ value: [] }));
+
+              const match = (allMeetings.value || []).find((m: any) => {
+                if (!m.startDateTime) return false;
+                const diff = Math.abs(new Date(m.startDateTime).getTime() - eventStart);
+                return diff < 5 * 60 * 1000; // within 5 minutes of the scheduled start
+              });
+
+              if (match) {
+                onlineMeetingId = match.id;
+                this.logger.log(`Transcript: resolved via start-time match (diff ok)`);
+              }
+            } catch (matchErr: any) {
+              this.logger.warn(`Start-time match failed: ${matchErr.message}`);
+            }
           }
         } catch (err: any) {
           this.logger.warn(`onlineMeetingId resolution failed: ${err.message}`);
