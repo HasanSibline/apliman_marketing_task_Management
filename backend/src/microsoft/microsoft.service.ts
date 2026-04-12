@@ -61,7 +61,10 @@ export class MicrosoftService {
       'Chat.Read',
     ].join(' ');
 
-    return `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&prompt=consent`;
+    // Use 'common' endpoint so ANY Microsoft account type (personal MSA, work, school)
+    // can authenticate. Using a specific tenantId would restrict auth to only accounts
+    // in that Azure AD tenant and their calendarView would return empty for other accounts.
+    return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&prompt=consent`;
   }
 
   async handleCallback(code: string, userId: string) {
@@ -70,7 +73,7 @@ export class MicrosoftService {
     try {
       this.logger.log(`Handling OAuth callback for user: ${userId}`);
       const response = await axios.post(
-        `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+        `https://login.microsoftonline.com/common/oauth2/v2.0/token`,
         new URLSearchParams({
           client_id: clientId,
           client_secret: clientSecret,
@@ -119,7 +122,7 @@ export class MicrosoftService {
     const { clientId, clientSecret, tenantId } = this.config;
     try {
       const response = await axios.post(
-        `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`,
+        `https://login.microsoftonline.com/common/oauth2/v2.0/token`,
         new URLSearchParams({
           client_id: clientId,
           client_secret: clientSecret,
