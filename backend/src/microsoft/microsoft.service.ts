@@ -393,6 +393,7 @@ export class MicrosoftService {
         const subject = event ? event.subject || '' : meetingId;
         this.logger.log(`Searching OneDrive for .vtt transcript: "${subject}"`);
 
+        // Search 1: User's personal OneDrive root
         const searchRes = await graphClient
           .api(`/me/drive/root/search(q='${subject.replace(/'/g, "''")}')`)
           .select('name,id,file,createdDateTime,size')
@@ -400,11 +401,23 @@ export class MicrosoftService {
           .get()
           .catch(() => ({ value: [] }));
 
-        const vttFiles = (searchRes.value || []).filter((f: any) =>
+        // Search 2: SharePoint Meetings library (new Teams default since 2023)
+        // Teams now saves recordings/transcripts to a dedicated Meetings site, not the drive root
+        const spSearchRes = await graphClient
+          .api(`/me/drive/root:/Meetings:/search(q='${subject.replace(/'/g, "''")}')`)
+          .select('name,id,file,createdDateTime,size')
+          .top(20)
+          .get()
+          .catch(() => ({ value: [] }));
+
+        const allFiles = [...(searchRes.value || []), ...(spSearchRes.value || [])];
+        this.logger.log(`OneDrive search for "${subject}": found ${allFiles.length} total files: ${JSON.stringify(allFiles.map((f: any) => f.name))}`);
+
+        const vttFiles = allFiles.filter((f: any) =>
           f.file && (f.name?.toLowerCase().endsWith('.vtt') || f.name?.toLowerCase().includes('transcript'))
         );
 
-        this.logger.log(`OneDrive .vtt files found: ${vttFiles.length}`);
+        this.logger.log(`VTT/transcript files: ${vttFiles.length}`);
 
         for (const vttFile of vttFiles) {
           try {
@@ -416,14 +429,14 @@ export class MicrosoftService {
             if (fileRes.data) {
               const parsed = this.parseVTT(fileRes.data);
               if (parsed) {
-                this.logger.log(`Transcript loaded from OneDrive VTT: ${vttFile.name}`);
+                this.logger.log(`Transcript loaded from file: ${vttFile.name}`);
                 return { transcript: parsed };
               }
             }
           } catch { continue; }
         }
       } catch (driveErr: any) {
-        this.logger.warn(`OneDrive fallback failed: ${driveErr.message}`);
+        this.logger.warn(`OneDrive/SharePoint fallback failed: ${driveErr.message}`);
       }
 
       return { transcript: null, message: 'No transcript found. Ensure Teams transcription is enabled in your organization.' };
