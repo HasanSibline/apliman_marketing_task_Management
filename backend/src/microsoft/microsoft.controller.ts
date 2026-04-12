@@ -2,6 +2,7 @@ import { Controller, Get, Query, UseGuards, Req, Res, Post, Param, Body } from '
 import { MicrosoftService } from './microsoft.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Response } from 'express';
+import { Client } from '@microsoft/microsoft-graph-client';
 
 @Controller('microsoft')
 export class MicrosoftController {
@@ -15,7 +16,6 @@ export class MicrosoftController {
 
   @Get('callback')
   async handleCallback(@Query('code') code: string, @Res() res: Response) {
-    // Redirect to frontend callback page which will then call the sync endpoint
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     res.redirect(`${frontendUrl}/auth/microsoft/callback?code=${code}`);
   }
@@ -34,6 +34,75 @@ export class MicrosoftController {
     @Query('end') end?: string,
   ) {
     return this.microsoftService.getCalendarEvents(req.user.id, start, end);
+  }
+
+  /**
+   * Diagnostic endpoint — call GET /api/microsoft/debug to see exactly what
+   * Microsoft Graph is returning for the logged-in user. Useful for production
+   * debugging without server log access.
+   */
+  @Get('debug')
+  @UseGuards(JwtAuthGuard)
+  async debugEvents(@Req() req) {
+    try {
+      const token = await this.microsoftService.getAccessToken(req.user.id);
+      const graphClient = Client.init({ authProvider: (done) => done(null, token) });
+
+      const now = new Date();
+      const start = new Date(now.getTime() - 7 * 24 * 3600000).toISOString();
+      const end   = new Date(now.getTime() + 7 * 24 * 3600000).toISOString();
+
+      let viewResult: any = null;
+      let viewError: any = null;
+      let eventsResult: any = null;
+      let eventsError: any = null;
+
+      try {
+        viewResult = await graphClient.api('/me/calendar/calendarView')
+          .query({ startDateTime: start, endDateTime: end })
+          .header('Prefer', 'outlook.timezone="UTC"')
+          .top(10)
+          .get();
+      } catch (e: any) { viewError = e.message || String(e); }
+
+      try {
+        eventsResult = await graphClient.api('/me/events')
+          .header('Prefer', 'outlook.timezone="UTC"')
+          .top(10)
+          .get();
+      } catch (e: any) { eventsError = e.message || String(e); }
+
+      const processedEvents = await this.microsoftService.getCalendarEvents(req.user.id, start, end);
+
+      return {
+        userId: req.user.id,
+        queryWindow: { start, end },
+        tokenOk: true,
+        calendarView: {
+          error: viewError,
+          count: viewResult?.value?.length ?? 0,
+          sample: (viewResult?.value || []).slice(0, 5).map((e: any) => ({
+            id: e.id,
+            subject: e.subject,
+            start: e.start,
+            isOnlineMeeting: e.isOnlineMeeting,
+          })),
+        },
+        eventsEndpoint: {
+          error: eventsError,
+          count: eventsResult?.value?.length ?? 0,
+          sample: (eventsResult?.value || []).slice(0, 5).map((e: any) => ({
+            id: e.id,
+            subject: e.subject,
+            start: e.start,
+          })),
+        },
+        processedCount: processedEvents.length,
+        processedSample: processedEvents.slice(0, 5),
+      };
+    } catch (err: any) {
+      return { error: err.message, tokenOk: false };
+    }
   }
 
   @Get('details/:meetingId')

@@ -160,25 +160,31 @@ export class MicrosoftService {
       this.logger.log(`Major Rebuild Sync for ${userId}: ${queryStart} to ${queryEnd}`);
 
       // 1. Parallel fetch from BOTH authoritative endpoints (Coverage Guard)
-      // calendarView is the primary source — it covers all events (including Teams) in the time window.
-      // /me/events is a fallback; we apply the same date filter so the top() cap doesn't cut off recent meetings.
+      // calendarView is the PRIMARY source for any Teams meeting in the date window.
+      // /me/events is a FALLBACK/SUPPLEMENT — used without $filter since Graph does not
+      // reliably support OData filter on complex properties (start/dateTime) for this endpoint.
       const [viewRes, eventsRes] = await Promise.all([
         graphClient.api('/me/calendar/calendarView')
           .query({ startDateTime: queryStart, endDateTime: queryEnd })
           .header('Prefer', 'outlook.timezone="UTC"')
           .top(999)
           .get()
-          .catch(() => ({ value: [] })),
+          .catch((err) => {
+            this.logger.error(`calendarView FAILED: ${err?.message || err}`);
+            return { value: [] };
+          }),
         graphClient.api('/me/events')
-          .query({
-            $filter: `start/dateTime ge '${queryStart}' and end/dateTime le '${queryEnd}'`,
-            $orderby: 'start/dateTime asc',
-          })
           .header('Prefer', 'outlook.timezone="UTC"')
-          .top(500)
+          .top(200)  // Simple cap — date range handled by calendarView above
           .get()
-          .catch(() => ({ value: [] }))
+          .catch((err) => {
+            this.logger.error(`/me/events FAILED: ${err?.message || err}`);
+            return { value: [] };
+          })
       ]);
+
+      this.logger.log(`RAW results — calendarView: ${(viewRes.value || []).length}, /me/events: ${(eventsRes.value || []).length}`);
+
 
       const allEvents = [...(viewRes.value || []), ...(eventsRes.value || [])];
       const noiseKeywords = ['tax day', 'holiday', 'birthday'];

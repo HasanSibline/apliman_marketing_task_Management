@@ -49,10 +49,14 @@ const CalendarPage: React.FC = () => {
                         }
                     });
                     microsoftEvents = msRes.data || [];
-                } catch (err) {
-                    console.error('Microsoft Sync Failed:', err);
+                    console.log(`[MS Sync] Received ${microsoftEvents.length} events from API`, microsoftEvents.slice(0, 3));
+                } catch (err: any) {
+                    const errDetail = err.response?.data?.message || err.message || 'Unknown error';
+                    console.error('[MS Sync] FAILED:', err.response?.data || err.message);
+                    toast.error(`Teams sync failed: ${errDetail}`, { duration: 6000 });
                 }
             }
+
 
             setEvents([...tasks, ...tickets, ...microsoftEvents]);
         } catch (error) {
