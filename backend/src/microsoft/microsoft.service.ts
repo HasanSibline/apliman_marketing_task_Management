@@ -64,7 +64,9 @@ export class MicrosoftService {
     // Use 'common' endpoint so ANY Microsoft account type (personal MSA, work, school)
     // can authenticate. Using a specific tenantId would restrict auth to only accounts
     // in that Azure AD tenant and their calendarView would return empty for other accounts.
-    return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&prompt=consent`;
+    // prompt=select_account forces the Microsoft account picker every time — critical for
+    // multi-tenant apps where users' app email != their Microsoft work email.
+    return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&prompt=select_account`;
   }
 
   async handleCallback(code: string, userId: string) {
