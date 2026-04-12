@@ -1,4 +1,4 @@
-﻿import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
@@ -254,13 +254,14 @@ export class MicrosoftService {
 
     try {
       let onlineMeetingId: string | null = null;
+      let event: any = null;
 
       // 1. Resolve the Online Meeting ID
       if (meetingId.startsWith('MSo') || meetingId.includes('MSow')) {
         onlineMeetingId = meetingId;
       } else {
         try {
-          const event = await graphClient
+          event = await graphClient
             .api(`/me/calendar/events/${meetingId}`)
             .select('onlineMeeting,isOnlineMeeting,subject')
             .get();
@@ -381,10 +382,108 @@ export class MicrosoftService {
         this.logger.warn(`Chat fallback failed: ${chatErr.message}`);
       }
 
+      // 4. OneDrive VTT file fallback — Teams saves transcript as .vtt in OneDrive
+      //    This is often available much sooner than the Graph transcripts API
+      try {
+        const subject = event ? event.subject || '' : meetingId;
+        this.logger.log(`Searching OneDrive for .vtt transcript: "${subject}"`);
+
+        const searchRes = await graphClient
+          .api(`/me/drive/root/search(q='${subject.replace(/'/g, "''")}')`)
+          .select('name,id,file,createdDateTime,size')
+          .top(20)
+          .get()
+          .catch(() => ({ value: [] }));
+
+        const vttFiles = (searchRes.value || []).filter((f: any) =>
+          f.file && (f.name?.toLowerCase().endsWith('.vtt') || f.name?.toLowerCase().includes('transcript'))
+        );
+
+        this.logger.log(`OneDrive .vtt files found: ${vttFiles.length}`);
+
+        for (const vttFile of vttFiles) {
+          try {
+            const token = await this.getAccessToken(userId);
+            const fileRes = await axios.get(
+              `https://graph.microsoft.com/v1.0/me/drive/items/${vttFile.id}/content`,
+              { headers: { Authorization: `Bearer ${token}` }, responseType: 'text' }
+            );
+            if (fileRes.data) {
+              const parsed = this.parseVTT(fileRes.data);
+              if (parsed) {
+                this.logger.log(`Transcript loaded from OneDrive VTT: ${vttFile.name}`);
+                return { transcript: parsed };
+              }
+            }
+          } catch { continue; }
+        }
+      } catch (driveErr: any) {
+        this.logger.warn(`OneDrive fallback failed: ${driveErr.message}`);
+      }
+
       return { transcript: null, message: 'No transcript found. Ensure Teams transcription is enabled in your organization.' };
     } catch (error: any) {
       this.logger.error('Transcript Engine Error', error.message);
       return { transcript: null, error: error.message };
+    }
+  }
+
+  /**
+   * Parse Teams WebVTT transcript file into speaker-separated readable text.
+   * Teams saves transcripts as .vtt files in OneDrive with format:
+   *   00:00:11.000 --> 00:00:12.000
+   *   <v Speaker Name>Text content
+   */
+  private parseVTT(vttContent: string): string {
+    try {
+      const lines = vttContent.replace(/\r\n/g, '\n').split('\n');
+      const utterances: { speaker: string; text: string }[] = [];
+      let currentSpeaker = '';
+      let currentText = '';
+
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed === 'WEBVTT' || trimmed.startsWith('NOTE') || trimmed.includes('-->')) {
+          if (trimmed.includes('-->') && currentSpeaker && currentText.trim()) {
+            utterances.push({ speaker: currentSpeaker, text: currentText.trim() });
+            currentSpeaker = '';
+            currentText = '';
+          }
+          continue;
+        }
+        // Match speaker tag: <v Speaker Name>text
+        const speakerMatch = trimmed.match(/^<v ([^>]+)>(.*)/);
+        if (speakerMatch) {
+          if (currentSpeaker && currentText.trim()) {
+            utterances.push({ speaker: currentSpeaker, text: currentText.trim() });
+          }
+          currentSpeaker = speakerMatch[1].trim();
+          currentText = speakerMatch[2].replace(/<[^>]+>/g, '').trim();
+        } else if (currentSpeaker) {
+          currentText += ' ' + trimmed.replace(/<[^>]+>/g, '');
+        }
+      }
+
+      if (currentSpeaker && currentText.trim()) {
+        utterances.push({ speaker: currentSpeaker, text: currentText.trim() });
+      }
+
+      if (utterances.length === 0) return null;
+
+      // Group consecutive utterances by the same speaker
+      const grouped: { speaker: string; text: string }[] = [];
+      for (const u of utterances) {
+        const last = grouped[grouped.length - 1];
+        if (last && last.speaker === u.speaker) {
+          last.text += ' ' + u.text;
+        } else {
+          grouped.push({ ...u });
+        }
+      }
+
+      return grouped.map(u => `${u.speaker}\n${u.text}`).join('\n\n');
+    } catch {
+      return null;
     }
   }
 
