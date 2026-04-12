@@ -6,6 +6,24 @@ import { Client } from '@microsoft/microsoft-graph-client';
 import 'isomorphic-fetch';
 import axios from 'axios';
 
+interface MicrosoftAttendee {
+  emailAddress?: { name?: string; address?: string };
+  status?: { response?: string };
+  type?: string;
+}
+
+interface MicrosoftEvent {
+  id: string;
+  subject?: string;
+  start?: { dateTime: string; timeZone?: string };
+  end?: { dateTime: string; timeZone?: string };
+  location?: { displayName: string };
+  isOnlineMeeting?: boolean;
+  onlineMeeting?: { joinUrl: string };
+  organizer?: { emailAddress: { name: string; address: string } };
+  attendees?: MicrosoftAttendee[];
+}
+
 @Injectable()
 export class MicrosoftService {
   private readonly logger = new Logger(MicrosoftService.name);
@@ -78,7 +96,7 @@ export class MicrosoftService {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch (error: any) {
       const msg = error.response?.data?.error_description || error.message;
       this.logger.error('MS Callback Error:', msg);
       throw new BadRequestException('Microsoft sync failed: ' + msg);
@@ -91,7 +109,7 @@ export class MicrosoftService {
 
     const now = new Date();
     if (user.microsoftTokenExpiry && user.microsoftTokenExpiry.getTime() > now.getTime() + 600000) {
-      return user.microsoftAccessToken;
+      if (user.microsoftAccessToken) return user.microsoftAccessToken;
     }
 
     const { clientId, clientSecret, tenantId } = this.config;
@@ -121,7 +139,7 @@ export class MicrosoftService {
       });
 
       return access_token;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Token Refresh Error:', error.response?.data || error.message);
       throw new BadRequestException('Microsoft session expired. Please re-sync.');
     }
@@ -135,16 +153,29 @@ export class MicrosoftService {
       const queryStart = start || new Date(Date.now() - 30 * 24 * 3600000).toISOString();
       const queryEnd = end || new Date(Date.now() + 30 * 24 * 3600000).toISOString();
 
-      const res = await graphClient.api('/me/calendar/calendarView')
+      this.logger.log(`Fetching Microsoft events for user ${userId} from ${queryStart} to ${queryEnd}`);
+
+      // Try main calendar view first (standard)
+      let res = await graphClient.api('/me/calendar/calendarView')
         .query({ startDateTime: queryStart, endDateTime: queryEnd })
         .header('Prefer', 'outlook.timezone="UTC"')
-        .select('id,subject,start,end,location,isOnlineMeeting,onlineMeeting,organizer,attendees')
-        .top(1000)
+        .top(100)
         .get();
 
-      return (res.value || []).map(e => this.mapGraphEvent(e));
-    } catch (error) {
-      this.logger.error('Fetch Events Error:', error.message);
+      // Fallback: If calendarView is empty, try /me/events (some accounts/tenants prefer this)
+      if (!res.value || res.value.length === 0) {
+        this.logger.warn(`No events found in calendarView for ${userId}, trying /me/events fallback...`);
+        res = await graphClient.api('/me/events')
+          .header('Prefer', 'outlook.timezone="UTC"')
+          .top(50)
+          .get();
+      }
+
+      this.logger.log(`Found ${res.value?.length || 0} Microsoft events for user ${userId}`);
+      return (res.value || []).map((e: MicrosoftEvent) => this.mapGraphEvent(e));
+    } catch (error: any) {
+      const msError = error.response?.data?.error?.message || error.message;
+      this.logger.error('Fetch Events Error:', msError);
       return [];
     }
   }
@@ -160,7 +191,7 @@ export class MicrosoftService {
         .get();
       
       return this.mapGraphEvent(event);
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Get Meeting Error:', error.message);
       throw new BadRequestException('Could not find meeting details');
     }
@@ -216,8 +247,8 @@ export class MicrosoftService {
           .get();
         
         const chatContent = (messages.value || [])
-          .filter(m => m.messageType === 'message' && m.body?.content)
-          .map(m => `${m.from?.user?.displayName || 'Unknown'}\n${m.body.content.replace(/<[^>]*>?/gm, '')}`)
+          .filter((m: any) => m.messageType === 'message' && m.body?.content)
+          .map((m: any) => `${m.from?.user?.displayName || 'Unknown'}\n${m.body.content.replace(/<[^>]*>?/gm, '')}`)
           .reverse()
           .join('\n\n');
 
@@ -225,7 +256,7 @@ export class MicrosoftService {
       }
 
       return { transcript: null, message: 'No transcript or chat history found for this meeting.' };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Transcript Fetch Error:', error.message);
       return { transcript: null, error: error.message };
     }
@@ -262,8 +293,8 @@ export class MicrosoftService {
       );
 
       const pastMeetings = events
-          .filter(e => e.status === 'Completed' || e.status === 'Live')
-          .sort((a, b) => new Date(b.start).getTime() - new Date(a.start).getTime())
+          .filter((e: any) => e.status === 'Completed' || e.status === 'Live')
+          .sort((a: any, b: any) => new Date(b.start).getTime() - new Date(a.start).getTime())
           .slice(0, limit);
 
       const context = [];
@@ -278,13 +309,13 @@ export class MicrosoftService {
           }
       }
       return context;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error('Recent Meeting Context Error:', error.message);
       return [];
     }
   }
 
-  private mapGraphEvent(event: any) {
+  private mapGraphEvent(event: MicrosoftEvent) {
     const startStr = event.start?.dateTime;
     const endStr = event.end?.dateTime;
     
@@ -310,7 +341,7 @@ export class MicrosoftService {
       status,
       type: 'MICROSOFT_EVENT',
       organizer: event.organizer?.emailAddress?.name,
-      attendees: (event.attendees || []).map(a => ({
+      attendees: (event.attendees || []).map((a: MicrosoftAttendee) => ({
         name: a.emailAddress?.name || 'Unknown',
         email: a.emailAddress?.address,
         status: a.status?.response || 'none',

@@ -22,7 +22,7 @@ export class MicrosoftController {
 
   @Post('sync')
   @UseGuards(JwtAuthGuard)
-  async sync(@Body('code') code: string, @Req() req) {
+  async sync(@Body('code') code: string, @Req() req: any) {
     return this.microsoftService.handleCallback(code, req.user.id);
   }
 
