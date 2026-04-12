@@ -325,25 +325,41 @@ export class MicrosoftService {
         return { transcript: null, message: 'Could not find the Teams meeting record. It may not have been organized via Teams.' };
       }
 
-      // 2. Fetch transcripts (needs OnlineMeetingTranscript.Read.All - may require admin consent)
-      try {
-        const transcriptsRes = await graphClient
-          .api(`/me/onlineMeetings/${onlineMeetingId}/transcripts`)
-          .get();
+      // 2. Fetch transcripts — try v1 then beta (beta often indexes faster)
+      const tryFetchTranscripts = async (version: string) => {
+        const baseUrl = `https://graph.microsoft.com/${version}/me/onlineMeetings/${onlineMeetingId}/transcripts`;
+        const token = await this.getAccessToken(userId);
+        const res = await axios.get(baseUrl, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        });
+        return res.data?.value || [];
+      };
 
-        if (transcriptsRes.value?.length > 0) {
-          let combinedTranscript = '';
-          for (const t of transcriptsRes.value) {
-            const content = await graphClient
-              .api(`/me/onlineMeetings/${onlineMeetingId}/transcripts/${t.id}/content`)
-              .query({ '$format': 'text/plain' })
-              .get();
-            if (content) combinedTranscript += (combinedTranscript ? '\n\n' : '') + content;
-          }
-          if (combinedTranscript) return { transcript: combinedTranscript };
+      let transcriptList: any[] = [];
+      try {
+        transcriptList = await tryFetchTranscripts('v1.0');
+        this.logger.log(`Transcripts v1.0: ${transcriptList.length} found`);
+        if (transcriptList.length === 0) {
+          transcriptList = await tryFetchTranscripts('beta');
+          this.logger.log(`Transcripts beta: ${transcriptList.length} found`);
         }
       } catch (transcriptErr: any) {
-        this.logger.warn(`Transcript fetch failed (admin consent may be required): ${transcriptErr.message}`);
+        this.logger.warn(`Transcript fetch failed: ${transcriptErr.response?.data?.error?.message || transcriptErr.message}`);
+      }
+
+      if (transcriptList.length > 0) {
+        let combinedTranscript = '';
+        for (const t of transcriptList) {
+          try {
+            const token = await this.getAccessToken(userId);
+            const contentRes = await axios.get(
+              `https://graph.microsoft.com/v1.0/me/onlineMeetings/${onlineMeetingId}/transcripts/${t.id}/content?$format=text/plain`,
+              { headers: { Authorization: `Bearer ${token}` }, responseType: 'text' }
+            );
+            if (contentRes.data) combinedTranscript += (combinedTranscript ? '\n\n' : '') + contentRes.data;
+          } catch { continue; }
+        }
+        if (combinedTranscript) return { transcript: combinedTranscript };
       }
 
       // 3. Fallback: Teams chat messages

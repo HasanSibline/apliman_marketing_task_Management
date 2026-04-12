@@ -28,6 +28,8 @@ const MeetingDetailPage: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const [summarizing, setSummarizing] = useState(false)
 
+    const [transcriptLoading, setTranscriptLoading] = useState(false)
+
     const loadMeetingData = useCallback(async () => {
         setLoading(true)
 
@@ -45,6 +47,11 @@ const MeetingDetailPage: React.FC = () => {
         }
 
         // ── Step 2: Load transcript (non-critical — show message if not available)
+        await fetchTranscript()
+    }, [id, navigate]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const fetchTranscript = useCallback(async () => {
+        setTranscriptLoading(true)
         try {
             const transcriptRes = await api.get(`/microsoft/transcripts/${id}`)
             const { transcript: t, message, isChat, error: tErr } = transcriptRes.data
@@ -55,7 +62,7 @@ const MeetingDetailPage: React.FC = () => {
             }
         } catch (error: any) {
             const msg = error.response?.data?.message || error.message
-            const isPermission = msg?.toLowerCase().includes('forbidden') || 
+            const isPermission = msg?.toLowerCase().includes('forbidden') ||
                                   msg?.toLowerCase().includes('authorization') ||
                                   error.response?.status === 403
             setTranscriptMsg(
@@ -63,8 +70,10 @@ const MeetingDetailPage: React.FC = () => {
                     ? 'Transcript access requires admin consent in Teams. Ask your Teams admin to enable transcript permissions.'
                     : 'Transcript could not be loaded. The meeting may not have been transcribed.'
             )
+        } finally {
+            setTranscriptLoading(false)
         }
-    }, [id, navigate])
+    }, [id])
 
     useEffect(() => {
         loadMeetingData()
@@ -190,12 +199,26 @@ const MeetingDetailPage: React.FC = () => {
                             <div className="h-full flex flex-col items-center justify-center space-y-4">
                                 <div className="p-6 bg-amber-50 border border-amber-100 rounded-3xl flex flex-col items-center space-y-3 max-w-md text-center">
                                     <ExclamationTriangleIcon className="h-12 w-12 text-amber-400" />
-                                    <p className="font-black text-lg text-gray-900">No Transcript Available</p>
+                                    <p className="font-black text-lg text-gray-900">No Transcript Available Yet</p>
                                     <p className="text-sm text-gray-500 leading-relaxed">
-                                        {transcriptMsg || 'Microsoft has not processed a transcription for this meeting.'}
+                                        {transcriptMsg || 'Microsoft is still processing the transcript. This usually takes 5–15 minutes after the meeting ends.'}
                                     </p>
+                                    <button
+                                        onClick={() => {
+                                            setTranscript(null)
+                                            setTranscriptMsg(null)
+                                            fetchTranscript()
+                                        }}
+                                        disabled={transcriptLoading}
+                                        className="flex items-center space-x-2 mt-2 px-5 py-2.5 bg-amber-500 text-white rounded-2xl text-sm font-black hover:bg-amber-600 transition-all disabled:opacity-50"
+                                    >
+                                        {transcriptLoading
+                                            ? <><ArrowPathIcon className="h-4 w-4 animate-spin" /><span>Checking...</span></>
+                                            : <><ArrowPathIcon className="h-4 w-4" /><span>Retry Transcript</span></>
+                                        }
+                                    </button>
                                     <div className="text-xs text-amber-600 font-bold bg-amber-100 rounded-xl px-4 py-2">
-                                        Tip: Enable transcription in Teams Admin Center → Meetings → Recording &amp; transcription
+                                        Tip: Transcription must be started manually during the meeting via ··· → Start transcription
                                     </div>
                                 </div>
                             </div>
