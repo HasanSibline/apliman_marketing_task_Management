@@ -273,20 +273,24 @@ export class MicrosoftService {
             return { transcript: null, message: 'This event is not a Teams online meeting.' };
           }
 
-          // Strategy 1: OData filter by joinWebUrl (exact URL match)
+          // Strategy 1: OData filter by joinWebUrl — use axios directly (NOT Graph SDK)
+          // because the SDK double-encodes already-encoded chars: %3a becomes %253a,
+          // causing the exact-match filter to fail.
           const joinUrl = event.onlineMeeting.joinUrl;
           try {
-            const escapedUrl = joinUrl.replace(/'/g, "''");
-            const filterRes = await graphClient
-              .api('/me/onlineMeetings')
-              .filter("joinWebUrl eq '" + escapedUrl + "'")
-              .get()
-              .catch(() => ({ value: [] }));
-            if (filterRes.value?.length > 0) {
-              onlineMeetingId = filterRes.value[0].id;
-              this.logger.log(`Transcript: resolved via joinWebUrl filter`);
+            const ft = await this.getAccessToken(userId);
+            const rawFilter = encodeURIComponent(`joinWebUrl eq '${joinUrl.replace(/'/g, "''")}'`);
+            const fResp = await axios.get(
+              `https://graph.microsoft.com/v1.0/me/onlineMeetings?$filter=${rawFilter}`,
+              { headers: { Authorization: `Bearer ${ft}` } }
+            ).catch(() => ({ data: { value: [] } }));
+            if (fResp.data?.value?.length > 0) {
+              onlineMeetingId = fResp.data.value[0].id;
+              this.logger.log(`Transcript: resolved via raw joinWebUrl axios filter`);
+            } else {
+              this.logger.log(`Transcript: joinWebUrl filter returned 0 results`);
             }
-          } catch (_) {}
+          } catch (fe: any) { this.logger.warn(`JoinWebUrl filter error: ${fe.message}`); }
 
           // Strategy 2: Match by start time (robust fallback — OData filter fails when URL
           // encoding differs between calendar event joinUrl and onlineMeeting joinWebUrl)
