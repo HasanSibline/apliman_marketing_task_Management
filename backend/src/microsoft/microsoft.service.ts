@@ -59,6 +59,7 @@ export class MicrosoftService {
       'OnlineMeetings.Read',
       'OnlineMeetingTranscript.Read.All',
       'Chat.Read',
+      'Files.Read',        // Required for OneDrive transcript VTT file search
     ].join(' ');
 
     // Use 'common' endpoint so ANY Microsoft account type (personal MSA, work, school)
@@ -434,7 +435,7 @@ export class MicrosoftService {
    *   00:00:11.000 --> 00:00:12.000
    *   <v Speaker Name>Text content
    */
-  private parseVTT(vttContent: string): string {
+  private parseVTT(vttContent: string): string | null {
     try {
       const lines = vttContent.replace(/\r\n/g, '\n').split('\n');
       const utterances: { speaker: string; text: string }[] = [];
