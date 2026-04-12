@@ -1,4 +1,4 @@
-import { Controller, Get, Query, UseGuards, Req, Res, Post, Param, Body } from '@nestjs/common';
+﻿import { Controller, Get, Query, UseGuards, Req, Res, Post, Param, Body } from '@nestjs/common';
 import { MicrosoftService } from './microsoft.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Response } from 'express';
@@ -74,6 +74,11 @@ export class MicrosoftController {
 
       const processedEvents = await this.microsoftService.getCalendarEvents(req.user.id, start, end);
 
+      // OneDrive + onlineMeetings debug
+      let oneDriveFiles: any[] = []; let oneDriveError: any = null; let onlineMeetingsList: any[] = [];
+      try { const dr = await graphClient.api("/me/drive/root/search(q='transcript')").select('name,id,createdDateTime,size').top(10).get().catch(()=>({value:[]})); oneDriveFiles = (dr.value||[]).map((f:any)=>({name:f.name,id:f.id,created:f.createdDateTime,size:f.size})); } catch(e:any){oneDriveError=e.message;}
+      try { const mr = await graphClient.api('/me/onlineMeetings').top(5).get().catch(()=>({value:[]})); onlineMeetingsList=(mr.value||[]).map((m:any)=>({id:m.id,subject:m.subject,start:m.startDateTime})); } catch{}
+
       return {
         userId: req.user.id,
         queryWindow: { start, end },
@@ -97,6 +102,8 @@ export class MicrosoftController {
             start: e.start,
           })),
         },
+        oneDrive: { error: oneDriveError, files: oneDriveFiles },
+        onlineMeetings: { count: onlineMeetingsList.length, list: onlineMeetingsList },
         processedCount: processedEvents.length,
         processedSample: processedEvents.slice(0, 5),
       };
