@@ -35,6 +35,7 @@ interface CalendarEvent {
     phase?: string
     taskType?: string
     dueDate?: string
+    start?: string       // Microsoft events expose start; used as fallback when dueDate is absent
     priority?: number
     type: 'TASK' | 'TICKET' | 'MICROSOFT_EVENT'
     ticketNumber?: string
@@ -407,7 +408,18 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
 
                             {/* Column content */}
                             {displayDays.map((day: Date) => {
-                                const dayEvents = sortedEvents.filter((e: CalendarEvent) => e.dueDate && isSameDay(new Date(e.dueDate), day))
+                                // Resolve the event date: prefer dueDate, fallback to start (Microsoft events)
+                // Parse into a local Date so timezone offsets don't shift the day.
+                const getEventDate = (e: CalendarEvent): Date | null => {
+                    const raw = e.dueDate || e.start;
+                    if (!raw) return null;
+                    return new Date(raw); // JS Date always converts to local time for comparison
+                };
+
+                const dayEvents = sortedEvents.filter((e: CalendarEvent) => {
+                    const d = getEventDate(e);
+                    return d !== null && isSameDay(d, day);
+                })
                                 const isCurrentDay = isToday(day)
 
                                 return (
@@ -424,7 +436,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                         )}
 
                                         {dayEvents.map((event: CalendarEvent) => {
-                                            const date = new Date(event.dueDate!)
+                                            const date = getEventDate(event) ?? new Date(event.dueDate ?? event.start ?? Date.now())
                                             const topPos = (date.getHours() * 60) + date.getMinutes()
                                             
                                             return (

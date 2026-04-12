@@ -35,28 +35,62 @@ const NotificationBell: React.FC = () => {
     if (user) {
       loadNotifications()
       loadUnreadCount()
-      
-      // Set up more frequent polling for better real-time updates
+
+      // Polling as fallback (WS handles real-time; this catches missed events)
       const pollInterval = setInterval(() => {
         loadUnreadCount()
-        if (isOpen) {
-          loadNotifications()
-        }
-      }, 10000) // Poll every 10 seconds instead of 30
+        if (isOpen) loadNotifications()
+      }, 15000)
 
       return () => clearInterval(pollInterval)
     }
   }, [user, isOpen])
 
+  // Listen for real-time WebSocket notifications (meeting reminders, status changes)
+  useEffect(() => {
+    const handleWsNotification = (e: Event) => {
+      const payload = (e as CustomEvent).detail
+      if (!payload) return
+
+      // Show a toast for Microsoft meeting events
+      if (payload.type === 'MICROSOFT_MEETING') {
+        const isReminder  = payload.meetingType === 'REMINDER'
+        const isStarting  = payload.meetingType === 'STARTED'
+        const isCompleted = payload.meetingType === 'COMPLETED'
+
+        if (isReminder) {
+          toast(`📅 ${payload.title}\n${payload.message}`, {
+            duration: 8000,
+            style: { background: '#4f46e5', color: '#fff', fontWeight: '700' },
+            icon: '🔔',
+          })
+        } else if (isStarting) {
+          toast.success(`🎬 ${payload.title}`, { duration: 6000 })
+        } else if (isCompleted) {
+          toast(`✅ ${payload.title}`, { duration: 5000 })
+        }
+
+        // Prepend to notification list and bump unread count
+        if (payload.id) {
+          setNotifications(prev => [{ ...payload, read: false }, ...prev].slice(0, 20))
+          setUnreadCount(prev => prev + 1)
+        } else {
+          // No id (pure status-change push) — just bump count and reload list
+          loadUnreadCount()
+        }
+      }
+    }
+
+    window.addEventListener('ws:notification', handleWsNotification)
+    return () => window.removeEventListener('ws:notification', handleWsNotification)
+  }, [])
+
   // Listen for task updates to refresh notifications
   useEffect(() => {
     const handleTaskUpdate = () => {
-      console.log('Task updated - refreshing notifications')
       loadUnreadCount()
-      loadNotifications() // Always refresh notifications, not just when open
+      loadNotifications()
     }
-
-    // Listen for custom events from task updates
     window.addEventListener('taskUpdated', handleTaskUpdate)
     return () => window.removeEventListener('taskUpdated', handleTaskUpdate)
   }, [])
@@ -133,39 +167,27 @@ const NotificationBell: React.FC = () => {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'task_created':
-        return '📝'
-      case 'task_assigned':
-        return '📋'
-      case 'task_approved':
-        return '✅'
-      case 'task_rejected':
-        return '❌'
-      case 'task_completed':
-        return '🎉'
-      case 'task_phase_changed':
-        return '🔄'
-      default:
-        return '🔔'
+      case 'task_created':       return '📝'
+      case 'task_assigned':      return '📋'
+      case 'task_approved':      return '✅'
+      case 'task_rejected':      return '❌'
+      case 'task_completed':     return '🎉'
+      case 'task_phase_changed': return '🔄'
+      case 'MICROSOFT_MEETING':  return '📅'
+      default:                   return '🔔'
     }
   }
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'task_created':
-        return 'text-purple-600'
-      case 'task_assigned':
-        return 'text-blue-600'
-      case 'task_approved':
-        return 'text-green-600'
-      case 'task_rejected':
-        return 'text-red-600'
-      case 'task_completed':
-        return 'text-green-600'
-      case 'task_phase_changed':
-        return 'text-yellow-600'
-      default:
-        return 'text-gray-600'
+      case 'task_created':       return 'text-purple-600'
+      case 'task_assigned':      return 'text-blue-600'
+      case 'task_approved':      return 'text-green-600'
+      case 'task_rejected':      return 'text-red-600'
+      case 'task_completed':     return 'text-green-600'
+      case 'task_phase_changed': return 'text-yellow-600'
+      case 'MICROSOFT_MEETING':  return 'text-indigo-600'
+      default:                   return 'text-gray-600'
     }
   }
 

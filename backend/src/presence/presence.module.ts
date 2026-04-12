@@ -10,6 +10,6 @@ import { PresenceGateway } from './presence.gateway';
     JwtModule.register({}), // Will use global JWT config from AuthModule
   ],
   providers: [PresenceService, PresenceGateway],
-  exports: [PresenceService],
+  exports: [PresenceService, PresenceGateway], // Export gateway so other modules can push WS events
 })
 export class PresenceModule {}

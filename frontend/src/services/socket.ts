@@ -19,14 +19,12 @@ export const initializeSocket = () => {
   }
 
   const socketUrl = (import.meta as any).env.VITE_SOCKET_URL || 'http://localhost:3001'
-  socket = io(socketUrl, {
-    auth: {
-      token,
-    },
+  socket = io(`${socketUrl}/presence`, {
+    auth: { token },
     transports: ['websocket', 'polling'],
   })
 
-  // Socket event listeners
+  // ── Presence events ──
   socket.on('connect', () => {
     store.dispatch(setConnected(true))
     store.dispatch(setCurrentUserStatus('ACTIVE'))
@@ -57,12 +55,23 @@ export const initializeSocket = () => {
     store.dispatch(setError(error.message))
   })
 
+  // ── Microsoft meeting real-time push events ──
+  // The backend's PresenceGateway.sendNotificationToUser() emits 'notification' events.
+  socket.on('notification', (payload: any) => {
+    if (payload?.type === 'MICROSOFT_STATUS_CHANGE') {
+      // Signal the calendar to immediately re-fetch and update meeting statuses
+      window.dispatchEvent(new CustomEvent('ws:ms_status_change', { detail: payload }))
+    }
+    // Always emit generic notification so NotificationBell can instantly refresh
+    window.dispatchEvent(new CustomEvent('ws:notification', { detail: payload }))
+  })
+
   return socket
 }
 
 export const updateUserStatus = (status: 'ACTIVE' | 'AWAY' | 'OFFLINE') => {
   if (socket && socket.connected) {
-    socket.emit('update-status', { status })
+    socket.emit('presence:set_status', { status })
   }
 }
 

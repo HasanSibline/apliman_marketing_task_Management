@@ -9,6 +9,7 @@ import { useAppSelector } from '@/hooks/redux'
 /**
  * CalendarPage - Premium experience for managing tasks and synced Microsoft events.
  * Rebuilt from scratch to ensure maximum reliability and real-time syncing.
+ * Real-time status updates are received via WebSocket (ws:ms_status_change).
  */
 const CalendarPage: React.FC = () => {
     const navigate = useNavigate()
@@ -19,7 +20,6 @@ const CalendarPage: React.FC = () => {
     const fetchSchedule = useCallback(async (silent = false) => {
         if (!silent) setLoading(true)
         try {
-            // Optimized parallel fetching for speed
             const [tasksRes, ticketsRes] = await Promise.all([
                 api.get('/tasks', { params: { limit: 500 } }),
                 api.get('/tickets', { params: { limit: 500 } })
@@ -41,10 +41,9 @@ const CalendarPage: React.FC = () => {
             let microsoftEvents: any[] = [];
             if (user?.isMicrosoftSynced) {
                 try {
-                    // Fetch from our freshly built Microsoft service
                     const msRes = await api.get('/microsoft/events', {
-                        params: { 
-                            t: Date.now(), // Cache buster
+                        params: {
+                            t: Date.now(),
                             start: new Date(Date.now() - 30 * 24 * 3600000).toISOString(),
                             end: new Date(Date.now() + 30 * 24 * 3600000).toISOString()
                         }
@@ -52,7 +51,6 @@ const CalendarPage: React.FC = () => {
                     microsoftEvents = msRes.data || [];
                 } catch (err) {
                     console.error('Microsoft Sync Failed:', err);
-                    // Silently fail MS sync to avoid blocking other events, but could toast if needed
                 }
             }
 
@@ -68,11 +66,19 @@ const CalendarPage: React.FC = () => {
         fetchSchedule(false)
     }, [fetchSchedule])
 
-    // Background sync every 60 seconds
+    // Background sync every 30 seconds for tighter status accuracy
     useEffect(() => {
-        const timer = setInterval(() => fetchSchedule(true), 60000)
+        const timer = setInterval(() => fetchSchedule(true), 30000)
         return () => clearInterval(timer)
     }, [fetchSchedule])
+
+    // Real-time: instantly react to WebSocket meeting status changes
+    useEffect(() => {
+        if (!user?.isMicrosoftSynced) return;
+        const handleStatusChange = () => fetchSchedule(true);
+        window.addEventListener('ws:ms_status_change', handleStatusChange);
+        return () => window.removeEventListener('ws:ms_status_change', handleStatusChange);
+    }, [fetchSchedule, user?.isMicrosoftSynced])
 
     const handleEventClick = (id: string, type: string) => {
         const routes: Record<string, string> = {
@@ -99,16 +105,16 @@ const CalendarPage: React.FC = () => {
     }
 
     return (
-        <motion.div 
+        <motion.div
             initial={{ opacity: 0, scale: 0.99 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
             className="h-[calc(100vh-140px)]"
         >
-            <Calendar 
-                events={events} 
+            <Calendar
+                events={events}
                 onRefresh={() => fetchSchedule(false)}
-                onEventClick={handleEventClick} 
+                onEventClick={handleEventClick}
             />
         </motion.div>
     )

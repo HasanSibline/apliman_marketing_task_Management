@@ -160,16 +160,22 @@ export class MicrosoftService {
       this.logger.log(`Major Rebuild Sync for ${userId}: ${queryStart} to ${queryEnd}`);
 
       // 1. Parallel fetch from BOTH authoritative endpoints (Coverage Guard)
+      // calendarView is the primary source — it covers all events (including Teams) in the time window.
+      // /me/events is a fallback; we apply the same date filter so the top() cap doesn't cut off recent meetings.
       const [viewRes, eventsRes] = await Promise.all([
         graphClient.api('/me/calendar/calendarView')
           .query({ startDateTime: queryStart, endDateTime: queryEnd })
           .header('Prefer', 'outlook.timezone="UTC"')
-          .top(999) // Max fetch count
+          .top(999)
           .get()
           .catch(() => ({ value: [] })),
         graphClient.api('/me/events')
+          .query({
+            $filter: `start/dateTime ge '${queryStart}' and end/dateTime le '${queryEnd}'`,
+            $orderby: 'start/dateTime asc',
+          })
           .header('Prefer', 'outlook.timezone="UTC"')
-          .top(100)
+          .top(500)
           .get()
           .catch(() => ({ value: [] }))
       ]);
