@@ -239,53 +239,85 @@ export class MicrosoftService {
     const graphClient = Client.init({ authProvider: (done) => done(null, token) });
 
     try {
-      let onlineMeetingId = null;
-      
-      // 1. Resolve OnlineMeeting ID cross-reference
-      if (meetingId.includes('MSow')) {
+      let onlineMeetingId: string | null = null;
+
+      // 1. Resolve the Online Meeting ID
+      if (meetingId.startsWith('MSo') || meetingId.includes('MSow')) {
         onlineMeetingId = meetingId;
       } else {
-        const event = await graphClient.api(`/me/calendar/events/${meetingId}`).select('onlineMeeting').get();
-        if (event.onlineMeeting?.joinUrl) {
-          const meetings = await graphClient.api('/me/onlineMeetings')
-            .filter(`joinWebUrl eq '${event.onlineMeeting.joinUrl}'`)
+        try {
+          const event = await graphClient
+            .api(`/me/calendar/events/${meetingId}`)
+            .select('onlineMeeting,isOnlineMeeting,subject')
             .get();
-          if (meetings.value?.length > 0) onlineMeetingId = meetings.value[0].id;
+
+          this.logger.log(`Transcript resolve: isOnlineMeeting=${event.isOnlineMeeting}, hasJoinUrl=${!!event.onlineMeeting?.joinUrl}`);
+
+          if (!event.isOnlineMeeting || !event.onlineMeeting?.joinUrl) {
+            return { transcript: null, message: 'This event is not a Teams online meeting.' };
+          }
+
+          // Use joinWebUrl as a query parameter (NOT OData filter - URLs contain special chars that break OData)
+          const joinUrl = event.onlineMeeting.joinUrl;
+          const meetingsRes = await graphClient
+            .api('/me/onlineMeetings')
+            .query({ joinWebUrl: encodeURIComponent(joinUrl) })
+            .get()
+            .catch(() => ({ value: [] }));
+
+          if (meetingsRes.value?.length > 0) {
+            onlineMeetingId = meetingsRes.value[0].id;
+          }
+        } catch (err: any) {
+          this.logger.warn(`onlineMeetingId resolution failed: ${err.message}`);
         }
       }
 
       if (!onlineMeetingId) {
-        return { transcript: null, message: 'This is not a registered Teams meeting.' };
+        return { transcript: null, message: 'Could not find the Teams meeting record. It may not have been organized via Teams.' };
       }
 
-      // 2. Fetch Recording Transcripts (Standard)
-      const transcriptsRes = await graphClient.api(`/me/onlineMeetings/${onlineMeetingId}/transcripts`).get();
-      
-      if (transcriptsRes.value && transcriptsRes.value.length > 0) {
-        let combinedTranscript = '';
-        for (const t of transcriptsRes.value) {
-          const content = await graphClient.api(`/me/onlineMeetings/${onlineMeetingId}/transcripts/${t.id}/content`)
-            .query({ '$format': 'text/plain' })
-            .get();
-          if (content) combinedTranscript += (combinedTranscript ? '\n\n' : '') + content;
+      // 2. Fetch transcripts (needs OnlineMeetingTranscript.Read.All - may require admin consent)
+      try {
+        const transcriptsRes = await graphClient
+          .api(`/me/onlineMeetings/${onlineMeetingId}/transcripts`)
+          .get();
+
+        if (transcriptsRes.value?.length > 0) {
+          let combinedTranscript = '';
+          for (const t of transcriptsRes.value) {
+            const content = await graphClient
+              .api(`/me/onlineMeetings/${onlineMeetingId}/transcripts/${t.id}/content`)
+              .query({ '$format': 'text/plain' })
+              .get();
+            if (content) combinedTranscript += (combinedTranscript ? '\n\n' : '') + content;
+          }
+          if (combinedTranscript) return { transcript: combinedTranscript };
         }
-        if (combinedTranscript) return { transcript: combinedTranscript };
+      } catch (transcriptErr: any) {
+        this.logger.warn(`Transcript fetch failed (admin consent may be required): ${transcriptErr.message}`);
       }
 
-      // 3. Fallback: Chat History (Expert Resolution)
-      const meetingData = await graphClient.api(`/me/onlineMeetings/${onlineMeetingId}`).get();
-      if (meetingData.chatInfo?.threadId) {
-        const messages = await graphClient.api(`/chats/${meetingData.chatInfo.threadId}/messages`).top(100).get();
-        const chatContent = (messages.value || [])
-          .filter((m: any) => m.messageType === 'message' && m.body?.content)
-          .map((m: any) => `${m.from?.user?.displayName || 'Unknown'}: ${m.body.content.replace(/<[^>]*>?/gm, '')}`)
-          .reverse()
-          .join('\n\n');
-
-        if (chatContent) return { transcript: chatContent, isChat: true };
+      // 3. Fallback: Teams chat messages
+      try {
+        const meetingData = await graphClient.api(`/me/onlineMeetings/${onlineMeetingId}`).get();
+        if (meetingData.chatInfo?.threadId) {
+          const messages = await graphClient
+            .api(`/chats/${meetingData.chatInfo.threadId}/messages`)
+            .top(100)
+            .get();
+          const chatContent = (messages.value || [])
+            .filter((m: any) => m.messageType === 'message' && m.body?.content)
+            .map((m: any) => `${m.from?.user?.displayName || 'Unknown'}: ${m.body.content.replace(/<[^>]*>?/gm, '')}`)
+            .reverse()
+            .join('\n\n');
+          if (chatContent) return { transcript: chatContent, isChat: true };
+        }
+      } catch (chatErr: any) {
+        this.logger.warn(`Chat fallback failed: ${chatErr.message}`);
       }
 
-      return { transcript: null, message: 'No transcript or chat history found for this meeting.' };
+      return { transcript: null, message: 'No transcript found. Ensure Teams transcription is enabled in your organization.' };
     } catch (error: any) {
       this.logger.error('Transcript Engine Error', error.message);
       return { transcript: null, error: error.message };
