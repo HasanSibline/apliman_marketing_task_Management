@@ -67,7 +67,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
     const [viewType, setViewType] = useState<ViewType>('week')
     const [isRefreshing, setIsRefreshing] = useState(false)
     const [isSyncing, setIsSyncing] = useState(false)
-    const [filterType, setFilterType] = useState<'all' | 'milestone' | 'tickets'>('all')
+    const [filterType, setFilterType] = useState<'all' | 'milestone' | 'tickets' | 'teams'>('all')
     const scrollContainerRef = useRef<HTMLDivElement>(null)
 
     // Center scroll on business hours initially
@@ -96,6 +96,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
             let matchesFilter = true
             if (filterType === 'milestone') matchesFilter = event.taskType === 'MILESTONE'
             if (filterType === 'tickets') matchesFilter = event.type === 'TICKET'
+            if (filterType === 'teams') matchesFilter = event.type === 'MICROSOFT_EVENT'
             return matchesSearch && matchesFilter
         })
     }, [events, searchQuery, filterType])
@@ -244,6 +245,17 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                     <div className={`h-3 w-3 rounded-full ${filterType === 'tickets' ? 'bg-primary-600 shadow-sm' : 'border-2 border-gray-200'}`} />
                                     <span className={filterType === 'tickets' ? 'font-bold text-gray-900' : 'font-medium'}>Tickets</span>
                                 </button>
+                                {user?.isMicrosoftSynced && (
+                                    <button 
+                                        onClick={() => setFilterType('teams')}
+                                        className={`w-full flex items-center space-x-3 px-3 py-2 text-sm rounded-lg text-left transition-all ${
+                                            filterType === 'teams' ? 'bg-white shadow-sm border border-gray-100 ring-1 ring-primary-500/10' : 'text-gray-500 hover:bg-white/50'
+                                        }`}
+                                    >
+                                        <div className={`h-3 w-3 rounded-full ${filterType === 'teams' ? 'bg-[#6264A7] shadow-sm' : 'border-2 border-gray-200'}`} />
+                                        <span className={filterType === 'teams' ? 'font-bold text-gray-900' : 'font-medium'}>Teams Meetings</span>
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -153,29 +153,48 @@ export class MicrosoftService {
       const queryStart = start || new Date(Date.now() - 30 * 24 * 3600000).toISOString();
       const queryEnd = end || new Date(Date.now() + 30 * 24 * 3600000).toISOString();
 
-      this.logger.log(`Fetching Microsoft events for user ${userId} from ${queryStart} to ${queryEnd}`);
+      this.logger.log(`Major Sync: Scanning ALL calendars for user ${userId}`);
 
-      // Try main calendar view first (standard)
-      let res = await graphClient.api('/me/calendar/calendarView')
-        .query({ startDateTime: queryStart, endDateTime: queryEnd })
-        .header('Prefer', 'outlook.timezone="UTC"')
-        .top(100)
-        .get();
+      // 1. Get all calendars for the user
+      const calendarsRes = await graphClient.api('/me/calendars').select('id,name').get();
+      const calendars = calendarsRes.value || [];
+      
+      let allEvents: any[] = [];
 
-      // Fallback: If calendarView is empty, try /me/events (some accounts/tenants prefer this)
-      if (!res.value || res.value.length === 0) {
-        this.logger.warn(`No events found in calendarView for ${userId}, trying /me/events fallback...`);
-        res = await graphClient.api('/me/events')
+      // 2. Fetch events from EACH calendar in parallel
+      await Promise.all(calendars.map(async (cal: any) => {
+        try {
+          const res = await graphClient.api(`/me/calendars/${cal.id}/calendarView`)
+            .query({ startDateTime: queryStart, endDateTime: queryEnd })
+            .header('Prefer', 'outlook.timezone="UTC"')
+            .top(100)
+            .get();
+          
+          if (res.value) {
+            allEvents = [...allEvents, ...res.value];
+          }
+        } catch (err: any) {
+          this.logger.warn(`Failed to fetch from calendar ${cal.name}: ${err.message}`);
+        }
+      }));
+
+      // 3. Fallback to /me/events if no calendars returned anything (safety)
+      if (allEvents.length === 0) {
+        const fallback = await graphClient.api('/me/events')
           .header('Prefer', 'outlook.timezone="UTC"')
           .top(50)
           .get();
+        allEvents = fallback.value || [];
       }
 
-      this.logger.log(`Found ${res.value?.length || 0} Microsoft events for user ${userId}`);
-      return (res.value || []).map((e: MicrosoftEvent) => this.mapGraphEvent(e));
+      // Deduplicate by ID just in case
+      const uniqueEvents = Array.from(new Map(allEvents.map(e => [e.id, e])).values());
+
+      this.logger.log(`Found total ${uniqueEvents.length} unique Microsoft events across ${calendars.length} calendars for ${userId}`);
+      return uniqueEvents.map((e: MicrosoftEvent) => this.mapGraphEvent(e));
     } catch (error: any) {
       const msError = error.response?.data?.error?.message || error.message;
-      this.logger.error('Fetch Events Error:', msError);
+      this.logger.error('Fetch All Events Error:', msError);
       return [];
     }
   }
@@ -339,7 +358,8 @@ export class MicrosoftService {
       isTeams: event.isOnlineMeeting || !!event.onlineMeeting,
       joinUrl: event.onlineMeeting?.joinUrl,
       status,
-      type: 'MICROSOFT_EVENT',
+      type: 'MICROSOFT_EVENT' as any,
+      priority: 3, // Premium Amber color for meetings
       organizer: event.organizer?.emailAddress?.name,
       attendees: (event.attendees || []).map((a: MicrosoftAttendee) => ({
         name: a.emailAddress?.name || 'Unknown',
