@@ -275,6 +275,34 @@ export class MicrosoftService {
     }
   }
 
+  async getRecentMeetingContext(userId: string, limit: number = 3) {
+    try {
+      const events = await this.getCalendarEvents(userId, 
+          new Date(Date.now() - 7 * 24 * 3600000).toISOString(),
+          new Date().toISOString()
+      );
+
+      const pastMeetings = events
+          .filter((e: any) => e.status === 'Completed' || e.status === 'Live')
+          .sort((a: any, b: any) => new Date(b.start).getTime() - new Date(a.start).getTime())
+          .slice(0, limit);
+
+      const context = [];
+      for (const m of pastMeetings) {
+          try {
+            const { transcript } = await this.getMeetingTranscript(userId, m.id);
+            if (transcript) {
+                context.push({ title: m.title, date: m.start, transcript: transcript.substring(0, 3000) });
+            }
+          } catch { continue; }
+      }
+      return context;
+    } catch (error: any) {
+      this.logger.error('Recent Meeting Context Error', error.message);
+      return [];
+    }
+  }
+
   async summarizeMeeting(userId: string, meetingId: string) {
     const { transcript, isChat } = await this.getMeetingTranscript(userId, meetingId);
     if (!transcript) return { summary: 'No transcript found to summarize.' };
