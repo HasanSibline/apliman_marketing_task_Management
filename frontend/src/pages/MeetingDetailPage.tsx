@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -10,12 +10,74 @@ import {
     SparklesIcon,
     VideoCameraIcon,
     FaceSmileIcon,
-    ExclamationTriangleIcon,
+    DocumentTextIcon,
     LinkIcon
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
+
+
+// Color palette for speakers — cycles through if > 5 unique speakers
+const SPEAKER_PALETTES = [
+    { avatar: 'from-indigo-500 to-indigo-600', bubble: 'bg-indigo-50 border-indigo-100', text: 'text-indigo-900', name: 'text-indigo-700' },
+    { avatar: 'from-violet-500 to-violet-600', bubble: 'bg-violet-50 border-violet-100', text: 'text-violet-900', name: 'text-violet-700' },
+    { avatar: 'from-emerald-500 to-emerald-600', bubble: 'bg-emerald-50 border-emerald-100', text: 'text-emerald-900', name: 'text-emerald-700' },
+    { avatar: 'from-rose-500 to-rose-600', bubble: 'bg-rose-50 border-rose-100', text: 'text-rose-900', name: 'text-rose-700' },
+    { avatar: 'from-amber-500 to-amber-600', bubble: 'bg-amber-50 border-amber-100', text: 'text-amber-900', name: 'text-amber-700' },
+]
+
+const SpeakerTranscript: React.FC<{ transcript: string; isChatFallback: boolean }> = ({ transcript, isChatFallback }) => {
+    const blocks = transcript.split('\n\n').filter(Boolean)
+    
+    // Build speaker → palette map in order of first appearance
+    const speakerMap = useMemo(() => {
+        const map = new Map<string, number>()
+        blocks.forEach(block => {
+            const speaker = block.split('\n')[0] || 'Unknown'
+            if (!map.has(speaker)) map.set(speaker, map.size % SPEAKER_PALETTES.length)
+        })
+        return map
+    }, [transcript]) // eslint-disable-line react-hooks/exhaustive-deps
+
+    return (
+        <div className="max-w-4xl mx-auto space-y-6 pb-12">
+            {blocks.map((block, i) => {
+                const lines = block.split('\n')
+                const speaker = lines[0] || 'Unknown'
+                const content = lines.slice(1).join('\n')
+                const palette = SPEAKER_PALETTES[speakerMap.get(speaker) ?? 0]
+                return (
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(i * 0.025, 0.4) }}
+                        className="flex space-x-4"
+                    >
+                        {/* Speaker avatar */}
+                        <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${palette.avatar} flex flex-shrink-0 items-center justify-center font-black text-white text-sm shadow-sm`}>
+                            {speaker[0]?.toUpperCase() || '?'}
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                            <div className="flex items-center space-x-2">
+                                <span className={`text-xs font-black ${palette.name}`}>{speaker}</span>
+                                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tight">
+                                    {isChatFallback ? 'chat' : 'transcript'}
+                                </span>
+                            </div>
+                            {/* Colored bubble */}
+                            <div className={`${palette.bubble} border rounded-2xl rounded-tl-none px-5 py-3.5 shadow-sm`}>
+                                <p className={`${palette.text} text-sm leading-relaxed whitespace-pre-wrap`}>{content || block}</p>
+                            </div>
+                        </div>
+                    </motion.div>
+                )
+            })}
+            <p className="text-center text-[10px] font-black text-gray-200 uppercase tracking-[0.5em] py-4">— End of Transcript —</p>
+        </div>
+    )
+}
 
 const MeetingDetailPage: React.FC = () => {
     const { id } = useParams<{ id: string }>()
@@ -203,68 +265,30 @@ const MeetingDetailPage: React.FC = () => {
                     </div>
 
                     {/* Transcript Body */}
-                    <div className="flex-1 overflow-y-auto p-8 space-y-10 scrollbar-thin scrollbar-thumb-indigo-50">
+                    <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-indigo-50">
                         {!transcript ? (
-                            <div className="h-full flex flex-col items-center justify-center space-y-4">
-                                <div className="p-6 bg-amber-50 border border-amber-100 rounded-3xl flex flex-col items-center space-y-3 max-w-md text-center">
-                                    <ExclamationTriangleIcon className="h-12 w-12 text-amber-400" />
-                                    <p className="font-black text-lg text-gray-900">No Transcript Available Yet</p>
-                                    <p className="text-sm text-gray-500 leading-relaxed">
-                                        {transcriptMsg || 'Microsoft is still processing the transcript. This usually takes 5–15 minutes after the meeting ends.'}
-                                    </p>
-                                    <button
-                                        onClick={() => {
-                                            setTranscript(null)
-                                            setTranscriptMsg(null)
-                                            fetchTranscript()
-                                        }}
-                                        disabled={transcriptLoading}
-                                        className="flex items-center space-x-2 mt-2 px-5 py-2.5 bg-amber-500 text-white rounded-2xl text-sm font-black hover:bg-amber-600 transition-all disabled:opacity-50"
-                                    >
-                                        {transcriptLoading
-                                            ? <><ArrowPathIcon className="h-4 w-4 animate-spin" /><span>Checking...</span></>
-                                            : <><ArrowPathIcon className="h-4 w-4" /><span>Retry Transcript</span></>
-                                        }
-                                    </button>
-                                    <div className="text-xs text-amber-600 font-bold bg-amber-100 rounded-xl px-4 py-2">
-                                        Tip: Transcription must be started manually during the meeting via ··· → Start transcription
-                                    </div>
+                            // ── Empty state: clean, minimal, not alarming
+                            <div className="h-full flex flex-col items-center justify-center space-y-5">
+                                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                                    <DocumentTextIcon className="h-8 w-8 text-gray-300" />
                                 </div>
+                                <div className="text-center">
+                                    <p className="text-sm font-bold text-gray-400">No transcript yet</p>
+                                    <p className="text-xs text-gray-300 mt-1 max-w-xs leading-relaxed">
+                                        {transcriptMsg || 'Transcripts appear here after the meeting ends and Microsoft processes them.'}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => { setTranscript(null); setTranscriptMsg(null); fetchTranscript() }}
+                                    disabled={transcriptLoading}
+                                    className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-gray-400 hover:text-gray-600 hover:border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+                                >
+                                    <ArrowPathIcon className={`h-3 w-3 ${transcriptLoading ? 'animate-spin' : ''}`} />
+                                    <span>{transcriptLoading ? 'Checking...' : 'Sync transcript'}</span>
+                                </button>
                             </div>
                         ) : (
-                            <div className="max-w-4xl mx-auto space-y-8 pb-12">
-                                {transcript.split('\n\n').map((block, i) => {
-                                    const lines = block.split('\n')
-                                    const speaker = lines[0] || 'Unknown'
-                                    const content = lines.slice(1).join('\n')
-                                    return (
-                                        <motion.div
-                                            key={i}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: i * 0.03 }}
-                                            className="group flex space-x-5"
-                                        >
-                                            <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200/50 flex flex-shrink-0 items-center justify-center font-black text-indigo-600 shadow-sm">
-                                                {speaker[0]?.toUpperCase() || '?'}
-                                            </div>
-                                            <div className="flex-1 space-y-2">
-                                                <div className="flex items-center space-x-3">
-                                                    <span className="text-sm font-black text-gray-900">{speaker}</span>
-                                                    <div className="h-1 w-1 bg-gray-300 rounded-full" />
-                                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
-                                                        {isChatFallback ? 'Chat Message' : 'Transcription'}
-                                                    </span>
-                                                </div>
-                                                <div className="bg-white border border-gray-100 rounded-[1.5rem] rounded-tl-none p-5 shadow-sm text-gray-700 leading-relaxed text-sm whitespace-pre-wrap">
-                                                    {content || block}
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    )
-                                })}
-                                <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-[0.5em] py-4 italic">End of Transcript</p>
-                            </div>
+                            <SpeakerTranscript transcript={transcript} isChatFallback={isChatFallback} />
                         )}
                     </div>
                 </div>
