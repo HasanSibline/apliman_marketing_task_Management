@@ -124,18 +124,27 @@ const MeetingDetailPage: React.FC = () => {
                 </button>
 
                 <div className="flex items-center space-x-3">
-                    {/* Join Meeting Button */}
-                    {meeting?.joinUrl && (
-                        <a
-                            href={meeting.joinUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-green-50 text-green-700 border border-green-100 hover:bg-green-100 transition-all"
-                        >
-                            <LinkIcon className="h-4 w-4" />
-                            <span>Join Meeting</span>
-                        </a>
-                    )}
+                    {/* Join Meeting Button — grayed out when meeting is over */}
+                    {meeting?.joinUrl && (() => {
+                        const isOver = meeting?.status === 'Completed' || 
+                            (meeting?.end && new Date(meeting.end) < new Date())
+                        return isOver ? (
+                            <div className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed select-none">
+                                <LinkIcon className="h-4 w-4" />
+                                <span>Meeting Ended</span>
+                            </div>
+                        ) : (
+                            <a
+                                href={meeting.joinUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-green-50 text-green-700 border border-green-100 hover:bg-green-100 transition-all"
+                            >
+                                <LinkIcon className="h-4 w-4" />
+                                <span>Join Meeting</span>
+                            </a>
+                        )
+                    })()}
 
                     {/* AI Summary Button — always enabled if meeting loaded */}
                     <button
@@ -278,7 +287,7 @@ const MeetingDetailPage: React.FC = () => {
                                     </div>
                                     <span>AI Summary</span>
                                 </h2>
-                                <div className="text-sm font-medium leading-relaxed opacity-90 whitespace-pre-wrap">{summary}</div>
+                                <div className="text-sm font-medium leading-relaxed opacity-90 whitespace-pre-wrap max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">{summary}</div>
                                 <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Powered by AI</span>
                                     <button 
