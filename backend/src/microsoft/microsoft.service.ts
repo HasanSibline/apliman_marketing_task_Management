@@ -393,25 +393,43 @@ export class MicrosoftService {
         const subject = event ? event.subject || '' : meetingId;
         this.logger.log(`Searching OneDrive for .vtt transcript: "${subject}"`);
 
-        // Search 1: User's personal OneDrive root
+        // Teams saves recordings + transcripts to Documents/Recordings in the user's OneDrive.
+        // List that folder directly instead of doing a fuzzy search (much more reliable).
+        const driveToken = await this.getAccessToken(userId);
+        const foldersToCheck = [
+          '/me/drive/root:/Documents/Recordings:/children',
+          '/me/drive/root:/Recordings:/children',
+        ];
+
+        let allDriveFiles: any[] = [];
+        for (const folderPath of foldersToCheck) {
+          const folderRes = await axios.get(
+            `https://graph.microsoft.com/v1.0${folderPath}?$select=name,id,file,createdDateTime,size&$top=50`,
+            { headers: { Authorization: `Bearer ${driveToken}` } }
+          ).catch(() => ({ data: { value: [] } }));
+          const items = folderRes.data?.value || [];
+          this.logger.log(`Folder ${folderPath}: ${items.length} files → ${JSON.stringify(items.map((f: any) => f.name))}`);
+          allDriveFiles = [...allDriveFiles, ...items];
+        }
+
+        // Also do a subject-based search as fallback
         const searchRes = await graphClient
           .api(`/me/drive/root/search(q='${subject.replace(/'/g, "''")}')`)
           .select('name,id,file,createdDateTime,size')
           .top(20)
           .get()
           .catch(() => ({ value: [] }));
+        allDriveFiles = [...allDriveFiles, ...(searchRes.value || [])];
 
-        // Search 2: SharePoint Meetings library (new Teams default since 2023)
-        // Teams now saves recordings/transcripts to a dedicated Meetings site, not the drive root
-        const spSearchRes = await graphClient
-          .api(`/me/drive/root:/Meetings:/search(q='${subject.replace(/'/g, "''")}')`)
-          .select('name,id,file,createdDateTime,size')
-          .top(20)
-          .get()
-          .catch(() => ({ value: [] }));
+        // Deduplicate by id
+        const seen = new Set<string>();
+        const allFiles = allDriveFiles.filter((f: any) => {
+          if (seen.has(f.id)) return false;
+          seen.add(f.id);
+          return true;
+        });
 
-        const allFiles = [...(searchRes.value || []), ...(spSearchRes.value || [])];
-        this.logger.log(`OneDrive search for "${subject}": found ${allFiles.length} total files: ${JSON.stringify(allFiles.map((f: any) => f.name))}`);
+        this.logger.log(`Total files to check for VTT: ${allFiles.length} → names: ${JSON.stringify(allFiles.map((f: any) => f.name))}`);
 
         const vttFiles = allFiles.filter((f: any) =>
           f.file && (f.name?.toLowerCase().endsWith('.vtt') || f.name?.toLowerCase().includes('transcript'))
@@ -421,22 +439,21 @@ export class MicrosoftService {
 
         for (const vttFile of vttFiles) {
           try {
-            const token = await this.getAccessToken(userId);
             const fileRes = await axios.get(
               `https://graph.microsoft.com/v1.0/me/drive/items/${vttFile.id}/content`,
-              { headers: { Authorization: `Bearer ${token}` }, responseType: 'text' }
+              { headers: { Authorization: `Bearer ${driveToken}` }, responseType: 'text' }
             );
             if (fileRes.data) {
               const parsed = this.parseVTT(fileRes.data);
               if (parsed) {
-                this.logger.log(`Transcript loaded from file: ${vttFile.name}`);
+                this.logger.log(`Transcript loaded from: ${vttFile.name}`);
                 return { transcript: parsed };
               }
             }
           } catch { continue; }
         }
       } catch (driveErr: any) {
-        this.logger.warn(`OneDrive/SharePoint fallback failed: ${driveErr.message}`);
+        this.logger.warn(`Drive/SharePoint fallback failed: ${driveErr.message}`);
       }
 
       return { transcript: null, message: 'No transcript found. Ensure Teams transcription is enabled in your organization.' };
