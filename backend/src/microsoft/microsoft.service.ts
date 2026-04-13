@@ -356,14 +356,25 @@ export class MicrosoftService {
       if (transcriptList.length > 0) {
         let combinedTranscript = '';
         for (const t of transcriptList) {
-          try {
-            const token = await this.getAccessToken(userId);
-            const contentRes = await axios.get(
-              `https://graph.microsoft.com/v1.0/me/onlineMeetings/${onlineMeetingId}/transcripts/${t.id}/content?$format=text/plain`,
-              { headers: { Authorization: `Bearer ${token}` }, responseType: 'text' }
-            );
-            if (contentRes.data) combinedTranscript += (combinedTranscript ? '\n\n' : '') + contentRes.data;
-          } catch { continue; }
+          // Try text/vtt first (most reliable), then text/plain as fallback
+          for (const fmt of ['text/vtt', 'text/plain']) {
+            try {
+              const token = await this.getAccessToken(userId);
+              const contentRes = await axios.get(
+                `https://graph.microsoft.com/v1.0/me/onlineMeetings/${onlineMeetingId}/transcripts/${t.id}/content?$format=${fmt}`,
+                { headers: { Authorization: `Bearer ${token}` }, responseType: 'text' }
+              );
+              if (contentRes.data) {
+                this.logger.log(`Transcript content fetched via ${fmt}, length=${String(contentRes.data).length}`);
+                // Parse VTT format into readable text
+                const parsed = fmt === 'text/vtt' ? this.parseVTT(contentRes.data) : contentRes.data;
+                if (parsed) combinedTranscript += (combinedTranscript ? '\n\n' : '') + parsed;
+                break; // success — don't try next format
+              }
+            } catch (ce: any) {
+              this.logger.warn(`Content fetch (${fmt}) failed: ${ce.response?.status} ${ce.response?.data?.error?.message || ce.message}`);
+            }
+          }
         }
         if (combinedTranscript) return { transcript: combinedTranscript };
       }
@@ -374,7 +385,7 @@ export class MicrosoftService {
         if (meetingData.chatInfo?.threadId) {
           const messages = await graphClient
             .api(`/chats/${meetingData.chatInfo.threadId}/messages`)
-            .top(100)
+            .top(50)
             .get();
           const chatContent = (messages.value || [])
             .filter((m: any) => m.messageType === 'message' && m.body?.content)
