@@ -294,66 +294,66 @@ const MeetingDetailPage: React.FC = () => {
                 </div>
 
                 {/* Sidebar */}
-                <div className="col-span-12 lg:col-span-4 flex flex-col space-y-8 overflow-y-auto pr-2 scrollbar-hide py-1">
+                <div className="col-span-12 lg:col-span-4 flex flex-col space-y-3 overflow-y-auto pr-2 scrollbar-hide py-1">
                     
                     {/* AI Panel */}
                     <AnimatePresence>
                         {summary && (
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                                className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2rem] p-8 text-white shadow-2xl shadow-indigo-300 relative overflow-hidden"
+                                className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-5 text-white shadow-xl shadow-indigo-300/30 relative overflow-hidden"
                             >
-                                <SparklesIcon className="absolute -top-6 -right-6 h-32 w-32 opacity-10 rotate-12" />
-                                <h2 className="text-xl font-black mb-6 flex items-center space-x-3">
-                                    <div className="bg-white/20 p-2 rounded-xl">
-                                        <FaceSmileIcon className="h-5 w-5 text-indigo-100" />
-                                    </div>
-                                    <span>AI Summary</span>
-                                </h2>
-                                <div className="text-sm font-medium leading-relaxed opacity-90 whitespace-pre-wrap max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">{summary}</div>
-                                <div className="mt-8 pt-6 border-t border-white/10 flex items-center justify-between">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-200">Powered by AI</span>
+                                <SparklesIcon className="absolute -top-4 -right-4 h-20 w-20 opacity-10 rotate-12" />
+                                <div className="flex items-center justify-between mb-3">
+                                    <h2 className="text-sm font-black flex items-center space-x-2">
+                                        <div className="bg-white/20 p-1.5 rounded-lg">
+                                            <FaceSmileIcon className="h-3.5 w-3.5 text-indigo-100" />
+                                        </div>
+                                        <span>AI Summary</span>
+                                    </h2>
                                     <button 
                                         onClick={() => setSummary(null)}
-                                        className="text-[10px] font-black uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-lg hover:bg-white/20 transition-all"
+                                        className="text-[9px] font-black uppercase tracking-widest bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/20 transition-all"
                                     >
                                         Clear
                                     </button>
                                 </div>
+                                <div className="text-xs font-medium leading-relaxed opacity-90 whitespace-pre-wrap max-h-36 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">{summary}</div>
+                                <p className="text-[9px] font-black uppercase tracking-widest text-indigo-300 mt-3">Powered by AI</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
                     {/* Attendees */}
-                    <div className="bg-white rounded-[2rem] border border-gray-100 shadow-xl shadow-gray-200/30 p-8">
-                        <h2 className="text-xl font-black text-gray-900 mb-8 flex items-center space-x-3">
-                            <UserGroupIcon className="h-6 w-6 text-indigo-600" />
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/30 p-5">
+                        <h2 className="text-sm font-black text-gray-900 mb-4 flex items-center space-x-2">
+                            <UserGroupIcon className="h-4 w-4 text-indigo-600" />
                             <span>Attendees</span>
-                            <span className="text-xs font-black text-gray-300 ml-auto uppercase tracking-tighter">({meeting?.attendees?.length || 0})</span>
+                            <span className="text-xs font-black text-gray-300 ml-auto">({meeting?.attendees?.length || 0})</span>
                         </h2>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             {(meeting?.attendees || []).length === 0 ? (
-                                <p className="text-sm text-gray-400 text-center py-4">No attendees listed</p>
+                                <p className="text-sm text-gray-400 text-center py-2">No attendees listed</p>
                             ) : meeting.attendees.map((person: any, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between group">
-                                    <div className="flex items-center space-x-4">
+                                <div key={idx} className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
                                         <div className="relative">
                                             <img
                                                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(person.name)}&background=f0f4ff&color=4f46e5&bold=true&rounded=true`}
-                                                className="h-12 w-12 rounded-2xl border-2 border-white shadow-sm"
+                                                className="h-9 w-9 rounded-xl border-2 border-white shadow-sm"
                                                 alt={person.name}
                                             />
                                             {person.status === 'accepted' && (
-                                                <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-500 border-2 border-white rounded-full shadow-sm" />
+                                                <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-green-500 border-2 border-white rounded-full" />
                                             )}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-gray-900 leading-tight">{person.name}</p>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{person.type}</p>
+                                            <p className="text-xs font-black text-gray-900 leading-tight">{person.name}</p>
+                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{person.type}</p>
                                         </div>
                                     </div>
-                                    <div className={`text-[9px] font-black uppercase px-2 py-1 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+                                    <div className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
                                         {person.status}
                                     </div>
                                 </div>
@@ -362,15 +362,15 @@ const MeetingDetailPage: React.FC = () => {
                     </div>
 
                     {/* Status Card */}
-                    <div className="bg-gray-900 rounded-[2rem] p-8 text-white relative overflow-hidden group">
-                        <div className="relative z-10 flex flex-col items-center text-center space-y-2">
-                            <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em]">Meeting Status</p>
-                            <h3 className={`text-2xl font-black ${meeting?.status === 'Live' ? 'text-green-400' : meeting?.status === 'Completed' ? 'text-gray-300' : 'text-white'}`}>
-                                {meeting?.status || 'Upcoming'}
-                            </h3>
-                            <p className="text-xs font-medium text-gray-400 leading-relaxed px-4">
-                                Synced via Microsoft Graph API
-                            </p>
+                    <div className="bg-gray-900 rounded-2xl p-5 text-white relative overflow-hidden group">
+                        <div className="relative z-10 flex items-center justify-between">
+                            <div>
+                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Meeting Status</p>
+                                <h3 className={`text-lg font-black ${meeting?.status === 'Live' ? 'text-green-400' : meeting?.status === 'Completed' ? 'text-gray-300' : 'text-white'}`}>
+                                    {meeting?.status || 'Upcoming'}
+                                </h3>
+                            </div>
+                            <p className="text-[9px] font-medium text-gray-500 text-right leading-relaxed max-w-[100px]">Synced via Microsoft Graph API</p>
                         </div>
                         <div className="absolute inset-0 bg-indigo-600/10 group-hover:bg-indigo-600/20 transition-colors pointer-events-none" />
                     </div>
