@@ -30,10 +30,10 @@ export class AiService {
   /**
    * Get company's AI API key and name by user ID
    * Returns null if company has no AI key (AI will be disabled)
+   * Support for SUPER_ADMIN users via environment variable fallback
    */
   private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string; provider: string } | null> {
     if (!userId) {
-      // No user context - AI disabled
       this.logger.error('❌ No userId provided - AI disabled');
       throw new Error('User ID is required for AI features');
     }
@@ -46,12 +46,31 @@ export class AiService {
         select: { companyId: true, role: true, name: true, email: true },
       });
 
-      this.logger.log(`👤 User found: ${user?.name} (${user?.email}), Role: ${user?.role}, CompanyId: ${user?.companyId}`);
+      this.logger.log(`👤 User found: ${user?.name} (${user?.email}), Role: ${user?.role}, CompanyId: ${user?.companyId || 'none (super admin)'}`);
 
+      // SUPER ADMIN FALLBACK: Use environment-level API key if available
       if (!user?.companyId) {
-        // Super admin or no company - AI disabled
-        this.logger.error(`❌ User ${user?.name} has no company - AI disabled`);
-        throw new Error('AI is not available for users without a company. Please contact your administrator.');
+        const superAdminApiKey = this.configService.get<string>('AI_API_KEY');
+        const superAdminProvider = this.configService.get<string>('AI_PROVIDER') || 'groq';
+        if (superAdminApiKey) {
+          this.logger.log(`✅ Super admin using platform-level AI key (${superAdminProvider})`);
+          return { apiKey: superAdminApiKey, companyName: 'Platform', provider: superAdminProvider };
+        }
+        // No env key either — find any enabled company and use its key as a last resort
+        const anyCompany = await this.prisma.company.findFirst({
+          where: { aiEnabled: true, aiApiKey: { not: null } },
+          select: { name: true, aiApiKey: true, aiProvider: true },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (anyCompany) {
+          const decrypted = this.companiesService.decryptApiKey(anyCompany.aiApiKey);
+          if (decrypted && !decrypted.includes('[DECRYPTION_FAILED]')) {
+            this.logger.log(`✅ Super admin borrowing AI key from company: ${anyCompany.name}`);
+            return { apiKey: decrypted, companyName: anyCompany.name, provider: anyCompany.aiProvider || 'groq' };
+          }
+        }
+        this.logger.error(`❌ Super admin has no AI key available (no env key, no company keys)`);
+        throw new Error('AI is not available. Please configure an AI API key in the admin panel.');
       }
 
       const company = await this.prisma.company.findUnique({
@@ -70,18 +89,16 @@ export class AiService {
       }
 
       if (!company.aiEnabled || !company.aiApiKey) {
-        // Company AI not enabled or no key provided - AI disabled
         this.logger.warn(`AI disabled for company: ${company.name}`);
         return null;
       }
 
       this.logger.log(`Using AI (${company.aiProvider || 'gemini'}) for company: ${company.name}`);
 
-      // CRITICAL: Decrypt the API key before using it
       const decryptedApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
       
       if (!decryptedApiKey || decryptedApiKey.includes('[DECRYPTION_FAILED]')) {
-        this.logger.error(`❌ Failed to decrypt API key for company: ${company.name}`);
+        this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}. Check ENCRYPTION_KEY env var on Render matches the key used when the API key was saved.`);
         return null;
       }
 
@@ -91,16 +108,14 @@ export class AiService {
         provider: company.aiProvider || 'gemini'
       };
     } catch (error) {
-      // Re-throw intentional errors (e.g., "no userId", "no company")
-      // so the caller gets the actual error message
       if (error instanceof Error && (
         error.message.includes('User ID is required') ||
-        error.message.includes('not available for users without a company')
+        error.message.includes('AI is not available')
       )) {
         throw error;
       }
       this.logger.error('Error fetching company AI info:', error);
-      return null; // AI disabled on unexpected error
+      return null;
     }
   }
 
