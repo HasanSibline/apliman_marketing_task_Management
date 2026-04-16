@@ -57,10 +57,26 @@ def require_service_token(
 # Initialize services
 content_generator = ContentGenerator()
 web_scraper = WebScraper()
-# Initialize chat service with all available API keys for rotation
-available_keys = config.get_api_keys()
-keys_to_use = available_keys if available_keys else [config.GOOGLE_API_KEY]
-chat_service = ChatService(keys_to_use, provider=os.getenv("AI_PROVIDER", "gemini"))
+
+def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
+    """
+    Multi-tenant key resolver.
+    Uses the company-specific key passed per-request from NestJS.
+    Falls back to environment key ONLY as a last resort.
+    Returns a clear error if no key is available at all.
+    """
+    if provided_key and provided_key.strip():
+        logger.info(f"[{endpoint_name}] Using company-provided API key")
+        return provided_key.strip()
+    # Last resort: environment fallback (for health checks, unauthenticated paths)
+    env_keys = config.get_api_keys()
+    if env_keys:
+        logger.warning(f"[{endpoint_name}] No company key provided - using env fallback")
+        return env_keys[0]
+    raise HTTPException(
+        status_code=400,
+        detail="AI is not configured for your company. Please contact your administrator to add an AI API key."
+    )
 
 @app.get("/health")
 async def health_check():
@@ -248,21 +264,7 @@ class ScrapeUrlRequest(BaseModel):
 async def generate_content(request: GenerateContentRequest):
     """Generate content using configured AI provider with optional knowledge sources"""
     try:
-        # CRITICAL: Use company-provided API key if available
-        api_key_to_use = request.api_key
-        
-        # If no API key provided, check environment fallback
-        if not api_key_to_use:
-            api_keys = config.get_api_keys()
-            if not api_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No API key provided. AI is not enabled for your company."
-                )
-            api_key_to_use = api_keys[0]
-            logger.warning("Using fallback environment API key - company should provide their own key")
-        
-        # Create a temporary content generator with the provided API key and provider
+        api_key_to_use = resolve_api_key(request.api_key, "generate-content")
         temp_generator = ContentGenerator(api_key_to_use, provider=request.provider)
         
         # Set knowledge sources if provided
@@ -308,8 +310,8 @@ class SummarizeRequest(BaseModel):
 async def summarize(request: SummarizeRequest):
     """Summarize text using configured AI provider"""
     try:
-        # Use temp generator for summarization with company key
-        temp_generator = ContentGenerator(request.api_key, provider=request.provider)
+        api_key_to_use = resolve_api_key(request.api_key, "summarize")
+        temp_generator = ContentGenerator(api_key_to_use, provider=request.provider)
         summary = await temp_generator.summarize_text(request.text, request.max_length)
         return {"summary": summary}
     except Exception as e:
@@ -351,21 +353,7 @@ class ChatRequest(BaseModel):
 async def chat(request: ChatRequest):
     """Process chat message with ApliChat"""
     try:
-        # CRITICAL: Use company-provided API key if available
-        api_key_to_use = request.api_key
-        
-        # If no API key provided, check environment fallback
-        if not api_key_to_use:
-            api_keys = config.get_api_keys()
-            if not api_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No API key provided. AI is not enabled for your company."
-                )
-            api_key_to_use = api_keys[0]
-            logger.warning("Using fallback environment API key - company should provide their own key")
-        
-        # Create a temporary chat service with the provided API key and provider
+        api_key_to_use = resolve_api_key(request.api_key, "chat")
         temp_chat_service = ChatService(api_key_to_use, provider=request.provider)
         
         # Process chat message (now async)
@@ -405,20 +393,7 @@ async def detect_task_type(request: dict):
         if not title:
             raise HTTPException(status_code=400, detail="Title required")
         
-        # CRITICAL: Use company-provided API key if available
-        api_key_to_use = api_key
-        
-        # If no API key provided, check environment fallback
-        if not api_key_to_use:
-            api_keys = config.get_api_keys()
-            if not api_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No API key provided. AI is not enabled for your company."
-                )
-            api_key_to_use = api_keys[0]
-        
-        # Create a temporary content generator with the provided API key and provider
+        api_key_to_use = resolve_api_key(api_key, "detect-task-type")
         provider = request.get("provider", "gemini")
         temp_generator = ContentGenerator(api_key_to_use, provider=provider)
         task_type = await temp_generator.detect_task_type(title)
@@ -449,21 +424,7 @@ async def generate_subtasks(request: dict):
         if not title:
             raise HTTPException(status_code=400, detail="Title required")
         
-        # CRITICAL: Use company-provided API key if available
-        api_key_to_use = api_key
-        
-        # If no API key provided, check environment fallback
-        if not api_key_to_use:
-            api_keys = config.get_api_keys()
-            if not api_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No API key provided. AI is not enabled for your company."
-                )
-            api_key_to_use = api_keys[0]
-            logger.warning("Using fallback environment API key - company should provide their own key")
-        
-        # Create a temporary content generator with the provided API key and provider
+        api_key_to_use = resolve_api_key(api_key, "generate-subtasks")
         provider = request.get('provider', 'gemini')
         temp_generator = ContentGenerator(api_key_to_use, provider=provider)
         
@@ -496,19 +457,7 @@ async def generate_performance_insights(request: dict):
         analytics_data = request.get("analytics", {})
         api_key = request.get("api_key", None)
         
-        # CRITICAL: Use company-provided API key if available
-        api_key_to_use = api_key
-        
-        # If no API key provided, check environment fallback
-        if not api_key_to_use:
-            api_keys = config.get_api_keys()
-            if not api_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No API key provided. AI is not enabled for your company."
-                )
-            api_key_to_use = api_keys[0]
-        
+        api_key_to_use = resolve_api_key(api_key, "performance-insights")
         # Create a prompt for performance insights
         prompt = f"""
         Based on the following analytics data, provide performance insights, recommendations, and trends:
@@ -570,20 +519,7 @@ class LearnFromTasksRequest(BaseModel):
 async def learn_from_tasks(request: LearnFromTasksRequest):
     """Learn from user's task history to extract insights and patterns"""
     try:
-        # CRITICAL: Use company-provided API key if available
-        api_key_to_use = request.api_key
-        
-        # If no API key provided, check environment fallback
-        if not api_key_to_use:
-            api_keys = config.get_api_keys()
-            if not api_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No API key provided. AI is not enabled for your company."
-                )
-            api_key_to_use = api_keys[0]
-        
-        # Create a temporary chat service with the provided API key
+        api_key_to_use = resolve_api_key(request.api_key, "learn-from-tasks")
         temp_chat_service = ChatService(api_key_to_use)
         
         learned_context = await temp_chat_service.learn_from_task_history(
@@ -617,20 +553,7 @@ class LearnDomainInterestsRequest(BaseModel):
 async def learn_domain_interests(request: LearnDomainInterestsRequest):
     """Learn what the user is interested in regarding specific domains"""
     try:
-        # CRITICAL: Use company-provided API key if available
-        api_key_to_use = request.api_key
-        
-        # If no API key provided, check environment fallback
-        if not api_key_to_use:
-            api_keys = config.get_api_keys()
-            if not api_keys:
-                raise HTTPException(
-                    status_code=400,
-                    detail="No API key provided. AI is not enabled for your company."
-                )
-            api_key_to_use = api_keys[0]
-            
-        # Create a temporary chat service with the provided API key
+        api_key_to_use = resolve_api_key(request.api_key, "learn-domain-interests")
         temp_chat_service = ChatService(api_key_to_use)
         
         learned_interests = await temp_chat_service.learn_about_domain_interests(
