@@ -162,19 +162,44 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     } catch (error: any) {
       console.error('Error generating AI content:', error)
 
-      // Show the actual error message from the backend
-      const errorMsg = error.message || 'Unknown error'
-      
-      if (error.response?.status === 401 || errorMsg.includes('Authentication required')) {
+      // Resolve the most informative error message available
+      const httpStatus = error.response?.status
+      const serverMsg: string =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Unknown error'
+
+      const isQuota =
+        httpStatus === 429 ||
+        serverMsg.toLowerCase().includes('quota') ||
+        serverMsg.toLowerCase().includes('rate limit') ||
+        serverMsg.toLowerCase().includes('resource_exhausted')
+
+      const isInvalidKey =
+        serverMsg.toLowerCase().includes('api key not valid') ||
+        serverMsg.toLowerCase().includes('api_key_invalid') ||
+        serverMsg.toLowerCase().includes('api key expired') ||
+        serverMsg.toLowerCase().includes('revoked')
+
+      if (httpStatus === 401 || serverMsg.includes('Authentication required')) {
         toast.error('Session expired. Please refresh the page and log in again.')
         localStorage.removeItem('token')
         window.location.href = '/login'
-      } else if (errorMsg.includes('not enabled') || errorMsg.includes('API key')) {
-        toast.error(errorMsg)
-      } else if (errorMsg.includes('AI service error')) {
-        toast.error(`AI generation failed: ${errorMsg}`)
+      } else if (isQuota) {
+        toast.error(
+          '⏳ AI quota exceeded. The API key has reached its usage limit. Please wait a minute and try again, or ask your administrator to upgrade the AI plan.',
+          { duration: 6000 }
+        )
+      } else if (isInvalidKey) {
+        toast.error(
+          '🔑 The AI API key is invalid or has been revoked. Please contact your administrator to update the AI settings.',
+          { duration: 6000 }
+        )
+      } else if (serverMsg.includes('not enabled') || serverMsg.includes('API key')) {
+        toast.error(serverMsg)
       } else {
-        toast.error(errorMsg || 'Failed to generate AI content. Please check your connection and try again.')
+        toast.error(serverMsg || 'Failed to generate AI content. Please check your connection and try again.')
       }
     } finally {
       setIsGeneratingContent(false)

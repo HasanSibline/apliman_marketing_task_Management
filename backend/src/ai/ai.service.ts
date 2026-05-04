@@ -437,25 +437,49 @@ export class AiService {
 
       // Provide a clear, user-friendly error
       let errorMessage = 'AI content generation failed';
+      let httpStatus = error.response?.status || 500;
+
+      // Extract the raw detail from the AI service response
+      const detail = error.response?.data?.detail;
+      const detailMessage = typeof detail === 'string'
+        ? detail
+        : detail?.message ?? JSON.stringify(detail ?? {});
+
+      // Check for quota / rate-limit errors (429 from Gemini/Groq)
+      const isQuota =
+        httpStatus === 429 ||
+        detailMessage?.includes('429') ||
+        detailMessage?.toLowerCase().includes('quota') ||
+        detailMessage?.toLowerCase().includes('rate limit') ||
+        detailMessage?.toLowerCase().includes('resource_exhausted');
+
+      // Check for invalid / revoked API key
+      const isInvalidKey =
+        detailMessage?.toLowerCase().includes('api key not valid') ||
+        detailMessage?.toLowerCase().includes('api_key_invalid') ||
+        detailMessage?.toLowerCase().includes('api key expired') ||
+        detailMessage?.toLowerCase().includes('api key was reported as leaked');
 
       if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        errorMessage = 'AI service timed out. The AI service may be starting up — please try again in 1-2 minutes.';
+        errorMessage = 'AI service timed out. Please try again in a moment.';
+        httpStatus = 504;
       } else if (error.code === 'ECONNREFUSED') {
-        errorMessage = 'AI service is not reachable. Please check that the AI service is running.';
-      } else if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
-          errorMessage = error.response.data.detail;
-        } else if (error.response.data.detail.message) {
-          errorMessage = error.response.data.detail.message;
-        } else {
-          errorMessage = JSON.stringify(error.response.data.detail);
-        }
+        errorMessage = 'AI service is not reachable. Please contact your administrator.';
+        httpStatus = 503;
+      } else if (isQuota) {
+        errorMessage = 'AI quota exceeded. The API key has reached its usage limit. Please wait a minute and try again, or contact your administrator to upgrade the AI plan.';
+        httpStatus = 429;
+      } else if (isInvalidKey) {
+        errorMessage = 'The AI API key is invalid or has been revoked. Please contact your administrator to update the AI settings.';
+        httpStatus = 503;
+      } else if (detailMessage && detailMessage !== '{}') {
+        errorMessage = detailMessage;
       } else {
         errorMessage = error.message || 'AI service error';
       }
 
-      this.logger.error(`   Returning error to client: ${errorMessage}`);
-      throw new HttpException(errorMessage, error.response?.status || 500);
+      this.logger.error(`   Returning error to client (HTTP ${httpStatus}): ${errorMessage}`);
+      throw new HttpException(errorMessage, httpStatus);
     }
   }
 
