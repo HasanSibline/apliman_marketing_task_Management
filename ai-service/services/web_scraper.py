@@ -7,7 +7,7 @@ import asyncio
 from urllib.parse import urlparse
 import re
 from playwright.async_api import async_playwright
-from playwright_stealth import stealth_async
+# playwright_stealth imported lazily inside method to handle version differences
 import subprocess
 
 logger = logging.getLogger(__name__)
@@ -128,9 +128,17 @@ class WebScraper:
                 viewport={'width': 1280, 'height': 800}
             )
             
-            # Apply stealth to avoid detection
+            # Apply stealth to avoid bot detection (if the package supports it)
             page = await context.new_page()
-            await stealth_async(page)
+            try:
+                from playwright_stealth import stealth_async as _stealth_async
+                await _stealth_async(page)
+            except (ImportError, AttributeError):
+                try:
+                    from playwright_stealth import Stealth
+                    await Stealth().apply_stealth_async(page)
+                except Exception:
+                    logger.warning("playwright_stealth not available or incompatible - skipping stealth mode")
             
             try:
                 logger.info(f"🌐 Navigating to {url} via Headless Chromium...")
