@@ -133,11 +133,16 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
         try {
             const res = await api.get('/microsoft/auth-url')
             if (res.data?.url) {
-                window.location.href = res.data.url
+                toast('🔀 Redirecting to Microsoft login…', { duration: 3000 })
+                // Small delay so the toast is visible before navigation
+                setTimeout(() => { window.location.href = res.data.url }, 400)
+            } else {
+                toast.error('Could not retrieve Microsoft auth URL. Please try again.')
+                setIsSyncing(false)
             }
-        } catch (error) {
-            toast.error('Failed to initialize Microsoft sync')
-        } finally {
+        } catch (error: any) {
+            const msg = error.response?.data?.message || error.message || 'Unknown error'
+            toast.error(`Failed to initialize Microsoft sync: ${msg}`)
             setIsSyncing(false)
         }
     }
