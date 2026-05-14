@@ -262,8 +262,8 @@ class ChatService:
             
             # Surface the actual error message to the user/frontend for debugging
             detailed_msg = f"I encountered an error: {error_msg}"
-            if "429" in error_msg:
-                detailed_msg = "It looks like my AI quota just ran out. Please wait a minute and try again!"
+            if "quota exhausted" in error_msg.lower() or "429" in error_msg:
+                detailed_msg = "⏳ AI quota exceeded. All available API keys have reached their rate limit. The system will automatically retry with a new key if one is available. If this persists, please ask your administrator to add an additional API key in the company settings."
             elif "API key was reported as leaked" in error_msg:
                 detailed_msg = "Your AI API key has been revoked by the provider. Please update your company settings with a new key."
             
@@ -478,7 +478,7 @@ class ChatService:
         if file_count > 0:
             parts.append({"text": f"\n[SYSTEM NOTICE: Task-specific analysis mode is ACTIVE for the {file_count} file(s) above. If the user asks about these files, ignore generic company knowledge and focus on the file content.]"})
 
-        max_attempts = max(len(self.api_keys), 3)
+        max_attempts = max(len(self.api_keys) * 2, 4)  # Allow multiple passes through key pool
 
         while attempts < max_attempts:
             current_key = self.api_key
@@ -501,49 +501,81 @@ class ChatService:
                 }
             }
 
-            for auth_method in ["query", "header"]:
-                auth_url = f"{url}?key={current_key}" if auth_method == "query" else url
-                try:
-                    async with aiohttp.ClientSession() as session:
-                        headers = {'Content-Type': 'application/json'}
-                        if auth_method == "header":
-                            headers['X-goog-api-key'] = current_key
+            got_429 = False
+            api_error = None
 
-                        async with session.post(auth_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=50)) as response:
-                            if response.status == 200:
-                                data = await response.json()
-                                if data.get('candidates'):
-                                    candidate = data['candidates'][0]
-                                    if candidate.get('content'):
-                                        return candidate['content']['parts'][0]['text']
-                                    elif candidate.get('finishReason'):
-                                        return f"⚠️ Google Gemini chose not to respond due to Safety/Policy settings (Finish Reason: {candidate['finishReason']})"
+            try:
+                auth_url = f"{url}?key={current_key}"
+                async with aiohttp.ClientSession() as session:
+                    headers = {'Content-Type': 'application/json'}
+                    async with session.post(auth_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=50)) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            if data.get('candidates'):
+                                candidate = data['candidates'][0]
+                                if candidate.get('content'):
+                                    return candidate['content']['parts'][0]['text']
+                                elif candidate.get('finishReason'):
+                                    return f"⚠️ Google Gemini chose not to respond due to Safety/Policy settings (Finish Reason: {candidate['finishReason']})"
+                        
+                        # Handle errors
+                        try:
+                            error_text = await response.text()
+                        except Exception:
+                            error_text = "Unknown Error"
                             
-                            # Handle errors
-                            try:
-                                error_text = await response.text()
-                            except Exception:
-                                error_text = "Unknown Error"
-                                
-                            if response.status == 429:
-                                logger.warning(f"Rate limited (429). Attempt {attempts+1}. Rotating keys...")
-                                last_error = "Google Gemini Rate Limit Exceeded (429). Please wait a minute and try again."
-                                break
-                                
-                            logger.warning(f"API Attempt failed ({response.status}): {error_text[:250]}")
+                        if response.status == 429:
+                            logger.warning(f"⚠️ Rate limited (429) on key index {self.current_key_index} (attempt {attempts+1}/{max_attempts}). Rotating...")
+                            last_error = "429"
+                            got_429 = True
+                        else:
+                            logger.warning(f"API error ({response.status}): {error_text[:200]}")
                             last_error = error_text
-                except Exception as e:
-                    last_error = str(e)
-                    continue
-            
+                            api_error = error_text
+
+            except Exception as e:
+                last_error = str(e)
+                logger.warning(f"Request exception (attempt {attempts+1}): {last_error[:200]}")
+
             attempts += 1
-            if not self._rotate_api_key() and attempts < max_attempts:
-                await asyncio.sleep(2)  # Wait longer for rate limits
-                continue
-            elif attempts < max_attempts:
+
+            if got_429:
+                # Try rotating to next key first — fastest recovery
+                rotated = self._rotate_api_key()
+                if rotated:
+                    logger.info(f"🔄 Rotated to key index {self.current_key_index} after 429")
+                    continue  # Immediately retry with new key, no sleep
+                else:
+                    # No more keys to rotate — wait briefly then retry same key
+                    logger.warning(f"⏳ No more keys to rotate. Sleeping 3s before retry (attempt {attempts}/{max_attempts})...")
+                    await asyncio.sleep(3)
+                    continue
+            elif api_error and attempts < max_attempts:
+                # Non-429 API error — try rotating in case it's a key-specific issue
+                self._rotate_api_key()
                 continue
 
-        raise Exception(f"AI Multimodal analysis failed: {last_error}")
+        # All keys exhausted — attempt Groq cross-provider failover for text-only requests
+        if not any(p.get("inlineData") for p in parts):  # No binary vision parts
+            groq_keys_raw = os.getenv("GROQ_API_KEYS", "") or os.getenv("GROQ_API_KEY", "")
+            groq_keys = [k.strip() for k in groq_keys_raw.split(",") if k.strip()]
+            if groq_keys:
+                logger.critical(f"🆘 All Gemini keys exhausted. Last-resort Groq failover with {len(groq_keys)} key(s)...")
+                old_key, old_model, old_url = self.api_key, self.model_name, self.base_url
+                for groq_key in groq_keys:
+                    try:
+                        self.api_key = groq_key
+                        self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+                        self.base_url = "https://api.groq.com/openai/v1"
+                        text_parts = [p for p in parts if "text" in p]
+                        combined = "\n".join(p["text"] for p in text_parts)
+                        return await self._generate_via_groq(combined)
+                    except Exception as groq_err:
+                        logger.error(f"Groq failover failed with key: {str(groq_err)[:100]}")
+                # Restore state if all Groq keys failed
+                self.api_key, self.model_name, self.base_url = old_key, old_model, old_url
+
+        raise Exception(f"AI quota exhausted on all {len(self.api_keys)} key(s) after {attempts} attempt(s). Last error: {last_error}")
 
 
     def _build_system_prompt(

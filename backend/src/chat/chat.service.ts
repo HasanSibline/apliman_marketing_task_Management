@@ -749,7 +749,9 @@ export class ChatService {
         ? 'AI authentication failed. Please check the API key in your company settings.'
         : detailedError.includes('API_KEY_INVALID') || detailedError.includes('API key not valid')
           ? 'The AI API key is invalid. Please update it in your company settings.'
-          : (detailedError && detailedError !== 'Unknown error' ? detailedError : 'The AI service encountered an error.');
+          : statusCode === 429 || detailedError.includes('quota') || detailedError.includes('rate limit') || detailedError.includes('429')
+            ? '⏳ AI quota exceeded. All available API keys have reached their rate limit. Please ask your administrator to add an additional API key in the company settings.'
+            : (detailedError && detailedError !== 'Unknown error' ? detailedError : 'The AI service encountered an error.');
 
       return {
         message: `⚠️ ${userFacingMessage}`,

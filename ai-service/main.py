@@ -58,6 +58,7 @@ def require_service_token(
 content_generator = ContentGenerator()
 web_scraper = WebScraper()
 
+
 def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
     """
     Multi-tenant key resolver.
@@ -77,6 +78,43 @@ def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
         status_code=400,
         detail="AI is not configured for your company. Please contact your administrator to add an AI API key."
     )
+
+def resolve_api_key_pool(provided_key: str | None, endpoint_name: str, provider: str = "gemini") -> list:
+    """
+    Build a ranked pool of API keys for the given provider.
+    Priority: company key(s) first, then env fallbacks.
+    This enables automatic key rotation when one key hits a rate limit.
+    """
+    pool = []
+
+    # 1. Company key from the per-request payload
+    if provided_key and provided_key.strip():
+        # Support comma-separated multi-key strings (future-proof)
+        for k in provided_key.split(","):
+            k = k.strip()
+            if k:
+                pool.append(k)
+
+    # 2. Env-level fallback keys for the same provider
+    if provider == "groq":
+        env_groq = os.getenv("GROQ_API_KEYS", "") or os.getenv("GROQ_API_KEY", "")
+        for k in env_groq.split(","):
+            k = k.strip()
+            if k and k not in pool:
+                pool.append(k)
+    else:
+        for k in config.get_api_keys():
+            if k and k not in pool:
+                pool.append(k)
+
+    if not pool:
+        raise HTTPException(
+            status_code=400,
+            detail="AI is not configured for your company. Please contact your administrator to add an AI API key."
+        )
+
+    logger.info(f"[{endpoint_name}] Key pool built: {len(pool)} key(s) available for rotation")
+    return pool
 
 @app.get("/health")
 async def health_check():
@@ -353,8 +391,8 @@ class ChatRequest(BaseModel):
 async def chat(request: ChatRequest):
     """Process chat message with ApliChat"""
     try:
-        api_key_to_use = resolve_api_key(request.api_key, "chat")
-        temp_chat_service = ChatService(api_key_to_use, provider=request.provider)
+        api_key_pool = resolve_api_key_pool(request.api_key, "chat", provider=request.provider)
+        temp_chat_service = ChatService(api_key_pool, provider=request.provider)
         
         # Process chat message (now async)
         result = await temp_chat_service.process_chat_message(
