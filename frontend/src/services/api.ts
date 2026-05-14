@@ -615,6 +615,14 @@ export const aiApi = {
     const response = await api.post('/ai/generate-subtasks', data)
     return response.data
   },
+  getQuotaStatus: async (): Promise<any> => {
+    const response = await api.get('/ai/quota-status')
+    return response.data
+  },
+  getCompanyUsage: async (): Promise<any> => {
+    const response = await api.get('/ai/company-usage')
+    return response.data
+  },
 }
 
 // Notifications API

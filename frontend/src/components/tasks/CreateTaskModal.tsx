@@ -8,6 +8,7 @@ import { workflowsApi, quartersApi, objectivesApi, aiApi } from '@/services/api'
 import { Workflow } from '@/types/task'
 import ContentSuggester from '../ai/ContentSuggester'
 import toast from 'react-hot-toast'
+import { useAiStatus } from '@/hooks/useAiStatus'
 
 interface CreateTaskModalProps {
   isOpen: boolean
@@ -19,6 +20,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const { users } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
   const { isLoading } = useAppSelector((state) => state.tasks)
+  const { aiEnabled, quotaExhausted, resetCountdown } = useAiStatus()
+  const aiBlocked = !aiEnabled || quotaExhausted
 
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [selectedWorkflow, setSelectedWorkflow] = useState<Workflow | null>(null)
@@ -422,11 +425,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       <button
                         type="button"
                         onClick={generateAIContent}
-                        disabled={isGeneratingContent || !formData.title.trim()}
-                        className="btn-secondary text-sm flex items-center space-x-2 disabled:opacity-50 absolute right-2 top-1/2 -translate-y-1/2"
+                        disabled={isGeneratingContent || !formData.title.trim() || aiBlocked}
+                        title={aiBlocked ? (quotaExhausted ? `AI quota exhausted${resetCountdown ? ` — resets in ${resetCountdown}` : ' (contact admin to upgrade)'}` : 'AI is not enabled for your company') : ''}
+                        className="btn-secondary text-sm flex items-center space-x-2 disabled:opacity-40 disabled:cursor-not-allowed absolute right-2 top-1/2 -translate-y-1/2"
                       >
                         <SparklesIcon className="h-4 w-4" />
-                        <span className="text-xs">{isGeneratingContent ? 'Generating...' : 'Generate AI'}</span>
+                        <span className="text-xs">{isGeneratingContent ? 'Generating...' : aiBlocked ? '🔒 AI Unavailable' : 'Generate AI'}</span>
                       </button>
                     </div>
 

@@ -29,7 +29,7 @@ export class TicketsController {
 
   @Get(':id')
   findOne(@Param('id') id: string, @Request() req) {
-    return this.ticketsService.findOne(id, req.user.companyId);
+    return this.ticketsService.findOne(id, req.user.companyId, req.user.id);
   }
 
   @Post()

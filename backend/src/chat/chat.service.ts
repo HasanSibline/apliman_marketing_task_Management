@@ -216,6 +216,9 @@ export class ChatService {
           aiApiKey: true,
           aiEnabled: true,
           aiProvider: true,
+          aiQuotaExhausted: true,
+          aiQuotaResetAt: true,
+          subscriptionPlan: true,
           name: true
         },
       });
@@ -224,6 +227,24 @@ export class ChatService {
 
       if (!company || !company.aiEnabled || !company.aiApiKey) {
         throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
+      }
+
+      // Auto-reset quota if time has passed
+      let quotaExhausted = company.aiQuotaExhausted;
+      if (quotaExhausted && company.aiQuotaResetAt && new Date() > company.aiQuotaResetAt) {
+        await this.prisma.company.update({
+          where: { id: userCompanyId },
+          data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
+        });
+        quotaExhausted = false;
+      }
+
+      // Reject immediately if quota is exhausted
+      if (quotaExhausted) {
+        const resetMsg = company.aiQuotaResetAt
+          ? ` AI will be available again at ${company.aiQuotaResetAt.toISOString()}.`
+          : ' Your free plan quota is permanently exhausted. Please upgrade or contact your administrator.';
+        throw new Error(`⏳ AI quota exceeded for your company.${resetMsg}`);
       }
 
       // CRITICAL: Decrypt the AI API key using centralized decryption
@@ -332,7 +353,18 @@ export class ChatService {
       // Update user context if AI learned something new
       if (aiResponse.learnedContext) {
         await this.updateUserContext(userId, aiResponse.learnedContext);
-        this.logger.log(`✅ Updated context for user ${userId}: ${JSON.stringify(aiResponse.learnedContext)}`);
+      }
+
+      // Track CHAT AI usage (fire-and-forget)
+      try {
+        const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        await this.prisma.userAIUsage.upsert({
+          where: { userId_feature_monthYear: { userId, feature: 'CHAT' as any, monthYear } },
+          update: { count: { increment: 1 } },
+          create: { userId, companyId: userCompanyId, feature: 'CHAT' as any, count: 1, monthYear },
+        });
+      } catch (trackErr) {
+        this.logger.warn(`Failed to track CHAT usage: ${trackErr.message}`);
       }
 
       // Track domain questions for learning

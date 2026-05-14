@@ -24,6 +24,8 @@ model Company {
   aiApiKey            String?
   aiProvider          String                @default("gemini")
   aiEnabled           Boolean               @default(false)
+  aiQuotaExhausted    Boolean               @default(false)
+  aiQuotaResetAt      DateTime?             // null = permanent exhaustion (free tier)
   maxUsers            Int?
   maxTasks            Int?
   maxStorage          Int?
@@ -34,6 +36,7 @@ model Company {
   createdBy           String?
   chatSessions        ChatSession[]
   aiUsageStats        CompanyAIUsage[]
+  userAIUsage         UserAIUsage[]
   settings            CompanySettings?
   departments         Department[]
   knowledgeSources    KnowledgeSource[]
@@ -231,6 +234,22 @@ model CompanyAIUsage {
   @@map("company_ai_usage")
 }
 
+model UserAIUsage {
+  id          String     @id @default(uuid())
+  userId      String
+  companyId   String
+  feature     AIFeature
+  count       Int        @default(0)
+  monthYear   String     // "2026-05" — resets per month
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feature, monthYear])
+  @@map("user_ai_usage")
+}
+
 model User {
   id                  String            @id @default(uuid())
   companyId           String?
@@ -279,6 +298,7 @@ model User {
   manager             User?             @relation("UserManager", fields: [managerId], references: [id])
   directReports       User[]            @relation("UserManager")
   createdWorkflows    Workflow[]        @relation("WorkflowCreator")
+  userAIUsage         UserAIUsage[]
 
   @@unique([email, companyId])
   @@map("users")
@@ -741,4 +761,11 @@ enum AssignmentStatus {
   PENDING
   ACCEPTED
   DECLINED
+}
+
+enum AIFeature {
+  CHAT
+  TASK_GENERATION
+  SUBTASK_GENERATION
+  MEETING_SUMMARY
 }

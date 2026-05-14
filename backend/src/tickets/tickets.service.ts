@@ -98,7 +98,7 @@ export class TicketsService {
     return { tickets, total };
   }
 
-  async findOne(id: string, companyId: string) {
+  async findOne(id: string, companyId: string, requestingUserId?: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id },
       include: {
@@ -121,6 +121,30 @@ export class TicketsService {
 
     if (!ticket || ticket.companyId !== companyId) {
       throw new NotFoundException('Ticket not found');
+    }
+
+    // If a userId is provided, verify the user is authorized to view this ticket.
+    // Admins see all tickets; regular users must be linked to it.
+    if (requestingUserId) {
+      const requesterUser = await this.prisma.user.findUnique({
+        where: { id: requestingUserId },
+        select: { role: true }
+      });
+      const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(requesterUser?.role || '');
+
+      if (!isAdmin) {
+        const isRelated =
+          ticket.requesterId === requestingUserId ||
+          ticket.requesterManagerId === requestingUserId ||
+          ticket.receiverManagerId === requestingUserId ||
+          ticket.assigneeId === requestingUserId ||
+          (ticket as any).receiverDept?.managerId === requestingUserId ||
+          ticket.assignments?.some((a: any) => a.userId === requestingUserId);
+
+        if (!isRelated) {
+          throw new ForbiddenException('You do not have access to this ticket.');
+        }
+      }
     }
 
     return ticket;
@@ -511,10 +535,25 @@ export class TicketsService {
 
     const userToRemove = await this.prisma.user.findUnique({ where: { id: assignment.userId } });
 
+    // Do not allow removing the requester (ticket owner)
+    if (assignment.userId === ticket.requesterId) {
+      throw new ForbiddenException('Cannot remove the ticket requester from the squad.');
+    }
+
     await this.prisma.ticketAssignment.delete({ where: { id: assignmentId } });
     
     const remover = await this.prisma.user.findUnique({ where: { id: userId } });
     await this.addSystemComment(ticketId, userId, `${userToRemove?.name}'s access to this ticket has been revoked by ${remover?.name}.`, companyId);
+
+    // Notify the removed user
+    await this.notifications.createNotification({
+      userId: assignment.userId,
+      ticketId: ticketId,
+      type: 'TICKET_REMOVED',
+      title: 'Removed from Ticket',
+      message: `You have been removed from ticket ${ticket.ticketNumber} by ${remover?.name}. You no longer have access to this ticket.`,
+      actionUrl: `/tickets`,
+    });
 
     return { success: true };
   }

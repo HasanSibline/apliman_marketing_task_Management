@@ -310,6 +310,9 @@ export class CompaniesService {
     if (updateCompanyDto.aiApiKey) {
       updateCompanyDto.aiApiKey = this.encryptApiKey(updateCompanyDto.aiApiKey);
       updateCompanyDto.aiEnabled = true;
+      // Reset quota exhaustion when a new key is set
+      (updateCompanyDto as any).aiQuotaExhausted = false;
+      (updateCompanyDto as any).aiQuotaResetAt = null;
     }
 
     // Log subscription changes

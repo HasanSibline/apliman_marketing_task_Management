@@ -43,6 +43,26 @@ export class AiController {
     };
   }
 
+  @Get('quota-status')
+  @ApiOperation({ summary: 'Get AI quota status and personal usage for current user' })
+  @ApiResponse({ status: 200, description: 'Quota status returned' })
+  @UseGuards(JwtAuthGuard)
+  async getQuotaStatus(@Request() request: any) {
+    return this.aiService.getQuotaStatus(request.user.id);
+  }
+
+  @Get('company-usage')
+  @ApiOperation({ summary: 'Get per-user AI usage for this month (admin only)' })
+  @ApiResponse({ status: 200, description: 'Company usage returned' })
+  @UseGuards(JwtAuthGuard)
+  async getCompanyUsage(@Request() request: any) {
+    const role = request.user.role;
+    if (!['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      return { users: [] };
+    }
+    return this.aiService.getCompanyUsage(request.user.id);
+  }
+
   @Post('summarize')
   @ApiOperation({ summary: 'Summarize text using AI' })
   @ApiResponse({ status: 200, description: 'Text summarized successfully' })

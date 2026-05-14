@@ -5,6 +5,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { firstValueFrom } from 'rxjs';
 import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 import { CompaniesService } from '../companies/companies.service';
+import { AIFeature } from '@prisma/client';
+
+/** How many minutes to wait before resetting quota for paid plans */
+const QUOTA_RESET_MINUTES = 60; // 1 hour for RPM limits; adjust if daily
 
 @Injectable()
 export class AiService {
@@ -27,119 +31,391 @@ export class AiService {
     return secret ? { Authorization: `Bearer ${secret}` } : {};
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // QUOTA STATUS
+  // ─────────────────────────────────────────────────────────────────────────
+
   /**
-   * Get company's AI API key and name by user ID
-   * Returns null if company has no AI key (AI will be disabled)
-   * Support for SUPER_ADMIN users via environment variable fallback
+   * Get the current AI quota status for the user's company.
+   * If quota was exhausted but the reset time has passed, auto-clear the flag.
    */
-  private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string; provider: string } | null> {
+  async getQuotaStatus(userId: string): Promise<{
+    aiEnabled: boolean;
+    quotaExhausted: boolean;
+    quotaResetAt: Date | null;
+    provider: string;
+    myUsage: Record<string, number>;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
+    if (!user?.companyId) {
+      return { aiEnabled: false, quotaExhausted: false, quotaResetAt: null, provider: 'none', myUsage: {} };
+    }
+
+    const company = await this.prisma.company.findUnique({
+      where: { id: user.companyId },
+      select: {
+        aiEnabled: true,
+        aiProvider: true,
+        aiQuotaExhausted: true,
+        aiQuotaResetAt: true,
+        subscriptionPlan: true,
+      },
+    });
+
+    if (!company) {
+      return { aiEnabled: false, quotaExhausted: false, quotaResetAt: null, provider: 'none', myUsage: {} };
+    }
+
+    let quotaExhausted = company.aiQuotaExhausted;
+
+    // Auto-reset: if reset time has passed, clear the exhaustion flag
+    if (quotaExhausted && company.aiQuotaResetAt && new Date() > company.aiQuotaResetAt) {
+      await this.prisma.company.update({
+        where: { id: user.companyId },
+        data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
+      });
+      quotaExhausted = false;
+    }
+
+    // Per-user usage this month
+    const monthYear = this.currentMonthYear();
+    const usageRows = await this.prisma.userAIUsage.findMany({
+      where: { userId, monthYear },
+    });
+    const myUsage: Record<string, number> = {};
+    for (const row of usageRows) {
+      myUsage[row.feature] = row.count;
+    }
+
+    return {
+      aiEnabled: company.aiEnabled,
+      quotaExhausted,
+      quotaResetAt: company.aiQuotaExhausted ? company.aiQuotaResetAt : null,
+      provider: company.aiProvider || 'gemini',
+      myUsage,
+    };
+  }
+
+  /**
+   * Admin-only: Get per-user AI usage for the current month for the calling admin's company.
+   */
+  async getCompanyUsage(userId: string): Promise<{ users: any[] }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+
+    if (!user?.companyId) return { users: [] };
+
+    const monthYear = this.currentMonthYear();
+
+    const rows = await this.prisma.userAIUsage.findMany({
+      where: { companyId: user.companyId, monthYear },
+      include: {
+        user: { select: { id: true, name: true, position: true, avatar: true } },
+      },
+      orderBy: { count: 'desc' },
+    });
+
+    // Group by user
+    const byUser: Record<string, any> = {};
+    for (const row of rows) {
+      if (!byUser[row.userId]) {
+        byUser[row.userId] = {
+          userId: row.userId,
+          name: row.user.name,
+          position: row.user.position,
+          avatar: row.user.avatar,
+          CHAT: 0,
+          TASK_GENERATION: 0,
+          SUBTASK_GENERATION: 0,
+          MEETING_SUMMARY: 0,
+          total: 0,
+        };
+      }
+      byUser[row.userId][row.feature] = row.count;
+      byUser[row.userId].total += row.count;
+    }
+
+    return { users: Object.values(byUser) };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // INTERNAL HELPERS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private currentMonthYear(): string {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  /**
+   * Increment a user's usage counter for a feature (fire-and-forget).
+   */
+  private async trackUsage(userId: string, companyId: string, feature: AIFeature): Promise<void> {
+    try {
+      const monthYear = this.currentMonthYear();
+      await this.prisma.userAIUsage.upsert({
+        where: { userId_feature_monthYear: { userId, feature, monthYear } },
+        update: { count: { increment: 1 } },
+        create: { userId, companyId, feature, count: 1, monthYear },
+      });
+    } catch (e) {
+      this.logger.warn(`Failed to track AI usage for user ${userId}: ${e.message}`);
+    }
+  }
+
+  /**
+   * Mark company quota as exhausted.
+   * Free-tier: permanent (no reset time).
+   * Paid plans: sets reset to +QUOTA_RESET_MINUTES minutes.
+   */
+  private async markQuotaExhausted(companyId: string): Promise<void> {
+    try {
+      const company = await this.prisma.company.findUnique({
+        where: { id: companyId },
+        select: { subscriptionPlan: true, aiQuotaExhausted: true },
+      });
+      if (!company || company.aiQuotaExhausted) return; // already flagged
+
+      const isFreeTier = company.subscriptionPlan === 'FREE_TRIAL';
+      const resetAt = isFreeTier
+        ? null // no reset for free tier
+        : new Date(Date.now() + QUOTA_RESET_MINUTES * 60 * 1000);
+
+      await this.prisma.company.update({
+        where: { id: companyId },
+        data: { aiQuotaExhausted: true, aiQuotaResetAt: resetAt },
+      });
+
+      this.logger.warn(`⚠️ AI quota marked exhausted for company ${companyId}. Reset at: ${resetAt?.toISOString() ?? 'NEVER (free tier)'}`);
+    } catch (e) {
+      this.logger.error(`Failed to mark quota exhausted: ${e.message}`);
+    }
+  }
+
+  /**
+   * Get company's AI info for a given user.
+   * Company users: only their company's key — no env fallbacks.
+   * Super admins: env-level key only.
+   */
+  private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string; provider: string; companyId: string } | null> {
     if (!userId) {
       this.logger.error('❌ No userId provided - AI disabled');
       throw new Error('User ID is required for AI features');
     }
 
-    try {
-      this.logger.log(`🔍 Looking up user: ${userId}`);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true, name: true },
+    });
 
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { companyId: true, role: true, name: true, email: true },
-      });
-
-      this.logger.log(`👤 User found: ${user?.name} (${user?.email}), Role: ${user?.role}, CompanyId: ${user?.companyId || 'none (super admin)'}`);
-
-      // SUPER ADMIN FALLBACK: Use environment-level API key if available
-      if (!user?.companyId) {
-        const superAdminApiKey = this.configService.get<string>('AI_API_KEY');
-        const superAdminProvider = this.configService.get<string>('AI_PROVIDER') || 'groq';
-        if (superAdminApiKey) {
-          this.logger.log(`✅ Super admin using platform-level AI key (${superAdminProvider})`);
-          return { apiKey: superAdminApiKey, companyName: 'Platform', provider: superAdminProvider };
-        }
-        // No env key either — find any enabled company and use its key as a last resort
-        const anyCompany = await this.prisma.company.findFirst({
-          where: { aiEnabled: true, aiApiKey: { not: null } },
-          select: { name: true, aiApiKey: true, aiProvider: true },
-          orderBy: { createdAt: 'desc' },
-        });
-        if (anyCompany) {
-          const decrypted = this.companiesService.decryptApiKey(anyCompany.aiApiKey);
-          if (decrypted && !decrypted.includes('[DECRYPTION_FAILED]')) {
-            this.logger.log(`✅ Super admin borrowing AI key from company: ${anyCompany.name}`);
-            return { apiKey: decrypted, companyName: anyCompany.name, provider: anyCompany.aiProvider || 'groq' };
-          }
-        }
-        this.logger.error(`❌ Super admin has no AI key available (no env key, no company keys)`);
-        throw new Error('AI is not available. Please configure an AI API key in the admin panel.');
+    // SUPER ADMIN: use env key only, no company key borrowing
+    if (!user?.companyId) {
+      const superAdminApiKey = this.configService.get<string>('AI_API_KEY');
+      const superAdminProvider = this.configService.get<string>('AI_PROVIDER') || 'gemini';
+      if (superAdminApiKey) {
+        return { apiKey: superAdminApiKey, companyName: 'Platform', provider: superAdminProvider, companyId: 'platform' };
       }
+      throw new Error('AI is not available. Please configure an AI API key for the platform.');
+    }
 
-      const company = await this.prisma.company.findUnique({
-        where: { id: user.companyId },
-        select: {
-          name: true,
-          aiApiKey: true,
-          aiEnabled: true,
-          aiProvider: true
-        },
-      });
+    const company = await this.prisma.company.findUnique({
+      where: { id: user.companyId },
+      select: {
+        name: true,
+        aiApiKey: true,
+        aiEnabled: true,
+        aiProvider: true,
+        aiQuotaExhausted: true,
+        aiQuotaResetAt: true,
+        subscriptionPlan: true,
+      },
+    });
 
-      if (!company) {
-        this.logger.warn('Company not found - AI disabled');
-        return null;
-      }
-
-      if (!company.aiEnabled || !company.aiApiKey) {
-        this.logger.warn(`AI disabled for company: ${company.name}`);
-        return null;
-      }
-
-      this.logger.log(`Using AI (${company.aiProvider || 'gemini'}) for company: ${company.name}`);
-
-      const decryptedApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
-      
-      if (!decryptedApiKey || decryptedApiKey.includes('[DECRYPTION_FAILED]')) {
-        this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}. Check ENCRYPTION_KEY env var on Render matches the key used when the API key was saved.`);
-        return null;
-      }
-
-      return {
-        apiKey: decryptedApiKey,
-        companyName: company.name,
-        provider: company.aiProvider || 'gemini'
-      };
-    } catch (error) {
-      if (error instanceof Error && (
-        error.message.includes('User ID is required') ||
-        error.message.includes('AI is not available')
-      )) {
-        throw error;
-      }
-      this.logger.error('Error fetching company AI info:', error);
+    if (!company || !company.aiEnabled || !company.aiApiKey) {
       return null;
     }
+
+    // Auto-reset if time has passed
+    if (company.aiQuotaExhausted && company.aiQuotaResetAt && new Date() > company.aiQuotaResetAt) {
+      await this.prisma.company.update({
+        where: { id: user.companyId },
+        data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
+      });
+      company.aiQuotaExhausted = false;
+    }
+
+    // Reject immediately if quota is exhausted
+    if (company.aiQuotaExhausted) {
+      const resetMsg = company.aiQuotaResetAt
+        ? ` AI will be available again at ${company.aiQuotaResetAt.toISOString()}.`
+        : ' Your free plan quota is permanently exhausted. Please upgrade or contact your administrator.';
+      throw new Error(`AI quota exceeded for your company.${resetMsg}`);
+    }
+
+    const decryptedApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
+
+    if (!decryptedApiKey || decryptedApiKey.includes('[DECRYPTION_FAILED]')) {
+      this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
+      return null;
+    }
+
+    return {
+      apiKey: decryptedApiKey,
+      companyName: company.name,
+      provider: company.aiProvider || 'gemini',
+      companyId: user.companyId,
+    };
   }
 
-  /**
-   * Legacy method for backwards compatibility
-   */
   private async getCompanyAiApiKey(userId?: string): Promise<string | null> {
     const info = await this.getCompanyAiInfo(userId);
     return info?.apiKey || null;
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+  // AI OPERATIONS (with usage tracking and quota enforcement)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  async generateContentFromAI(title: string, type: string, userId?: string): Promise<{
+    description: string;
+    goals: string;
+    priority?: number;
+    ai_provider?: string;
+  }> {
+    try {
+      if (!userId) throw new Error('User ID is required for AI content generation');
+
+      const companyInfo = await this.getCompanyAiInfo(userId);
+      if (!companyInfo) throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
+
+      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
+
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
+          title,
+          type,
+          knowledge_sources: knowledgeSources,
+          api_key: companyInfo.apiKey,
+          company_name: companyInfo.companyName,
+          provider: companyInfo.provider,
+        }, {
+          headers: this.aiServiceHeaders,
+          timeout: 60000,
+        }),
+      );
+
+      // Track usage after success (non-blocking)
+      if (companyInfo.companyId !== 'platform') {
+        this.trackUsage(userId, companyInfo.companyId, AIFeature.TASK_GENERATION);
+      }
+
+      return {
+        description: response.data.description,
+        goals: response.data.goals,
+        priority: response.data.priority,
+        ai_provider: response.data.ai_provider || 'gemini',
+      };
+    } catch (error) {
+      this.logger.error('❌ Error generating content from AI:', error.message);
+
+      const detail = error.response?.data?.detail;
+      const detailMessage = typeof detail === 'string' ? detail : detail?.message ?? JSON.stringify(detail ?? {});
+      const httpStatus = error.response?.status || 500;
+
+      const isQuota =
+        httpStatus === 429 ||
+        detailMessage?.includes('429') ||
+        error.message?.includes('quota') ||
+        detailMessage?.toLowerCase().includes('quota') ||
+        detailMessage?.toLowerCase().includes('rate limit') ||
+        detailMessage?.toLowerCase().includes('resource_exhausted');
+
+      // Mark quota exhausted in DB so UI can gray out buttons
+      if (isQuota) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
+        if (user?.companyId) await this.markQuotaExhausted(user.companyId);
+        throw new HttpException('AI quota exceeded. The API key has reached its usage limit. Please contact your administrator.', 429);
+      }
+
+      const isInvalidKey =
+        detailMessage?.toLowerCase().includes('api key not valid') ||
+        detailMessage?.toLowerCase().includes('api_key_invalid') ||
+        detailMessage?.toLowerCase().includes('api key expired');
+
+      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+        throw new HttpException('AI service timed out. Please try again in a moment.', 504);
+      } else if (isInvalidKey) {
+        throw new HttpException('The AI API key is invalid or has been revoked. Please contact your administrator.', 503);
+      } else if (error.message?.includes('quota')) {
+        throw new HttpException(error.message, 429);
+      } else {
+        throw new HttpException(detailMessage || error.message || 'AI service error', httpStatus);
+      }
+    }
+  }
+
+  async generateSubtasks(
+    data: {
+      title: string;
+      description: string;
+      taskType: string;
+      workflowPhases: string[];
+      availableUsers?: { id: string; name: string; position: string; role: string }[];
+    },
+    userId?: string,
+  ): Promise<{ subtasks: any[]; ai_provider: string }> {
+    try {
+      const companyInfo = await this.getCompanyAiInfo(userId);
+      if (!companyInfo) throw new Error('AI is not enabled for your company.');
+
+      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
+
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, {
+          ...data,
+          knowledgeSources,
+          api_key: companyInfo.apiKey,
+          company_name: companyInfo.companyName,
+          provider: companyInfo.provider,
+        }, {
+          headers: this.aiServiceHeaders,
+          timeout: 15000,
+        }),
+      );
+
+      if (companyInfo.companyId !== 'platform') {
+        this.trackUsage(userId, companyInfo.companyId, AIFeature.SUBTASK_GENERATION);
+      }
+
+      return response.data;
+    } catch (error) {
+      this.logger.error('Error generating subtasks:', error.message);
+      const httpStatus = error.response?.status || 500;
+      if (httpStatus === 429 || error.message?.includes('quota')) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
+        if (user?.companyId) await this.markQuotaExhausted(user.companyId);
+        throw new HttpException('AI quota exceeded.', 429);
+      }
+      return {
+        subtasks: [
+          { title: 'Planning', description: 'Plan execution', phaseName: 'Planning', suggestedRole: 'Project Manager', estimatedHours: 2 },
+          { title: 'Execution', description: 'Complete deliverables', phaseName: 'In Progress', suggestedRole: 'Team Member', estimatedHours: 5 },
+        ],
+        ai_provider: 'fallback',
+      };
+    }
+  }
+
   async summarizeText(text: string, maxLength: number = 150, userId?: string): Promise<string> {
     try {
-      this.logger.log(`Summarizing text: ${text.length} characters`);
-
       const info = await this.getCompanyAiInfo(userId);
-
-      if (!info) {
-        // AI not available for this company
-        this.logger.warn('AI info not available - returning truncated text');
-        return text.length > maxLength
-          ? text.substring(0, maxLength - 3) + '...'
-          : text;
-      }
+      if (!info) return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
 
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/summarize`, {
@@ -149,19 +425,22 @@ export class AiService {
           provider: info.provider,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 10000, // 10 second timeout
+          timeout: 10000,
         }),
       );
 
-      this.logger.log(`Summarization successful: ${response.data.summary.length} characters`);
+      if (info.companyId !== 'platform') {
+        this.trackUsage(userId, info.companyId, AIFeature.MEETING_SUMMARY);
+      }
+
       return response.data.summary;
     } catch (error) {
       this.logger.error('Error summarizing text:', error.message);
-      this.logger.error('AI Service URL:', this.aiServiceUrl);
-      // Fallback: return truncated text
-      return text.length > maxLength
-        ? text.substring(0, maxLength - 3) + '...'
-        : text;
+      if (error.response?.status === 429 || error.message?.includes('quota')) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
+        if (user?.companyId) await this.markQuotaExhausted(user.companyId);
+      }
+      return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
     }
   }
 
@@ -170,18 +449,8 @@ export class AiService {
     reasoning: string;
   }> {
     try {
-      this.logger.log(`Analyzing priority for: ${taskTitle}`);
-
       const info = await this.getCompanyAiInfo(userId);
-
-      if (!info) {
-        // AI not available - return default
-        this.logger.warn('AI info not available - returning default priority');
-        return {
-          suggestedPriority: 3,
-          reasoning: 'AI not available. Please add an AI API key to enable AI features.',
-        };
-      }
+      if (!info) return { suggestedPriority: 3, reasoning: 'AI not available.' };
 
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/analyze-priority`, {
@@ -191,31 +460,18 @@ export class AiService {
           provider: info.provider,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 10000, // 10 second timeout
+          timeout: 10000,
         }),
       );
 
-      this.logger.log(`Priority analysis successful: ${response.data.priority}`);
-      return {
-        suggestedPriority: response.data.priority,
-        reasoning: response.data.reasoning,
-      };
+      return { suggestedPriority: response.data.priority, reasoning: response.data.reasoning };
     } catch (error) {
       this.logger.error('Error analyzing priority:', error.message);
-      // Fallback: return default priority
-      return {
-        suggestedPriority: 3,
-        reasoning: 'Unable to analyze priority. Default priority assigned.',
-      };
+      return { suggestedPriority: 3, reasoning: 'Unable to analyze priority.' };
     }
   }
 
-  async checkTaskCompleteness(
-    taskDescription: string,
-    goals: string,
-    currentPhase: string,
-    userId?: string,
-  ): Promise<{
+  async checkTaskCompleteness(taskDescription: string, goals: string, currentPhase: string, userId?: string): Promise<{
     completenessScore: number;
     suggestions: string[];
     isComplete: boolean;
@@ -233,20 +489,13 @@ export class AiService {
           headers: this.aiServiceHeaders,
         }),
       );
-
       return {
         completenessScore: response.data.completeness_score,
         suggestions: response.data.suggestions,
         isComplete: response.data.is_complete,
       };
     } catch (error) {
-      this.logger.error('Error checking task completeness:', error);
-      // Fallback: return basic analysis
-      return {
-        completenessScore: 0.5,
-        suggestions: ['Unable to analyze task completeness at this time.'],
-        isComplete: false,
-      };
+      return { completenessScore: 0.5, suggestions: ['Unable to analyze task completeness.'], isComplete: false };
     }
   }
 
@@ -264,23 +513,31 @@ export class AiService {
           provider: info?.provider,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 15000, // 15 second timeout for complex analysis
+          timeout: 15000,
         }),
       );
-
-      return {
-        insights: response.data.insights,
-        recommendations: response.data.recommendations,
-        trends: response.data.trends,
-      };
+      return { insights: response.data.insights, recommendations: response.data.recommendations, trends: response.data.trends };
     } catch (error) {
-      this.logger.error('Error generating performance insights:', error);
-      // Fallback: return basic insights
-      return {
-        insights: ['Performance analysis temporarily unavailable.'],
-        recommendations: ['Continue monitoring task completion rates.'],
-        trends: ['Data collection in progress.'],
-      };
+      return { insights: ['Analysis unavailable.'], recommendations: ['Monitor performance.'], trends: ['In progress.'] };
+    }
+  }
+
+  async detectTaskType(title: string, userId?: string): Promise<{ task_type: string; ai_provider: string }> {
+    try {
+      const info = await this.getCompanyAiInfo(userId);
+      const response = await firstValueFrom(
+        this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
+          title,
+          api_key: info?.apiKey,
+          provider: info?.provider,
+        }, {
+          headers: this.aiServiceHeaders,
+          timeout: 10000,
+        }),
+      );
+      return response.data;
+    } catch (error) {
+      return { task_type: 'GENERAL', ai_provider: 'fallback' };
     }
   }
 
@@ -293,333 +550,11 @@ export class AiService {
           mime_type: mimeType,
           api_key: info?.apiKey,
           provider: info?.provider,
-        }, {
-          headers: this.aiServiceHeaders,
-        }),
+        }, { headers: this.aiServiceHeaders }),
       );
-
       return response.data.extracted_text;
     } catch (error) {
-      this.logger.error('Error extracting text from file:', error);
       return 'Unable to extract text from file.';
-    }
-  }
-
-  async generateTaskDescription(title: string, userId?: string): Promise<string> {
-    try {
-      const info = await this.getCompanyAiInfo(userId);
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
-          title,
-          type: 'task',
-          api_key: info?.apiKey,
-          provider: info?.provider,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 10000, // 10 second timeout
-        }),
-      );
-
-      return response.data.description.trim();
-    } catch (error) {
-      this.logger.error('Error generating task description:', error);
-      // Generate a basic description based on the title
-      const words = title.split(' ');
-      const action = words[0].toLowerCase();
-      const subject = words.slice(1).join(' ');
-      return `This task involves ${action} ${subject}. The team member assigned to this task will need to ensure all necessary steps are taken to complete this action effectively and according to our standard procedures.`;
-    }
-  }
-
-  async generateTaskGoals(title: string, userId?: string): Promise<string> {
-    try {
-      const info = await this.getCompanyAiInfo(userId);
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
-          title,
-          type: 'task',
-          api_key: info?.apiKey,
-          provider: info?.provider,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 10000, // 10 second timeout
-        }),
-      );
-
-      return response.data.goals.trim();
-    } catch (error) {
-      this.logger.error('Error generating task goals:', error);
-      // Generate basic goals based on the title
-      const subject = title.toLowerCase();
-      return `Goals:\n` +
-        `1. Successfully complete the ${subject}\n` +
-        `2. Ensure all deliverables meet quality standards\n` +
-        `3. Document the process and outcomes\n\n` +
-        `Success Criteria:\n` +
-        `- All required components are completed\n` +
-        `- Work is reviewed and approved by relevant stakeholders\n` +
-        `- Documentation is clear and comprehensive`;
-    }
-  }
-
-  async generateContentFromAI(title: string, type: string, userId?: string): Promise<{
-    description: string;
-    goals: string;
-    priority?: number;
-    ai_provider?: string;
-  }> {
-    try {
-      this.logger.log(`🎯 generateContentFromAI called - Title: "${title}", Type: "${type}", UserId: ${userId}`);
-      this.logger.log(`📍 AI Service URL: ${this.aiServiceUrl}/generate-content`);
-
-      if (!userId) {
-        this.logger.error('❌ No userId provided to generateContentFromAI');
-        throw new Error('User ID is required for AI content generation');
-      }
-
-      this.logger.log(`🔍 Fetching company AI info for user: ${userId}`);
-      const companyInfo = await this.getCompanyAiInfo(userId);
-
-      if (!companyInfo) {
-        // AI not available for this company
-        this.logger.error(`❌ No company AI info found for user: ${userId}`);
-        throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
-      }
-
-      this.logger.log(`✅ Company AI info retrieved: ${companyInfo.companyName}, Has API Key: ${!!companyInfo.apiKey}`);
-
-      // Fetch active knowledge sources (company-specific)
-      this.logger.log(`🔍 Fetching knowledge sources for user: ${userId}`);
-      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
-      this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for content generation`);
-
-      this.logger.log(`🚀 Calling AI service POST ${this.aiServiceUrl}/generate-content`);
-      this.logger.log(`📦 Request payload: ${JSON.stringify({
-        title,
-        type,
-        knowledge_sources_count: knowledgeSources.length,
-        has_api_key: !!companyInfo.apiKey,
-        company_name: companyInfo.companyName
-      })}`);
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
-          title,
-          type,
-          knowledge_sources: knowledgeSources,
-          api_key: companyInfo.apiKey,
-          company_name: companyInfo.companyName,
-          provider: companyInfo.provider,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 60000, // 60 seconds — AI service may need time for Gemini + knowledge sources
-        }),
-      );
-
-      this.logger.log(`✅ AI service response received successfully`);
-      this.logger.log(`📊 Response data: ${JSON.stringify({
-        ai_provider: response.data.ai_provider,
-        has_description: !!response.data.description,
-        has_goals: !!response.data.goals,
-        priority: response.data.priority
-      })}`);
-
-      return {
-        description: response.data.description,
-        goals: response.data.goals,
-        priority: response.data.priority,
-        ai_provider: response.data.ai_provider || 'gemini'
-      };
-    } catch (error) {
-      this.logger.error('❌ Error generating content from AI:');
-      this.logger.error(`   Error type: ${error.constructor.name}`);
-      this.logger.error(`   Error message: ${error.message}`);
-
-      // Provide a clear, user-friendly error
-      let errorMessage = 'AI content generation failed';
-      let httpStatus = error.response?.status || 500;
-
-      // Extract the raw detail from the AI service response
-      const detail = error.response?.data?.detail;
-      const detailMessage = typeof detail === 'string'
-        ? detail
-        : detail?.message ?? JSON.stringify(detail ?? {});
-
-      // Check for quota / rate-limit errors (429 from Gemini/Groq)
-      const isQuota =
-        httpStatus === 429 ||
-        detailMessage?.includes('429') ||
-        detailMessage?.toLowerCase().includes('quota') ||
-        detailMessage?.toLowerCase().includes('rate limit') ||
-        detailMessage?.toLowerCase().includes('resource_exhausted');
-
-      // Check for invalid / revoked API key
-      const isInvalidKey =
-        detailMessage?.toLowerCase().includes('api key not valid') ||
-        detailMessage?.toLowerCase().includes('api_key_invalid') ||
-        detailMessage?.toLowerCase().includes('api key expired') ||
-        detailMessage?.toLowerCase().includes('api key was reported as leaked');
-
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        errorMessage = 'AI service timed out. Please try again in a moment.';
-        httpStatus = 504;
-      } else if (error.code === 'ECONNREFUSED') {
-        errorMessage = 'AI service is not reachable. Please contact your administrator.';
-        httpStatus = 503;
-      } else if (isQuota) {
-        errorMessage = 'AI quota exceeded. The API key has reached its usage limit. Please wait a minute and try again, or contact your administrator to upgrade the AI plan.';
-        httpStatus = 429;
-      } else if (isInvalidKey) {
-        errorMessage = 'The AI API key is invalid or has been revoked. Please contact your administrator to update the AI settings.';
-        httpStatus = 503;
-      } else if (detailMessage && detailMessage !== '{}') {
-        errorMessage = detailMessage;
-      } else {
-        errorMessage = error.message || 'AI service error';
-      }
-
-      this.logger.error(`   Returning error to client (HTTP ${httpStatus}): ${errorMessage}`);
-      throw new HttpException(errorMessage, httpStatus);
-    }
-  }
-
-  /**
-   * Get active knowledge sources filtered by user's company
-   * COMPANY-SPECIFIC: Only returns knowledge sources from the user's company
-   */
-  private async getActiveKnowledgeSources(userId?: string) {
-    try {
-      // Build where clause with company filter
-      const where: any = { isActive: true };
-
-      if (userId) {
-        const user = await this.prisma.user.findUnique({
-          where: { id: userId },
-          select: { companyId: true },
-        });
-
-        if (user?.companyId) {
-          where.companyId = user.companyId; // CRITICAL: Filter by company
-        }
-      }
-
-      const sources = await this.prisma.knowledgeSource.findMany({
-        where,
-        orderBy: [
-          { priority: 'desc' },
-        ],
-        select: {
-          id: true,
-          name: true,
-          type: true,
-          content: true,
-          priority: true,
-        },
-      });
-
-      return sources.map(source => ({
-        id: source.id,
-        name: source.name,
-        type: source.type,
-        content: source.content,
-        isActive: true,
-        priority: source.priority,
-      }));
-    } catch (error) {
-      this.logger.error('Error fetching knowledge sources:', error);
-      return []; // Return empty array on error
-    }
-  }
-
-  async detectTaskType(title: string, userId?: string): Promise<{ task_type: string; ai_provider: string }> {
-    try {
-      this.logger.log(`Detecting task type for: ${title}`);
-
-      const info = await this.getCompanyAiInfo(userId);
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
-          title,
-          api_key: info?.apiKey,
-          provider: info?.provider,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 10000,
-        }),
-      );
-
-      this.logger.log(`Task type detected: ${response.data.task_type}`);
-      return response.data;
-    } catch (error) {
-      this.logger.error('Error detecting task type:', error.message);
-      return {
-        task_type: 'GENERAL',
-        ai_provider: 'fallback',
-      };
-    }
-  }
-
-  async generateSubtasks(
-    data: {
-      title: string;
-      description: string;
-      taskType: string;
-      workflowPhases: string[];
-      availableUsers?: { id: string; name: string; position: string; role: string }[];
-    },
-    userId?: string
-  ): Promise<{ subtasks: any[]; ai_provider: string }> {
-    try {
-      this.logger.log(`Generating subtasks for: ${data.title}`);
-
-      // Get company AI info (API key and company name)
-      const companyInfo = await this.getCompanyAiInfo(userId);
-
-      if (!companyInfo) {
-        // AI not available for this company
-        this.logger.warn('AI not available - using fallback subtasks');
-        throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
-      }
-
-      // Fetch active knowledge sources (company-specific)
-      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
-      this.logger.log(`Using ${knowledgeSources.length} knowledge sources for subtask generation`);
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, {
-          ...data,
-          knowledgeSources,
-          api_key: companyInfo.apiKey,
-          company_name: companyInfo.companyName,
-          provider: companyInfo.provider,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 15000,
-        }),
-      );
-
-      this.logger.log(`Generated ${response.data.subtasks.length} subtasks`);
-      return response.data;
-    } catch (error) {
-      this.logger.error('Error generating subtasks:', error.message);
-      return {
-        subtasks: [
-          {
-            title: 'Planning',
-            description: 'Plan execution',
-            phaseName: 'Planning',
-            suggestedRole: 'Project Manager',
-            estimatedHours: 2,
-          },
-          {
-            title: 'Execution',
-            description: 'Complete deliverables',
-            phaseName: 'In Progress',
-            suggestedRole: 'Team Member',
-            estimatedHours: 5,
-          },
-        ],
-        ai_provider: 'fallback',
-      };
     }
   }
 
@@ -630,8 +565,6 @@ export class AiService {
     ai_provider: string;
   }> {
     try {
-      this.logger.log(`Generating content for: ${title}`);
-
       const info = await this.getCompanyAiInfo(userId);
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
@@ -644,8 +577,6 @@ export class AiService {
           timeout: 15000,
         }),
       );
-
-      this.logger.log(`Content generation successful`);
       return {
         description: response.data.description,
         goals: response.data.goals,
@@ -653,10 +584,9 @@ export class AiService {
         ai_provider: response.data.ai_provider || 'gemini',
       };
     } catch (error) {
-      this.logger.error('Error generating content:', error.message);
       return {
-        description: `Create a comprehensive plan for: ${title}. This task requires careful planning and execution.`,
-        goals: `1. Successfully complete ${title}\n2. Ensure all deliverables meet quality standards\n3. Document the process and outcomes`,
+        description: `Create a comprehensive plan for: ${title}.`,
+        goals: `1. Successfully complete ${title}\n2. Ensure quality\n3. Document outcomes`,
         priority: 3,
         ai_provider: 'fallback',
       };
@@ -671,11 +601,8 @@ export class AiService {
   }> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.aiServiceUrl}/health`, {
-          timeout: 5000, // 5 second timeout
-        }),
+        this.httpService.get(`${this.aiServiceUrl}/health`, { timeout: 5000 }),
       );
-
       const data = response.data;
       return {
         isHealthy: data.status === 'healthy',
@@ -684,14 +611,7 @@ export class AiService {
         error: data[`${data.ai_provider}_error`],
       };
     } catch (error) {
-      this.logger.warn('AI service health check failed:', error.message);
-      this.logger.warn('AI Service URL:', this.aiServiceUrl);
-      return {
-        isHealthy: false,
-        provider: 'unknown',
-        status: 'error',
-        error: error.message,
-      };
+      return { isHealthy: false, provider: 'unknown', status: 'error', error: error.message };
     }
   }
 
@@ -709,11 +629,7 @@ export class AiService {
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/chat`, {
           message,
-          user: {
-            ...user,
-            position: user.position,
-            department: user.department,
-          },
+          user: { ...user, position: user.position, department: user.department },
           conversationHistory,
           knowledgeSources,
           additionalContext,
@@ -726,10 +642,39 @@ export class AiService {
           timeout: 45000,
         }),
       );
+
+      if (info?.companyId && info.companyId !== 'platform') {
+        this.trackUsage(userId, info.companyId, AIFeature.CHAT);
+      }
+
       return response.data;
     } catch (error) {
       this.logger.error('Error in AI chat:', error);
       throw error;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // KNOWLEDGE SOURCES
+  // ─────────────────────────────────────────────────────────────────────────
+
+  private async getActiveKnowledgeSources(userId?: string) {
+    try {
+      const where: any = { isActive: true };
+      if (userId) {
+        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
+        if (user?.companyId) where.companyId = user.companyId;
+      }
+
+      const sources = await this.prisma.knowledgeSource.findMany({
+        where,
+        orderBy: [{ priority: 'desc' }],
+        select: { id: true, name: true, type: true, content: true, priority: true },
+      });
+
+      return sources.map(s => ({ id: s.id, name: s.name, type: s.type, content: s.content, isActive: true, priority: s.priority }));
+    } catch (error) {
+      return [];
     }
   }
 }

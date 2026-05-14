@@ -7,6 +7,7 @@ import { RootState } from '../../store'
 import api from '../../services/api'
 import toast from 'react-hot-toast'
 import { AnimatePresence, motion } from 'framer-motion'
+import { useAiStatus } from '@/hooks/useAiStatus'
 
 interface Message {
   id: string
@@ -47,6 +48,8 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   const [attachments, setAttachments] = useState<any[]>([])
   const [isUploading, setIsUploading] = useState(false)
   const { user } = useSelector((state: RootState) => state.auth)
+  const { aiEnabled, quotaExhausted, resetCountdown } = useAiStatus()
+  const aiBlocked = !aiEnabled || quotaExhausted
 
   // Humanize AI responses by removing markdown formatting
   const humanizeText = (text: string): string => {
@@ -823,9 +826,9 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       value={inputValue}
                       onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
-                      disabled={isTyping || isUploading}
-                      placeholder={isUploading ? "Uploading assets..." : "Leave a message"}
-                      className="w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium"
+                      disabled={isTyping || isUploading || aiBlocked}
+                      placeholder={aiBlocked ? (quotaExhausted ? 'AI quota exhausted — contact your admin' : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
+                      className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
                     />
                     
                     <button
@@ -840,11 +843,12 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   
                   <button
                     onClick={sendMessage}
-                    disabled={(!inputValue.trim() && attachments.length === 0) || isTyping || isUploading}
+                    disabled={(!inputValue.trim() && attachments.length === 0) || isTyping || isUploading || aiBlocked}
+                    title={aiBlocked ? (quotaExhausted ? `Quota exhausted${resetCountdown ? ` — resets in ${resetCountdown}` : ' (free tier — contact admin)'}` : 'AI not enabled') : ''}
                     className={`p-3 rounded-2xl transition-all shadow-md ${
-                      (inputValue.trim() || attachments.length > 0) && !isTyping && !isUploading
+                      (inputValue.trim() || attachments.length > 0) && !isTyping && !isUploading && !aiBlocked
                         ? 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-105 active:scale-95'
-                        : 'bg-gray-100 text-gray-400'
+                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                     }`}
                   >
                     <PaperAirplaneIcon className="w-5 h-5" />
