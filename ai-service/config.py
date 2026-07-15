@@ -61,14 +61,10 @@ class Config:
                 f"Invalid ENVIRONMENT value: {cls.ENVIRONMENT}. "
                 "Must be one of: development, production, testing"
             )
-        
-        # Validate at least one AI key is present (Gemini or Groq)
-        api_keys = cls.get_api_keys()
-        if not api_keys and not cls.GROQ_API_KEY:
-            raise ValueError(
-                "No AI API keys found. Please set GOOGLE_API_KEY or GROQ_API_KEY "
-                "in your .env file or environment variables."
-            )
+
+        # NOTE: AI API keys are NOT read from the environment. Every AI request must
+        # carry a company-specific key assigned via the admin panel. Env keys
+        # (GOOGLE_API_KEY / GROQ_API_KEY) are intentionally never used at runtime.
 
 class DevelopmentConfig(Config):
     """Development configuration"""

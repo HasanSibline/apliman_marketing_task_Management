@@ -30,62 +30,54 @@ class ContentGenerator:
             self._initialize_gemini()
         
     def _initialize_gemini(self):
-        """Initialize Gemini with multiple API keys support"""
+        """Initialize Gemini using ONLY the company-provided API key (no env fallback)."""
         try:
-            # CRITICAL: Use provided API key if available (company-specific)
-            if self.provided_api_key:
-                self.api_keys = [self.provided_api_key]
-                logger.info(f"✅ Gemini initialized with company-provided API key")
+            # The company-specific key is the ONLY key ever used.
+            self.api_keys = [self.provided_api_key] if self.provided_api_key else []
+            if self.api_keys:
+                logger.info("✅ Gemini initialized with company-provided API key")
             else:
-                # Get all available API keys from environment
-                self.api_keys = self.config.get_api_keys()
-                if not self.api_keys:
-                    logger.warning("No Google API keys found in environment variables. Falling back to Groq if key exists.")
-                    if self.config.GROQ_API_KEY:
-                        self.provider = "groq"
-                        self._initialize_groq()
-                        return
-                    else:
-                        raise ContentGeneratorError(
-                            "No AI API keys found. Please set GOOGLE_API_KEY or GROQ_API_KEY."
-                        )
-                logger.info(f"✅ Gemini initialized with {len(self.api_keys)} environment API key(s)")
-                if len(self.api_keys) > 1:
-                    logger.info(f"🔄 Multiple API keys detected - automatic fallback enabled")
-            
+                # No key at construction time (e.g. health check). Do not crash;
+                # request-time calls will raise a clear error instead.
+                logger.warning("Gemini initialized WITHOUT a company key — AI calls will be rejected until a key is provided")
+
             self.current_key_index = 0  # Track which key we're using
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
             self.model = self.config.GEMINI_MODEL
             self.api_type = "gemini"
-            
+
         except Exception as e:
             if not isinstance(e, ContentGeneratorError):
                 raise ContentGeneratorError(f"Failed to initialize Gemini: {str(e)}")
             raise
-    
+
     def _initialize_groq(self):
-        """Initialize Groq cloud API"""
+        """Initialize Groq using ONLY the company-provided API key (no env fallback)."""
         try:
-            self.api_key = self.provided_api_key or self.config.GROQ_API_KEY
+            self.api_key = self.provided_api_key or None
             if not self.api_key:
-                # Fallback to Gemini if no Groq key
-                logger.warning("No Groq API key found. Falling back to Gemini.")
-                self.provider = "gemini"
-                self._initialize_gemini()
-                return
-                
+                logger.warning("Groq initialized WITHOUT a company key — AI calls will be rejected until a key is provided")
+
             self.base_url = "https://api.groq.com/openai/v1"
             self.model = self.config.GROQ_MODEL
             self.api_type = "groq"
             logger.info(f"✅ Groq initialized with model {self.model}")
-            
+
         except Exception as e:
             raise ContentGeneratorError(f"Failed to initialize Groq: {str(e)}")
 
     def _get_current_api_key(self):
         """Get the current API key"""
         if self.api_type == "gemini":
+            if not self.api_keys:
+                raise ContentGeneratorError(
+                    "AI is not configured for your company. Please contact your administrator to add an AI API key."
+                )
             return self.api_keys[self.current_key_index]
+        if not self.api_key:
+            raise ContentGeneratorError(
+                "AI is not configured for your company. Please contact your administrator to add an AI API key."
+            )
         return self.api_key
     
     def _rotate_api_key(self):
@@ -258,26 +250,14 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                     else:
                         error_text = await response.text()
                         logger.error(f"❌ Groq API error ({response.status}): {error_text}")
-                        # ONLY fallback to Gemini if we have Gemini keys AND the user didn't explicitly force Groq
-                        if self.config.get_api_keys() and not self.provided_api_key:
-                            logger.info("🔄 Falling back to Gemini...")
-                            self.api_type = "gemini"
-                            self._initialize_gemini()
-                            return await self._make_gemini_request(prompt)
-                        else:
-                            raise ContentGeneratorError(f"Groq API failure ({response.status}): {error_text}")
+                        # No fallback to env/platform Gemini keys — the company's own key is
+                        # the only key used. Surface the error to the caller.
+                        raise ContentGeneratorError(f"Groq API failure ({response.status}): {error_text}")
         except Exception as e:
             if isinstance(e, ContentGeneratorError):
                 raise
             logger.error(f"❌ Groq request failed: {str(e)}")
-            # ONLY fallback if appropriate
-            if self.config.get_api_keys() and not self.provided_api_key:
-                logger.info("🔄 Falling back to Gemini...")
-                self.api_type = "gemini"
-                self._initialize_gemini()
-                return await self._make_gemini_request(prompt)
-            else:
-                raise ContentGeneratorError(f"Groq request failed: {str(e)}")
+            raise ContentGeneratorError(f"Groq request failed: {str(e)}")
 
     async def _make_gemini_request(self, prompt: str) -> str:
         """Make a request to Gemini API with dynamic company-specific system prompt"""

@@ -29,9 +29,9 @@ pip install -r requirements.txt
 
 if not exist .env (
     echo Creating .env file...
-    echo GOOGLE_API_KEY=gen-lang-client-0151424356> .env
-    echo PORT=8001>> .env
+    echo PORT=8001> .env
     echo ENVIRONMENT=development>> .env
+    echo AI_SERVICE_SECRET=change-this-to-a-strong-random-secret>> .env
 )
 
 echo Starting AI service...

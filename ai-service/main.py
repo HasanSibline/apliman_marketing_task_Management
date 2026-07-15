@@ -62,18 +62,13 @@ web_scraper = WebScraper()
 def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
     """
     Multi-tenant key resolver.
-    Uses the company-specific key passed per-request from NestJS.
-    Falls back to environment key ONLY as a last resort.
-    Returns a clear error if no key is available at all.
+    Uses ONLY the company-specific key passed per-request from NestJS.
+    There are NO environment/platform key fallbacks — a company that has not been
+    assigned a key via the admin panel cannot use AI.
     """
     if provided_key and provided_key.strip():
         logger.info(f"[{endpoint_name}] Using company-provided API key")
         return provided_key.strip()
-    # Last resort: environment fallback (for health checks, unauthenticated paths)
-    env_keys = config.get_api_keys()
-    if env_keys:
-        logger.warning(f"[{endpoint_name}] No company key provided - using env fallback")
-        return env_keys[0]
     raise HTTPException(
         status_code=400,
         detail="AI is not configured for your company. Please contact your administrator to add an AI API key."
@@ -81,30 +76,17 @@ def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
 
 def resolve_api_key_pool(provided_key: str | None, endpoint_name: str, provider: str = "gemini") -> list:
     """
-    Build a ranked pool of API keys for the given provider.
-    Priority: company key(s) first, then env fallbacks.
-    This enables automatic key rotation when one key hits a rate limit.
+    Build a pool of API keys from the company-provided key(s) ONLY.
+    A comma-separated value is supported so a company can supply multiple of its
+    OWN keys for rotation. No environment/platform keys are ever added.
     """
     pool = []
 
-    # 1. Company key from the per-request payload
+    # Company key(s) from the per-request payload — the only source of keys.
     if provided_key and provided_key.strip():
-        # Support comma-separated multi-key strings (future-proof)
         for k in provided_key.split(","):
             k = k.strip()
             if k:
-                pool.append(k)
-
-    # 2. Env-level fallback keys for the same provider
-    if provider == "groq":
-        env_groq = os.getenv("GROQ_API_KEYS", "") or os.getenv("GROQ_API_KEY", "")
-        for k in env_groq.split(","):
-            k = k.strip()
-            if k and k not in pool:
-                pool.append(k)
-    else:
-        for k in config.get_api_keys():
-            if k and k not in pool:
                 pool.append(k)
 
     if not pool:
@@ -113,7 +95,7 @@ def resolve_api_key_pool(provided_key: str | None, endpoint_name: str, provider:
             detail="AI is not configured for your company. Please contact your administrator to add an AI API key."
         )
 
-    logger.info(f"[{endpoint_name}] Key pool built: {len(pool)} key(s) available for rotation")
+    logger.info(f"[{endpoint_name}] Key pool built: {len(pool)} company key(s) available for rotation")
     return pool
 
 @app.get("/health")
@@ -125,27 +107,19 @@ async def health_check():
         memory_info = process.memory_info()
         memory_mb = memory_info.rss / 1024 / 1024
         
-        # Test Gemini connection
-        test_result = None
-        error_message = None
-        try:
-            test_result = await content_generator.generate_description("test task")
-        except Exception as e:
-            error_message = str(e)
-        
-        # Gemini status with multiple keys info
-        api_keys = config.get_api_keys()
+        # NOTE: We do NOT run a live AI generation here. AI keys are per-company and
+        # supplied per-request, so the service being up == healthy. Per-key validity is
+        # checked at request time using the calling company's own key.
         provider_status = {
             "ai_provider": "gemini",
-            "gemini_status": "connected" if test_result else "error",
+            "gemini_status": "ready",
             "gemini_model": config.GEMINI_MODEL,
-            "gemini_error": error_message,
-            "api_keys_configured": len(api_keys),
-            "api_keys_preview": [f"{key[:6]}..." for key in api_keys] if api_keys else []
+            "gemini_error": None,
+            "key_source": "per-company (no environment keys used)",
         }
-        
+
         return {
-            "status": "healthy" if test_result else "degraded",
+            "status": "healthy",
             "timestamp": datetime.utcnow().isoformat(),
             "environment": config.ENVIRONMENT,
             "memory_usage_mb": round(memory_mb, 2),
@@ -282,7 +256,7 @@ async def test_ai(test_text: Optional[str] = "This is a test task"):
             detail={
                 "status": "error",
                 "message": str(e),
-                "ai_provider": config.AI_PROVIDER,
+                "ai_provider": "gemini",
                 "help": help_message
             }
         )
@@ -553,7 +527,7 @@ class LearnFromTasksRequest(BaseModel):
     activeTasks: List[Dict[str, Any]]
     api_key: Optional[str] = None  # Company-specific API key
 
-@app.post("/learn-from-tasks")
+@app.post("/learn-from-tasks", dependencies=[Depends(require_service_token)])
 async def learn_from_tasks(request: LearnFromTasksRequest):
     """Learn from user's task history to extract insights and patterns"""
     try:
@@ -587,7 +561,7 @@ class LearnDomainInterestsRequest(BaseModel):
     existingKnowledge: Dict[str, Any]
     api_key: Optional[str] = None  # Company-specific API key
 
-@app.post("/learn-domain-interests")
+@app.post("/learn-domain-interests", dependencies=[Depends(require_service_token)])
 async def learn_domain_interests(request: LearnDomainInterestsRequest):
     """Learn what the user is interested in regarding specific domains"""
     try:

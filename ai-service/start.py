@@ -54,8 +54,7 @@ def setup_env():
     env_file = Path(".env")
     if not env_file.exists():
         logger.info("Creating .env file...")
-        env_content = """GOOGLE_API_KEY=gen-lang-client-0151424356
-ENVIRONMENT=production
+        env_content = """ENVIRONMENT=production
 PORT=8001
 HOST=0.0.0.0
 LOG_LEVEL=WARNING
@@ -64,7 +63,8 @@ RATE_LIMIT_INTERVAL=60
 MAX_RETRIES=3
 RETRY_DELAY=1
 CACHE_ENABLED=true
-CACHE_TTL=3600"""
+CACHE_TTL=3600
+AI_SERVICE_SECRET=change-this-to-a-strong-random-secret"""
         env_file.write_text(env_content)
 
 def check_dependencies():

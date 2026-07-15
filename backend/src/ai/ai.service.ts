@@ -200,8 +200,10 @@ export class AiService {
 
   /**
    * Get company's AI info for a given user.
-   * Company users: only their company's key — no env fallbacks.
-   * Super admins: env-level key only.
+   * AI is STRICTLY per-company: the only key ever used is the one a super admin
+   * added for that user's company via the admin panel. There are NO environment,
+   * platform, or hardcoded key fallbacks anywhere.
+   * Users without a company (e.g. super admins) do not get AI.
    */
   private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string; provider: string; companyId: string } | null> {
     if (!userId) {
@@ -214,14 +216,11 @@ export class AiService {
       select: { companyId: true, role: true, name: true },
     });
 
-    // SUPER ADMIN: use env key only, no company key borrowing
+    // Users without a company (super admins) do NOT get AI.
+    // AI keys are assigned per-company through the admin panel only.
     if (!user?.companyId) {
-      const superAdminApiKey = this.configService.get<string>('AI_API_KEY');
-      const superAdminProvider = this.configService.get<string>('AI_PROVIDER') || 'gemini';
-      if (superAdminApiKey) {
-        return { apiKey: superAdminApiKey, companyName: 'Platform', provider: superAdminProvider, companyId: 'platform' };
-      }
-      throw new Error('AI is not available. Please configure an AI API key for the platform.');
+      this.logger.warn('AI requested by a user with no company (e.g. super admin) — AI is only available to companies with an assigned key');
+      return null;
     }
 
     const company = await this.prisma.company.findUnique({
@@ -478,6 +477,7 @@ export class AiService {
   }> {
     try {
       const info = await this.getCompanyAiInfo(userId);
+      if (!info) return { completenessScore: 0.5, suggestions: ['AI is not enabled for your company.'], isComplete: false };
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/check-completeness`, {
           description: taskDescription,
@@ -506,6 +506,7 @@ export class AiService {
   }> {
     try {
       const info = await this.getCompanyAiInfo(userId);
+      if (!info) return { insights: ['AI is not enabled for your company.'], recommendations: ['Ask your administrator to add an AI API key.'], trends: [] };
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/performance-insights`, {
           analytics: analyticsData,
@@ -525,6 +526,7 @@ export class AiService {
   async detectTaskType(title: string, userId?: string): Promise<{ task_type: string; ai_provider: string }> {
     try {
       const info = await this.getCompanyAiInfo(userId);
+      if (!info) return { task_type: 'GENERAL', ai_provider: 'fallback' };
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
           title,
@@ -544,6 +546,7 @@ export class AiService {
   async extractTextFromFile(filePath: string, mimeType: string, userId?: string): Promise<string> {
     try {
       const info = await this.getCompanyAiInfo(userId);
+      if (!info) return 'Unable to extract text from file.';
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/extract-text`, {
           file_path: filePath,
@@ -566,12 +569,20 @@ export class AiService {
   }> {
     try {
       const info = await this.getCompanyAiInfo(userId);
+      if (!info) {
+        return {
+          description: `Create a comprehensive plan for: ${title}.`,
+          goals: `1. Successfully complete ${title}\n2. Ensure quality\n3. Document outcomes`,
+          priority: 3,
+          ai_provider: 'fallback',
+        };
+      }
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
           title,
           type: 'task',
-          api_key: info?.apiKey,
-          provider: info?.provider,
+          api_key: info.apiKey,
+          provider: info.provider,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000,
@@ -626,6 +637,9 @@ export class AiService {
   ): Promise<any> {
     try {
       const info = await this.getCompanyAiInfo(userId);
+      if (!info) {
+        throw new HttpException('AI is not enabled for your company. Please ask your administrator to add an AI API key.', 403);
+      }
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/chat`, {
           message,
@@ -633,9 +647,9 @@ export class AiService {
           conversationHistory,
           knowledgeSources,
           additionalContext,
-          api_key: info?.apiKey,
-          provider: info?.provider,
-          companyName: info?.companyName,
+          api_key: info.apiKey,
+          provider: info.provider,
+          companyName: info.companyName,
           files,
         }, {
           headers: this.aiServiceHeaders,

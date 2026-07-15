@@ -177,20 +177,14 @@ class ChatService:
                 full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
                 response_text = await self._generate_via_groq(full_prompt)
             else:
-                # Fallback mechanism: Groq lacks native multimodal vision endpoints.
+                # Groq lacks native multimodal vision endpoints. We do NOT fall back to
+                # any platform/env key — the company must supply a Gemini key to use images.
                 if self.provider == "groq" and has_media:
-                    logger.warning("Visual files attached! Groq lacks vision. Falling back to Gemini.")
-                    from config import get_config
-                    config_instance = get_config()
-                    self.model_name = config_instance.GEMINI_MODEL
-                    self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-                    
-                    fallback_keys = config_instance.get_api_keys()
-                    if fallback_keys:
-                        self.api_key = fallback_keys[0]
-                        self.api_keys = fallback_keys
-                    else:
-                        raise Exception("Company uses Groq but attached a file. System requires GOOGLE_API_KEY environment variable for Gemini Vision Fallback!")
+                    raise Exception(
+                        "Image attachments require a Google Gemini API key. Your company is configured "
+                        "with Groq, which does not support images. Please ask your administrator to set a "
+                        "Gemini key for image support."
+                    )
 
                 if self.api_key and self.api_key.startswith("gsk_") and "generativelanguage" in self.base_url:
                     raise Exception("A Groq API key is being inappropriately sent to Google's Gemini endpoint. Please check system fallback keys.")
@@ -205,31 +199,10 @@ class ChatService:
                         user_token=user_token
                     )
                 except Exception as rest_e:
-                    error_msg = str(rest_e)
-                    # CROSS-PROVIDER HOT SWAP: If Gemini entirely ran out of quota (429) and NO literal images are attached (has_media=False)
-                    if "429" in error_msg and not has_media:
-                        logger.critical("⚠️ Google Gemini hit a Hard 429 Rate Limit! Attempting violent cross-provider failover to Groq (Llama-3)...")
-                        
-                        # Dynamically aggressively extract Groq keys to save the response
-                        import os
-                        groq_keys = os.getenv("GROQ_API_KEYS", "").split(",")
-                        if not groq_keys or not groq_keys[0].strip():
-                            groq_keys = [os.getenv("GROQ_API_KEY", "")]
-                            
-                        groq_key = groq_keys[0].strip() if groq_keys and groq_keys[0].strip() else None
-                        
-                        if groq_key:
-                            self.api_key = groq_key
-                            self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-                            self.base_url = "https://api.groq.com/openai/v1"
-                            logger.info(f"🔄 Cross-Provider Failover Initialized using {self.model_name}")
-                            
-                            full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
-                            response_text = await self._generate_via_groq(full_prompt)
-                        else:
-                            raise rest_e # Give up if no Groq keys loaded natively
-                    else:
-                        raise rest_e # Propagate if not a 429 or requires vision
+                    # No cross-provider/platform-key failover: the company's own key is the
+                    # only key used. If it hits a rate limit, surface the error so the client
+                    # sees a clear "quota exceeded — contact your administrator" message.
+                    raise rest_e
                 
             response_text = response_text.strip()
 
@@ -555,27 +528,9 @@ class ChatService:
                 self._rotate_api_key()
                 continue
 
-        # All keys exhausted — attempt Groq cross-provider failover for text-only requests
-        if not any(p.get("inlineData") for p in parts):  # No binary vision parts
-            groq_keys_raw = os.getenv("GROQ_API_KEYS", "") or os.getenv("GROQ_API_KEY", "")
-            groq_keys = [k.strip() for k in groq_keys_raw.split(",") if k.strip()]
-            if groq_keys:
-                logger.critical(f"🆘 All Gemini keys exhausted. Last-resort Groq failover with {len(groq_keys)} key(s)...")
-                old_key, old_model, old_url = self.api_key, self.model_name, self.base_url
-                for groq_key in groq_keys:
-                    try:
-                        self.api_key = groq_key
-                        self.model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-                        self.base_url = "https://api.groq.com/openai/v1"
-                        text_parts = [p for p in parts if "text" in p]
-                        combined = "\n".join(p["text"] for p in text_parts)
-                        return await self._generate_via_groq(combined)
-                    except Exception as groq_err:
-                        logger.error(f"Groq failover failed with key: {str(groq_err)[:100]}")
-                # Restore state if all Groq keys failed
-                self.api_key, self.model_name, self.base_url = old_key, old_model, old_url
-
-        raise Exception(f"AI quota exhausted on all {len(self.api_keys)} key(s) after {attempts} attempt(s). Last error: {last_error}")
+        # All of the company's own key(s) are exhausted. We do NOT fail over to any
+        # platform/env key or other provider — surface the quota error to the client.
+        raise Exception(f"AI quota exhausted on all {len(self.api_keys)} company key(s) after {attempts} attempt(s). Last error: {last_error}")
 
 
     def _build_system_prompt(
