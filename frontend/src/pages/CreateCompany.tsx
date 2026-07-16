@@ -719,10 +719,9 @@ export default function CreateCompany() {
                       <label className="block text-sm font-bold text-gray-700 mb-2">Primary AI Provider</label>
                       <select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
                         className="select-field w-full text-sm">
-                        <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal support)</option>
-                        <option value="groq">Groq — Llama 3 (High speed text; images auto-fallback to Gemini)</option>
-                        <option value="openai">OpenAI (Routes via Gemini fallback)</option>
-                        <option value="anthropic">Anthropic Claude (Routes via Gemini fallback)</option>
+                        <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal / image support)</option>
+                        <option value="groq">Groq — Llama 3 (Text only)</option>
+                        <option value="openai">OpenAI — GPT-4o mini (Text only)</option>
                       </select>
                     </div>
                   </div>

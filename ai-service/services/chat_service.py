@@ -26,6 +26,9 @@ class ChatService:
         if self.provider == "groq":
             self.model_name = self.config.GROQ_MODEL
             self.base_url = "https://api.groq.com/openai/v1"
+        elif self.provider == "openai":
+            self.model_name = self.config.OPENAI_MODEL
+            self.base_url = "https://api.openai.com/v1"
         else:
             self.model_name = self.config.GEMINI_MODEL
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
@@ -172,18 +175,19 @@ class ChatService:
             )
 
             # Generate response via appropriate provider
-            if self.provider == "groq" and not has_media:
-                # For Groq, we still use a flattened prompt for now (it has the appended document text!)
+            if self.provider in ("groq", "openai") and not has_media:
+                # Groq and OpenAI share the OpenAI-compatible chat API. We flatten the
+                # prompt (it already includes any appended document text).
                 full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
-                response_text = await self._generate_via_groq(full_prompt)
+                response_text = await self._generate_via_openai_compatible(full_prompt)
             else:
-                # Groq lacks native multimodal vision endpoints. We do NOT fall back to
-                # any platform/env key — the company must supply a Gemini key to use images.
-                if self.provider == "groq" and has_media:
+                # Only Gemini handles image attachments here. Groq/OpenAI text models used
+                # in this deployment don't do vision, and we never fall back to a platform key.
+                if self.provider in ("groq", "openai") and has_media:
                     raise Exception(
-                        "Image attachments require a Google Gemini API key. Your company is configured "
-                        "with Groq, which does not support images. Please ask your administrator to set a "
-                        "Gemini key for image support."
+                        f"Image attachments require a Google Gemini API key. Your company is configured "
+                        f"with {self.provider}, which is set up for text only here. Please ask your "
+                        f"administrator to use a Gemini key for image support."
                     )
 
                 if self.api_key and self.api_key.startswith("gsk_") and "generativelanguage" in self.base_url:
@@ -246,8 +250,8 @@ class ChatService:
                 "learnedContext": None
             }
 
-    async def _generate_via_groq(self, prompt: str) -> str:
-        """Make a request to Groq API (OpenAI compatible)"""
+    async def _generate_via_openai_compatible(self, prompt: str) -> str:
+        """Make a request to an OpenAI-compatible chat API (Groq or OpenAI)."""
         url = f"{self.base_url}/chat/completions"
         
         payload = {
@@ -273,10 +277,10 @@ class ChatService:
                         return data['choices'][0]['message']['content']
                     else:
                         error_text = await response.text()
-                        logger.error(f"❌ Groq Chat API error ({response.status}): {error_text}")
-                        raise Exception(f"Groq API failure ({response.status}): {error_text}")
+                        logger.error(f"❌ {self.provider} Chat API error ({response.status}): {error_text}")
+                        raise Exception(f"{self.provider} API failure ({response.status}): {error_text}")
         except Exception as e:
-            logger.error(f"❌ Groq Chat request failed: {str(e)}")
+            logger.error(f"❌ {self.provider} Chat request failed: {str(e)}")
             raise e
 
     async def _generate_via_rest(

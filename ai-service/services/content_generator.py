@@ -26,6 +26,8 @@ class ContentGenerator:
         
         if self.provider == "groq":
             self._initialize_groq()
+        elif self.provider == "openai":
+            self._initialize_openai()
         else:
             self._initialize_gemini()
         
@@ -65,6 +67,21 @@ class ContentGenerator:
 
         except Exception as e:
             raise ContentGeneratorError(f"Failed to initialize Groq: {str(e)}")
+
+    def _initialize_openai(self):
+        """Initialize OpenAI using ONLY the company-provided API key (no env fallback)."""
+        try:
+            self.api_key = self.provided_api_key or None
+            if not self.api_key:
+                logger.warning("OpenAI initialized WITHOUT a company key — AI calls will be rejected until a key is provided")
+
+            self.base_url = "https://api.openai.com/v1"
+            self.model = self.config.OPENAI_MODEL
+            self.api_type = "openai"
+            logger.info(f"✅ OpenAI initialized with model {self.model}")
+
+        except Exception as e:
+            raise ContentGeneratorError(f"Failed to initialize OpenAI: {str(e)}")
 
     def _get_current_api_key(self):
         """Get the current API key"""
@@ -212,12 +229,12 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
 
     async def _make_request(self, prompt: str) -> str:
         """Make a request to the appropriate AI API"""
-        if self.api_type == "groq":
-            return await self._make_groq_request(prompt)
+        if self.api_type in ("groq", "openai"):
+            return await self._make_openai_compatible_request(prompt)
         return await self._make_gemini_request(prompt)
 
-    async def _make_groq_request(self, prompt: str) -> str:
-        """Make a request to Groq cloud API (OpenAI compatible)"""
+    async def _make_openai_compatible_request(self, prompt: str) -> str:
+        """Make a request to an OpenAI-compatible chat API (Groq or OpenAI)."""
         url = f"{self.base_url}/chat/completions"
         
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
@@ -249,15 +266,15 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                         return data['choices'][0]['message']['content']
                     else:
                         error_text = await response.text()
-                        logger.error(f"❌ Groq API error ({response.status}): {error_text}")
-                        # No fallback to env/platform Gemini keys — the company's own key is
+                        logger.error(f"❌ {self.provider} API error ({response.status}): {error_text}")
+                        # No fallback to env/platform keys — the company's own key is
                         # the only key used. Surface the error to the caller.
-                        raise ContentGeneratorError(f"Groq API failure ({response.status}): {error_text}")
+                        raise ContentGeneratorError(f"{self.provider} API failure ({response.status}): {error_text}")
         except Exception as e:
             if isinstance(e, ContentGeneratorError):
                 raise
-            logger.error(f"❌ Groq request failed: {str(e)}")
-            raise ContentGeneratorError(f"Groq request failed: {str(e)}")
+            logger.error(f"❌ {self.provider} request failed: {str(e)}")
+            raise ContentGeneratorError(f"{self.provider} request failed: {str(e)}")
 
     async def _make_gemini_request(self, prompt: str) -> str:
         """Make a request to Gemini API with dynamic company-specific system prompt"""
