@@ -179,7 +179,7 @@ const UsersPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl font-black text-gray-900 tracking-tight font-outfit">Identity & Logistics</h1>
-          <p className="text-[10px] font-black text-gray-400 mt-1 uppercase tracking-[0.2em] italic underline decoration-gray-100 italic">
+          <p className="text-[11px] font-black text-gray-400 mt-1 uppercase tracking-[0.2em] italic underline decoration-gray-100 italic">
             Company Personnel Hub & Tactical Structure
           </p>
         </div>
@@ -190,7 +190,7 @@ const UsersPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-6 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+              className={`flex items-center px-6 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${
                 activeTab === tab.id
                   ? 'bg-white text-primary-600 border border-gray-100'
                   : 'text-gray-400 hover:text-gray-600'
@@ -208,7 +208,7 @@ const UsersPage: React.FC = () => {
           {(user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'ADMIN') && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-primary-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 flex items-center transition-all"
+              className="px-6 py-3 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-primary-700 flex items-center transition-all"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Onboard Personnel

@@ -157,17 +157,17 @@ const TicketsPage: React.FC = () => {
   const getStatusBadge = (ticket: any) => {
     switch (ticket.status as TicketStatus) {
       case 'PENDING_REC_MGR': 
-        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Pending Approval</span>
-      case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-blue-100">Open</span>
+        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Pending Approval</span>
+      case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-blue-100">Open</span>
       case 'ASSIGNED': 
         const acceptedCount = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
         return (
-          <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-indigo-100 italic">
+          <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-indigo-100 italic">
             Assigned: {acceptedCount > 1 ? `${acceptedCount} Specialists` : (ticket.assignee?.name || '1 Specialist')}
           </span>
         )
-      case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-emerald-100">Resolved</span>
-      case 'CANCELLED': return <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-lg text-[9px] font-black uppercase tracking-[0.1em] border border-rose-100">Cancelled</span>
+      case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-emerald-100">Resolved</span>
+      case 'CANCELLED': return <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-rose-100">Cancelled</span>
       default: return null
     }
   }
@@ -180,7 +180,7 @@ const TicketsPage: React.FC = () => {
       <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-sm border border-primary-500/20 relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <div className="flex items-center gap-2 mb-2 font-bold text-primary-100 uppercase tracking-widest text-[10px]">
+            <div className="flex items-center gap-2 mb-2 font-bold text-primary-100 uppercase tracking-widest text-[11px]">
               <TicketIcon className="h-4 w-4" />
               Logistics Hub
             </div>
@@ -207,7 +207,7 @@ const TicketsPage: React.FC = () => {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 shadow-sm animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            <h3 className="text-[10px] font-black text-amber-800 uppercase tracking-widest leading-none">Pending Requests</h3>
+            <h3 className="text-[11px] font-black text-amber-800 uppercase tracking-widest leading-none">Pending Requests</h3>
           </div>
           <div className="space-y-3">
             {tickets.filter(t => t.assignments?.some((a: any) => a.userId === user?.id && a.status === 'PENDING')).map(ticket => (
@@ -217,21 +217,21 @@ const TicketsPage: React.FC = () => {
                       <TicketIcon className="h-5 w-5 text-amber-600" />
                    </div>
                    <div className="min-w-0">
-                      <p className="text-[10px] font-black text-amber-600 uppercase tracking-tight mb-0.5">{ticket.ticketNumber}</p>
+                      <p className="text-[11px] font-black text-amber-600 uppercase tracking-tight mb-0.5">{ticket.ticketNumber}</p>
                       <h4 className="text-sm font-black text-gray-900 truncate max-w-md">{ticket.title}</h4>
-                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Invited by {ticket.requester?.name}</p>
+                      <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1">Invited by {ticket.requester?.name}</p>
                    </div>
                 </div>
                 <div className="flex items-center gap-2">
                    <button 
                      onClick={(e) => { e.stopPropagation(); promptAction(e, 'accept_invite', ticket.id); }}
-                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 flex items-center gap-2"
+                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 flex items-center gap-2"
                    >
                      <CheckCircleIcon className="h-4 w-4" /> Access
                    </button>
                    <button 
                      onClick={(e) => { e.stopPropagation(); promptAction(e, 'decline_invite', ticket.id); }}
-                     className="px-4 py-2 bg-white text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center gap-2"
+                     className="px-4 py-2 bg-white text-rose-600 border border-rose-100 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center gap-2"
                    >
                      <XCircleIcon className="h-4 w-4" /> Decline
                    </button>

@@ -453,7 +453,7 @@ export default function CreateCompany() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className={`text-[10px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
+                <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
                   ${formData.subscriptionPlan === 'FREE_TRIAL' ? 'bg-purple-100 text-purple-700' : ''}
                   ${formData.subscriptionPlan === 'PRO' ? 'bg-blue-100 text-blue-700' : ''}
                   ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' : ''}`}>
@@ -491,7 +491,7 @@ export default function CreateCompany() {
                       ${step < s.id ? 'bg-white text-gray-300 border border-gray-100' : ''}`}>
                       {step > s.id ? '✓' : <s.icon className="h-5 w-5" />}
                     </div>
-                    <span className={`absolute -bottom-7 whitespace-nowrap text-[10px] font-black uppercase tracking-widest transition-colors
+                    <span className={`absolute -bottom-7 whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-colors
                       ${step === s.id ? 'text-blue-600' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'}`}>
                       {s.label}
                     </span>
@@ -647,7 +647,7 @@ export default function CreateCompany() {
                             ? 'border-blue-600 bg-blue-50/30'
                             : 'border-gray-100 bg-gray-50/50 hover:border-gray-300 hover:bg-white'}`}
                       >
-                        <div className={`text-[10px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
+                        <div className={`text-[11px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
                           ${plan === 'FREE_TRIAL' ? 'bg-purple-600 text-white shadow-sm' :
                             plan === 'PRO' ? 'bg-blue-600 text-white shadow-sm' :
                               'bg-amber-100 text-amber-700'}`}>
@@ -729,7 +729,7 @@ export default function CreateCompany() {
 
                 {/* Resource Limits List (Style Match) */}
                 <div className="rounded-2xl border border-gray-100 bg-gray-50 p-6">
-                  <p className="text-[10px] font-bold text-gray-400 mb-5 uppercase tracking-widest">
+                  <p className="text-[11px] font-bold text-gray-400 mb-5 uppercase tracking-widest">
                     Plan Resources: {formData.subscriptionPlan}
                   </p>
                   <div className="grid grid-cols-3 gap-4">
@@ -741,7 +741,7 @@ export default function CreateCompany() {
                       <div key={label} className="flex flex-col items-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-blue-200 transition-colors">
                         <div className="mb-2 p-2 bg-gray-50 rounded-xl">{icon}</div>
                         <span className="text-lg font-black text-gray-900 tracking-tight">{value}</span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase">{label}</span>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase">{label}</span>
                       </div>
                     ))}
                   </div>
@@ -766,7 +766,7 @@ export default function CreateCompany() {
                       { label: 'Support', value: 'Standard', color: 'text-gray-400' },
                     ].map(({ label, value, required, color, weight }) => (
                       <div key={label} className="flex flex-col border-b border-gray-50 pb-2">
-                        <span className="text-gray-400 text-[10px] font-bold uppercase tracking-tight">{label}</span>
+                        <span className="text-gray-400 text-[11px] font-bold uppercase tracking-tight">{label}</span>
                         <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800'} ${required && !value ? 'text-red-500' : ''}`}>
                           {value || (required ? '⚠ REQUIRED' : '—')}
                         </span>

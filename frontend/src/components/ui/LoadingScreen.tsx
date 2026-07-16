@@ -1,5 +1,6 @@
 import React from 'react'
 import { motion } from 'framer-motion'
+import { BRAND } from '@/config/brand'
 
 const LoadingScreen: React.FC = () => {
   return (
@@ -8,7 +9,7 @@ const LoadingScreen: React.FC = () => {
         <div className="text-center">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">TaskFlow</h1>
+            <h1 className="text-3xl font-bold text-gray-800">{BRAND.name}</h1>
           </div>
 
           {/* Loading Animation */}
@@ -44,7 +45,7 @@ const LoadingScreen: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <h2 className="text-xl font-semibold text-gray-800 mb-2">
-              Loading Task Management System
+              Loading {BRAND.fullName}
             </h2>
             <p className="text-gray-600 text-sm">
               Preparing your workspace...

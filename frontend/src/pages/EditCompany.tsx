@@ -378,22 +378,22 @@ export default function EditCompany() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Users</label>
+                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Users</label>
                   <input type="number" name="maxUsers" value={formData.maxUsers} onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
-                  <p className="text-[10px] text-gray-400 mt-1">(-1 for unlimited)</p>
+                  <p className="text-[11px] text-gray-400 mt-1">(-1 for unlimited)</p>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Tasks</label>
+                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Tasks</label>
                   <input type="number" name="maxTasks" value={formData.maxTasks} onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
-                  <p className="text-[10px] text-gray-400 mt-1">(-1 for unlimited)</p>
+                  <p className="text-[11px] text-gray-400 mt-1">(-1 for unlimited)</p>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Storage (GB)</label>
+                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Storage (GB)</label>
                   <input type="number" name="maxStorage" value={formData.maxStorage} onChange={handleChange}
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
-                  <p className="text-[10px] text-gray-400 mt-1">(-1 for unlimited)</p>
+                  <p className="text-[11px] text-gray-400 mt-1">(-1 for unlimited)</p>
                 </div>
               </div>
             </div>

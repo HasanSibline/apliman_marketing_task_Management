@@ -579,7 +579,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 tracking-tight">ApliChat</h2>
-                    <p className="text-[9px] font-bold text-gray-400 tracking-wider uppercase italic">Intelligence Hub</p>
+                    <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase italic">Intelligence Hub</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -642,7 +642,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border ${
                       message.role === 'user' ? 'bg-primary-600 text-white border-primary-500' : 'bg-white text-secondary-600 border-gray-100'
                     }`}>
-                      {message.role === 'user' ? <span className="text-[10px] font-black">{getInitials(user?.name)}</span> : <CpuChipIcon className="w-5 h-5" />}
+                      {message.role === 'user' ? <span className="text-[11px] font-black">{getInitials(user?.name)}</span> : <CpuChipIcon className="w-5 h-5" />}
                     </div>
                     
                     <div className={`flex flex-col max-w-[82%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -687,7 +687,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                                 key={i} 
                                 title={file.name}
                                 onClick={() => window.open(file.url, '_blank')}
-                                className={`flex items-center gap-1.5 p-1 pr-2.5 rounded-lg text-[10px] cursor-pointer transition-all border ${
+                                className={`flex items-center gap-1.5 p-1 pr-2.5 rounded-lg text-[11px] cursor-pointer transition-all border ${
                                   message.role === 'user' 
                                     ? 'bg-primary-700/60 border-primary-500/50 hover:bg-primary-700' 
                                     : 'bg-gray-50 border-gray-100 hover:border-gray-200'
@@ -706,7 +706,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                           </div>
                         )}
                       </div>
-                      <span className={`text-[9px] mt-1 font-black uppercase tracking-widest opacity-60 ${message.role === 'user' ? 'mr-1' : 'ml-1'}`}>
+                      <span className={`text-[11px] mt-1 font-black uppercase tracking-widest opacity-60 ${message.role === 'user' ? 'mr-1' : 'ml-1'}`}>
                         {formatTime(message.createdAt)}
                       </span>
                     </div>
@@ -751,7 +751,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       className="absolute left-4 right-4 bottom-full mb-3 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-20 max-h-40"
                     >
                       <div className="p-2 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
-                        <span className="text-[9px] font-black text-gray-400 tracking-widest uppercase">
+                        <span className="text-[11px] font-black text-gray-400 tracking-widest uppercase">
                           Select {suggestionType === 'user' ? 'a Team Member' : suggestionType === 'task' ? 'a Task' : 'a Ticket'}
                         </span>
                       </div>
@@ -765,7 +765,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                             <span className="text-gray-700 font-medium group-hover:text-primary-700 truncate max-w-[200px]">
                               {suggestionType === 'user' ? item.name : suggestionType === 'task' ? item.title : item.title}
                             </span>
-                            <span className="text-[10px] font-black text-gray-300 group-hover:text-primary-300">
+                            <span className="text-[11px] font-black text-gray-300 group-hover:text-primary-300">
                               {suggestionType === 'user' ? item.email : suggestionType === 'task' ? (item.taskNumber || 'TSK') : item.ticketNumber}
                             </span>
                           </button>
@@ -803,7 +803,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                             )}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-gray-700 truncate max-w-[90px]">{file.name}</span>
+                            <span className="text-[11px] font-black text-gray-700 truncate max-w-[90px]">{file.name}</span>
                             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Ready to analyze</span>
                           </div>
                           <button 
@@ -885,7 +885,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
             <div className="flex flex-col gap-2.5">
               <button
                 onClick={confirmClose}
-                className="w-full px-5 py-3.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-red-100"
+                className="w-full px-5 py-3.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-red-100"
               >
                 End & Reset Session
               </button>
@@ -894,13 +894,13 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   setShowConfirmClose(false)
                   onClose()
                 }}
-                className="w-full px-5 py-3.5 bg-gray-50 text-gray-700 border border-gray-100 rounded-xl hover:bg-gray-100 transition-all font-black uppercase tracking-[0.2em] text-[10px]"
+                className="w-full px-5 py-3.5 bg-gray-50 text-gray-700 border border-gray-100 rounded-xl hover:bg-gray-100 transition-all font-black uppercase tracking-[0.2em] text-[11px]"
               >
                 Just Close Window
               </button>
               <button
                 onClick={cancelClose}
-                className="w-full py-2 text-gray-400 hover:text-gray-600 font-bold text-[10px] uppercase tracking-widest transition-colors mt-2"
+                className="w-full py-2 text-gray-400 hover:text-gray-600 font-bold text-[11px] uppercase tracking-widest transition-colors mt-2"
               >
                 Return to Chat
               </button>

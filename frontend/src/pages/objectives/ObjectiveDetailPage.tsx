@@ -198,7 +198,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                     <span className="text-xl font-black text-primary-900">{obj.progress}%</span>
                                 </div>
                             </div>
-                            <span className="text-[10px] font-bold uppercase tracking-widest text-primary-600">Overall Progress</span>
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-primary-600">Overall Progress</span>
                         </div>
                     </div>
                 </div>
@@ -243,7 +243,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                 <div className="flex items-start justify-between">
                                                     <div className="space-y-1">
                                                         <h4 className="text-sm font-black text-gray-900 group-hover:text-primary-600 transition-colors uppercase tracking-tight leading-tight">{kr.title}</h4>
-                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Target: {kr.targetValue} {kr.unit}</p>
+                                                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Target: {kr.targetValue} {kr.unit}</p>
                                                     </div>
                                                     {canEdit && (
                                                         <button
@@ -265,7 +265,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                                 {isDone ? 'Goal Achieved' : `${Math.round(progressPct)}% Progress`}
                                                             </span>
                                                             <span className="text-lg font-black text-gray-900">
-                                                                {kr.currentValue} <span className="text-[10px] font-bold text-gray-400 tracking-tight">{kr.unit}</span>
+                                                                {kr.currentValue} <span className="text-[11px] font-bold text-gray-400 tracking-tight">{kr.unit}</span>
                                                             </span>
                                                         </div>
                                                         <div className="h-3 bg-gray-100/50 rounded-full overflow-hidden p-[2px] border border-gray-50/50">
@@ -330,7 +330,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                 <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                                     {task.currentPhase ? (
                                                         <span 
-                                                            className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm"
+                                                            className="text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm"
                                                             style={{ 
                                                                 backgroundColor: `${task.currentPhase.color}15`, 
                                                                 color: task.currentPhase.color,
@@ -340,20 +340,20 @@ const ObjectiveDetailPage: React.FC = () => {
                                                             {task.currentPhase.name}
                                                         </span>
                                                     ) : (
-                                                        <span className="text-[10px] font-bold text-gray-400 px-1.5 py-0.5 bg-white border border-gray-200 rounded uppercase tracking-wider">
+                                                        <span className="text-[11px] font-bold text-gray-400 px-1.5 py-0.5 bg-white border border-gray-200 rounded uppercase tracking-wider">
                                                             {task.phase.replace(/_/g, ' ')}
                                                         </span>
                                                     )}
                                                     
                                                     {task.assignedTo && (
-                                                        <div className="flex items-center gap-1 text-[10px] text-gray-500 font-semibold bg-gray-100 px-1.5 py-0.5 rounded-md">
+                                                        <div className="flex items-center gap-1 text-[11px] text-gray-500 font-semibold bg-gray-100 px-1.5 py-0.5 rounded-md">
                                                             <UserCircleIcon className="h-3 w-3" />
                                                             {task.assignedTo.name}
                                                         </div>
                                                     )}
 
                                                     {task.dueDate && (
-                                                        <span className="text-[10px] text-gray-400 flex items-center gap-1 font-medium bg-gray-50 px-1.5 py-0.5 rounded-md border border-gray-100">
+                                                        <span className="text-[11px] text-gray-400 flex items-center gap-1 font-medium bg-gray-50 px-1.5 py-0.5 rounded-md border border-gray-100">
                                                             <CalendarIconOutline className="h-3 w-3 text-gray-300" />
                                                             {new Date(task.dueDate).toLocaleDateString()}
                                                         </span>

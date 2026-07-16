@@ -89,7 +89,7 @@ const Header: React.FC = () => {
               />
               <div className="hidden md:block text-left">
                 <p className="text-sm font-black text-gray-900 tracking-tight leading-none">{user?.name}</p>
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.position || user?.role?.replace('_', ' ')}</p>
+                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.position || user?.role?.replace('_', ' ')}</p>
               </div>
             </Menu.Button>
 
@@ -104,7 +104,7 @@ const Header: React.FC = () => {
             >
               <Menu.Items className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden border border-gray-100 p-2">
                 <div className="px-4 py-3 border-b border-gray-50 mb-1">
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Signed in as</p>
+                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">Signed in as</p>
                    <p className="text-sm font-black text-gray-900 truncate">{user?.email}</p>
                 </div>
                 <Menu.Item>

@@ -138,7 +138,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                                         <motion.div 
                                             key={t.id}
                                             whileHover={{ x: 2 }}
-                                            className="text-[10px] font-bold leading-tight p-2.5 bg-white text-gray-700 rounded-xl border border-gray-100 shadow-sm hover:border-primary-200 hover:text-primary-700 transition"
+                                            className="text-[11px] font-bold leading-tight p-2.5 bg-white text-gray-700 rounded-xl border border-gray-100 shadow-sm hover:border-primary-200 hover:text-primary-700 transition"
                                             title={t.title}
                                         >
                                             <div className="flex items-center gap-1.5">
@@ -208,7 +208,7 @@ const QuarterDetailPage: React.FC = () => {
                 {quarter.status === 'CLOSED' && (
                     <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-full">
                         <ArchiveBoxIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Historical Record &middot; Read Only</span>
+                        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Historical Record &middot; Read Only</span>
                     </div>
                 )}
             </div>
@@ -313,13 +313,13 @@ const QuarterDetailPage: React.FC = () => {
                                         <span className="text-sm font-bold text-gray-800 group-hover:text-primary-600 truncate">{task.title}</span>
                                         {task.currentPhase ? (
                                             <span 
-                                                className="text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter"
+                                                className="text-[11px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter"
                                                 style={{ backgroundColor: `${task.currentPhase.color}20`, color: task.currentPhase.color }}
                                             >
                                                 {task.currentPhase.name}
                                             </span>
                                         ) : (
-                                            <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter ml-2 bg-white px-1.5 py-0.5 rounded border border-gray-100">
+                                            <span className="text-[11px] font-black text-gray-400 uppercase tracking-tighter ml-2 bg-white px-1.5 py-0.5 rounded border border-gray-100">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         )}
@@ -336,7 +336,7 @@ const QuarterDetailPage: React.FC = () => {
                             <Link key={obj.id} to={`/objectives/${obj.id}`} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-primary-300 transition-all group">
                                 <div className="flex items-start justify-between mb-3">
                                     <h4 className="font-bold text-gray-900 group-hover:text-primary-600">{obj.title}</h4>
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${obj.status === 'ON_TRACK' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${obj.status === 'ON_TRACK' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                                         {obj.status}
                                     </span>
                                 </div>
@@ -354,7 +354,7 @@ const QuarterDetailPage: React.FC = () => {
             {activeTab === 'tasks' && (
                 <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
                     <table className="min-w-full w-full text-left table-fixed">
-                        <thead className="bg-gray-50 text-[10px] font-black uppercase text-gray-400 border-b border-gray-100 tracking-widest">
+                        <thead className="bg-gray-50 text-[11px] font-black uppercase text-gray-400 border-b border-gray-100 tracking-widest">
                             <tr>
                                 <th className="px-6 py-4 w-[40%]">Task Name</th>
                                 <th className="px-6 py-4 w-[20%]">Phase</th>
@@ -370,13 +370,13 @@ const QuarterDetailPage: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {task.currentPhase ? (
                                             <span 
-                                                className="text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider block w-max"
+                                                className="text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider block w-max"
                                                 style={{ backgroundColor: `${task.currentPhase.color}15`, color: task.currentPhase.color, border: `1px solid ${task.currentPhase.color}30` }}
                                             >
                                                 {task.currentPhase.name}
                                             </span>
                                         ) : (
-                                            <span className="text-[10px] font-bold px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full uppercase tracking-wider block w-max">
+                                            <span className="text-[11px] font-bold px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full uppercase tracking-wider block w-max">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         )}

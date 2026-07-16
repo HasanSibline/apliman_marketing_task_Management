@@ -315,7 +315,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
               {/* Premium Header Strip */}
               <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
-                  <span className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-[10px] font-black tracking-widest uppercase border border-primary-500">
+                  <span className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-[11px] font-black tracking-widest uppercase border border-primary-500">
                     {ticket.ticketNumber}
                   </span>
                   {isEditing ? (
@@ -367,9 +367,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ListBulletIcon className="h-4 w-4 text-primary-500" />
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Process Workflow</span>
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Process Workflow</span>
                       </div>
-                      <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest border
+                      <span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border
                         ${ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
                           ticket.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
                           'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
@@ -387,7 +387,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     {isEditing ? (
                       <div className="space-y-4 pt-2">
                          <div className="space-y-2">
-                            <label className="text-[9px] font-black text-primary-600 uppercase tracking-widest ml-1">Redirect To Dept</label>
+                            <label className="text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1">Redirect To Dept</label>
                             <select
                               value={editData.receiverDeptId}
                               onChange={(e) => setEditData({...editData, receiverDeptId: e.target.value})}
@@ -402,7 +402,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
                          {isAdmin && (
                          <div className="space-y-2">
-                            <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest ml-1">Manual Status Override</label>
+                            <label className="text-[11px] font-black text-rose-600 uppercase tracking-widest ml-1">Manual Status Override</label>
                             <select
                               value={editData.status}
                               onChange={(e) => setEditData({...editData, status: e.target.value})}
@@ -419,13 +419,13 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <button 
                               onClick={handleUpdateTicket}
                               disabled={isSaving || !editData.receiverDeptId}
-                              className="bg-primary-600 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary-200 hover:bg-primary-700 disabled:opacity-50 transition-all"
+                              className="bg-primary-600 text-white rounded-xl py-3 text-[11px] font-black uppercase tracking-widest shadow-lg shadow-primary-200 hover:bg-primary-700 disabled:opacity-50 transition-all"
                             >
                                {isSaving ? 'Syncing...' : 'Confirm Changes'}
                             </button>
                             <button 
                               onClick={() => { setIsEditing(false); fetchTicketDetails(); }}
-                              className="bg-gray-100 text-gray-600 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                              className="bg-gray-100 text-gray-600 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
                                Cancel
                             </button>
@@ -449,10 +449,10 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                            isAdmin) && 
                            ticket.status === 'PENDING_REC_MGR' && (
                             <div className="grid grid-cols-1 gap-2">
-                              <button onClick={handleApprove} className="w-full bg-emerald-600 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all">
+                              <button onClick={handleApprove} className="w-full bg-emerald-600 text-white rounded-xl py-3 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all">
                                 <CheckCircleIcon className="h-4 w-4" /> Finalize Approval
                               </button>
-                              <button onClick={handleReject} className="w-full bg-rose-50 text-rose-600 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest border border-rose-100 flex items-center justify-center gap-2 hover:bg-rose-100 transition-all">
+                              <button onClick={handleReject} className="w-full bg-rose-50 text-rose-600 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest border border-rose-100 flex items-center justify-center gap-2 hover:bg-rose-100 transition-all">
                                 <XCircleIcon className="h-4 w-4" /> Reject Request
                               </button>
                             </div>
@@ -462,7 +462,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && 
                           (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || isAdmin) && (
                           <div className="pt-4 border-t border-gray-50 space-y-3">
-                            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Delegated Assignee</p>
+                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Delegated Assignee</p>
                             <select
                               value={ticket.assigneeId || ''}
                               onChange={async (e) => {
@@ -523,7 +523,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <PaperClipIcon className="h-4 w-4 text-primary-500" />
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Documentation Hub</span>
+                        <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Documentation Hub</span>
                       </div>
                       <button 
                         onClick={() => fileInputRef.current?.click()}
@@ -543,7 +543,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                   <DocumentIcon className="h-4 w-4" />
                                </div>
                                <div className="min-w-0 overflow-hidden">
-                                  <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{att.fileName}</p>
+                                  <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tight">{att.fileName}</p>
                                   <p className="text-[8px] text-gray-400 font-bold">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
                                </div>
                             </div>
@@ -567,7 +567,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                        ))}
                        {attachments.length === 0 && (
                          <div className="py-8 text-center border-2 border-dashed border-gray-50 rounded-2xl">
-                            <p className="text-[10px] font-black text-gray-300 uppercase italic">No files attached</p>
+                            <p className="text-[11px] font-black text-gray-300 uppercase italic">No files attached</p>
                          </div>
                        )}
                     </div>
@@ -575,7 +575,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
                   {/* Context documentation */}
                   <div className="space-y-3">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-4 italic">Extended Documentation</p>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-4 italic">Extended Documentation</p>
                     {isEditing ? (
                       <textarea
                         value={editData.description}
@@ -597,7 +597,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
                     <div className="flex items-center gap-2 mb-4 bg-gray-50/50 p-2 rounded-xl w-fit">
                         <ChatBubbleLeftRightIcon className="h-4 w-4 text-primary-500" />
-                        <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest italic tracking-tighter">Organizational Engagement Thread</h3>
+                        <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-widest italic tracking-tighter">Organizational Engagement Thread</h3>
                     </div>
 
                     <div className="space-y-6">
@@ -619,7 +619,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         </div>
                           <div className={`max-w-[75%] space-y-1.5 ${comment.userId === user?.id ? 'items-end flex flex-col' : ''}`}>
                             <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-black text-gray-900 uppercase tracking-tight">{comment.user.name}</span>
+                              <span className="text-[11px] font-black text-gray-900 uppercase tracking-tight">{comment.user.name}</span>
                               <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                             <div className={`px-5 py-4 rounded-2xl text-xs font-black leading-relaxed tracking-wide
@@ -647,7 +647,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   <div className="p-8 border-t border-gray-100 bg-gray-50/10 relative">
                     {showMentions && filteredUsers.length > 0 && (
                       <div className="absolute bottom-full left-8 mb-4 w-80 bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden z-20">
-                        <div className="bg-gray-50/50 px-5 py-3 text-[9px] font-black text-gray-400 uppercase border-b border-gray-100 italic tracking-widest">Broadcast Target Selector</div>
+                        <div className="bg-gray-50/50 px-5 py-3 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 italic tracking-widest">Broadcast Target Selector</div>
                         {filteredUsers.map(u => (
                           <button
                             key={u.id}
@@ -667,7 +667,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tighter">{u.name}</p>
-                              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-tight truncate italic">{u.department?.name || u.role}</p>
+                              <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight truncate italic">{u.department?.name || u.role}</p>
                             </div>
                           </button>
                         ))}
@@ -691,7 +691,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         <PaperAirplaneIcon className="h-7 w-7 -rotate-45 group-hover:scale-110 transition-transform" />
                       </button>
                     </form>
-                    <p className="mt-4 text-[9px] font-black text-gray-300 text-center uppercase tracking-[0.4em] italic underline decoration-gray-100">End-to-End internal organizational encryption verified</p>
+                    <p className="mt-4 text-[11px] font-black text-gray-300 text-center uppercase tracking-[0.4em] italic underline decoration-gray-100">End-to-End internal organizational encryption verified</p>
                   </div>
                 </div>
               </div>

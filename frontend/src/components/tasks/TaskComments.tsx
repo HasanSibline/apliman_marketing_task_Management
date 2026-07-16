@@ -381,10 +381,10 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                         {comment.user?.name || 'Unknown User'}
                       </p>
                       {comment.user?.position && (
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">• {comment.user.position}</span>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">• {comment.user.position}</span>
                       )}
                     </div>
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
                       {formatTimeAgo(comment.createdAt)}
                     </p>
                   </div>

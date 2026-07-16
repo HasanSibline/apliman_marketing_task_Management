@@ -339,7 +339,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Department Mapping */}
                 <div>
-                  <label htmlFor="departmentId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="departmentId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
                     Organizational Department
                   </label>
                   <select
@@ -358,7 +358,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Direct Manager Selector */}
                 <div>
-                  <label htmlFor="managerId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="managerId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
                     Direct Reporting Manager
                   </label>
                   <select
@@ -391,7 +391,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     />
                     <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
                       <span className="text-sm font-semibold text-gray-900 leading-none">Ticket Approver / Manager Role</span>
-                      <span className="text-[10px] text-gray-500 mt-1">Allow this user to approve departmental tickets</span>
+                      <span className="text-[11px] text-gray-500 mt-1">Allow this user to approve departmental tickets</span>
                     </label>
                   </div>
 
@@ -409,7 +409,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       <option value="READ">Read Only (View strategy)</option>
                       <option value="EDIT">Full Edit (Manage strategy)</option>
                     </select>
-                    <span className="text-[10px] text-gray-500">Determines visibility and control over Quarters and Objectives</span>
+                    <span className="text-[11px] text-gray-500">Determines visibility and control over Quarters and Objectives</span>
                   </div>
                 </div>
 

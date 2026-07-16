@@ -167,7 +167,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                         </button>
                     </div>
                 </div>
-                <div className="grid grid-cols-7 gap-y-1 text-center font-bold text-gray-400 text-[10px] mb-2">
+                <div className="grid grid-cols-7 gap-y-1 text-center font-bold text-gray-400 text-[11px] mb-2">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d}>{d}</div>)}
                 </div>
                 <div className="grid grid-cols-7 gap-y-1 text-center">
@@ -333,7 +333,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                             }
                                         }
                                     }}
-                                    className="ml-2 pl-2 border-l border-blue-200 text-[10px] text-blue-400 hover:text-red-500 transition-colors uppercase tracking-tighter"
+                                    className="ml-2 pl-2 border-l border-blue-200 text-[11px] text-blue-400 hover:text-red-500 transition-colors uppercase tracking-tighter"
                                 >
                                     Unsync
                                 </button>
@@ -341,7 +341,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 <button 
                                     onClick={handleMicrosoftSync}
                                     disabled={isSyncing}
-                                    className="ml-2 text-[10px] text-primary-500 hover:underline uppercase tracking-tighter"
+                                    className="ml-2 text-[11px] text-primary-500 hover:underline uppercase tracking-tighter"
                                 >
                                     {isSyncing ? 'Connecting...' : 'Connect'}
                                 </button>
@@ -361,7 +361,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                 {/* Day Header Bar */}
                 <div className="grid grid-cols-[64px_1fr] bg-white border-b border-gray-100 shrink-0">
                     <div className="flex items-end justify-center pb-2 border-r border-gray-50">
-                        <span className="text-[10px] font-black text-gray-300 mb-2">GMT</span>
+                        <span className="text-[11px] font-black text-gray-300 mb-2">GMT</span>
                     </div>
                     <div 
                         className="grid"
@@ -369,7 +369,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                     >
                         {displayDays.map((day: Date) => (
                             <div key={day.toString()} className="flex flex-col items-center py-4 border-r border-gray-50 last:border-r-0">
-                                <span className={`text-[10px] font-black uppercase tracking-widest mb-1 ${isToday(day) ? 'text-primary-600' : 'text-gray-400'}`}>
+                                <span className={`text-[11px] font-black uppercase tracking-widest mb-1 ${isToday(day) ? 'text-primary-600' : 'text-gray-400'}`}>
                                     {format(day, 'EEE')}
                                 </span>
                                 <div className={`flex items-center justify-center h-10 w-10 rounded-full text-2xl font-light ${
@@ -466,14 +466,14 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                                 >
                                                     <div className="flex items-start justify-between gap-1 overflow-hidden">
                                                         <span className="text-[11px] font-black truncate leading-tight tracking-tight uppercase">
-                                                            {event.type === 'TICKET' && <span className="text-[9px] opacity-50 mr-1">{event.ticketNumber}</span>}
+                                                            {event.type === 'TICKET' && <span className="text-[11px] opacity-50 mr-1">{event.ticketNumber}</span>}
                                                             {event.title}
                                                         </span>
                                                         <ClockIcon className="h-3 w-3 opacity-30 shrink-0" />
                                                     </div>
 
                                                     <div className="flex flex-wrap items-center gap-1.5 mt-auto">
-                                                        <span className="text-[10px] font-black opacity-70 whitespace-nowrap">{format(date, 'h:mm a')}</span>
+                                                        <span className="text-[11px] font-black opacity-70 whitespace-nowrap">{format(date, 'h:mm a')}</span>
                                                         
                                                         {event.type === 'TICKET' && (
                                                             <span className="text-[8px] font-black bg-white/20 px-1 py-0.5 rounded uppercase">TICKET</span>

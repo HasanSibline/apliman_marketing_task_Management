@@ -62,7 +62,7 @@ const SpeakerTranscript: React.FC<{ transcript: string; isChatFallback: boolean 
                         <div className="flex-1 space-y-1.5">
                             <div className="flex items-center space-x-2">
                                 <span className={`text-xs font-black ${palette.name}`}>{speaker}</span>
-                                <span className="text-[9px] font-bold text-gray-300 uppercase tracking-tight">
+                                <span className="text-[11px] font-bold text-gray-300 uppercase tracking-tight">
                                     {isChatFallback ? 'chat' : 'transcript'}
                                 </span>
                             </div>
@@ -74,7 +74,7 @@ const SpeakerTranscript: React.FC<{ transcript: string; isChatFallback: boolean 
                     </motion.div>
                 )
             })}
-            <p className="text-center text-[10px] font-black text-gray-200 uppercase tracking-[0.5em] py-4">— End of Transcript —</p>
+            <p className="text-center text-[11px] font-black text-gray-200 uppercase tracking-[0.5em] py-4">— End of Transcript —</p>
         </div>
     )
 }
@@ -233,7 +233,7 @@ const MeetingDetailPage: React.FC = () => {
                             <div className="space-y-1">
                                 <div className="flex items-center space-x-2 text-indigo-600 mb-2">
                                     <VideoCameraIcon className="h-4 w-4" />
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">Teams Online Meeting</p>
+                                    <p className="text-[11px] font-black uppercase tracking-[0.2em]">Teams Online Meeting</p>
                                 </div>
                                 <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">{meeting?.title}</h1>
                                 <div className="flex items-center space-x-6 pt-4 text-xs font-bold text-gray-500">
@@ -257,7 +257,7 @@ const MeetingDetailPage: React.FC = () => {
                                 ${isChatFallback ? 'bg-amber-50 border-amber-100 text-amber-700' : transcript ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-500'}
                             `}>
                                 <div className={`h-2 w-2 rounded-full animate-pulse ${isChatFallback ? 'bg-amber-500' : transcript ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                <span className="text-[10px] font-black uppercase tracking-widest leading-none mt-0.5">
+                                <span className="text-[11px] font-black uppercase tracking-widest leading-none mt-0.5">
                                     {isChatFallback ? 'Chat History' : transcript ? 'Live Transcription' : 'No Transcript'}
                                 </span>
                             </div>
@@ -314,13 +314,13 @@ const MeetingDetailPage: React.FC = () => {
                                     </h2>
                                     <button 
                                         onClick={() => setSummary(null)}
-                                        className="text-[9px] font-black uppercase tracking-widest bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/20 transition-all"
+                                        className="text-[11px] font-black uppercase tracking-widest bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/20 transition-all"
                                     >
                                         Clear
                                     </button>
                                 </div>
                                 <div className="text-xs font-medium leading-relaxed opacity-90 whitespace-pre-wrap max-h-36 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">{summary}</div>
-                                <p className="text-[9px] font-black uppercase tracking-widest text-indigo-300 mt-3">Powered by AI</p>
+                                <p className="text-[11px] font-black uppercase tracking-widest text-indigo-300 mt-3">Powered by AI</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
@@ -350,10 +350,10 @@ const MeetingDetailPage: React.FC = () => {
                                         </div>
                                         <div>
                                             <p className="text-xs font-black text-gray-900 leading-tight">{person.name}</p>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{person.type}</p>
+                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{person.type}</p>
                                         </div>
                                     </div>
-                                    <div className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+                                    <div className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
                                         {person.status}
                                     </div>
                                 </div>
@@ -365,12 +365,12 @@ const MeetingDetailPage: React.FC = () => {
                     <div className="bg-gray-900 rounded-2xl p-5 text-white relative overflow-hidden group">
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
-                                <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Meeting Status</p>
+                                <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Meeting Status</p>
                                 <h3 className={`text-lg font-black ${meeting?.status === 'Live' ? 'text-green-400' : meeting?.status === 'Completed' ? 'text-gray-300' : 'text-white'}`}>
                                     {meeting?.status || 'Upcoming'}
                                 </h3>
                             </div>
-                            <p className="text-[9px] font-medium text-gray-500 text-right leading-relaxed max-w-[100px]">Synced via Microsoft Graph API</p>
+                            <p className="text-[11px] font-medium text-gray-500 text-right leading-relaxed max-w-[100px]">Synced via Microsoft Graph API</p>
                         </div>
                         <div className="absolute inset-0 bg-indigo-600/10 group-hover:bg-indigo-600/20 transition-colors pointer-events-none" />
                     </div>

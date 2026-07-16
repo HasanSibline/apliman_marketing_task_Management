@@ -28,7 +28,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
       className="bg-white rounded-xl border border-gray-100 p-6 flex items-start justify-between group hover:border-primary-100 transition-all h-full"
     >
       <div className="flex-1">
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
+        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
         <p className="text-3xl font-black text-gray-900 tracking-tighter">{value}</p>
           {subtitle && (
             <p className="text-sm text-gray-500 mt-1">{subtitle}</p>

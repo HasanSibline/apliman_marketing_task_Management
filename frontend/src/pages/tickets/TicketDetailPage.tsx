@@ -429,7 +429,7 @@ const TicketDetailPage: React.FC = () => {
 
         {isAdmin && (
           <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-gray-50 border border-gray-200 rounded-full">
-            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Administrative Control Access</span>
+            <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Administrative Control Access</span>
           </div>
         )}
       </div>
@@ -443,12 +443,12 @@ const TicketDetailPage: React.FC = () => {
           {/* Top Left: ID and Badges */}
           <div className="space-y-4">
             <div className="flex flex-wrap items-center gap-2.5">
-              <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black tracking-[0.2em] uppercase border border-white/10 text-primary-50">
+              <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-[11px] font-black tracking-[0.2em] uppercase border border-white/10 text-primary-50">
                 IDENTIFIER: {ticket.ticketNumber}
               </div>
               <div className="flex items-center gap-2 px-3 py-1 bg-black/10 backdrop-blur-sm rounded-full border border-white/5">
                 <div className={`h-1.5 w-1.5 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-emerald-400' : ticket.status === 'CANCELLED' ? 'bg-rose-400' : (ticket.status === 'PENDING_REC_MGR' ? 'bg-amber-400' : 'bg-blue-400')} animate-pulse`} />
-                <span className="text-[9px] font-black tracking-widest uppercase text-white/70">
+                <span className="text-[11px] font-black tracking-widest uppercase text-white/70">
                   {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' : 
                    ticket.status.replace(/_/g, ' ')}
                 </span>
@@ -520,7 +520,7 @@ const TicketDetailPage: React.FC = () => {
                         toast.error(err.response?.data?.message || 'Sync failure')
                       }
                     }}
-                    className="w-full appearance-none bg-white text-slate-800 pr-10 pl-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.15em] cursor-pointer hover:shadow-xl transition-all focus:outline-none shadow-lg border-b-2 border-slate-100 ring-2 ring-white/5"
+                    className="w-full appearance-none bg-white text-slate-800 pr-10 pl-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] cursor-pointer hover:shadow-xl transition-all focus:outline-none shadow-lg border-b-2 border-slate-100 ring-2 ring-white/5"
                   >
                     <option value="PENDING_REC_MGR">Pending approval</option>
                     <option value="OPEN">Open</option>
@@ -568,7 +568,7 @@ const TicketDetailPage: React.FC = () => {
           </div>
           <div className="h-1 w-1 rounded-full bg-white/20" />
           <p className="text-[11px] font-bold text-primary-50 flex items-center gap-2">
-            <span className="text-white/40 font-black uppercase text-[9px] tracking-widest">Route:</span>
+            <span className="text-white/40 font-black uppercase text-[11px] tracking-widest">Route:</span>
             <span className="italic">{ticket.receiverDept?.name} Operation</span>
           </p>
         </div>
@@ -594,7 +594,7 @@ const TicketDetailPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="p-4 rounded-xl border-2 border-amber-500 bg-amber-50 shadow-sm transition-all">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] font-black uppercase tracking-tight text-gray-900">
+                    <span className="text-[11px] font-black uppercase tracking-tight text-gray-900">
                       Departmental Authorization Stage
                     </span>
                     <ClockIcon className="h-4 w-4 text-amber-600" />
@@ -605,10 +605,10 @@ const TicketDetailPage: React.FC = () => {
 
                   {(isRecMgrStage && canAuthoriseRec) && (
                     <div className="grid grid-cols-2 gap-2 mt-4">
-                      <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
+                      <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
                         <CheckCircleIcon className="h-4 w-4" /> Finalize
                       </button>
-                      <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white text-rose-600 border border-rose-100 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all">
+                      <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white text-rose-600 border border-rose-100 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all">
                         <XCircleIcon className="h-4 w-4" /> Reject
                       </button>
                     </div>
@@ -622,13 +622,13 @@ const TicketDetailPage: React.FC = () => {
           <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6 shadow-sm font-outfit">
             <div className="flex items-center gap-2">
               <ListBulletIcon className="h-4 w-4 text-primary-500" />
-              <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Ticket Configuration</h3>
+              <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Ticket Configuration</h3>
             </div>
 
             {isEditing ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Receiver Dept</label>
+                  <label className="text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Receiver Dept</label>
                   <select
                     value={editData.receiverDeptId}
                     onChange={(e) => setEditData({ ...editData, receiverDeptId: e.target.value })}
@@ -641,7 +641,7 @@ const TicketDetailPage: React.FC = () => {
                 </div>
                 {isAdmin && (
                   <div className="space-y-2">
-                    <label className="text-[9px] font-black text-rose-600 uppercase tracking-widest ml-1 italic">Direct Status Override</label>
+                    <label className="text-[11px] font-black text-rose-600 uppercase tracking-widest ml-1 italic">Direct Status Override</label>
                     <select
                       value={editData.status}
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
@@ -654,8 +654,8 @@ const TicketDetailPage: React.FC = () => {
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button onClick={handleUpdateTicket} className="bg-primary-600 text-white rounded-xl py-3 text-[10px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all">Sync Changes</button>
-                  <button onClick={() => setIsEditing(false)} className="bg-gray-100 text-gray-600 rounded-xl py-3 text-[10px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">Discard</button>
+                  <button onClick={handleUpdateTicket} className="bg-primary-600 text-white rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all">Sync Changes</button>
+                  <button onClick={() => setIsEditing(false)} className="bg-gray-100 text-gray-600 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">Discard</button>
                 </div>
               </div>
             ) : (
@@ -674,7 +674,7 @@ const TicketDetailPage: React.FC = () => {
                 {/* Tactical Squad Section */}
                 <div id="deployment-section" className="space-y-4 pt-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">Members Included</p>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Members Included</p>
                     <div className="flex items-center gap-2">
                       <span className="text-[8px] font-bold bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
                       <div className="relative group">
@@ -692,7 +692,7 @@ const TicketDetailPage: React.FC = () => {
                               >
                                 <Avatar src={u.avatar} name={u.name} size="xs" rounded="lg" />
                                 <div className="text-left">
-                                  <p className="text-[10px] font-black text-gray-900 group-hover/item:text-primary-600 transition-colors uppercase truncate tracking-tight">{u.name}</p>
+                                  <p className="text-[11px] font-black text-gray-900 group-hover/item:text-primary-600 transition-colors uppercase truncate tracking-tight">{u.name}</p>
                                   <p className="text-[8px] font-bold text-gray-400 truncate uppercase tracking-widest">{u.department?.name || 'Logistics'}</p>
                                 </div>
                               </button>
@@ -740,7 +740,7 @@ const TicketDetailPage: React.FC = () => {
                           onClick={() => handleRemoveAssignment(assignment.id)}
                           className="absolute -top-1.5 -right-1.5 h-4 w-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-sm z-10"
                         >
-                          <span className="text-[10px]">&times;</span>
+                          <span className="text-[11px]">&times;</span>
                         </button>
                       </div>
                     ))}
@@ -748,7 +748,7 @@ const TicketDetailPage: React.FC = () => {
 
                   {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED' || ticket.status === 'PENDING_REC_MGR') && (canAuthoriseRec || isAdmin) && (
                     <div className="space-y-2 pt-2">
-                      <p className="text-[9px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Add more colleagues</p>
+                      <p className="text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Add more colleagues</p>
                       <div className="relative">
                         <select
                           value=""
@@ -818,7 +818,7 @@ const TicketDetailPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PaperClipIcon className="h-4 w-4 text-primary-500" />
-                <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Support Documentation</h3>
+                <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Support Documentation</h3>
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -838,7 +838,7 @@ const TicketDetailPage: React.FC = () => {
                       <DocumentIcon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{att.fileName}</p>
+                      <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tight">{att.fileName}</p>
                       <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   </div>
@@ -850,7 +850,7 @@ const TicketDetailPage: React.FC = () => {
               ))}
               {attachments.length === 0 && (
                 <div className="py-6 text-center border-2 border-dashed border-gray-50 rounded-2xl">
-                  <p className="text-[10px] font-black text-gray-300 uppercase italic">Repository Empty</p>
+                  <p className="text-[11px] font-black text-gray-300 uppercase italic">Repository Empty</p>
                 </div>
               )}
             </div>
@@ -901,7 +901,7 @@ const TicketDetailPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xs font-black text-gray-900 uppercase tracking-tight leading-none">Ticket conversation</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Conversation on this ticket will be logged</p>
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Conversation on this ticket will be logged</p>
                 </div>
               </div>
             </div>
@@ -911,7 +911,7 @@ const TicketDetailPage: React.FC = () => {
                 comment.isSystem ? (
                   <div key={comment.id} className="flex justify-center my-6">
                     <div className="bg-gray-100/50 backdrop-blur-sm border border-gray-200/50 px-5 py-3 rounded-xl shadow-sm animate-in zoom-in duration-500 max-w-[90%]">
-                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest text-center whitespace-pre-wrap">
+                      <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest text-center whitespace-pre-wrap">
                         {comment.comment.replace(/^\s*[\u2022\-\*]\s+/, '')}
                       </p>
                     </div>
@@ -934,8 +934,8 @@ const TicketDetailPage: React.FC = () => {
                     </div>
                     <div className={`max-w-[80%] space-y-1.5 ${comment.userId === user?.id ? 'items-end' : ''} flex flex-col`}>
                       <div className={`flex items-center gap-3 ${comment.userId === user?.id ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-[10px] font-black text-gray-900 uppercase tracking-tight">{comment.user.name}</span>
-                        <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <span className="text-[11px] font-black text-gray-900 uppercase tracking-tight">{comment.user.name}</span>
+                        <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
                       <div className={`px-6 py-4 rounded-2xl text-xs font-black leading-relaxed tracking-wide shadow-sm whitespace-pre-wrap
                           ${comment.userId === user?.id
@@ -954,7 +954,7 @@ const TicketDetailPage: React.FC = () => {
               {ticket.comments?.length === 0 && (
                 <div className="py-20 text-center opacity-30">
                   <ChatBubbleLeftRightIcon className="h-16 w-16 mx-auto text-gray-200" />
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] mt-4 italic">No communication localized in this thread</p>
+                  <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] mt-4 italic">No communication localized in this thread</p>
                 </div>
               )}
               <div ref={commentsEndRef} />
@@ -963,7 +963,7 @@ const TicketDetailPage: React.FC = () => {
             {/* Feed Input */}
             {(ticket.status === 'RESOLVED' || ticket.status === 'CANCELLED') ? (
               <div className="p-8 bg-gray-100/50 border-t border-gray-100 flex items-center justify-center">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
+                <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
                   Intelligence Feed Archived · Ticket {ticket.status === 'RESOLVED' ? 'Finalized' : 'Terminated'}
                 </p>
               </div>
@@ -979,10 +979,10 @@ const TicketDetailPage: React.FC = () => {
                         className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
                       >
                         <div className="h-8 w-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 group-hover:scale-110 transition-transform">
-                          {u.avatar ? <img src={formatAssetUrl(u.avatar)} className="h-full w-full object-cover" /> : <span className="text-[10px] font-black">{u.name.charAt(0)}</span>}
+                          {u.avatar ? <img src={formatAssetUrl(u.avatar)} className="h-full w-full object-cover" /> : <span className="text-[11px] font-black">{u.name.charAt(0)}</span>}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[10px] font-black text-gray-900 truncate uppercase tracking-tight">{u.name}</p>
+                          <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tight">{u.name}</p>
                           <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest truncate">{u.department?.name || 'External'}</p>
                         </div>
                       </button>

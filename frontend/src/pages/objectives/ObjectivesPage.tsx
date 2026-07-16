@@ -271,7 +271,7 @@ const ObjectivesPage: React.FC = () => {
                             <div className="relative shrink-0 w-10">
                                 <ProgressRing pct={obj.progress} size={40} stroke={4} />
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-[10px] font-bold text-gray-700">{obj.progress}%</span>
+                                    <span className="text-[11px] font-bold text-gray-700">{obj.progress}%</span>
                                 </div>
                             </div>
                             <div className="min-w-0">

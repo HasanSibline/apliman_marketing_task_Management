@@ -241,7 +241,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                  {/* Organizational Authority Role */}
                 <div>
-                  <label htmlFor="role" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="role" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
                     Logistical Tier *
                   </label>
                   <select
@@ -287,7 +287,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     />
                     <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
                       <span className="text-sm font-semibold text-gray-900 leading-none">Ticket Approver</span>
-                      <span className="text-[10px] text-gray-500 mt-1">Can approve departmental requests</span>
+                      <span className="text-[11px] text-gray-500 mt-1">Can approve departmental requests</span>
                     </label>
                   </div>
 
@@ -305,7 +305,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                       <option value="READ">Read Only (View strategy)</option>
                       <option value="EDIT">Full Edit (Manage strategy)</option>
                     </select>
-                    <span className="text-[10px] text-gray-500">Determines visibility and control over Quarters and Objectives</span>
+                    <span className="text-[11px] text-gray-500">Determines visibility and control over Quarters and Objectives</span>
                   </div>
                 </div>
 
@@ -332,7 +332,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Department */}
                 <div>
-                  <label htmlFor="departmentId" className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="departmentId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
                     Direct Department
                   </label>
                   <select

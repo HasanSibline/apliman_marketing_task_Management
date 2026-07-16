@@ -145,7 +145,7 @@ const DashboardPage: React.FC = () => {
                
                {/* Atmospheric Synchronisation (Weather) */}
                {weather && (
-                  <div className="flex items-center gap-3 text-primary-100/90 font-black text-[10px] tracking-[0.2em] uppercase italic opacity-80 mt-2">
+                  <div className="flex items-center gap-3 text-primary-100/90 font-black text-[11px] tracking-[0.2em] uppercase italic opacity-80 mt-2">
                      <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full border border-white/10">
                         {weather.temperature > 25 ? <SunIcon className="h-3 w-3 text-amber-300" /> : <CloudIcon className="h-3 w-3 text-sky-100" />}
                         <span>{Math.round(weather.temperature)}°C</span>
@@ -205,17 +205,17 @@ const DashboardPage: React.FC = () => {
                      </div>
                      <div className="text-right">
                         <p className="text-4xl font-black text-primary-600 tracking-tighter">{activeQuarter.avgProgress}%</p>
-                        <p className="text-[9px] font-black uppercase tracking-widest text-gray-300">Quarterly Momentum</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-300">Quarterly Momentum</p>
                      </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                      <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Active Target Set</p>
+                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Active Target Set</p>
                         <p className="text-3xl font-black text-gray-900 leading-none">{activeQuarter.objectives?.length || 0}</p>
                      </div>
                      <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Operation Completion</p>
+                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Operation Completion</p>
                         <p className="text-3xl font-black text-gray-900 leading-none">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</p>
                      </div>
                   </div>
@@ -236,7 +236,7 @@ const DashboardPage: React.FC = () => {
                 </div>
                 <div>
                    <h3 className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">Performance Elite</h3>
-                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Global Competition</p>
+                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Global Competition</p>
                 </div>
              </div>
           </div>
@@ -267,7 +267,7 @@ const DashboardPage: React.FC = () => {
                            />
                            {isTopThree && (
                               <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white flex items-center justify-center border-2 border-gray-900 shadow-none scale-110">
-                                 <span className={`text-[10px] font-black ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500' : 'text-orange-600'}`}>
+                                 <span className={`text-[11px] font-black ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500' : 'text-orange-600'}`}>
                                     {index + 1}
                                  </span>
                               </div>
@@ -275,7 +275,7 @@ const DashboardPage: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                            <p className={`text-[11px] font-black uppercase tracking-tight truncate ${isTopThree ? 'text-white' : 'text-gray-900'}`}>{performer.name}</p>
-                           <p className={`text-[9px] font-bold uppercase tracking-tight truncate ${isTopThree ? 'text-white/70' : 'text-gray-400'}`}>
+                           <p className={`text-[11px] font-bold uppercase tracking-tight truncate ${isTopThree ? 'text-white/70' : 'text-gray-400'}`}>
                               {isTopThree ? rankLabels[index] : performer.position}
                            </p>
                         </div>

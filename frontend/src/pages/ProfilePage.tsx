@@ -117,7 +117,7 @@ const ProfilePage: React.FC = () => {
                 rounded="2xl"
               />
               <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-3xl">
-                <span className="text-[10px] font-black uppercase tracking-widest">Update</span>
+                <span className="text-[11px] font-black uppercase tracking-widest">Update</span>
                 <input type="file" className="hidden" accept="image/*" onChange={onAvatarChange} />
               </label>
           </div>
@@ -126,11 +126,11 @@ const ProfilePage: React.FC = () => {
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">{user?.name}</h1>
             <p className="text-gray-500 font-bold text-sm tracking-tight">{user?.email}</p>
             <div className="flex items-center gap-2 mt-2">
-              <span className="bg-primary-50 text-primary-700 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-primary-100">
+              <span className="bg-primary-50 text-primary-700 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-primary-100">
                 {user?.role?.replace('_', ' ')}
               </span>
               {user?.position && (
-                <span className="bg-gray-50 text-gray-600 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-gray-100">
+                <span className="bg-gray-50 text-gray-600 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-gray-100">
                   {user.position}
                 </span>
               )}

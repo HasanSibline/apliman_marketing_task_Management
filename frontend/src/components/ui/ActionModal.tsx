@@ -113,7 +113,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 <div className="space-y-4">
                   {reasons.length > 0 ? (
                     <div className="space-y-2">
-                       <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Selection Logic</label>
+                       <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Selection Logic</label>
                        <select 
                          value={reason}
                          onChange={(e) => setReason(e.target.value)}
@@ -128,7 +128,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                   
                   {(reasons.length === 0 || reason === 'Other') && (
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Contextual Background</label>
+                      <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Contextual Background</label>
                       <textarea
                         value={reasons.includes(reason) && reason !== 'Other' ? '' : reason}
                         onChange={(e) => setReason(e.target.value)}
@@ -144,14 +144,14 @@ const ActionModal: React.FC<ActionModalProps> = ({
               <div className="flex items-center gap-3">
                 <button
                   onClick={onClose}
-                  className="flex-1 py-4 px-6 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                  className="flex-1 py-4 px-6 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all"
                 >
                   {cancelText}
                 </button>
                 <button
                   onClick={handleConfirm}
                   disabled={isLoading || (requireReason && !reason.trim())}
-                  className={`flex-1 py-4 px-6 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-lg disabled:opacity-50 ${styles.button}`}
+                  className={`flex-1 py-4 px-6 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg disabled:opacity-50 ${styles.button}`}
                 >
                   {isLoading ? 'Processing...' : confirmText}
                 </button>

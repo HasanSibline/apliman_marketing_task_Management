@@ -10,6 +10,7 @@ import CompanyRoute from '@/components/auth/CompanyRoute'
 import Layout from '@/components/layout/Layout'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import { keepAliveService } from '@/services/keepalive'
+import { applyBrandColor } from '@/theme/brandTheme'
 
 // Pages
 import GenericLogin from '@/pages/auth/GenericLogin'
@@ -69,6 +70,11 @@ function App() {
       dispatch(initializeSocket())
     }
   }, [dispatch, isAuthenticated, user])
+
+  // Apply the company's brand color across the whole app shell (presentation only).
+  useEffect(() => {
+    applyBrandColor(user?.companyColor)
+  }, [user?.companyColor])
 
 
 
