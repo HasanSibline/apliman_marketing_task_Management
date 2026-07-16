@@ -47,24 +47,24 @@ const WorkflowsPage: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
-          <p className="text-gray-600">You need admin privileges to manage workflows.</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
+          <p className="text-gray-600 dark:text-gray-300">You need admin privileges to manage workflows.</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Workflow Management</h1>
-              <p className="text-gray-600 mt-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Workflow Management</h1>
+              <p className="text-gray-600 dark:text-gray-300 mt-2">
                 Create and manage dynamic workflows for your tasks
               </p>
             </div>
@@ -82,7 +82,7 @@ const WorkflowsPage: React.FC = () => {
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600">Loading workflows...</span>
+            <span className="ml-2 text-gray-600 dark:text-gray-300">Loading workflows...</span>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -91,7 +91,7 @@ const WorkflowsPage: React.FC = () => {
                 key={workflow.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-lg shadow-md overflow-hidden border-l-4"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border-l-4"
                 style={{ borderLeftColor: workflow.color }}
               >
                 <div className="p-6">
@@ -101,7 +101,7 @@ const WorkflowsPage: React.FC = () => {
                         className="h-4 w-4 rounded-full"
                         style={{ backgroundColor: workflow.color }}
                       />
-                      <h3 className="text-lg font-semibold text-gray-900">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                         {workflow.name}
                       </h3>
                       {workflow.isDefault && (
@@ -121,21 +121,21 @@ const WorkflowsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <p className="text-gray-600 text-sm mb-4">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                     {workflow.description || 'No description'}
                   </p>
 
                   <div className="mb-4">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                       Task Type
                     </span>
-                    <p className="text-sm font-medium text-gray-900 mt-1">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
                       {workflow.taskType}
                     </p>
                   </div>
 
                   <div className="mb-4">
-                    <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                       Phases ({workflow.phases.length})
                     </span>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -153,7 +153,7 @@ const WorkflowsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-gray-500">
+                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
                     <span>Created by {workflow.createdBy?.name}</span>
                     <span>{new Date(workflow.createdAt).toLocaleDateString()}</span>
                   </div>
@@ -164,8 +164,8 @@ const WorkflowsPage: React.FC = () => {
             {workflows.length === 0 && (
               <div className="col-span-full text-center py-12">
                 <CogIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No workflows yet</h3>
-                <p className="text-gray-600 mb-4">
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No workflows yet</h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
                   Create your first workflow to get started with dynamic task management.
                 </p>
                 <button

@@ -105,12 +105,12 @@ const ApprovalsPage: React.FC = () => {
     <div className="container mx-auto px-4 py-8 max-w-7xl">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Pending Approvals</h1>
-        <p className="text-gray-600">Review and approve tasks waiting for your approval</p>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Pending Approvals</h1>
+        <p className="text-gray-600 dark:text-gray-300">Review and approve tasks waiting for your approval</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Search */}
           <div className="relative">
@@ -147,10 +147,10 @@ const ApprovalsPage: React.FC = () => {
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
       ) : filteredTasks.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm p-12 text-center">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center">
           <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">All caught up!</h3>
-          <p className="text-gray-600">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">All caught up!</h3>
+          <p className="text-gray-600 dark:text-gray-300">
             {tasks.length === 0 
               ? 'No tasks are currently pending approval' 
               : 'No tasks match your current filters'}
@@ -164,7 +164,7 @@ const ApprovalsPage: React.FC = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.05 }}
-              className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
             >
               <div className="p-6">
                 {/* Header */}
@@ -172,11 +172,11 @@ const ApprovalsPage: React.FC = () => {
                   <div className="flex-1">
                     <button
                       onClick={() => navigate(`/tasks/${task.id}`)}
-                      className="text-lg font-semibold text-gray-900 hover:text-blue-600 transition-colors text-left"
+                      className="text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-600 transition-colors text-left"
                     >
                       {task.title}
                     </button>
-                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{task.description}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{task.description}</p>
                   </div>
                   {task.priority && task.priority >= 8 && (
                     <span className="ml-4 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
@@ -186,7 +186,7 @@ const ApprovalsPage: React.FC = () => {
                 </div>
 
                 {/* Metadata */}
-                <div className="flex flex-wrap gap-4 mb-4 text-sm text-gray-600">
+                <div className="flex flex-wrap gap-4 mb-4 text-sm text-gray-600 dark:text-gray-300">
                   {task.workflow && (
                     <div 
                       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
@@ -264,7 +264,7 @@ const ApprovalsPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => navigate(`/tasks/${task.id}`)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                    className="px-4 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 transition-colors font-medium"
                   >
                     View Details
                   </button>

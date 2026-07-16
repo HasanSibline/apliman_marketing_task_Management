@@ -103,7 +103,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
       {/* Header with Stats */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h3 className="text-lg font-semibold text-gray-900 flex items-center">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
             <FlagIcon className="h-5 w-5 mr-2 text-blue-600" />
             Subtasks
           </h3>
@@ -130,12 +130,12 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
               initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-              className={`group relative bg-white rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${
+              className={`group relative bg-white dark:bg-gray-800 rounded-xl border-2 transition-all duration-200 hover:shadow-lg ${
                 subtask.isCompleted 
                   ? 'border-green-200 bg-green-50/30' 
                   : isOverdue
                   ? 'border-red-200 bg-red-50/30'
-                  : 'border-gray-200 hover:border-blue-300'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-blue-300'
               }`}
             >
               {/* Progress Bar */}
@@ -166,15 +166,15 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                     <div className="flex-1 min-w-0">
                       <h4 className={`text-base font-semibold transition-all duration-200 ${
                         subtask.isCompleted 
-                          ? 'text-gray-500 line-through' 
-                          : 'text-gray-900'
+                          ? 'text-gray-500 dark:text-gray-400 line-through' 
+                          : 'text-gray-900 dark:text-white'
                       }`}>
                   {subtask.title}
                       </h4>
                       
                       {subtask.description && (
                         <p className={`mt-1 text-sm ${
-                          subtask.isCompleted ? 'text-gray-400' : 'text-gray-600'
+                          subtask.isCompleted ? 'text-gray-400' : 'text-gray-600 dark:text-gray-300'
                         }`}>
                           {subtask.description}
                         </p>
@@ -231,10 +231,10 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                           <div className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg ${
                             isOverdue 
                               ? 'bg-red-50 text-red-700' 
-                              : 'bg-gray-50 text-gray-700'
+                              : 'bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200'
                           }`}>
                             <CalendarDaysIcon className={`h-3.5 w-3.5 ${
-                              isOverdue ? 'text-red-600' : 'text-gray-600'
+                              isOverdue ? 'text-red-600' : 'text-gray-600 dark:text-gray-300'
                             }`} />
                             <span className="text-xs font-medium">
                               {new Date(subtask.dueDate).toLocaleDateString()}
@@ -268,16 +268,16 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
 
         {/* Empty State */}
         {subtasks.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/40 rounded-xl border-2 border-dashed border-gray-300">
             <FlagIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-4 text-lg font-medium text-gray-900">No subtasks yet</h3>
-            <p className="mt-2 text-gray-500">Break down this task into smaller, manageable pieces.</p>
+            <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No subtasks yet</h3>
+            <p className="mt-2 text-gray-500 dark:text-gray-400">Break down this task into smaller, manageable pieces.</p>
           </div>
         )}
       </div>
 
       {/* Add Subtask Form */}
-      <div className="bg-gray-50 rounded-xl p-6 border-2 border-dashed border-gray-300">
+      <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-6 border-2 border-dashed border-gray-300">
         <form onSubmit={handleSubmit} className="flex items-center space-x-4">
         <div className="flex-1">
           <input
@@ -285,7 +285,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
             value={newSubtask}
             onChange={(e) => setNewSubtask(e.target.value)}
               placeholder="Add a new subtask..."
-              className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             disabled={submitting}
           />
         </div>

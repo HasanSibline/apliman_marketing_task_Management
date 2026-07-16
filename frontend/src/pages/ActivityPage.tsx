@@ -105,9 +105,9 @@ const ActivityPage: React.FC = () => {
       case 'comment_added':
         return <ExclamationTriangleIcon className="h-5 w-5 text-yellow-500" />
       case 'file_uploaded':
-        return <DocumentIcon className="h-5 w-5 text-gray-500" />
+        return <DocumentIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
       default:
-        return <ClockIcon className="h-5 w-5 text-gray-500" />
+        return <ClockIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
     }
   }
 
@@ -139,13 +139,13 @@ const ActivityPage: React.FC = () => {
       <div className="flex items-center space-x-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors"
         >
-          <ArrowLeftIcon className="h-5 w-5 text-gray-600" />
+          <ArrowLeftIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Activities</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">All Activities</h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">
             View all recent activities across the system
           </p>
         </div>
@@ -155,7 +155,7 @@ const ActivityPage: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
       >
         {activities && activities.length > 0 ? (
           <div className="space-y-6">
@@ -165,13 +165,13 @@ const ActivityPage: React.FC = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-colors"
+                className="flex items-start space-x-4 p-4 hover:bg-gray-50 dark:bg-gray-900/40 rounded-lg transition-colors"
               >
                 <div className="flex-shrink-0 mt-1">
                   {getActivityIcon(activity.type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">
+                  <p className="text-sm text-gray-900 dark:text-white">
                     <span className="font-medium">{activity.user?.name || activity.userName || 'Unknown User'}</span>
                     {' '}{activity.message || activity.description}
                     {activity.taskTitle && (
@@ -180,7 +180,7 @@ const ActivityPage: React.FC = () => {
                       </span>
                     )}
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     {formatTimeAgo(activity.timestamp || activity.createdAt)}
                   </p>
                 </div>
@@ -190,8 +190,8 @@ const ActivityPage: React.FC = () => {
         ) : (
           <div className="text-center py-12">
             <ClockIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Activities</h3>
-            <p className="text-gray-500">There are no recent activities to display.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Activities</h3>
+            <p className="text-gray-500 dark:text-gray-400">There are no recent activities to display.</p>
           </div>
         )}
       </motion.div>

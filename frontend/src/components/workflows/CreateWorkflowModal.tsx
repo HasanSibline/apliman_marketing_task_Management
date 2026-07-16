@@ -236,17 +236,17 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
                 <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Create New Workflow</h2>
-                  <p className="text-sm text-gray-500 mt-1">Define phases and assign team members who can work on each phase</p>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Workflow</h2>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Define phases and assign team members who can work on each phase</p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -257,7 +257,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Workflow Name *
                     </label>
                     <input
@@ -272,7 +272,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                   </div>
 
                   <div>
-                    <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Task Type *
                     </label>
                     <select
@@ -291,7 +291,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Description
                   </label>
                   <textarea
@@ -306,7 +306,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="color" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Workflow Color
                     </label>
                     <div className="flex space-x-2">
@@ -332,7 +332,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                         onChange={(e) => setFormData(prev => ({ ...prev, isDefault: e.target.checked }))}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Set as default workflow for this task type
                       </span>
                     </label>
@@ -342,7 +342,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                 {/* Phases */}
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">Workflow Phases</h3>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white">Workflow Phases</h3>
                     <button
                       type="button"
                       onClick={addPhase}
@@ -355,9 +355,9 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
 
                   <div className="space-y-4">
                     {phases.map((phase, index) => (
-                      <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/40">
                         <div className="flex items-center justify-between mb-4">
-                          <h4 className="font-medium text-gray-900">Phase {index + 1}</h4>
+                          <h4 className="font-medium text-gray-900 dark:text-white">Phase {index + 1}</h4>
                           {phases.length > 2 && (
                             <button
                               type="button"
@@ -371,7 +371,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                               Phase Name *
                             </label>
                             <input
@@ -385,7 +385,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                               Phase Color
                             </label>
                             <div className="flex space-x-2">
@@ -405,7 +405,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                         </div>
 
                         <div className="mt-4">
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                             Description
                           </label>
                           <input
@@ -419,7 +419,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
 
                         <div className="mt-4">
                           <div className="flex items-center justify-between mb-2">
-                            <label className="flex items-center text-sm font-medium text-gray-700">
+                            <label className="flex items-center text-sm font-medium text-gray-700 dark:text-gray-200">
                               <UserGroupIcon className="h-4 w-4 mr-1" />
                               Allowed Users
                             </label>
@@ -435,29 +435,29 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                               <button
                                 type="button"
                                 onClick={() => deselectAllUsers(index)}
-                                className="text-xs text-gray-600 hover:text-gray-800"
+                                className="text-xs text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:text-gray-100"
                               >
                                 Clear
                               </button>
                             </div>
                           </div>
-                          <div className="bg-white border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto">
+                          <div className="bg-white dark:bg-gray-800 border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto">
                             {users.length === 0 ? (
-                              <p className="text-sm text-gray-500">Loading users...</p>
+                              <p className="text-sm text-gray-500 dark:text-gray-400">Loading users...</p>
                             ) : (
                               <div className="space-y-2">
                                 {users.map(user => (
-                                  <label key={user.id} className="flex items-center hover:bg-gray-50 p-1 rounded">
+                                  <label key={user.id} className="flex items-center hover:bg-gray-50 dark:bg-gray-900/40 p-1 rounded">
                                     <input
                                       type="checkbox"
                                       checked={phase.allowedUserIds.includes(user.id)}
                                       onChange={() => toggleUser(index, user.id)}
                                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                                     />
-                                    <span className="ml-2 text-sm text-gray-700 flex-1">
+                                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-200 flex-1">
                                       {user.name}
                                       {user.position && (
-                                        <span className="text-xs text-gray-500 ml-1">• {user.position}</span>
+                                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">• {user.position}</span>
                                       )}
                                     </span>
                                     <span className="text-xs text-gray-400">{user.role}</span>
@@ -466,7 +466,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                               </div>
                             )}
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {phase.allowedUserIds.length} user(s) selected. Only these users can access this phase.
                           </p>
                         </div>
@@ -478,7 +478,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 sticky bottom-0 bg-white">
+                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800">
                   <button
                     type="button"
                     onClick={onClose}

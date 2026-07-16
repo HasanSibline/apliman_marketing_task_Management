@@ -92,7 +92,7 @@ const DepartmentsManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold text-gray-800">Departments</h2>
+        <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Departments</h2>
         <button onClick={() => setShowCreateModal(true)} className="btn-primary">
           <PlusIcon className="h-4 w-4 mr-2" />
           Add Department
@@ -101,15 +101,15 @@ const DepartmentsManagement: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {departments.map((dept) => (
-          <div key={dept.id} className="card p-4 border border-gray-100 hover:shadow-md transition-shadow">
+          <div key={dept.id} className="card p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-3">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <UserGroupIcon className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-gray-900">{dept.name}</h3>
-                  <div className="text-sm text-gray-500 flex items-center mt-1">
+                  <h3 className="font-bold text-gray-900 dark:text-white">{dept.name}</h3>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
                     <UserIcon className="h-3 w-3 mr-1" />
                     {dept.manager?.name || 'No Manager Assigned'}
                   </div>
@@ -117,13 +117,13 @@ const DepartmentsManagement: React.FC = () => {
               </div>
               <button 
                 onClick={() => handleDelete(dept.id)}
-                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
+                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:bg-gray-800"
               >
                 <TrashIcon className="h-4 w-4" />
               </button>
             </div>
             <div className="mt-4 pt-4 border-t border-gray-50">
-              <div className="flex justify-between items-center text-sm text-gray-600">
+              <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-300">
                 <span>Team Members</span>
                 <span className="font-semibold">{dept.users?.length || 0}</span>
               </div>
@@ -134,11 +134,11 @@ const DepartmentsManagement: React.FC = () => {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Create Department</h3>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Department Name</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Department Name</label>
                 <input 
                   type="text" 
                   value={newDeptName}
@@ -148,7 +148,7 @@ const DepartmentsManagement: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700">Manager (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Manager (Optional)</label>
                 <select 
                   value={selectedManagerId}
                   onChange={(e) => setSelectedManagerId(e.target.value)}
@@ -162,7 +162,7 @@ const DepartmentsManagement: React.FC = () => {
               </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 rounded-lg">Cancel</button>
               <button onClick={handleCreate} className="btn-primary">Create</button>
             </div>
           </div>

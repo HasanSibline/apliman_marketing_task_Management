@@ -57,7 +57,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Issue Category</label>
             <select 
               onChange={(e) => handleMetadataChange('it_category', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             >
               <option value="Hardware">Hardware</option>
               <option value="Software">Software</option>
@@ -71,7 +71,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. LAP-102"
               onChange={(e) => handleMetadataChange('asset_id', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             />
           </div>
         </div>
@@ -86,7 +86,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Type of Document</label>
             <select 
               onChange={(e) => handleMetadataChange('hr_doc_type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             >
               <option value="Salary Certificate">Salary Certificate</option>
               <option value="Contract Copy">Contract Copy</option>
@@ -100,7 +100,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. Needed for Visa"
               onChange={(e) => handleMetadataChange('hr_reason', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             />
           </div>
         </div>
@@ -117,7 +117,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. Global Tech Inc."
               onChange={(e) => handleMetadataChange('lead_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             />
           </div>
           <div>
@@ -126,7 +126,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="number" 
               placeholder="10000"
               onChange={(e) => handleMetadataChange('deal_value', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             />
           </div>
         </div>
@@ -141,7 +141,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">System Environment</label>
             <select 
               onChange={(e) => handleMetadataChange('environment', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             >
               <option value="Production">Production (Live)</option>
               <option value="Staging">Staging</option>
@@ -153,7 +153,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Severity</label>
             <select 
               onChange={(e) => handleMetadataChange('severity', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             >
               <option value="Minor">Minor / UI</option>
               <option value="Major">Major / Functional</option>
@@ -174,7 +174,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. AWS Marketplace"
               onChange={(e) => handleMetadataChange('provider', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             />
           </div>
           <div>
@@ -183,7 +183,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="number" 
               placeholder="0.00"
               onChange={(e) => handleMetadataChange('amount', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 focus:bg-white"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
             />
           </div>
         </div>
@@ -293,14 +293,14 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-lg bg-white rounded-lg shadow-xl"
+            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Create Cross-Dept Ticket</h2>
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create Cross-Dept Ticket</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
@@ -311,7 +311,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               <div className="grid grid-cols-2 gap-4">
                 {/* Target Dept */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Target Department *
                   </label>
                   <select
@@ -328,14 +328,14 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
                 {/* Target User */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Target Personnel {!requiresApproval && '*'}
                   </label>
                   <select
                     value={assigneeId}
                     onChange={(e) => setAssigneeId(e.target.value)}
                     disabled={!receiverDeptId}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium disabled:bg-gray-50 disabled:text-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium disabled:bg-gray-50 dark:bg-gray-900/40 disabled:text-gray-400"
                   >
                     <option value="">Direct to Department Manager</option>
                     {deptUsers.map((u) => (
@@ -354,7 +354,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   onChange={(e) => setRequiresApproval(e.target.checked)}
                   className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
                 />
-                <label htmlFor="requiresApproval" className="text-xs font-bold text-gray-700 cursor-pointer flex flex-col">
+                <label htmlFor="requiresApproval" className="text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer flex flex-col">
                   Require manager approval
                   <span className="text-[11px] font-medium text-gray-400 normal-case italic">If checked, the target department manager must authorize this ticket before it goes LIVE.</span>
                 </label>
@@ -364,13 +364,13 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 <motion.div 
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
-                  className="space-y-2 p-3 bg-white border border-primary-50 rounded-xl shadow-sm"
+                  className="space-y-2 p-3 bg-white dark:bg-gray-800 border border-primary-50 rounded-xl shadow-sm"
                 >
                   <label className="block text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Selecting Authorization Authority *</label>
                   <select
                     value={approverId}
                     onChange={(e) => setApproverId(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-gray-100 rounded-lg text-xs bg-gray-50 focus:border-primary-500 font-black text-gray-800 transition-all"
+                    className="w-full px-3 py-2 border-2 border-gray-100 dark:border-gray-700 rounded-lg text-xs bg-gray-50 dark:bg-gray-900/40 focus:border-primary-500 font-black text-gray-800 dark:text-gray-100 transition-all"
                   >
                     <option value="">Designate Approver...</option>
                     {deptUsers.filter(u => ['MANAGER', 'ADMIN', 'COMPANY_ADMIN'].includes(u.role)).map(u => (
@@ -390,7 +390,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Interaction Category *
                 </label>
                 <select
@@ -406,7 +406,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Ticket Title *
                 </label>
                 <input
@@ -423,7 +423,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 key={receiverDeptId + type}
                 initial={{ opacity: 0, x: -5 }}
                 animate={{ opacity: 1, x: 0 }}
-                className="bg-gray-50 rounded-xl p-4 border border-gray-100"
+                className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4 border border-gray-100 dark:border-gray-700"
               >
                 {renderDynamicFields() || (
                    <p className="text-xs text-gray-400 text-center italic">No additional specialized fields required.</p>
@@ -432,7 +432,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                   Extended Instructions
                 </label>
                 <textarea
@@ -440,14 +440,14 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none font-medium text-gray-800"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none font-medium text-gray-800 dark:text-gray-100"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Deadline */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Target Deadline
                   </label>
                   <input
@@ -461,7 +461,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
                 {/* Priority */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                     Priority
                   </label>
                   <select
@@ -479,7 +479,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             </div>
 
             {/* Actions */}
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
               <button
                 type="button"
                 onClick={onClose}

@@ -95,7 +95,7 @@ const ProfilePage: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center text-sm font-medium text-gray-500 hover:text-gray-700 transition"
+        className="flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 transition"
       >
         <ArrowLeftIcon className="h-4 w-4 mr-2" />
         Back
@@ -123,14 +123,14 @@ const ProfilePage: React.FC = () => {
           </div>
 
           <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">{user?.name}</h1>
-            <p className="text-gray-500 font-bold text-sm tracking-tight">{user?.email}</p>
+            <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{user?.name}</h1>
+            <p className="text-gray-500 dark:text-gray-400 font-bold text-sm tracking-tight">{user?.email}</p>
             <div className="flex items-center gap-2 mt-2">
               <span className="bg-primary-50 text-primary-700 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-primary-100">
                 {user?.role?.replace('_', ' ')}
               </span>
               {user?.position && (
-                <span className="bg-gray-50 text-gray-600 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-gray-100">
+                <span className="bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
                   {user.position}
                 </span>
               )}
@@ -140,13 +140,13 @@ const ProfilePage: React.FC = () => {
       </motion.div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex space-x-8">
           <button
             onClick={() => setActiveTab('profile')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile'
               ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:border-gray-300'
               }`}
           >
             Profile Information
@@ -155,7 +155,7 @@ const ProfilePage: React.FC = () => {
             onClick={() => setActiveTab('password')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'password'
               ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:border-gray-300'
               }`}
           >
             Change Password
@@ -170,11 +170,11 @@ const ProfilePage: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           className="card"
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Profile Information</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Profile Information</h2>
           <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Full Name
                 </label>
                 <input
@@ -190,7 +190,7 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Email Address
                 </label>
                 <input
@@ -207,7 +207,7 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Position
                 </label>
                 <input
@@ -218,15 +218,15 @@ const ProfilePage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Role
                 </label>
                 <input
                   value={user?.role?.replace('_', ' ') || ''}
                   disabled
-                  className="input-field bg-gray-50 text-gray-500"
+                  className="input-field bg-gray-50 dark:bg-gray-900/40 text-gray-500 dark:text-gray-400"
                 />
-                <p className="mt-1 text-xs text-gray-500">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Role cannot be changed. Contact your administrator.
                 </p>
               </div>
@@ -252,10 +252,10 @@ const ProfilePage: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           className="card"
         >
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Change Password</h2>
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Change Password</h2>
           <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Current Password
               </label>
               <div className="relative">
@@ -285,7 +285,7 @@ const ProfilePage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 New Password
               </label>
               <div className="relative">
@@ -315,7 +315,7 @@ const ProfilePage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Confirm New Password
               </label>
               <div className="relative">

@@ -34,9 +34,9 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
-          <p className="font-medium text-gray-900">{payload[0].name}</p>
-          <p className="text-sm text-gray-600">
+        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg">
+          <p className="font-medium text-gray-900 dark:text-white">{payload[0].name}</p>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             Tasks: <span className="font-medium">{payload[0].value}</span>
           </p>
         </div>
@@ -49,9 +49,9 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
     <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="bg-white rounded-xl border border-gray-100 p-8"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8"
     >
-      <h3 className="text-xl font-black text-gray-900 mb-6 tracking-tight uppercase">Tasks by Workflow</h3>
+      <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 tracking-tight uppercase">Tasks by Workflow</h3>
       
       {/* Legend under title - VERTICAL layout */}
       {filteredData.length > 0 && (
@@ -62,8 +62,8 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
                 className="w-3 h-3 rounded-sm flex-shrink-0" 
                 style={{ backgroundColor: item.color }}
               />
-              <span className="text-xs text-gray-600">
-                <span className="font-semibold text-gray-800">{item.phase}</span>
+              <span className="text-xs text-gray-600 dark:text-gray-300">
+                <span className="font-semibold text-gray-800 dark:text-gray-100">{item.phase}</span>
                 {' - '}
                 <span className="font-medium">Tasks: {item.count}</span>
                 {item.subtasksCount !== undefined && item.subtasksCount > 0 && (
@@ -101,7 +101,7 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
         <div className="h-64 flex items-center justify-center">
           <div className="text-center">
             <div className="text-4xl mb-3">📊</div>
-            <p className="text-gray-500 font-medium">No tasks yet</p>
+            <p className="text-gray-500 dark:text-gray-400 font-medium">No tasks yet</p>
             <p className="text-gray-400 text-sm mt-1">Create tasks to see workflow distribution</p>
           </div>
         </div>

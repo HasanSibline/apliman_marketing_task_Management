@@ -66,11 +66,11 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6"
+              className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
             >
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-300"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -82,37 +82,37 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                     <span className="text-2xl">📋</span>
                   </div>
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-900 mb-1">{subtask.title}</h3>
-                    <p className="text-sm text-gray-500">Unassigned Subtask</p>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">{subtask.title}</h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Unassigned Subtask</p>
                   </div>
                 </div>
 
                 {/* Description */}
                 {subtask.description && (
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
-                    <p className="text-sm text-gray-600 whitespace-pre-wrap">{subtask.description}</p>
+                  <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4">
+                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Description</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{subtask.description}</p>
                   </div>
                 )}
 
                 {/* Details */}
                 <div className="grid grid-cols-2 gap-4">
                   {subtask.estimatedHours && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 mb-1">
                         <ClockIcon className="w-4 h-4" />
                         <span className="text-xs font-medium">Estimated Hours</span>
                       </div>
-                      <p className="text-lg font-semibold text-gray-900">{subtask.estimatedHours}h</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{subtask.estimatedHours}h</p>
                     </div>
                   )}
                   {subtask.phase && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center gap-2 text-gray-600 mb-1">
+                    <div className="bg-gray-50 dark:bg-gray-900/40 rounded-lg p-3">
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 mb-1">
                         <span className="w-4 h-4 rounded-full" style={{ backgroundColor: subtask.phase.color }} />
                         <span className="text-xs font-medium">Phase</span>
                       </div>
-                      <p className="text-sm font-semibold text-gray-900">{subtask.phase.name}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">{subtask.phase.name}</p>
                     </div>
                   )}
                 </div>
@@ -138,7 +138,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
                   >
                     Close
                   </button>
@@ -280,12 +280,12 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white rounded-lg shadow-xl max-h-[85vh] overflow-hidden flex flex-col"
+              className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[85vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
-              <div className="flex items-start justify-between p-6 border-b border-gray-200">
+              <div className="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex-1 pr-4">
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">{subtask.title}</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">{subtask.title}</h2>
                   <div className="flex items-center gap-2">
                     {currentPhase && (
                       <span 
@@ -312,7 +312,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -322,50 +322,50 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Description */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Description</h3>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{subtask.description}</p>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Description</h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 whitespace-pre-wrap">{subtask.description}</p>
                 </div>
 
                 {/* Current Assignment */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Currently Assigned To</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Currently Assigned To</h3>
                   {assignedUser ? (
-                    <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg">
                       <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                         <span className="text-sm font-medium text-white">
                           {assignedUser.name.charAt(0).toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{assignedUser.name}</p>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{assignedUser.name}</p>
                         {assignedUser.position && (
-                          <p className="text-xs text-gray-500">{assignedUser.position}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{assignedUser.position}</p>
                         )}
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500">Not assigned</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Not assigned</p>
                   )}
                 </div>
 
                 {/* Reassign Users (Admin or Assigned User) */}
                 {(isAdmin || isAssignedUser) && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Reassign to Team Member
                     </h3>
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => setShowUserDropdown(!showUserDropdown)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
                       >
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-gray-700 dark:text-gray-200">
                           {selectedUsers.length === 0 
                             ? 'Select user(s)' 
                             : `${selectedUsers.length} user(s) selected`}
                         </span>
-                        <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
+                        <ChevronDownIcon className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
                       </button>
 
                       <AnimatePresence>
@@ -374,12 +374,12 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+                            className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg max-h-60 overflow-y-auto"
                           >
                             {users.map(user => (
                               <label
                                 key={user.id}
-                                className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                                className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:bg-gray-900/40 cursor-pointer transition-colors"
                               >
                                 <input
                                   type="checkbox"
@@ -393,9 +393,9 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                   </span>
                                 </div>
                                 <div className="flex-1">
-                                  <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">{user.name}</p>
                                   {user.position && (
-                                    <p className="text-xs text-gray-500">{user.position}</p>
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">{user.position}</p>
                                   )}
                                 </div>
                                 <span className="text-xs text-gray-400">{user.role}</span>
@@ -431,19 +431,19 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 {/* Change Phase */}
                 {(isAdmin || isAssignedUser) && availablePhases.length > 0 && (
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">
                       Change Status / Phase
                     </h3>
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
                       >
-                        <span className="text-sm text-gray-700">
+                        <span className="text-sm text-gray-700 dark:text-gray-200">
                           {currentPhase ? currentPhase.name : 'Select phase'}
                         </span>
-                        <ChevronDownIcon className={`h-4 w-4 text-gray-500 transition-transform ${showPhaseDropdown ? 'rotate-180' : ''}`} />
+                        <ChevronDownIcon className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${showPhaseDropdown ? 'rotate-180' : ''}`} />
                       </button>
 
                       <AnimatePresence>
@@ -452,7 +452,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -10 }}
-                            className="absolute z-10 mt-2 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+                            className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden"
                           >
                             {availablePhases.map(phase => (
                               <button
@@ -462,7 +462,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                   setSelectedPhase(phase.id)
                                   setShowPhaseDropdown(false)
                                 }}
-                                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors text-left ${
+                                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:bg-gray-900/40 transition-colors text-left ${
                                   selectedPhase === phase.id ? 'bg-blue-50' : ''
                                 }`}
                               >
@@ -470,7 +470,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                   className="w-3 h-3 rounded-full flex-shrink-0"
                                   style={{ backgroundColor: phase.color }}
                                 />
-                                <span className="text-sm font-medium text-gray-900">{phase.name}</span>
+                                <span className="text-sm font-medium text-gray-900 dark:text-white">{phase.name}</span>
                                 {selectedPhase === phase.id && (
                                   <CheckIcon className="h-4 w-4 text-blue-600 ml-auto" />
                                 )}
@@ -501,7 +501,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                       </button>
                     )}
                     
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                       {availablePhases.find(p => p.id === selectedPhase)?.isEndPhase && 
                         '✓ Moving to this phase will auto-complete the subtask'}
                     </p>
@@ -509,13 +509,13 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 )}
 
                 {/* Completion Toggle */}
-                <div className="pt-4 border-t border-gray-200">
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                   <button
                     onClick={handleToggleCompletion}
                     disabled={isUpdating}
                     className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                       subtask.isCompleted
-                        ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
                         : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                   >
@@ -540,7 +540,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
 
                 {/* Metadata */}
                 {subtask.estimatedHours && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                     <ClockIcon className="h-4 w-4" />
                     <span>Estimated: {subtask.estimatedHours}h</span>
                   </div>

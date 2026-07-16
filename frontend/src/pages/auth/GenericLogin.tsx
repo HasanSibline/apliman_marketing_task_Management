@@ -88,7 +88,7 @@ const GenericLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
+      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-10 rounded-xl shadow-2xl">
         <div>
           {/* Generic Icon - No Logo */}
           <div className="mx-auto h-16 w-16 rounded-full bg-indigo-600 flex items-center justify-center">
@@ -106,10 +106,10 @@ const GenericLogin: React.FC = () => {
               />
             </svg>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             Company Login
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
             Sign in to your account
           </p>
         </div>
@@ -125,7 +125,7 @@ const GenericLogin: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 style={{
                   borderColor: error ? '#EF4444' : undefined
                 }}
@@ -144,7 +144,7 @@ const GenericLogin: React.FC = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
                 style={{
                   borderColor: error ? '#EF4444' : undefined
                 }}
@@ -186,7 +186,7 @@ const GenericLogin: React.FC = () => {
         </form>
 
         <div className="text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-500 dark:text-gray-400">
             Don't have an account? Contact your administrator
           </p>
         </div>
@@ -195,11 +195,11 @@ const GenericLogin: React.FC = () => {
       {/* Forgot Password Modal */}
       {showForgotModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl shadow-2xl p-8 w-full max-w-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Reset Password</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Reset Password</h3>
             {forgotResult ? (
               <>
-                <p className="text-sm text-gray-700 bg-indigo-50 p-3 rounded mb-4 break-all">{forgotResult}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-200 bg-indigo-50 p-3 rounded mb-4 break-all">{forgotResult}</p>
                 <button
                   onClick={() => { setShowForgotModal(false); setForgotResult(null); setForgotEmail(''); }}
                   className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
@@ -209,7 +209,7 @@ const GenericLogin: React.FC = () => {
               </>
             ) : (
               <form onSubmit={handleForgotPassword}>
-                <p className="text-sm text-gray-500 mb-4">Enter your email address and we\'ll generate a password reset token.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Enter your email address and we\'ll generate a password reset token.</p>
                 <input
                   type="email"
                   required
@@ -222,7 +222,7 @@ const GenericLogin: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(false)}
-                    className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-md text-sm hover:bg-gray-50"
+                    className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-md text-sm hover:bg-gray-50 dark:bg-gray-900/40"
                   >
                     Cancel
                   </button>

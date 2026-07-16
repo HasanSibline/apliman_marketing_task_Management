@@ -110,7 +110,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
     if (fileType.startsWith('image/')) {
       return <PhotoIcon className="h-5 w-5 text-blue-500" />
     }
-    return <DocumentIcon className="h-5 w-5 text-gray-500" />
+    return <DocumentIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
   }
 
   const formatFileSize = (bytes: number) => {
@@ -146,11 +146,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
       >
         <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
         <div className="mt-4">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             <span className="font-medium text-primary-600">Click to upload</span>
             {' '}or drag and drop
           </p>
-          <p className="text-xs text-gray-500 mt-1" id="file-upload-description">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1" id="file-upload-description">
             Supported formats: PNG, JPG, WebP, PDF, DOC, DOCX (Max size: 5MB)
           </p>
         </div>
@@ -158,7 +158,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
         {uploading && (
           <div className="mt-4">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600 mx-auto"></div>
-            <p className="text-sm text-gray-600 mt-2">Uploading...</p>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">Uploading...</p>
           </div>
         )}
       </div>
@@ -178,19 +178,19 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
       {/* File List */}
       {files && files.length > 0 && (
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-gray-900">Attached Files</h4>
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white">Attached Files</h4>
           {files.map((file: any) => (
             <motion.div
               key={file.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg"
             >
               <div className="flex items-center space-x-3">
                 {getFileIcon(file.fileType)}
                 <div>
-                  <p className="text-sm font-medium text-gray-900">{file.fileName}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{file.fileName}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
                     {formatFileSize(file.fileSize * 1024)} • {new Date(file.uploadedAt).toLocaleDateString()}
                   </p>
                 </div>

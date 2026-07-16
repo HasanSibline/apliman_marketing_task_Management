@@ -103,7 +103,7 @@ const UserAnalytics: React.FC = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
               <div className="h-8 bg-gray-200 rounded w-1/2"></div>
             </div>
@@ -111,7 +111,7 @@ const UserAnalytics: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
               <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
               <div className="h-80 bg-gray-200 rounded"></div>
             </div>
@@ -126,8 +126,8 @@ const UserAnalytics: React.FC = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <ChartBarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Data Available</h3>
-          <p className="text-gray-500">Your personal analytics will appear here.</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Data Available</h3>
+          <p className="text-gray-500 dark:text-gray-400">Your personal analytics will appear here.</p>
         </div>
       </div>
     )
@@ -150,8 +150,8 @@ const UserAnalytics: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">My Analytics</h2>
-          <p className="text-gray-600 mt-1">Track your personal performance and progress</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Analytics</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Track your personal performance and progress</p>
         </div>
         <button
           onClick={handleExportMyReport}
@@ -163,7 +163,7 @@ const UserAnalytics: React.FC = () => {
       </div>
 
       {/* Time Range Selector */}
-      <div className="flex gap-2 bg-white rounded-lg p-1 border border-gray-200 w-fit">
+      <div className="flex gap-2 bg-white dark:bg-gray-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700 w-fit">
         {(['week', 'month', 'year'] as const).map((range) => (
           <button
             key={range}
@@ -171,7 +171,7 @@ const UserAnalytics: React.FC = () => {
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               timeRange === range
                 ? 'bg-primary-600 text-white'
-                : 'text-gray-600 hover:text-gray-900'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white'
             }`}
           >
             {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -188,8 +188,8 @@ const UserAnalytics: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">My Tasks</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">My Tasks</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalAssignedTasks || 0}
               </h3>
               <p className="text-sm text-primary-600 mt-2 font-medium">
@@ -210,8 +210,8 @@ const UserAnalytics: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Completed</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Completed</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.completedTasks || 0}
               </h3>
               <p className="text-sm text-success-600 mt-2 font-medium">
@@ -232,8 +232,8 @@ const UserAnalytics: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Created</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Created</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalCreatedTasks || 0}
               </h3>
               <p className="text-sm text-warning-600 mt-2 font-medium">
@@ -254,9 +254,9 @@ const UserAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-lg font-bold text-gray-900 mb-4">My Performance Trend</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">My Performance Trend</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={performanceTrend}>
@@ -307,9 +307,9 @@ const UserAnalytics: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
-          <h3 className="text-lg font-bold text-gray-900 mb-4">My Task Status</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">My Task Status</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -385,9 +385,9 @@ const UserAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Personal Insights</h3>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Personal Insights</h3>
         <div className="space-y-3">
           {/* Excellent Performance */}
           {stats.completionRate >= 80 && (
@@ -433,8 +433,8 @@ const UserAnalytics: React.FC = () => {
           
           {/* Active Tasks Info */}
           {stats.inProgressTasks > 0 && (
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-800">
+            <div className="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-800 dark:text-gray-100">
                 <strong>⚡ Currently Active:</strong> You have {stats.inProgressTasks} task{stats.inProgressTasks !== 1 ? 's' : ''} in progress. 
                 {stats.pendingTasks > 0 && ` ${stats.pendingTasks} task${stats.pendingTasks !== 1 ? 's are' : ' is'} still pending.`}
               </p>
@@ -443,8 +443,8 @@ const UserAnalytics: React.FC = () => {
           
           {/* No Tasks */}
           {stats.totalAssignedTasks === 0 && (
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm text-gray-800">
+            <div className="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-sm text-gray-800 dark:text-gray-100">
                 <strong>📋 Getting Started:</strong> You don't have any tasks assigned yet. 
                 {stats.totalCreatedTasks > 0 
                   ? ` However, you've created ${stats.totalCreatedTasks} task${stats.totalCreatedTasks !== 1 ? 's' : ''}!`
@@ -455,13 +455,13 @@ const UserAnalytics: React.FC = () => {
           
           {/* Recent Activity */}
           {userAnalytics.recentActivity && userAnalytics.recentActivity.length > 0 && (
-            <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <p className="text-sm font-semibold text-gray-900 mb-2">📊 Recent Activity:</p>
-              <ul className="space-y-1 text-sm text-gray-700">
+            <div className="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">📊 Recent Activity:</p>
+              <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-200">
                 {userAnalytics.recentActivity.slice(0, 3).map((activity: any) => (
                   <li key={activity.id} className="flex items-center justify-between">
                     <span className="truncate flex-1">{activity.title}</span>
-                    <span className="text-xs text-gray-500 ml-2">{activity.phase}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">{activity.phase}</span>
                   </li>
               ))}
             </ul>

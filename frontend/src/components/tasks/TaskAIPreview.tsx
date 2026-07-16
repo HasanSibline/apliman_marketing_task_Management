@@ -46,24 +46,24 @@ const TaskAIPreview: React.FC<TaskAIPreviewProps> = ({ task }) => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="mt-3 pt-3 border-t border-gray-100"
+      className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700"
     >
-      <div className="flex items-center space-x-2 text-xs text-gray-500">
+      <div className="flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400">
         <SparklesIcon className="h-4 w-4 text-primary-500" />
         <span>AI Analysis</span>
       </div>
       <div className="mt-2 space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-500">Suggested Priority</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">Suggested Priority</span>
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${
             analysis.priority.suggestedPriority >= 4 ? 'bg-red-100 text-red-800' :
             analysis.priority.suggestedPriority === 3 ? 'bg-yellow-100 text-yellow-800' :
-            'bg-gray-100 text-gray-800'
+            'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
           }`}>
             Level {analysis.priority.suggestedPriority}
           </span>
         </div>
-        <p className="text-xs text-gray-500 line-clamp-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2">
           {analysis.summary.summary}
         </p>
       </div>

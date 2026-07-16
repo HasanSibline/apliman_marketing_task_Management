@@ -89,7 +89,7 @@ const AuthCallback: React.FC = () => {
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
-        <div className="h-screen flex flex-col items-center justify-center bg-white">
+        <div className="h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-800">
             <div className="relative mb-10 scale-125">
                 <div className="h-24 w-24 border-[12px] border-indigo-50 rounded-full" />
                 {!timedOut && (
@@ -105,7 +105,7 @@ const AuthCallback: React.FC = () => {
                 </div>
             </div>
             <div className="text-center">
-                <h2 className="text-3xl font-black text-gray-900 tracking-tight">{status}</h2>
+                <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{status}</h2>
                 <p className="mt-3 text-gray-400 font-bold uppercase tracking-[0.3em] text-[11px] animate-pulse">
                     {timedOut ? 'Redirecting...' : 'Azure Active Directory Handshake'}
                 </p>

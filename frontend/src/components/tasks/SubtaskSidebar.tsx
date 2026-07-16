@@ -53,11 +53,11 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
   }
 
   return (
-    <div className="bg-white border-l border-gray-200 h-full overflow-y-auto">
-      <div className="sticky top-0 bg-white border-b border-gray-200 p-4 z-10">
+    <div className="bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 h-full overflow-y-auto">
+      <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 z-10">
         {isSubtask && task.parentTask ? (
           <>
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-3">
               <ArrowLeftIcon className="h-4 w-4" />
               <span>Parent Task</span>
             </div>
@@ -66,7 +66,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
               className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors group"
             >
               <div className="flex items-start justify-between mb-2">
-                <h3 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-2">
                   {task.parentTask.title}
                 </h3>
               </div>
@@ -90,7 +90,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
             {/* Show sibling subtasks */}
             {task.parentTask.subtasks && task.parentTask.subtasks.length > 1 && (
               <div className="mt-4">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Other Subtasks</h3>
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Other Subtasks</h3>
                 <div className="space-y-2">
                   {task.parentTask.subtasks
                     .filter(s => s.id !== task.subtaskId)
@@ -102,7 +102,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
                             navigate(`/tasks/${subtask.linkedTask.id}`)
                           }
                         }}
-                        className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 border border-gray-200 transition-all group"
+                        className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 transition-all group"
                       >
                         <div className="flex items-start gap-2">
                           {subtask.isCompleted ? (
@@ -111,11 +111,11 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
                             <ClockIcon className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-2">
                               {subtask.title}
                             </p>
                             {subtask.assignedTo && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
+                              <div className="flex items-center gap-1 mt-1 text-xs text-gray-500 dark:text-gray-400">
                                 <UserCircleIcon className="h-3.5 w-3.5" />
                                 <span>{subtask.assignedTo.name}</span>
                               </div>
@@ -131,7 +131,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
         ) : (
           <>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Subtasks ({totalCount})
               </h3>
               {onAddSubtask && (
@@ -149,18 +149,18 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
             {totalCount > 0 && (
               <div className="mb-4">
                 <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="text-gray-600 font-medium">Progress</span>
-                  <span className="text-gray-900 font-semibold">
+                  <span className="text-gray-600 dark:text-gray-300 font-medium">Progress</span>
+                  <span className="text-gray-900 dark:text-white font-semibold">
                     {completedCount}/{totalCount} completed
                   </span>
                 </div>
-                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                   <div 
                     className="h-full bg-gradient-to-r from-blue-500 to-blue-600 transition-all duration-500 rounded-full"
                     style={{ width: `${progressPercentage}%` }}
                   />
                 </div>
-                <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
+                <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500 dark:text-gray-400">
                   <ChartBarIcon className="h-3.5 w-3.5" />
                   <span>{Math.round(progressPercentage)}% complete</span>
                 </div>
@@ -174,7 +174,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
       {!isSubtask && (
         <div className="p-4">
           {subtasks.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               <div className="text-4xl mb-2">📋</div>
               <p className="text-sm">No subtasks yet</p>
               {onAddSubtask && (
@@ -191,7 +191,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
               {subtasks.map((subtask) => (
                 <div
                   key={subtask.id}
-                  className="relative p-3 rounded-lg hover:bg-gray-50 border border-gray-200 transition-all group"
+                  className="relative p-3 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 transition-all group"
                 >
                   <div className="flex items-start gap-3">
                     {/* Checkbox */}
@@ -217,13 +217,13 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
                     >
                       <p className={`text-sm font-medium mb-1 line-clamp-2 ${
                         subtask.isCompleted 
-                          ? 'text-gray-500 line-through' 
-                          : 'text-gray-900 group-hover:text-blue-600 transition-colors'
+                          ? 'text-gray-500 dark:text-gray-400 line-through' 
+                          : 'text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors'
                       }`}>
                         {subtask.title}
                       </p>
                       
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                         {subtask.assignedTo && (
                           <div className="flex items-center gap-1">
                             <UserCircleIcon className="h-3.5 w-3.5" />

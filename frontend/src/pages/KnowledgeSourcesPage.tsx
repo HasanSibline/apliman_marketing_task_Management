@@ -178,13 +178,13 @@ export default function KnowledgeSourcesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Knowledge Sources</h1>
-            <p className="text-gray-600 mt-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Knowledge Sources</h1>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">
               Manage {companyName} and competitor URLs for enhanced AI content generation
             </p>
           </div>
@@ -213,10 +213,10 @@ export default function KnowledgeSourcesPage() {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
         ) : sources.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
             <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Knowledge Sources</h3>
-            <p className="text-gray-600 mb-6">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Knowledge Sources</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
               Add your first knowledge source to enhance AI content generation
             </p>
             <button
@@ -231,13 +231,13 @@ export default function KnowledgeSourcesPage() {
             {sources.map((source) => (
               <div
                 key={source.id}
-                className="bg-white rounded-lg shadow hover:shadow-lg transition-shadow p-6"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow p-6"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       {getStatusIcon(source)}
-                      <h3 className="text-xl font-semibold text-gray-900">{source.name}</h3>
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white">{source.name}</h3>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
                           source.type === 'OWN_COMPANY'
@@ -251,7 +251,7 @@ export default function KnowledgeSourcesPage() {
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
                           source.isActive
                             ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
                         }`}
                       >
                         {source.isActive ? 'Active' : 'Inactive'}
@@ -271,10 +271,10 @@ export default function KnowledgeSourcesPage() {
                     </a>
 
                     {source.description && (
-                      <p className="text-gray-600 text-sm mb-3">{source.description}</p>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm mb-3">{source.description}</p>
                     )}
 
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                       <span>Last scraped: {formatDate(source.lastScraped)}</span>
                       {source.content && (
                         <span>Content: {source.content.length} characters</span>
@@ -302,7 +302,7 @@ export default function KnowledgeSourcesPage() {
                     </button>
                     <button
                       onClick={() => handleEdit(source)}
-                      className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
+                      className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900/40 rounded-lg"
                       title="Edit"
                     >
                       <Edit className="w-5 h-5" />
@@ -324,15 +324,15 @@ export default function KnowledgeSourcesPage() {
         {/* Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                   {editingSource ? 'Edit Knowledge Source' : 'Add Knowledge Source'}
                 </h2>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       Name *
                     </label>
                     <input
@@ -345,7 +345,7 @@ export default function KnowledgeSourcesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       URL *
                     </label>
                     <input
@@ -358,7 +358,7 @@ export default function KnowledgeSourcesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       Type *
                     </label>
                     <select
@@ -373,7 +373,7 @@ export default function KnowledgeSourcesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       Description
                     </label>
                     <textarea
@@ -385,7 +385,7 @@ export default function KnowledgeSourcesPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       Priority (1-5)
                     </label>
                     <input
@@ -407,7 +407,7 @@ export default function KnowledgeSourcesPage() {
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
                       className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                     />
-                    <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900">
+                    <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 dark:text-white">
                       Active
                     </label>
                   </div>
@@ -416,7 +416,7 @@ export default function KnowledgeSourcesPage() {
                     <button
                       type="button"
                       onClick={closeModal}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900/40"
                     >
                       Cancel
                     </button>

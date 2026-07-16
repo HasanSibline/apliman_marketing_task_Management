@@ -173,12 +173,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
   const getPriorityColor = (priority: number) => {
     switch (priority) {
-      case 1: return 'bg-gray-100 text-gray-800'
+      case 1: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
       case 2: return 'bg-blue-100 text-blue-800'
       case 3: return 'bg-yellow-100 text-yellow-800'
       case 4: return 'bg-orange-100 text-orange-800'
       case 5: return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
     }
   }
 
@@ -195,13 +195,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
   const getPhaseColor = (phase: string) => {
     switch (phase) {
-      case 'PENDING_APPROVAL': return 'bg-gray-100 text-gray-800'
+      case 'PENDING_APPROVAL': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
       case 'APPROVED': return 'bg-blue-100 text-blue-800'
       case 'ASSIGNED': return 'bg-purple-100 text-purple-800'
       case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800'
       case 'COMPLETED': return 'bg-green-100 text-green-800'
-      case 'ARCHIVED': return 'bg-gray-100 text-gray-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'ARCHIVED': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
+      default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
     }
   }
 
@@ -224,12 +224,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl"
+              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Task Details</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Task Details</h2>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${getPhaseColor(task.phase)}`}>
                     {task.phase.replace('_', ' ')}
                   </span>
@@ -266,7 +266,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     )}
                     <button
                       onClick={onClose}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
                     >
                       <XMarkIcon className="h-6 w-6" />
                     </button>
@@ -282,7 +282,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                       <form onSubmit={handleSubmit} className="space-y-6">
                         {/* Title */}
                         <div>
-                          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                             Task Title *
                           </label>
                           <input
@@ -298,7 +298,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                         {/* Description */}
                         <div>
-                          <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                             Description *
                           </label>
                           <textarea
@@ -314,7 +314,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                         {/* Goals */}
                         <div>
-                          <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
+                          <label htmlFor="goals" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                             Goals & Success Criteria
                           </label>
                           <textarea
@@ -330,7 +330,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         {/* Priority and Due Date */}
                         <div className="grid grid-cols-2 gap-6">
                           <div>
-                            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                               Priority
                             </label>
                             <select
@@ -349,7 +349,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                           </div>
 
                           <div>
-                            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                               Due Date
                             </label>
                             <input
@@ -364,7 +364,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         </div>
 
                         {/* Actions */}
-                        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200">
+                        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700">
                           <button
                             type="button"
                             onClick={() => setIsEditing(false)}
@@ -387,14 +387,14 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         {/* Title */}
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                          <h3 className="text-lg font-medium text-gray-900">
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
                               {canEditTask() ? (
                                 <input
                                   type="text"
                                   value={formData.title}
                                   onChange={handleChange}
                                   name="title"
-                                  className="w-full text-lg font-medium text-gray-900 bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-500 rounded px-2 py-1"
+                                  className="w-full text-lg font-medium text-gray-900 dark:text-white bg-transparent border-none focus:outline-none focus:ring-2 focus:ring-primary-500 rounded px-2 py-1"
                                   placeholder="Enter task title..."
                                 />
                               ) : (
@@ -433,7 +433,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                               {getPriorityText(task.priority)}
                             </span>
                             {task.dueDate && (
-                              <span className="text-sm text-gray-500 flex items-center">
+                              <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
                                 <ClockIcon className="h-4 w-4 mr-1" />
                                 Due {new Date(task.dueDate).toLocaleDateString()}
                               </span>
@@ -444,7 +444,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         {/* Description */}
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-medium text-gray-700">Description</h4>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200">Description</h4>
                             {canEditTask() && formData.description !== task.description && (
                               <button
                                 onClick={async () => {
@@ -473,11 +473,11 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                               onChange={handleChange}
                               name="description"
                               rows={4}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600 dark:text-gray-300"
                               placeholder="Enter task description..."
                             />
                           ) : (
-                            <div className="text-gray-600 prose prose-sm max-w-none">
+                            <div className="text-gray-600 dark:text-gray-300 prose prose-sm max-w-none">
                               <ReactMarkdown>{task.description}</ReactMarkdown>
                             </div>
                           )}
@@ -486,7 +486,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         {/* Goals */}
                           <div>
                           <div className="flex items-center justify-between mb-2">
-                            <h4 className="text-sm font-medium text-gray-700">Goals & Success Criteria</h4>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200">Goals & Success Criteria</h4>
                             {canEditTask() && formData.goals !== task.goals && (
                               <button
                                 onClick={async () => {
@@ -520,20 +520,20 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                               onChange={handleChange}
                               name="goals"
                               rows={3}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-600 dark:text-gray-300"
                               placeholder="Enter task goals and success criteria..."
                             />
                           ) : (
-                            <div className="text-gray-600 prose prose-sm max-w-none">
+                            <div className="text-gray-600 dark:text-gray-300 prose prose-sm max-w-none">
                               <ReactMarkdown>{task.goals || 'No goals specified'}</ReactMarkdown>
                           </div>
                         )}
                         </div>
 
                         {/* Task Stats */}
-                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                        <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                           <div>
-                            <h4 className="text-sm font-medium text-gray-700 mb-2">Created By</h4>
+                            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Created By</h4>
                             <div className="flex items-center space-x-2">
                               <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
                                 <span className="text-sm font-medium text-white">
@@ -541,10 +541,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                                 </span>
                               </div>
                               <div>
-                                <p className="text-sm font-medium text-gray-900">
+                                <p className="text-sm font-medium text-gray-900 dark:text-white">
                                   {task.createdBy?.name || 'Unknown User'}
                                 </p>
-                                <p className="text-xs text-gray-500">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
                                   {new Date(task.createdAt).toLocaleDateString()}
                                 </p>
                               </div>
@@ -553,7 +553,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                           {task.assignedTo && (
                             <div>
-                              <h4 className="text-sm font-medium text-gray-700 mb-2">Assigned To</h4>
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Assigned To</h4>
                               <div className="flex items-center space-x-2">
                                 <div className="h-8 w-8 rounded-full bg-primary-600 flex items-center justify-center">
                                   <span className="text-sm font-medium text-white">
@@ -561,10 +561,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                                   </span>
                                 </div>
                                 <div>
-                                  <p className="text-sm font-medium text-gray-900">
+                                  <p className="text-sm font-medium text-gray-900 dark:text-white">
                                     {task.assignedTo?.name}
                                   </p>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-gray-500 dark:text-gray-400">
                                     {task.assignedTo?.position}
                                   </p>
                                 </div>
@@ -581,7 +581,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     {/* Phase Selection */}
                     {!isEditing && (
                       <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Task Phase</h4>
+                        <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Task Phase</h4>
                         {task.phase === 'PENDING_APPROVAL' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') ? (
                           <div className="space-y-2">
                             <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -604,13 +604,13 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                           </div>
                         ) : (
                           <Menu as="div" className="relative">
-                            <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                               <span className="flex items-center justify-between">
                                 {task.phase.replace('_', ' ')}
                                 <ChevronDownIcon className="h-5 w-5 text-gray-400" />
                               </span>
                             </Menu.Button>
-                            <Menu.Items className="absolute right-0 mt-2 w-56 bg-white rounded-md shadow-lg border border-gray-200 focus:outline-none z-10">
+                            <Menu.Items className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 focus:outline-none z-10">
                               <div className="py-1">
                                 {phases.map((phase) => (
                                   <Menu.Item key={phase.key}>
@@ -619,10 +619,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                                         onClick={() => handlePhaseChange(phase.key)}
                                         disabled={!canChangePhase(phase.key)}
                                         className={`${
-                                          active ? 'bg-gray-100' : ''
+                                          active ? 'bg-gray-100 dark:bg-gray-800' : ''
                                         } ${
                                           !canChangePhase(phase.key) ? 'opacity-50 cursor-not-allowed' : ''
-                                        } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                                        } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
                                       >
                                         {task.phase === phase.key && (
                                           <CheckIcon className="h-4 w-4 mr-3 text-primary-600" />
@@ -645,33 +645,33 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     <div className="space-y-2">
                       <button
                         onClick={() => setShowComments(!showComments)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
                       >
                         <span className="flex items-center">
                           <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
                           Comments
                         </span>
-                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-xs">
                           {task.comments?.length || 0}
                         </span>
                       </button>
 
                       <button
                         onClick={() => setShowFiles(!showFiles)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
                       >
                         <span className="flex items-center">
                           <PaperClipIcon className="h-5 w-5 mr-2" />
                           Files
                         </span>
-                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-xs">
                           {task.files?.length || 0}
                         </span>
                       </button>
 
                       <button
                         onClick={() => setShowActivityLog(!showActivityLog)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
                       >
                         <span className="flex items-center">
                           <ArrowPathIcon className="h-5 w-5 mr-2" />
@@ -681,26 +681,26 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                       <button
                         onClick={() => setShowSubtasks(!showSubtasks)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
                       >
                         <span className="flex items-center">
                           <CheckIcon className="h-5 w-5 mr-2" />
                           Subtasks
                         </span>
-                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-xs">
                           {task.subtasks?.length || 0}
                         </span>
                       </button>
 
                       <button
                         onClick={() => setShowTimeTracker(!showTimeTracker)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
                       >
                         <span className="flex items-center">
                           <PlayIcon className="h-5 w-5 mr-2" />
                           Time Tracking
                         </span>
-                        <span className="bg-gray-100 px-2 py-1 rounded-full text-xs">
+                        <span className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full text-xs">
                           {task.timeEntries?.length || 0}
                         </span>
                       </button>
@@ -710,7 +710,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                 {/* Comments Section */}
                 {showComments && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <TaskComments
                       taskId={task.id}
                       comments={task.comments || []}
@@ -721,7 +721,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                 {/* Files Section */}
                 {showFiles && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <FileUpload
                       taskId={task.id}
                       files={task.files || []}
@@ -732,7 +732,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                 {/* Activity Log Section */}
                 {showActivityLog && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <TaskActivityLog
                       activities={task.activities || []}
                     />
@@ -741,7 +741,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                 {/* Subtasks Section */}
                 {showSubtasks && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <SubtaskList
                       taskId={task.id}
                       subtasks={task.subtasks || []}
@@ -752,7 +752,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                 {/* Time Tracking Section */}
                 {showTimeTracker && (
-                  <div className="mt-8 pt-6 border-t border-gray-200">
+                  <div className="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
                     <TimeTracker
                       taskId={task.id}
                       timeEntries={task.timeEntries || []}

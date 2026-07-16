@@ -232,17 +232,17 @@ export default function EditCompany() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         <div className="mb-8">
           <button
             onClick={() => navigate(`/admin/companies/${id}`)}
-            className="text-gray-600 hover:text-gray-900 mb-4 flex items-center"
+            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white mb-4 flex items-center"
           >
             ← Back to Company Details
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Edit Company</h1>
-          <p className="mt-2 text-gray-600">Update company information and settings</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Edit Company</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-300">Update company information and settings</p>
         </div>
 
         {error && (
@@ -251,14 +251,14 @@ export default function EditCompany() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 space-y-6">
           {/* Company Info Section */}
           <div>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Company Information</h2>
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Company Information</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Company Name *
                 </label>
                 <input
@@ -272,7 +272,7 @@ export default function EditCompany() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Slug (URL-friendly name) *
                 </label>
                 <input
@@ -282,13 +282,13 @@ export default function EditCompany() {
                   onChange={handleChange}
                   required
                   disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                 />
-                <p className="text-sm text-gray-500 mt-1">Slug cannot be changed after creation</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Slug cannot be changed after creation</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Primary Color
                 </label>
                 <div className="flex items-center space-x-4">
@@ -309,7 +309,7 @@ export default function EditCompany() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Company Logo
                 </label>
 
@@ -318,7 +318,7 @@ export default function EditCompany() {
                     <img
                       src={logoPreview}
                       alt="Logo preview"
-                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white"
+                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800"
                     />
                     <button
                       type="button"
@@ -337,13 +337,13 @@ export default function EditCompany() {
                   type="file"
                   accept="image/*"
                   onChange={handleLogoChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  className="block w-full text-sm text-gray-500 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
-                <p className="text-sm text-gray-500 mt-1">Upload a new logo to replace the current one</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Upload a new logo to replace the current one</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Billing Email
                 </label>
                 <input
@@ -358,11 +358,11 @@ export default function EditCompany() {
           </div>
 
           {/* Subscription Section */}
-          <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Subscription</h2>
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Subscription</h2>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Subscription Plan
               </label>
               <select
@@ -376,23 +376,23 @@ export default function EditCompany() {
                 <option value="ENTERPRISE">Enterprise (Unlimited) - $299/month</option>
               </select>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Users</label>
                   <input type="number" name="maxUsers" value={formData.maxUsers} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
                   <p className="text-[11px] text-gray-400 mt-1">(-1 for unlimited)</p>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Tasks</label>
                   <input type="number" name="maxTasks" value={formData.maxTasks} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
                   <p className="text-[11px] text-gray-400 mt-1">(-1 for unlimited)</p>
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Max Storage (GB)</label>
                   <input type="number" name="maxStorage" value={formData.maxStorage} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm font-bold" />
+                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
                   <p className="text-[11px] text-gray-400 mt-1">(-1 for unlimited)</p>
                 </div>
               </div>
@@ -400,8 +400,8 @@ export default function EditCompany() {
           </div>
 
           {/* AI Configuration Section */}
-          <div className="border-t border-gray-200 pt-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Configuration</h2>
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">AI Configuration</h2>
 
             <div className="space-y-4">
               <div>
@@ -413,12 +413,12 @@ export default function EditCompany() {
                     onChange={handleChange}
                     className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="text-sm font-medium text-gray-700">Enable AI Features</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Enable AI Features</span>
                 </label>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   AI API Key
                 </label>
                 <input
@@ -429,11 +429,11 @@ export default function EditCompany() {
                   placeholder="Enter Gemini or Groq API key"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <p className="text-sm text-gray-500 mt-1">Only enter a new key if you want to update it. Supported: Gemini, Groq.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Only enter a new key if you want to update it. Supported: Gemini, Groq.</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   AI Provider
                 </label>
                 <select
@@ -452,11 +452,11 @@ export default function EditCompany() {
 
 
           {/* Action Buttons */}
-          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={() => navigate(`/admin/companies/${id}`)}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
             >
               Cancel
             </button>

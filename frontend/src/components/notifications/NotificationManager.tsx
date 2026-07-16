@@ -96,7 +96,7 @@ const NotificationManager: React.FC = () => {
                     <ClockIcon className="h-6 w-6 text-yellow-500" />
                     <div>
                       <p className="font-medium">Task Due Soon</p>
-                      <p className="text-sm text-gray-600">{task.title}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{task.title}</p>
                     </div>
                   </div>
                 ),
@@ -128,7 +128,7 @@ const NotificationManager: React.FC = () => {
                     <ExclamationCircleIcon className="h-6 w-6 text-red-500" />
                     <div>
                       <p className="font-medium">Urgent: Task Due Soon</p>
-                      <p className="text-sm text-gray-600">{task.title}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{task.title}</p>
                     </div>
                   </div>
                 ),
@@ -186,7 +186,7 @@ const NotificationManager: React.FC = () => {
       case 'task_approval':
         return <InformationCircleIcon className="h-6 w-6 text-blue-500" />
       default:
-        return <InformationCircleIcon className="h-6 w-6 text-gray-500" />
+        return <InformationCircleIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
     }
   }
 
@@ -195,9 +195,9 @@ const NotificationManager: React.FC = () => {
       {/* Bell Icon with Badge */}
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="relative p-2 rounded-full hover:bg-gray-100 focus:outline-none"
+        className="relative p-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 focus:outline-none"
       >
-        <BellIcon className="h-6 w-6 text-gray-600" />
+        <BellIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
         {unreadCount > 0 && (
           <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/2 -translate-y-1/2 bg-red-500 rounded-full">
             {unreadCount}
@@ -212,15 +212,15 @@ const NotificationManager: React.FC = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg z-50"
+            className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg z-50"
           >
-            <div className="p-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Notifications</h3>
             </div>
 
             <div className="max-h-96 overflow-y-auto">
               {notifications.length === 0 ? (
-                <div className="p-4 text-center text-gray-500">
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                   No notifications
                 </div>
               ) : (
@@ -230,17 +230,17 @@ const NotificationManager: React.FC = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className={`p-4 border-b border-gray-100 hover:bg-gray-50 ${
+                    className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900/40 ${
                       !notification.read ? 'bg-blue-50' : ''
                     }`}
                   >
                     <div className="flex items-start space-x-3">
                       {getNotificationIcon(notification.type)}
                       <div className="flex-1">
-                        <h4 className="text-sm font-medium text-gray-900">
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-white">
                           {notification.title}
                         </h4>
-                        <p className="text-sm text-gray-600 mt-1">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                           {notification.message}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">
@@ -288,7 +288,7 @@ const NotificationManager: React.FC = () => {
                       </div>
                       <button
                         onClick={() => clearNotification(notification.id)}
-                        className="text-gray-400 hover:text-gray-600"
+                        className="text-gray-400 hover:text-gray-600 dark:text-gray-300"
                       >
                         <XMarkIcon className="h-5 w-5" />
                       </button>

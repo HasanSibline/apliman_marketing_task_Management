@@ -304,7 +304,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
           initial={{ opacity: 0, y: 50, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 50, scale: 0.98 }}
-          className="relative w-full max-w-6xl h-[90vh] bg-white rounded-[2rem] shadow-none flex flex-col overflow-hidden border border-gray-100"
+          className="relative w-full max-w-6xl h-[90vh] bg-white dark:bg-gray-800 rounded-[2rem] shadow-none flex flex-col overflow-hidden border border-gray-100 dark:border-gray-700"
         >
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
@@ -313,7 +313,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
           ) : (
             <>
               {/* Premium Header Strip */}
-              <div className="px-8 py-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+              <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <span className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-[11px] font-black tracking-widest uppercase border border-primary-500">
                     {ticket.ticketNumber}
@@ -323,10 +323,10 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       type="text"
                       value={editData.title}
                       onChange={(e) => setEditData({...editData, title: e.target.value})}
-                      className="flex-1 max-w-lg px-4 py-2 bg-white border-2 border-primary-500/20 rounded-xl text-xl font-black text-gray-900 focus:outline-none focus:border-primary-500 transition-all font-outfit"
+                      className="flex-1 max-w-lg px-4 py-2 bg-white dark:bg-gray-800 border-2 border-primary-500/20 rounded-xl text-xl font-black text-gray-900 dark:text-white focus:outline-none focus:border-primary-500 transition-all font-outfit"
                     />
                   ) : (
-                    <h2 className="text-2xl font-black text-gray-900 truncate max-w-lg uppercase tracking-tight font-outfit">
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white truncate max-w-lg uppercase tracking-tight font-outfit">
                       {ticket.title}
                     </h2>
                   )}
@@ -335,7 +335,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   {canEdit && !isEditing && (
                     <button 
                       onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 hover:border-primary-500 transition-all shadow-sm"
+                      className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/40 hover:border-primary-500 transition-all shadow-sm"
                     >
                       <PencilSquareIcon className="h-4 w-4 text-primary-600" /> Modify
                     </button>
@@ -351,7 +351,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   <div className="w-px h-8 bg-gray-200 mx-2" />
                   <button
                     onClick={onClose}
-                    className="p-2.5 bg-gray-100/50 hover:bg-gray-200 rounded-xl text-gray-400 hover:text-gray-900 transition-all"
+                    className="p-2.5 bg-gray-100/50 hover:bg-gray-200 rounded-xl text-gray-400 hover:text-gray-900 dark:text-white transition-all"
                   >
                     <XMarkIcon className="h-6 w-6" />
                   </button>
@@ -360,10 +360,10 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
               <div className="flex-1 flex overflow-hidden">
                 {/* Left Panel: Configuration & Metadata */}
-                <div className="w-[480px] border-r border-gray-100 overflow-y-auto p-8 space-y-8 bg-gray-50/20">
+                <div className="w-[480px] border-r border-gray-100 dark:border-gray-700 overflow-y-auto p-8 space-y-8 bg-gray-50/20">
                   
                   {/* Process Control Card */}
-                  <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 space-y-6">
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 space-y-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <ListBulletIcon className="h-4 w-4 text-primary-500" />
@@ -391,7 +391,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <select
                               value={editData.receiverDeptId}
                               onChange={(e) => setEditData({...editData, receiverDeptId: e.target.value})}
-                              className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white focus:border-primary-500 transition-all font-black text-gray-800"
+                              className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white dark:bg-gray-800 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
                             >
                                 <option value="">Select Destination...</option>
                                 {departments.map(d => (
@@ -406,7 +406,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <select
                               value={editData.status}
                               onChange={(e) => setEditData({...editData, status: e.target.value})}
-                              className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white focus:border-rose-500 transition-all font-black text-gray-800"
+                              className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white dark:bg-gray-800 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
                             >
                                 {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                                   <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -425,7 +425,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             </button>
                             <button 
                               onClick={() => { setIsEditing(false); fetchTicketDetails(); }}
-                              className="bg-gray-100 text-gray-600 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                              className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
                             >
                                Cancel
                             </button>
@@ -434,13 +434,13 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     ) : (
                       <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700">
                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester Authority</p>
-                               <p className="text-xs font-black text-gray-800 truncate">{ticket.requesterManager?.name || 'Authorized'}</p>
+                               <p className="text-xs font-black text-gray-800 dark:text-gray-100 truncate">{ticket.requesterManager?.name || 'Authorized'}</p>
                             </div>
-                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100">
+                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700">
                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Receiver Authority</p>
-                               <p className="text-xs font-black text-gray-800 truncate">{ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Not Selected'}</p>
+                               <p className="text-xs font-black text-gray-800 dark:text-gray-100 truncate">{ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Not Selected'}</p>
                             </div>
                         </div>
 
@@ -473,7 +473,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                   onUpdate()
                                 } catch (error) { toast.error('Assignment failed') }
                               }}
-                              className="w-full text-xs border border-gray-200 rounded-xl p-3 bg-gray-50 focus:bg-white font-black text-gray-800 transition-all"
+                              className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800 font-black text-gray-800 dark:text-gray-100 transition-all"
                             >
                               <option value="">Select Resource...</option>
                               {users.filter(u => u.departmentId === ticket.receiverDeptId).map(u => (
@@ -509,7 +509,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                 onUpdate()
                               } catch { toast.error('Sync error') }
                             }}
-                            className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-xl' : 'bg-gray-100 text-gray-500'} text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all`}
+                            className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-xl' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'} text-white rounded-xl text-[11px] font-black uppercase tracking-[0.2em] hover:scale-[1.02] transition-all`}
                           >
                             Finalize Engagement
                           </button>
@@ -519,7 +519,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   </div>
 
                   {/* Documents / Attachments Card */}
-                  <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm space-y-4">
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <PaperClipIcon className="h-4 w-4 text-primary-500" />
@@ -537,13 +537,13 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
                     <div className="space-y-2">
                         {attachments.map(att => (
-                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-100 hover:bg-white transition-all group">
+                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-white dark:bg-gray-800 transition-all group">
                             <div className="flex items-center gap-3 min-w-0">
-                               <div className="h-8 w-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center text-primary-600 shadow-sm">
+                               <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 shadow-sm">
                                   <DocumentIcon className="h-4 w-4" />
                                </div>
                                <div className="min-w-0 overflow-hidden">
-                                  <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tight">{att.fileName}</p>
+                                  <p className="text-[11px] font-black text-gray-900 dark:text-white truncate uppercase tracking-tight">{att.fileName}</p>
                                   <p className="text-[8px] text-gray-400 font-bold">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
                                </div>
                             </div>
@@ -580,11 +580,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       <textarea
                         value={editData.description}
                         onChange={(e) => setEditData({...editData, description: e.target.value})}
-                        className="w-full px-5 py-4 bg-white border-2 border-primary-50 rounded-[1.5rem] text-[11px] font-bold text-gray-800 leading-relaxed min-h-[160px] focus:outline-none focus:border-primary-500 transition-all font-outfit"
+                        className="w-full px-5 py-4 bg-white dark:bg-gray-800 border-2 border-primary-50 rounded-[1.5rem] text-[11px] font-bold text-gray-800 dark:text-gray-100 leading-relaxed min-h-[160px] focus:outline-none focus:border-primary-500 transition-all font-outfit"
                         placeholder="Define background and context..."
                       />
                     ) : (
-                      <div className="bg-white p-6 rounded-[1.5rem] border border-gray-100 shadow-sm text-xs text-gray-800 leading-relaxed whitespace-pre-wrap font-bold font-outfit">
+                      <div className="bg-white dark:bg-gray-800 p-6 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 shadow-sm text-xs text-gray-800 dark:text-gray-100 leading-relaxed whitespace-pre-wrap font-bold font-outfit">
                         {ticket.description || 'No specialized context provided.'}
                       </div>
                     )}
@@ -592,18 +592,18 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                 </div>
 
                 {/* Right Panel: The Thread */}
-                <div className="flex-1 flex flex-col bg-white">
+                <div className="flex-1 flex flex-col bg-white dark:bg-gray-800">
                   {/* Comm Channel */}
                   <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
                     <div className="flex items-center gap-2 mb-4 bg-gray-50/50 p-2 rounded-xl w-fit">
                         <ChatBubbleLeftRightIcon className="h-4 w-4 text-primary-500" />
-                        <h3 className="text-[11px] font-black text-gray-500 uppercase tracking-widest italic tracking-tighter">Organizational Engagement Thread</h3>
+                        <h3 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest italic tracking-tighter">Organizational Engagement Thread</h3>
                     </div>
 
                     <div className="space-y-6">
                       {ticket.comments?.map((comment: any) => (
                         <div key={comment.id} className={`flex gap-4 ${comment.userId === user?.id ? 'flex-row-reverse' : ''}`}>
-                        <div className={`h-10 w-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-100
+                        <div className={`h-10 w-10 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-gray-100 dark:border-gray-700
                           ${comment.userId === user?.id ? 'bg-primary-600' : 'bg-gray-800'}`}>
                           {comment.user.avatar ? (
                             <img 
@@ -619,13 +619,13 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         </div>
                           <div className={`max-w-[75%] space-y-1.5 ${comment.userId === user?.id ? 'items-end flex flex-col' : ''}`}>
                             <div className="flex items-center gap-3">
-                              <span className="text-[11px] font-black text-gray-900 uppercase tracking-tight">{comment.user.name}</span>
+                              <span className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">{comment.user.name}</span>
                               <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                             <div className={`px-5 py-4 rounded-2xl text-xs font-black leading-relaxed tracking-wide
                               ${comment.userId === user?.id 
                                 ? 'bg-primary-600 text-white rounded-tr-none' 
-                                : 'bg-gray-50 text-gray-900 rounded-tl-none border border-gray-100'}`}>
+                                : 'bg-gray-50 dark:bg-gray-900/40 text-gray-900 dark:text-white rounded-tl-none border border-gray-100 dark:border-gray-700'}`}>
                               {comment.comment.split(' ').map((word: string, i: number) => 
                                 word.startsWith('@') ? <span key={i} className="underline decoration-2 decoration-current mr-1 italic text-indigo-300 pointer-events-none">{word}</span> : word + ' '
                               )}
@@ -644,10 +644,10 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   </div>
 
                   {/* Broadcasting Center */}
-                  <div className="p-8 border-t border-gray-100 bg-gray-50/10 relative">
+                  <div className="p-8 border-t border-gray-100 dark:border-gray-700 bg-gray-50/10 relative">
                     {showMentions && filteredUsers.length > 0 && (
-                      <div className="absolute bottom-full left-8 mb-4 w-80 bg-white rounded-2xl shadow-none border border-gray-100 overflow-hidden z-20">
-                        <div className="bg-gray-50/50 px-5 py-3 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 italic tracking-widest">Broadcast Target Selector</div>
+                      <div className="absolute bottom-full left-8 mb-4 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
+                        <div className="bg-gray-50/50 px-5 py-3 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 italic tracking-widest">Broadcast Target Selector</div>
                         {filteredUsers.map(u => (
                           <button
                             key={u.id}
@@ -666,7 +666,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[11px] font-black text-gray-900 truncate uppercase tracking-tighter">{u.name}</p>
+                              <p className="text-[11px] font-black text-gray-900 dark:text-white truncate uppercase tracking-tighter">{u.name}</p>
                               <p className="text-[11px] text-gray-400 font-bold uppercase tracking-tight truncate italic">{u.department?.name || u.role}</p>
                             </div>
                           </button>
@@ -681,7 +681,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           placeholder="Broadcast a new message... Use @ to tag team members."
                           value={newComment}
                           onChange={handleInputChange}
-                          className="flex-1 px-8 py-5 bg-white border border-gray-100 rounded-2xl focus:outline-none focus:border-primary-500 transition-all resize-none text-xs font-black text-gray-800 font-outfit"
+                          className="flex-1 px-8 py-5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-primary-500 transition-all resize-none text-xs font-black text-gray-800 dark:text-gray-100 font-outfit"
                         />
                       <button
                         type="submit"

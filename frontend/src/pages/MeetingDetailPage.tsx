@@ -167,7 +167,7 @@ const MeetingDetailPage: React.FC = () => {
                     <div className="h-20 w-20 border-8 border-indigo-50 rounded-full" />
                     <div className="absolute top-0 h-20 w-20 border-8 border-indigo-600 rounded-full border-t-transparent animate-spin" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 tracking-tight">Accessing Meeting Data</h3>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Accessing Meeting Data</h3>
                 <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-2">Connecting to Microsoft Teams...</p>
             </div>
         )
@@ -179,7 +179,7 @@ const MeetingDetailPage: React.FC = () => {
             <div className="flex items-center justify-between">
                 <button
                     onClick={() => navigate('/calendar')}
-                    className="flex items-center space-x-2 text-gray-500 hover:text-indigo-600 transition-all font-black"
+                    className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 transition-all font-black"
                 >
                     <ChevronLeftIcon className="h-5 w-5 stroke-[3px]" />
                     <span className="uppercase text-xs tracking-widest">Back to Calendar</span>
@@ -191,7 +191,7 @@ const MeetingDetailPage: React.FC = () => {
                         const isOver = meeting?.status === 'Completed' || 
                             (meeting?.end && new Date(meeting.end) < new Date())
                         return isOver ? (
-                            <div className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed select-none">
+                            <div className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 cursor-not-allowed select-none">
                                 <LinkIcon className="h-4 w-4" />
                                 <span>Meeting Ended</span>
                             </div>
@@ -215,7 +215,7 @@ const MeetingDetailPage: React.FC = () => {
                         className={`
                             flex items-center space-x-2 px-6 py-2.5 rounded-2xl text-sm font-black transition-all shadow-lg
                             ${summarizing
-                                ? 'bg-gray-100 text-gray-400'
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-400'
                                 : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95 shadow-indigo-200'}
                         `}
                     >
@@ -227,7 +227,7 @@ const MeetingDetailPage: React.FC = () => {
 
             <div className="flex-1 grid grid-cols-12 gap-8 overflow-hidden min-h-0">
                 {/* Transcript Panel */}
-                <div className="col-span-12 lg:col-span-8 flex flex-col bg-white rounded-[2rem] border border-gray-100 shadow-2xl shadow-gray-200/50 overflow-hidden">
+                <div className="col-span-12 lg:col-span-8 flex flex-col bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-2xl shadow-gray-200/50 overflow-hidden">
                     <div className="px-8 py-8 border-b border-gray-50 bg-gradient-to-br from-white to-gray-50/50">
                         <div className="flex items-start justify-between">
                             <div className="space-y-1">
@@ -235,8 +235,8 @@ const MeetingDetailPage: React.FC = () => {
                                     <VideoCameraIcon className="h-4 w-4" />
                                     <p className="text-[11px] font-black uppercase tracking-[0.2em]">Teams Online Meeting</p>
                                 </div>
-                                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">{meeting?.title}</h1>
-                                <div className="flex items-center space-x-6 pt-4 text-xs font-bold text-gray-500">
+                                <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">{meeting?.title}</h1>
+                                <div className="flex items-center space-x-6 pt-4 text-xs font-bold text-gray-500 dark:text-gray-400">
                                     <div className="flex items-center space-x-2">
                                         <CalendarIcon className="h-4 w-4 text-gray-400" />
                                         <span>{meeting?.start ? format(new Date(meeting.start), 'EEEE, MMMM do, yyyy') : '—'}</span>
@@ -254,7 +254,7 @@ const MeetingDetailPage: React.FC = () => {
 
                             <div className={`
                                 px-4 py-2 rounded-2xl border flex items-center space-x-2
-                                ${isChatFallback ? 'bg-amber-50 border-amber-100 text-amber-700' : transcript ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 border-gray-100 text-gray-500'}
+                                ${isChatFallback ? 'bg-amber-50 border-amber-100 text-amber-700' : transcript ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400'}
                             `}>
                                 <div className={`h-2 w-2 rounded-full animate-pulse ${isChatFallback ? 'bg-amber-500' : transcript ? 'bg-green-500' : 'bg-gray-300'}`} />
                                 <span className="text-[11px] font-black uppercase tracking-widest leading-none mt-0.5">
@@ -269,7 +269,7 @@ const MeetingDetailPage: React.FC = () => {
                         {!transcript ? (
                             // ── Empty state: clean, minimal, not alarming
                             <div className="h-full flex flex-col items-center justify-center space-y-5">
-                                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center">
+                                <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
                                     <DocumentTextIcon className="h-8 w-8 text-gray-300" />
                                 </div>
                                 <div className="text-center">
@@ -281,7 +281,7 @@ const MeetingDetailPage: React.FC = () => {
                                 <button
                                     onClick={() => { setTranscript(null); setTranscriptMsg(null); fetchTranscript() }}
                                     disabled={transcriptLoading}
-                                    className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gray-50 border border-gray-100 rounded-full text-xs font-bold text-gray-400 hover:text-gray-600 hover:border-gray-200 hover:bg-white transition-all disabled:opacity-50"
+                                    className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-full text-xs font-bold text-gray-400 hover:text-gray-600 dark:text-gray-300 hover:border-gray-200 dark:border-gray-700 hover:bg-white dark:bg-gray-800 transition-all disabled:opacity-50"
                                 >
                                     <ArrowPathIcon className={`h-3 w-3 ${transcriptLoading ? 'animate-spin' : ''}`} />
                                     <span>{transcriptLoading ? 'Checking...' : 'Sync transcript'}</span>
@@ -326,8 +326,8 @@ const MeetingDetailPage: React.FC = () => {
                     </AnimatePresence>
 
                     {/* Attendees */}
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-lg shadow-gray-200/30 p-5">
-                        <h2 className="text-sm font-black text-gray-900 mb-4 flex items-center space-x-2">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-200/30 p-5">
+                        <h2 className="text-sm font-black text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                             <UserGroupIcon className="h-4 w-4 text-indigo-600" />
                             <span>Attendees</span>
                             <span className="text-xs font-black text-gray-300 ml-auto">({meeting?.attendees?.length || 0})</span>
@@ -349,11 +349,11 @@ const MeetingDetailPage: React.FC = () => {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-gray-900 leading-tight">{person.name}</p>
+                                            <p className="text-xs font-black text-gray-900 dark:text-white leading-tight">{person.name}</p>
                                             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{person.type}</p>
                                         </div>
                                     </div>
-                                    <div className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 text-gray-400'}`}>
+                                    <div className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 dark:bg-gray-900/40 text-gray-400'}`}>
                                         {person.status}
                                     </div>
                                 </div>
@@ -370,7 +370,7 @@ const MeetingDetailPage: React.FC = () => {
                                     {meeting?.status || 'Upcoming'}
                                 </h3>
                             </div>
-                            <p className="text-[11px] font-medium text-gray-500 text-right leading-relaxed max-w-[100px]">Synced via Microsoft Graph API</p>
+                            <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 text-right leading-relaxed max-w-[100px]">Synced via Microsoft Graph API</p>
                         </div>
                         <div className="absolute inset-0 bg-indigo-600/10 group-hover:bg-indigo-600/20 transition-colors pointer-events-none" />
                     </div>

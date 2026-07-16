@@ -190,7 +190,7 @@ const TicketsPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setShowCreateModal(true)} 
-              className="flex items-center gap-2 px-6 py-3 bg-white text-primary-700 rounded-lg font-black text-[11px] uppercase tracking-widest hover:bg-primary-50 active:scale-95 transition-all shadow-sm"
+              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-primary-700 rounded-lg font-black text-[11px] uppercase tracking-widest hover:bg-primary-50 active:scale-95 transition-all shadow-sm"
             >
               <PlusIcon className="h-4 w-4" />
               Initiate Request
@@ -211,14 +211,14 @@ const TicketsPage: React.FC = () => {
           </div>
           <div className="space-y-3">
             {tickets.filter(t => t.assignments?.some((a: any) => a.userId === user?.id && a.status === 'PENDING')).map(ticket => (
-              <div key={ticket.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white rounded-xl border border-amber-100 shadow-sm hover:border-amber-300 transition-all">
+              <div key={ticket.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-amber-100 shadow-sm hover:border-amber-300 transition-all">
                 <div className="flex items-center gap-4">
                    <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
                       <TicketIcon className="h-5 w-5 text-amber-600" />
                    </div>
                    <div className="min-w-0">
                       <p className="text-[11px] font-black text-amber-600 uppercase tracking-tight mb-0.5">{ticket.ticketNumber}</p>
-                      <h4 className="text-sm font-black text-gray-900 truncate max-w-md">{ticket.title}</h4>
+                      <h4 className="text-sm font-black text-gray-900 dark:text-white truncate max-w-md">{ticket.title}</h4>
                       <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1">Invited by {ticket.requester?.name}</p>
                    </div>
                 </div>
@@ -231,7 +231,7 @@ const TicketsPage: React.FC = () => {
                    </button>
                    <button 
                      onClick={(e) => { e.stopPropagation(); promptAction(e, 'decline_invite', ticket.id); }}
-                     className="px-4 py-2 bg-white text-rose-600 border border-rose-100 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center gap-2"
+                     className="px-4 py-2 bg-white dark:bg-gray-800 text-rose-600 border border-rose-100 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center gap-2"
                    >
                      <XCircleIcon className="h-4 w-4" /> Decline
                    </button>
@@ -244,11 +244,11 @@ const TicketsPage: React.FC = () => {
 
       {/* Controls Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-xl w-fit">
+        <div className="flex items-center gap-1 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
           <button
             onClick={() => { setActiveTab('ACTIVE'); setPage(1); }}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'ACTIVE' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'ACTIVE' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
             }`}
           >
             Active
@@ -256,7 +256,7 @@ const TicketsPage: React.FC = () => {
           <button
             onClick={() => { setActiveTab('HISTORY'); setPage(1); }}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'HISTORY' ? 'bg-white text-primary-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              activeTab === 'HISTORY' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
             }`}
           >
             History
@@ -272,21 +272,21 @@ const TicketsPage: React.FC = () => {
             placeholder="Search by ID, department, or title..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-11 pr-4 py-2.5 w-full border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400 text-sm"
+            className="pl-11 pr-4 py-2.5 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400 text-sm"
           />
         </div>
       </div>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-            <p className="text-gray-600">Loading tickets...</p>
+            <p className="text-gray-600 dark:text-gray-300">Loading tickets...</p>
           </div>
         ) : tickets.length === 0 ? (
           <div className="text-center py-16">
             <TicketIcon className="h-16 w-16 text-gray-200 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No tickets found</h3>
-            <p className="text-gray-500 mb-6">No tickets match your current filters.</p>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No tickets found</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">No tickets match your current filters.</p>
             <button onClick={() => setShowCreateModal(true)} className="btn-primary">
               <PlusIcon className="h-4 w-4 mr-2" />
               New Request
@@ -295,26 +295,26 @@ const TicketsPage: React.FC = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-900/40">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">ID &amp; Title</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Route</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Requester</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID &amp; Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Route</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Requester</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
                 {tickets.map((ticket) => (
                   <tr
                     key={ticket.id}
                     onClick={() => handleOpenDetail(ticket.id)}
-                    className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                    className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors cursor-pointer group"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
                         <span className="text-xs font-semibold text-primary-600 mb-0.5">{ticket.ticketNumber}</span>
-                        <span className="text-sm font-semibold text-gray-900 group-hover:text-primary-600 transition-colors truncate max-w-xs">{ticket.title}</span>
+                        <span className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate max-w-xs">{ticket.title}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -322,7 +322,7 @@ const TicketsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-full">
+                        <span className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
                           {ticket.requester?.department?.name || 'General'}
                         </span>
                         <ArrowRightIcon className="h-3 w-3 text-gray-400" />
@@ -333,16 +333,16 @@ const TicketsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-200 flex-shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden border border-gray-200 dark:border-gray-700 flex-shrink-0">
                           {ticket.requester?.avatar ? (
                             <img src={formatAssetUrl(ticket.requester.avatar)} className="h-full w-full object-cover" />
                           ) : (
-                            <span className="text-xs font-semibold text-gray-500">{ticket.requester?.name?.charAt(0)}</span>
+                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{ticket.requester?.name?.charAt(0)}</span>
                           )}
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{ticket.requester?.name}</p>
-                          <p className="text-xs text-gray-500">{ticket.requester?.department?.name || 'No dept'}</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{ticket.requester?.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{ticket.requester?.department?.name || 'No dept'}</p>
                         </div>
                       </div>
                     </td>
@@ -375,23 +375,23 @@ const TicketsPage: React.FC = () => {
         )}
 
         {/* Footer / Pagination */}
-        <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between bg-gray-50">
-          <p className="text-sm text-gray-500">
-            Showing <span className="font-semibold text-gray-700">{tickets.length}</span> of <span className="font-semibold text-gray-700">{total}</span> tickets
+        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/40">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{tickets.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> tickets
           </p>
           <div className="flex items-center gap-2">
             <button
               disabled={page <= 1}
               onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Previous
             </button>
-            <span className="text-sm font-medium text-gray-700 px-2">{page} / {totalPages || 1}</span>
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-200 px-2">{page} / {totalPages || 1}</span>
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>

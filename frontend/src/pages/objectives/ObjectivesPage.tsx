@@ -53,7 +53,7 @@ const STATUS_CFG = {
     AT_RISK: { label: 'At Risk', dot: 'bg-yellow-500', text: 'text-yellow-700', bg: 'bg-yellow-100', Icon: ExclamationTriangleIcon },
     OFF_TRACK: { label: 'Off Track', dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-100', Icon: XCircleIcon },
     COMPLETED: { label: 'Completed', dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-100', Icon: CheckCircleIcon },
-    CANCELLED: { label: 'Cancelled', dot: 'bg-gray-400', text: 'text-gray-600', bg: 'bg-gray-100', Icon: XMarkIcon },
+    CANCELLED: { label: 'Cancelled', dot: 'bg-gray-400', text: 'text-gray-600 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800', Icon: XMarkIcon },
 }
 
 // ─── Progress Ring ────────────────────────────────────────────────────────────
@@ -84,19 +84,19 @@ function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string
     return (
         <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-700">{kr.title}</span>
+                <span className="text-sm text-gray-700 dark:text-gray-200">{kr.title}</span>
                 <div className="flex items-center gap-2">
                     {editing ? (
                         <>
                             <input type="number" value={val} onChange={e => setVal(+e.target.value)}
                                 className="w-20 text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500" />
                             <button onClick={save} className="text-xs text-primary-600 font-medium hover:text-primary-700">Save</button>
-                            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600">Cancel</button>
+                            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 dark:text-gray-300">Cancel</button>
                         </>
                     ) : (
                         <>
-                            <span className="text-xs text-gray-500">{kr.currentValue} / {kr.targetValue} {kr.unit}</span>
-                            <span className={`text-xs font-bold ${pct >= 100 ? 'text-green-700' : pct >= 50 ? 'text-primary-700' : 'text-gray-700'}`}>{pct}%</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">{kr.currentValue} / {kr.targetValue} {kr.unit}</span>
+                            <span className={`text-xs font-bold ${pct >= 100 ? 'text-green-700' : pct >= 50 ? 'text-primary-700' : 'text-gray-700 dark:text-gray-200'}`}>{pct}%</span>
                             {canEdit && (
                                 <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-primary-600 transition">
                                     <PencilIcon className="h-3.5 w-3.5" />
@@ -106,7 +106,7 @@ function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string
                     )}
                 </div>
             </div>
-            <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${pct >= 100 ? 'bg-green-500' : pct >= 50 ? 'bg-primary-500' : 'bg-yellow-400'}`}
                     style={{ width: `${pct}%` }} />
             </div>
@@ -135,32 +135,32 @@ function CreateObjectiveModal({
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-lg font-semibold text-gray-900">New Objective</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Objective</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Title <span className="text-red-500">*</span></label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Title <span className="text-red-500">*</span></label>
                         <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
                             className="input-field" placeholder="e.g. Grow user base by 30%" required />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Description</label>
                         <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                             className="textarea-field" rows={3} placeholder="What does success look like?" />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Quarter</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Quarter</label>
                             <select value={form.quarterId} onChange={e => setForm(p => ({ ...p, quarterId: e.target.value }))} className="select-field">
                                 <option value="">No quarter</option>
                                 {quarters.map(q => <option key={q.id} value={q.id}>{q.name} {q.year}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Status</label>
                             <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="select-field">
                                 {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
                             </select>
@@ -264,23 +264,23 @@ const ObjectivesPage: React.FC = () => {
             <>
                 <motion.tr 
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="hover:bg-gray-50 transition-colors group border-b border-gray-100"
+                    className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors group border-b border-gray-100 dark:border-gray-700"
                 >
                     <td className="px-6 py-4 cursor-pointer" onClick={() => navigate(`/objectives/${obj.id}`)}>
                         <div className="flex items-center gap-4">
                             <div className="relative shrink-0 w-10">
                                 <ProgressRing pct={obj.progress} size={40} stroke={4} />
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-[11px] font-bold text-gray-700">{obj.progress}%</span>
+                                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200">{obj.progress}%</span>
                                 </div>
                             </div>
                             <div className="min-w-0">
-                                <div className="text-sm font-bold text-gray-900 truncate">{obj.title}</div>
-                                {obj.description && <div className="text-xs text-gray-500 truncate max-w-xs">{obj.description}</div>}
+                                <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{obj.title}</div>
+                                {obj.description && <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{obj.description}</div>}
                             </div>
                         </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                         {obj.quarter ? (
                             <span className="font-medium">{obj.quarter.name} {obj.quarter.year}</span>
                         ) : (
@@ -293,7 +293,7 @@ const ObjectivesPage: React.FC = () => {
                             {cfg.label}
                         </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                         <button onClick={(e) => { e.stopPropagation(); setExpanded(p => !p); }} className="flex items-center gap-1 font-medium hover:text-primary-600 transition-colors">
                             {expanded ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
                             {obj.keyResults.length} KR{obj.keyResults.length !== 1 ? 's' : ''}
@@ -314,9 +314,9 @@ const ObjectivesPage: React.FC = () => {
                 </motion.tr>
                 {(expanded || (canEdit && obj.keyResults.length === 0)) && (
                     <tr className="bg-gray-50/50">
-                        <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100">
+                        <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100 dark:border-gray-700">
                             <div className="pl-14 pr-8 space-y-3">
-                                {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Key Results</h4>}
+                                {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Key Results</h4>}
                                 {obj.keyResults.map(kr => (
                                     <KRBar key={kr.id} kr={kr} canEdit={canEdit} onUpdate={updateKR} />
                                 ))}
@@ -326,7 +326,7 @@ const ObjectivesPage: React.FC = () => {
                                     </button>
                                 )}
                                 {addingKR && (
-                                    <div className="bg-white p-3 rounded-lg border border-gray-200 mt-2 space-y-2 shadow-sm">
+                                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 mt-2 space-y-2 shadow-sm">
                                         <input placeholder="Key result title" value={krForm.title} onChange={e => setKrForm(p => ({ ...p, title: e.target.value }))} className="input-field text-sm" />
                                         <div className="grid grid-cols-3 gap-2">
                                             <input type="number" placeholder="Start" value={krForm.startValue} onChange={e => setKrForm(p => ({ ...p, startValue: +e.target.value }))} className="input-field text-sm" />
@@ -370,17 +370,17 @@ const ObjectivesPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="bg-white/10 p-1 rounded-xl flex">
-                            <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'list' ? 'bg-white text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
+                            <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'list' ? 'bg-white dark:bg-gray-800 text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
                                 <ListBulletIcon className="h-4 w-4" />
                                 List
                             </button>
-                            <button onClick={() => setViewMode('analytics')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'analytics' ? 'bg-white text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
+                            <button onClick={() => setViewMode('analytics')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'analytics' ? 'bg-white dark:bg-gray-800 text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
                                 <ChartBarIcon className="h-4 w-4" />
                                 Analytics
                             </button>
                         </div>
                         {canEdit && (
-                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 transition shadow-sm border border-primary-200">
+                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 transition shadow-sm border border-primary-200">
                                 <PlusIcon className="h-4 w-4 stroke-2" />
                                 New Objective
                             </button>
@@ -396,14 +396,14 @@ const ObjectivesPage: React.FC = () => {
                     {/* Stats row */}
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                         {[
-                            { label: 'Total', value: stats.total, color: 'text-gray-900' },
+                            { label: 'Total', value: stats.total, color: 'text-gray-900 dark:text-white' },
                             { label: 'On Track', value: stats.onTrack, color: 'text-green-700' },
                             { label: 'At Risk', value: stats.atRisk, color: 'text-yellow-700' },
                             { label: 'Completed', value: stats.completed, color: 'text-blue-700' },
                             { label: 'Avg Progress', value: `${stats.avgProgress}%`, color: 'text-primary-700' },
                         ].map(s => (
-                            <div key={s.label} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 text-center">
-                                <p className="text-xs text-gray-500 font-bold uppercase tracking-widest mb-1">{s.label}</p>
+                            <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
+                                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mb-1">{s.label}</p>
                                 <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
                             </div>
                         ))}
@@ -427,28 +427,28 @@ const ObjectivesPage: React.FC = () => {
                     {loading ? (
                         <div className="flex justify-center py-12"><div className="spinner h-8 w-8" /></div>
                     ) : filtered.length === 0 ? (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
                             <FlagIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                            <p className="text-gray-500 font-medium">No objectives yet</p>
+                            <p className="text-gray-500 dark:text-gray-400 font-medium">No objectives yet</p>
                             <p className="text-sm text-gray-400 mb-4">Create your first objective to track company goals</p>
                             {canEdit && (
                                 <button onClick={() => setShowCreate(true)} className="btn-primary">Create First Objective</button>
                             )}
                         </div>
                     ) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                             <div className="overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
+                                    <thead className="bg-gray-50 dark:bg-gray-900/40">
                                         <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider w-1/3">Objective & Progress</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Quarter</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Key Results</th>
-                                            <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/3">Objective & Progress</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quarter</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Key Results</th>
+                                            <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-100">
+                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
                                         {filtered.map(obj => (
                                             <ExpanderRow key={obj.id} obj={obj} />
                                         ))}

@@ -121,11 +121,11 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
   return (
     <div className="space-y-4">
       {/* Time Tracking Controls */}
-      <div className="flex items-center justify-between bg-gray-50 rounded-lg p-4 border border-gray-200">
+      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <ClockIcon className="h-5 w-5 text-gray-500" />
-            <span className="text-lg font-mono font-medium text-gray-900">
+            <ClockIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+            <span className="text-lg font-mono font-medium text-gray-900 dark:text-white">
               {formatTime(currentTime)}
             </span>
           </div>
@@ -155,7 +155,7 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
             )}
           </div>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 dark:text-gray-400">
           Total: {formatDuration(getTotalTime())}
         </div>
       </div>
@@ -168,19 +168,19 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className="flex items-center justify-between p-3 rounded-lg border border-gray-200"
+            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700"
           >
             <div>
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-900">
+                <span className="text-sm font-medium text-gray-900 dark:text-white">
                   {entry.createdBy.name}
                 </span>
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                   {new Date(entry.startTime).toLocaleString()}
                 </span>
               </div>
               {entry.endTime && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
                   Duration: {formatDuration(entry.duration)}
                 </div>
               )}
@@ -195,7 +195,7 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
 
         {timeEntries.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-gray-500">No time entries yet</p>
+            <p className="text-gray-500 dark:text-gray-400">No time entries yet</p>
           </div>
         )}
       </div>

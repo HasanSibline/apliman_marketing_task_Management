@@ -117,7 +117,7 @@ const AdminAnalytics: React.FC = () => {
           <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white overflow-hidden shadow rounded-lg h-32"></div>
+              <div key={i} className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg h-32"></div>
             ))}
           </div>
         </div>
@@ -128,8 +128,8 @@ const AdminAnalytics: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Platform Analytics</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Platform Analytics</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
           Overview of all companies and platform-wide statistics
         </p>
       </div>
@@ -138,7 +138,7 @@ const AdminAnalytics: React.FC = () => {
         {statCards.map((stat) => (
           <div
             key={stat.name}
-            className="bg-white overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
+            className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg hover:shadow-md transition-shadow"
           >
             <div className="p-5">
               <div className="flex items-center">
@@ -147,9 +147,9 @@ const AdminAnalytics: React.FC = () => {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">{stat.name}</dt>
+                    <dt className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{stat.name}</dt>
                     <dd>
-                      <div className="text-2xl font-semibold text-gray-900">
+                      <div className="text-2xl font-semibold text-gray-900 dark:text-white">
                         {(stat.value || 0).toLocaleString()}
                       </div>
                     </dd>
@@ -161,36 +161,36 @@ const AdminAnalytics: React.FC = () => {
         ))}
       </div>
 
-      <div className="mt-8 bg-white shadow rounded-lg p-6">
-        <h2 className="text-lg font-medium text-gray-900 mb-4">Subscription Status Breakdown</h2>
+      <div className="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Subscription Status Breakdown</h2>
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-green-500 rounded-full mr-3"></div>
-              <span className="text-sm text-gray-700">Active Subscriptions</span>
+              <span className="text-sm text-gray-700 dark:text-gray-200">Active Subscriptions</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.activeCompanies || 0}</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.activeCompanies || 0}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-yellow-500 rounded-full mr-3"></div>
-              <span className="text-sm text-gray-700">Trial Period</span>
+              <span className="text-sm text-gray-700 dark:text-gray-200">Trial Period</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.companiesOnTrial || 0}</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.companiesOnTrial || 0}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
-              <span className="text-sm text-gray-700">Expired</span>
+              <span className="text-sm text-gray-700 dark:text-gray-200">Expired</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.companiesExpired || 0}</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.companiesExpired || 0}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <div className="w-4 h-4 bg-gray-500 rounded-full mr-3"></div>
-              <span className="text-sm text-gray-700">Suspended</span>
+              <span className="text-sm text-gray-700 dark:text-gray-200">Suspended</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">{stats.suspendedCompanies || 0}</span>
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">{stats.suspendedCompanies || 0}</span>
           </div>
         </div>
       </div>

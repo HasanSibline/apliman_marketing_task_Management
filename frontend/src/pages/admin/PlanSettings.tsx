@@ -97,10 +97,10 @@ const PlanSettings: React.FC = () => {
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
             <div className="md:flex md:items-center md:justify-between mb-8">
                 <div className="flex-1 min-w-0">
-                    <h2 className="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
+                    <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
                         Subscription Plans
                     </h2>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         Manage global limits and pricing for each subscription level.
                     </p>
                 </div>
@@ -117,29 +117,29 @@ const PlanSettings: React.FC = () => {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {plans.map((plan) => (
-                    <div key={plan.id} className="bg-white overflow-hidden shadow rounded-lg border border-gray-200 hover:border-indigo-300 transition-all">
+                    <div key={plan.id} className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg border border-gray-200 dark:border-gray-700 hover:border-indigo-300 transition-all">
                         <div className="p-6">
                             <div className="flex items-center justify-between mb-4">
-                                <h3 className="text-lg font-bold text-gray-900">{plan.name}</h3>
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h3>
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
                                     ${plan.price}/mo
                                 </span>
                             </div>
 
                             <ul className="space-y-3 mb-6">
-                                <li className="flex items-center text-sm text-gray-600">
+                                <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                                     <UsersIcon className="h-5 w-5 mr-2 text-gray-400" />
                                     Max Users: <span className="ml-1 font-semibold">{plan.maxUsers === -1 ? 'Unlimited' : plan.maxUsers}</span>
                                 </li>
-                                <li className="flex items-center text-sm text-gray-600">
+                                <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                                     <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2 text-gray-400" />
                                     Max Tasks: <span className="ml-1 font-semibold">{plan.maxTasks === -1 ? 'Unlimited' : plan.maxTasks}</span>
                                 </li>
-                                <li className="flex items-center text-sm text-gray-600">
+                                <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                                     <CircleStackIcon className="h-5 w-5 mr-2 text-gray-400" />
                                     Storage: <span className="ml-1 font-semibold">{plan.maxStorage === -1 ? 'Unlimited' : `${plan.maxStorage} GB`}</span>
                                 </li>
-                                <li className="flex items-center text-sm text-gray-600">
+                                <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                                     <SparklesIcon className={`h-5 w-5 mr-2 ${plan.aiEnabled ? 'text-amber-500' : 'text-gray-300'}`} />
                                     AI Features: <span className={`ml-1 font-semibold ${plan.aiEnabled ? 'text-amber-600' : 'text-gray-400'}`}>{plan.aiEnabled ? 'Enabled' : 'Disabled'}</span>
                                 </li>
@@ -148,7 +148,7 @@ const PlanSettings: React.FC = () => {
                             <div className="flex space-x-2 mt-4 border-t pt-4">
                                 <button
                                     onClick={() => handleEdit(plan)}
-                                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none"
+                                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900/40 focus:outline-none"
                                 >
                                     <PencilSquareIcon className="h-4 w-4 mr-2" />
                                     Edit
@@ -174,14 +174,14 @@ const PlanSettings: React.FC = () => {
                             <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
                         </div>
                         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                        <div className="inline-block align-bottom bg-white rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
                             <div>
-                                <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                                <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
                                     {currentPlan.id ? `Edit ${currentPlan.name} Plan` : 'Create New Plan'}
                                 </h3>
                                 <form onSubmit={handleSubmit} className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700">Plan Name</label>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Plan Name</label>
                                         <input
                                             type="text"
                                             required
@@ -192,7 +192,7 @@ const PlanSettings: React.FC = () => {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Price ($/mo)</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Price ($/mo)</label>
                                             <input
                                                 type="number"
                                                 required
@@ -202,7 +202,7 @@ const PlanSettings: React.FC = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Max Users (-1 = unlimited)</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Max Users (-1 = unlimited)</label>
                                             <input
                                                 type="number"
                                                 required
@@ -214,7 +214,7 @@ const PlanSettings: React.FC = () => {
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Max Tasks (-1 = unlimited)</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Max Tasks (-1 = unlimited)</label>
                                             <input
                                                 type="number"
                                                 required
@@ -224,7 +224,7 @@ const PlanSettings: React.FC = () => {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Storage (GB, -1 = unlimited)</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Storage (GB, -1 = unlimited)</label>
                                             <input
                                                 type="number"
                                                 required
@@ -242,7 +242,7 @@ const PlanSettings: React.FC = () => {
                                             onChange={(e) => setCurrentPlan({ ...currentPlan, aiEnabled: e.target.checked })}
                                             className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                                         />
-                                        <label htmlFor="aiEnabled" className="ml-2 block text-sm text-gray-900 font-medium">
+                                        <label htmlFor="aiEnabled" className="ml-2 block text-sm text-gray-900 dark:text-white font-medium">
                                             Enable AI Features for this plan
                                         </label>
                                     </div>
@@ -256,7 +256,7 @@ const PlanSettings: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setIsEditing(false)}
-                                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:col-start-1 sm:text-sm"
+                                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900/40 focus:outline-none sm:mt-0 sm:col-start-1 sm:text-sm"
                                         >
                                             Cancel
                                         </button>

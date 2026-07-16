@@ -261,7 +261,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         {/* Loading skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -274,7 +274,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
               <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
               <div className="h-80 bg-gray-200 rounded"></div>
             </div>
@@ -289,8 +289,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <DocumentChartBarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Analytics Data</h3>
-          <p className="text-gray-500">Analytics data will appear here once you have tasks.</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Analytics Data</h3>
+          <p className="text-gray-500 dark:text-gray-400">Analytics data will appear here once you have tasks.</p>
         </div>
       </div>
     )
@@ -300,7 +300,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
     <div className="space-y-6">
       {/* Export Buttons */}
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Admin Analytics Dashboard</h2>
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Analytics Dashboard</h2>
         <div className="flex gap-3">
           <button
             onClick={handleExportExcel}
@@ -341,8 +341,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Total Tasks</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Tasks</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {dashboardData.totalTasks || 0}
               </h3>
               <div className="flex items-center gap-2 mt-2">
@@ -365,8 +365,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Completed</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Completed</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {dashboardData.completedTasks || 0}
               </h3>
               <div className="flex items-center gap-1 mt-2">
@@ -390,8 +390,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">In Progress</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">In Progress</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {dashboardData.inProgressTasks || 0}
               </h3>
               <div className="flex items-center gap-1 mt-2">
@@ -415,8 +415,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Overdue</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Overdue</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {dashboardData.overdueTasks || 0}
               </h3>
               <div className="flex items-center gap-1 mt-2">
@@ -444,9 +444,9 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <ChartBarIcon className="h-5 w-5 text-primary-600" />
             Tasks by Phase
           </h3>
@@ -475,7 +475,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 No phase data available
               </div>
             )}
@@ -487,9 +487,9 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Task Status Distribution</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Task Status Distribution</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -537,35 +537,35 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
-        <h3 className="text-lg font-bold text-gray-900 mb-4">Recent Tasks</h3>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Tasks</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-900/40">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Task
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Phase
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Workflow
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Assigned To
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Created
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
               {(dashboardData.recentTasks || []).map((task: any) => (
-                <tr key={task.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={task.id} className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white max-w-xs truncate">
                       {task.title}
                     </div>
                   </td>
@@ -580,13 +580,13 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                       {task.phase}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {task.workflow || 'Unknown'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {task.assignedTo || 'Unassigned'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {new Date(task.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
@@ -594,7 +594,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
             </tbody>
           </table>
           {(!dashboardData.recentTasks || dashboardData.recentTasks.length === 0) && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No recent tasks found
             </div>
           )}
@@ -607,9 +607,9 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <UserGroupIcon className="h-5 w-5 text-primary-600" />
             Top Performers
           </h3>
@@ -621,12 +621,12 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
               >
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-2xl font-bold text-primary-600">#{index + 1}</span>
-                  <span className="text-sm font-medium text-gray-500">{performer.position}</span>
+                  <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{performer.position}</span>
                 </div>
-                <h4 className="font-semibold text-gray-900 mb-1">{performer.name}</h4>
-                <p className="text-sm text-gray-600 mb-3">{performer.email}</p>
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{performer.name}</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{performer.email}</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Tasks Completed</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">Tasks Completed</span>
                   <span className="text-lg font-bold text-primary-600">{performer.tasksCompleted}</span>
                 </div>
               </div>

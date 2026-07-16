@@ -97,8 +97,8 @@ const AdminSettings: React.FC = () => {
       render: () => (
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-gray-900">Manage Subscription Plans</p>
-            <p className="text-xs text-gray-500">Configure global limits and pricing for all tiers</p>
+            <p className="text-sm font-medium text-gray-900 dark:text-white">Manage Subscription Plans</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Configure global limits and pricing for all tiers</p>
           </div>
           <button
             onClick={() => window.location.href = '/admin/plans'}
@@ -128,19 +128,19 @@ const AdminSettings: React.FC = () => {
   return (
     <div className="p-6 max-w-4xl">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
-        <p className="mt-2 text-sm text-gray-600">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">System Settings</h1>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
           Configure global platform settings that apply to all companies
         </p>
       </div>
 
       <div className="space-y-6">
         {settingsSections.map((section) => (
-          <div key={section.title} className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
+          <div key={section.title} className="bg-white dark:bg-gray-800 shadow rounded-lg">
+            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center">
                 <section.icon className="h-6 w-6 text-indigo-600 mr-3" />
-                <h2 className="text-lg font-medium text-gray-900">{section.title}</h2>
+                <h2 className="text-lg font-medium text-gray-900 dark:text-white">{section.title}</h2>
               </div>
             </div>
             <div className="px-6 py-4 space-y-4">
@@ -149,7 +149,7 @@ const AdminSettings: React.FC = () => {
               ) : (
                 section.settings.map((setting) => (
                   <div key={setting.label}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       {setting.label}
                     </label>
                     <input
@@ -158,7 +158,7 @@ const AdminSettings: React.FC = () => {
                       onChange={(e) => setting.onChange(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     />
-                    <p className="mt-1 text-xs text-gray-500">{setting.description}</p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{setting.description}</p>
                   </div>
                 ))
               )}
@@ -167,45 +167,45 @@ const AdminSettings: React.FC = () => {
         ))}
 
         {/* Additional Info Cards */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <ServerIcon className="h-6 w-6 text-indigo-600 mr-3" />
-              <h2 className="text-lg font-medium text-gray-900">System Information</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">System Information</h2>
             </div>
           </div>
           <div className="px-6 py-4 space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Platform Version</span>
-              <span className="text-sm font-medium text-gray-900">2.0.0</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Platform Version</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">2.0.0</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Database</span>
-              <span className="text-sm font-medium text-gray-900">PostgreSQL (Neon)</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Database</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">PostgreSQL (Neon)</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Backend</span>
-              <span className="text-sm font-medium text-gray-900">NestJS (Render)</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Backend</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">NestJS (Render)</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-gray-600">Frontend</span>
-              <span className="text-sm font-medium text-gray-900">React + Vite (Cloudflare)</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Frontend</span>
+              <span className="text-sm font-medium text-gray-900 dark:text-white">React + Vite (Cloudflare)</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
               <ShieldCheckIcon className="h-6 w-6 text-indigo-600 mr-3" />
-              <h2 className="text-lg font-medium text-gray-900">Security</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Security</h2>
             </div>
           </div>
           <div className="px-6 py-4 space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">JWT Authentication</p>
-                <p className="text-xs text-gray-500">Secure token-based authentication</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">JWT Authentication</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Secure token-based authentication</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Active
@@ -213,8 +213,8 @@ const AdminSettings: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">Multi-Tenant Isolation</p>
-                <p className="text-xs text-gray-500">Company data isolation enforced</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Multi-Tenant Isolation</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Company data isolation enforced</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Active
@@ -222,8 +222,8 @@ const AdminSettings: React.FC = () => {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-900">Password Encryption</p>
-                <p className="text-xs text-gray-500">Bcrypt with 12 salt rounds</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-white">Password Encryption</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Bcrypt with 12 salt rounds</p>
               </div>
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 Active
@@ -237,7 +237,7 @@ const AdminSettings: React.FC = () => {
         <button
           type="button"
           onClick={fetchSystemSettings}
-          className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+          className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900/40"
         >
           Reset
         </button>

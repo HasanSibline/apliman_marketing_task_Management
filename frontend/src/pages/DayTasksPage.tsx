@@ -52,16 +52,16 @@ export default function DayTasksPage() {
             <div className="flex items-center gap-4">
                 <button 
                     onClick={() => navigate(-1)} 
-                    className="p-2 hover:bg-gray-100 rounded-xl transition-colors text-gray-500 hover:text-gray-900"
+                    className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-xl transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                 >
                     <ArrowLeftIcon className="h-5 w-5" />
                 </button>
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 flex items-center gap-3">
+                    <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
                         <CalendarDaysIcon className="h-8 w-8 text-primary-600" />
                         {formattedDate}
                     </h1>
-                    <p className="text-gray-500 font-medium mt-1 uppercase tracking-widest text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 uppercase tracking-widest text-sm">
                         {dayTasks.length} Task{dayTasks.length !== 1 ? 's' : ''} Due Today
                     </p>
                 </div>
@@ -76,7 +76,7 @@ export default function DayTasksPage() {
                         placeholder="Search tasks for this day..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"
+                        className="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-all shadow-sm"
                     />
                 </div>
                 <div className="relative min-w-[200px] shrink-0">
@@ -86,7 +86,7 @@ export default function DayTasksPage() {
                     <select
                         value={selectedPhase}
                         onChange={(e) => setSelectedPhase(e.target.value)}
-                        className="w-full pl-11 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none shadow-sm cursor-pointer"
+                        className="w-full pl-11 pr-10 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none shadow-sm cursor-pointer"
                     >
                         <option value="ALL">All Phases</option>
                         {availablePhases.map(phase => (
@@ -97,7 +97,7 @@ export default function DayTasksPage() {
             </div>
 
             {/* List */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {isLoading ? (
                     <div className="p-12 text-center text-gray-400 font-medium animate-pulse">
                         Loading tasks...
@@ -105,18 +105,18 @@ export default function DayTasksPage() {
                 ) : dayTasks.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                         {dayTasks.map(task => (
-                            <div key={task.id} className="p-2 hover:bg-gray-50 transition-colors">
+                            <div key={task.id} className="p-2 hover:bg-gray-50 dark:bg-gray-900/40 transition-colors">
                                 <TaskListItem task={task as any} />
                             </div>
                         ))}
                     </div>
                 ) : (
                     <div className="p-16 text-center">
-                        <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
+                        <div className="w-16 h-16 bg-gray-50 dark:bg-gray-900/40 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gray-700">
                             <CalendarDaysIcon className="h-8 w-8 text-gray-300" />
                         </div>
-                        <h3 className="text-lg font-bold text-gray-900 mb-1">No tasks scheduled</h3>
-                        <p className="text-gray-500">You have no tasks due on this particular day. Take a break!</p>
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No tasks scheduled</h3>
+                        <p className="text-gray-500 dark:text-gray-400">You have no tasks due on this particular day. Take a break!</p>
                     </div>
                 )}
             </div>

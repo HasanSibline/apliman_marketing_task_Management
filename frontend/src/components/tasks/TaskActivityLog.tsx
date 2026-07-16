@@ -81,9 +81,9 @@ const TaskActivityLog: React.FC<TaskActivityLogProps> = ({ activities }) => {
       case 'TIME_TRACKING_PAUSED':
         return 'text-yellow-600 bg-yellow-100'
       case 'TIME_TRACKING_STOPPED':
-        return 'text-gray-600 bg-gray-100'
+        return 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800'
       default:
-        return 'text-gray-600 bg-gray-100'
+        return 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800'
     }
   }
 
@@ -125,19 +125,19 @@ const TaskActivityLog: React.FC<TaskActivityLogProps> = ({ activities }) => {
                 </div>
                 <div className="flex min-w-0 flex-1 justify-between space-x-4">
                   <div>
-                    <p className="text-sm text-gray-500">
-                      <span className="font-medium text-gray-900">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <span className="font-medium text-gray-900 dark:text-white">
                         {activity.user.name}
                       </span>{' '}
                       {activity.description}
                     </p>
                     {activity.details && (
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         {activity.details}
                       </p>
                     )}
                   </div>
-                  <div className="whitespace-nowrap text-right text-sm text-gray-500">
+                  <div className="whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
                     <time dateTime={activity.createdAt}>
                       {formatTimeAgo(activity.createdAt)}
                     </time>

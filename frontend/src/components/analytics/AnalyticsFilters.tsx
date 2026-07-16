@@ -31,12 +31,12 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
     <motion.div
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-xl border border-gray-200 shadow-sm p-6"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6"
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <FunnelIcon className="h-5 w-5 text-primary-600" />
-          <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filters</h3>
         </div>
         {hasFilters && (
           <button
@@ -52,7 +52,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Date Range From */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             <CalendarIcon className="h-4 w-4 inline mr-1" />
             Date From
           </label>
@@ -66,7 +66,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
 
         {/* Date Range To */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             <CalendarIcon className="h-4 w-4 inline mr-1" />
             Date To
           </label>
@@ -80,7 +80,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
 
         {/* Workflow Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Workflow
           </label>
           <select
@@ -99,7 +99,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
 
         {/* Phase Filter */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
             Phase
           </label>
           <select

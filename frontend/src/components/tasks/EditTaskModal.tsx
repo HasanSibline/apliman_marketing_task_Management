@@ -108,14 +108,14 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6"
+            className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Edit Task</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Task</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -123,7 +123,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
             {isLocked && (
               <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
-                <div className="p-2 bg-white rounded-lg shadow-sm text-indigo-600">
+                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600">
                   <LockClosedIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -137,7 +137,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Title
                 </label>
                 <input
@@ -151,7 +151,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Description
                 </label>
                 <textarea
@@ -164,7 +164,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
               {/* Goals */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   Goals
                 </label>
                 <textarea
@@ -179,7 +179,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
               <div className="grid grid-cols-2 gap-4">
                 {/* Priority */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     <FlagIcon className="w-4 h-4 inline mr-1" />
                     Priority
                   </label>
@@ -196,7 +196,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
                 {/* Due Date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     <CalendarIcon className="w-4 h-4 inline mr-1" />
                     Due Date
                   </label>
@@ -213,7 +213,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Quarter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Quarter
                   </label>
                   <select
@@ -230,7 +230,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
                 {/* Objective */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Objective
                   </label>
                   <select
@@ -250,7 +250,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 {/* Key Result */}
                 {formData.objectiveId && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Track a Key Result
                     </label>
                     <select
@@ -270,16 +270,16 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
               {/* Assigned Users (Multiple Selection) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   <UserGroupIcon className="w-4 h-4 inline mr-1" />
                   Assigned Users (Select Multiple)
                 </label>
                 <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto space-y-2">
                   {users.length === 0 ? (
-                    <p className="text-sm text-gray-500">Loading users...</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Loading users...</p>
                   ) : (
                     users.map((user) => (
-                      <label key={user.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                      <label key={user.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:bg-gray-900/40 rounded cursor-pointer">
                         <input
                           type="checkbox"
                           checked={formData.assignedUserIds.includes(user.id)}
@@ -298,13 +298,13 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                           }}
                           className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
-                        <span className="text-sm text-gray-700">{user.name} - {user.position}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-200">{user.name} - {user.position}</span>
                       </label>
                     ))
                   )}
                 </div>
                 {formData.assignedUserIds.length > 0 && (
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                     {formData.assignedUserIds.length} user(s) selected
                   </p>
                 )}
@@ -315,7 +315,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
                 >
                   Cancel
                 </button>

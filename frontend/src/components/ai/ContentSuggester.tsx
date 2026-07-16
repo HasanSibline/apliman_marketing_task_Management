@@ -77,24 +77,24 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm"
+          className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm"
         >
           <div className="prose prose-sm max-w-none">
-            <div className="text-sm text-gray-700">
+            <div className="text-sm text-gray-700 dark:text-gray-200">
               <ReactMarkdown>{suggestion.description || ''}</ReactMarkdown>
             </div>
             {suggestion.goals && (
               <div className="mt-3">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Suggested Goals</h4>
-                <div className="text-sm text-gray-700">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">Suggested Goals</h4>
+                <div className="text-sm text-gray-700 dark:text-gray-200">
                   <ReactMarkdown>{suggestion.goals}</ReactMarkdown>
                 </div>
               </div>
             )}
             {suggestion.priority && (
               <div className="mt-3">
-                <h4 className="text-sm font-medium text-gray-900 mb-1">Suggested Priority</h4>
-                <p className="text-sm text-gray-600">Level {suggestion.priority}</p>
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-1">Suggested Priority</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-300">Level {suggestion.priority}</p>
               </div>
             )}
           </div>
@@ -102,7 +102,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
             <button
               type="button"
               onClick={copyToClipboard}
-              className="inline-flex items-center space-x-2 text-gray-600 hover:text-gray-700"
+              className="inline-flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:text-gray-200"
             >
               <ClipboardDocumentIcon className="h-5 w-5" />
               <span>Copy to Clipboard</span>

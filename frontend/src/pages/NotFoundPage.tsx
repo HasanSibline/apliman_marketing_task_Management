@@ -5,7 +5,7 @@ import { HomeIcon } from '@heroicons/react/24/outline'
 
 const NotFoundPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -27,10 +27,10 @@ const NotFoundPage: React.FC = () => {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
               Page Not Found
             </h2>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 dark:text-gray-300 mb-8">
               Sorry, we couldn't find the page you're looking for. It might have been moved, deleted, or you entered the wrong URL.
             </p>
           </motion.div>
@@ -49,7 +49,7 @@ const NotFoundPage: React.FC = () => {
               Go to Dashboard
             </Link>
             
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               <button
                 onClick={() => window.history.back()}
                 className="text-primary-600 hover:text-primary-500 font-medium"

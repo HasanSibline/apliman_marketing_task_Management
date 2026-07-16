@@ -193,8 +193,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       case 1:
         return {
           color: '#6B7280',
-          bg: 'bg-gray-100',
-          text: 'text-gray-700',
+          bg: 'bg-gray-100 dark:bg-gray-800',
+          text: 'text-gray-700 dark:text-gray-200',
           icon: ArrowDownIcon,
           label: 'Low'
         }
@@ -233,8 +233,8 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       default:
         return {
           color: '#6B7280',
-          bg: 'bg-gray-100',
-          text: 'text-gray-700',
+          bg: 'bg-gray-100 dark:bg-gray-800',
+          text: 'text-gray-700 dark:text-gray-200',
           icon: ArrowUpIcon,
           label: 'Normal'
         }
@@ -350,7 +350,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-2 text-gray-600">Loading workflow phases...</span>
+        <span className="ml-2 text-gray-600 dark:text-gray-300">Loading workflow phases...</span>
       </div>
     )
   }
@@ -381,17 +381,17 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                         className="h-3 w-3 rounded-full"
                         style={{ backgroundColor: phase.color === '#FFFFFF' ? '#6B7280' : '#FFFFFF' }}
                       />
-                      <h3 className="text-xs font-bold text-gray-800 uppercase tracking-wider">
+                      <h3 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">
                         {phase.name}
                       </h3>
                       {/* Approvals disabled globally */}
                     </div>
-                    <span className="text-xs font-bold text-gray-700 bg-white/80 px-2.5 py-1 rounded-full shadow-sm">
+                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200 bg-white/80 px-2.5 py-1 rounded-full shadow-sm">
                       {phaseTasks.length}
                     </span>
                   </div>
                   {phase.description && (
-                    <p className="text-xs text-gray-600 mt-1">{phase.description}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{phase.description}</p>
                   )}
                 </div>
 
@@ -418,7 +418,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
 
                       {/* Empty State */}
                       {phaseTasks.length === 0 && (
-                        <div className="text-center py-8 text-gray-500">
+                        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                           <div className="flex justify-center mb-2">
                             <ClipboardIcon className="h-8 w-8 text-gray-400 opacity-50" />
                           </div>
@@ -499,9 +499,9 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`group relative bg-white rounded-2xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${snapshot.isDragging
+          className={`group relative bg-white dark:bg-gray-800 rounded-2xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${snapshot.isDragging
               ? 'shadow-2xl scale-105 rotate-2 border-blue-300 ring-2 ring-blue-200'
-              : 'shadow-md hover:shadow-xl border-gray-200 hover:border-blue-300'
+              : 'shadow-md hover:shadow-xl border-gray-200 dark:border-gray-700 hover:border-blue-300'
             }`}
           style={{
             ...provided.draggableProps.style,
@@ -531,7 +531,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1 min-w-0">
                 <h4
-                  className="text-lg font-semibold text-gray-900 line-clamp-1 leading-tight hover:text-blue-600 transition-colors cursor-pointer mb-2 flex items-center gap-2"
+                  className="text-lg font-semibold text-gray-900 dark:text-white line-clamp-1 leading-tight hover:text-blue-600 transition-colors cursor-pointer mb-2 flex items-center gap-2"
                   onClick={() => onTaskClick(task)}
                   title={task.title}
                 >
@@ -544,7 +544,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                 </h4>
 
                 {/* Task Meta Info */}
-                <div className="flex items-center space-x-3 text-sm text-gray-500">
+                <div className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400">
                   <div className="flex items-center space-x-1">
                     <UserIcon className="h-4 w-4" />
                     <span>{task.createdBy?.name || 'Unknown'}</span>
@@ -558,15 +558,15 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
               {/* Actions Menu */}
               <Menu as="div" className="relative flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Menu.Button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                  <EllipsisVerticalIcon className="h-5 w-5 text-gray-500" />
+                <Menu.Button className="p-2 rounded-lg hover:bg-gray-100 dark:bg-gray-800 transition-colors">
+                  <EllipsisVerticalIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 </Menu.Button>
-                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-200 py-2 z-50 ring-1 ring-black ring-opacity-5">
+                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50 ring-1 ring-black ring-opacity-5">
                   <Menu.Item>
                     {({ active }) => (
                       <button
                         onClick={() => onTaskClick(task)}
-                        className={`${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                        className={`${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 dark:text-gray-200'
                           } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
                       >
                         <PencilIcon className="h-4 w-4 mr-3" />
@@ -576,7 +576,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                   </Menu.Item>
                   {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
                     <>
-                      <div className="my-1 border-t border-gray-100" />
+                      <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
                       <Menu.Item>
                         {({ active }) => (
                           <button
@@ -666,11 +666,11 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
             )}
 
             {/* Task Footer */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+            <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center space-x-4">
                 {/* Comments */}
                 {task.comments && task.comments.length > 0 && (
-                  <div className="flex items-center space-x-1 text-gray-500">
+                  <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400">
                     <ChatBubbleLeftIcon className="w-4 h-4" />
                     <span className="text-sm font-medium">{task.comments.length}</span>
                   </div>
@@ -678,7 +678,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
                 {/* Files */}
                 {task.files && task.files.length > 0 && (
-                  <div className="flex items-center space-x-1 text-gray-500">
+                  <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400">
                     <PaperClipIcon className="w-4 h-4" />
                     <span className="text-sm font-medium">{task.files.length}</span>
                   </div>
@@ -690,7 +690,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                 {currentTime > 0 && (
                   <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${isTimerRunning
                       ? 'bg-green-100 text-green-700 animate-pulse'
-                      : 'bg-gray-100 text-gray-700'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
                     }`}>
                     <ClockIcon className="h-3.5 w-3.5" />
                     <span>{formatTime(currentTime)}</span>
@@ -698,7 +698,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                 )}
 
                 {task.dueDate && !isOverdue && (
-                  <div className="flex items-center space-x-1 text-gray-500">
+                  <div className="flex items-center space-x-1 text-gray-500 dark:text-gray-400">
                     <CalendarIcon className="w-4 h-4" />
                     <span className="text-sm font-medium">
                       {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}

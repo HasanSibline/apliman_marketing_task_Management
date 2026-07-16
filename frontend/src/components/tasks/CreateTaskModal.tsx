@@ -347,17 +347,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+              className="relative w-full bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               {/* Header - Fixed */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-white z-10">
+              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
                 <div>
-                  <h2 className="text-xl font-bold text-gray-900">Create New Task</h2>
-                  <p className="text-xs text-gray-500 mt-1">Fill in the details to create a new task in your workflow</p>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Task</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fill in the details to create a new task in your workflow</p>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all duration-200"
+                  className="p-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-all duration-200"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -368,7 +368,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                 {/* Workflow Selection */}
                 <div>
-                  <label htmlFor="workflowId" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="workflowId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     <CogIcon className="h-4 w-4 inline mr-1" />
                     Workflow
                   </label>
@@ -388,8 +388,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     ))}
                   </select>
                   {selectedWorkflow && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded-md">
-                      <p className="text-sm text-gray-600">{selectedWorkflow.description}</p>
+                    <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/40 rounded-md">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">{selectedWorkflow.description}</p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {selectedWorkflow.phases.map((phase) => (
                           <span
@@ -407,7 +407,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Title */}
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Task Title *
                   </label>
                   <div className="relative">
@@ -443,7 +443,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     )}
                     <div
                       id="content-suggester"
-                      className="absolute top-full mt-1 left-0 right-0 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-4"
+                      className="absolute top-full mt-1 left-0 right-0 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4"
                       style={{ display: 'none' }}
                     >
                       <ContentSuggester
@@ -469,7 +469,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Description */}
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Description *
                   </label>
                   <textarea
@@ -486,7 +486,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Goals */}
                 <div>
-                  <label htmlFor="goals" className="block text-sm font-medium text-gray-700 mb-2">
+                  <label htmlFor="goals" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Goals & Success Criteria
                   </label>
                   <textarea
@@ -503,7 +503,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Priority and Due Date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Priority
                     </label>
                     <select
@@ -522,7 +522,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
 
                   <div>
-                    <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Due Date
                     </label>
                     <input
@@ -540,7 +540,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Quarter and Objective */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label htmlFor="quarterId" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="quarterId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Quarter
                     </label>
                     <select
@@ -558,7 +558,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
 
                   <div>
-                    <label htmlFor="objectiveId" className="block text-sm font-medium text-gray-700 mb-2">
+                    <label htmlFor="objectiveId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Objective
                     </label>
                     <select
@@ -583,7 +583,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                   {formData.objectiveId && (
                     <div>
-                      <label htmlFor="keyResultId" className="block text-sm font-medium text-gray-700 mb-2">
+                      <label htmlFor="keyResultId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                         Track a Key Result
                       </label>
                       <select
@@ -605,13 +605,13 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Assign To */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Assign To
                   </label>
                   <div className="space-y-2">
                     {/* Single assignment (backward compatibility) */}
                     <div>
-                      <label htmlFor="assignedToId" className="block text-xs text-gray-500 mb-1">
+                      <label htmlFor="assignedToId" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                         Single Assignment (Legacy)
                       </label>
                       <select
@@ -632,10 +632,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                     {/* Multiple assignments */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                         Assign Team Members
                       </label>
-                      <p className="text-xs text-gray-500 mb-2">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                         You are automatically assigned. Select additional team members to collaborate.
                       </p>
                       <div className="space-y-2 max-h-32 overflow-y-auto">
@@ -659,7 +659,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                               }}
                               className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
                             />
-                            <span className="text-sm text-gray-700">
+                            <span className="text-sm text-gray-700 dark:text-gray-200">
                               {u.name} ({u.email}) {u.id === user?.id ? '(You)' : ''}
                             </span>
                           </label>
@@ -667,7 +667,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       </div>
                       {formData.assignedUserIds.length > 0 && (
                         <div className="mt-2">
-                          <p className="text-xs text-gray-500">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
                             Selected: {formData.assignedUserIds.length} user(s)
                           </p>
                         </div>
@@ -678,7 +678,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* AI Options */}
                 <div className="border-t pt-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4 flex items-center">
                     <SparklesIcon className="h-5 w-5 mr-2 text-purple-500" />
                     AI-Powered Features
                   </h3>
@@ -691,7 +691,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         onChange={(e) => setFormData(prev => ({ ...prev, generateSubtasks: e.target.checked }))}
                         className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Generate AI subtasks based on task type and workflow
                       </span>
                     </label>
@@ -703,12 +703,12 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         onChange={(e) => setFormData(prev => ({ ...prev, autoAssign: e.target.checked }))}
                         className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                       />
-                      <span className="ml-2 text-sm text-gray-700">
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Auto-assign subtasks to team members based on their roles
                       </span>
                     </label>
 
-                    <div className="text-xs text-gray-500 bg-purple-50 p-3 rounded-md">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 bg-purple-50 p-3 rounded-md">
                       <p className="font-medium mb-1">AI will help with:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>Task type detection from title</li>
@@ -724,7 +724,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {aiGeneratedSubtasks.length > 0 && (
                   <div className="border-t pt-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-medium text-gray-900 flex items-center">
+                      <h3 className="text-lg font-medium text-gray-900 dark:text-white flex items-center">
                         <SparklesIcon className="h-5 w-5 mr-2 text-green-500" />
                         AI-Generated Subtasks ({aiGeneratedSubtasks.length})
                       </h3>
@@ -742,7 +742,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       {aiGeneratedSubtasks.map((subtask, index) => (
                         <div
                           key={`ai-st-${index}`}
-                          className="bg-gray-50 border border-gray-200 rounded-lg p-4 relative group"
+                          className="bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-4 relative group"
                         >
                           <button
                             type="button"
@@ -754,7 +754,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                           <div className="space-y-3">
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">
                                 Subtask Title
                               </label>
                               <input
@@ -767,7 +767,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                             </div>
 
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">
                                 Description
                               </label>
                               <textarea
@@ -781,7 +781,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                             <div className="grid grid-cols-2 gap-2">
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">
                                   Phase
                                 </label>
                                 <select
@@ -798,7 +798,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                               </div>
 
                               <div>
-                                <label className="block text-xs font-medium text-gray-700 mb-1">
+                                <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">
                                   Est. Hours
                                 </label>
                                 <input
@@ -814,7 +814,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                             {subtask.suggestedRole && (
                               <div className="flex items-center space-x-2">
-                                <span className="text-xs text-gray-500">Suggested for:</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">Suggested for:</span>
                                 <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                                   {subtask.suggestedRole}
                                 </span>
@@ -825,7 +825,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       ))}
                     </div>
 
-                    <div className="mt-4 text-sm text-gray-600 bg-green-50 p-3 rounded-md">
+                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 bg-green-50 p-3 rounded-md">
                       <p className="font-medium mb-1">📝 These subtasks were generated by AI based on your task details.</p>
                       <p>You can edit, remove, or add custom subtasks. They will be created automatically when you create the task.</p>
                     </div>
@@ -834,7 +834,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               </div>
 
                 {/* Footer - Fixed */}
-                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-100 bg-gray-50/50">
+                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50">
                   <button
                     type="button"
                     onClick={onClose}
@@ -885,11 +885,11 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
                   <SparklesIcon className="h-6 w-6 mr-2 text-purple-500" />
                   AI Generated Content Preview
                   {aiPreview.aiProvider === 'fallback' && (
@@ -900,7 +900,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 </h2>
                 <button
                   onClick={discardAiContent}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -911,9 +911,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Description Preview */}
                 {aiPreview.description && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">📝 Description</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                      <p className="text-gray-700 whitespace-pre-wrap">{aiPreview.description}</p>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">📝 Description</h3>
+                    <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg border">
+                      <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{aiPreview.description}</p>
                     </div>
                   </div>
                 )}
@@ -921,9 +921,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Goals Preview */}
                 {aiPreview.goals && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">🎯 Goals</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                      <p className="text-gray-700 whitespace-pre-wrap">{aiPreview.goals}</p>
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">🎯 Goals</h3>
+                    <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg border">
+                      <p className="text-gray-700 dark:text-gray-200 whitespace-pre-wrap">{aiPreview.goals}</p>
                     </div>
                   </div>
                 )}
@@ -931,13 +931,13 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Priority Preview */}
                 {aiPreview.priority && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">⚡ Priority</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg border">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">⚡ Priority</h3>
+                    <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg border">
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${aiPreview.priority === 5 ? 'bg-red-100 text-red-800' :
                         aiPreview.priority === 4 ? 'bg-orange-100 text-orange-800' :
                           aiPreview.priority === 3 ? 'bg-yellow-100 text-yellow-800' :
                             aiPreview.priority === 2 ? 'bg-blue-100 text-blue-800' :
-                              'bg-gray-100 text-gray-800'
+                              'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
                         }`}>
                         {aiPreview.priority === 5 ? 'Critical' :
                           aiPreview.priority === 4 ? 'High' :
@@ -952,14 +952,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Subtasks Preview */}
                 {aiPreview.subtasks && aiPreview.subtasks.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                       📋 Subtasks ({aiPreview.subtasks.length})
                     </h3>
                     <div className="space-y-4">
                       {aiPreview.subtasks.map((subtask, index) => (
-                        <div key={`preview-st-${index}`} className="bg-gray-50 p-4 rounded-lg border">
+                        <div key={`preview-st-${index}`} className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg border">
                           <div className="flex items-start justify-between mb-3">
-                            <h4 className="font-medium text-gray-900 flex-1">{subtask.title}</h4>
+                            <h4 className="font-medium text-gray-900 dark:text-white flex-1">{subtask.title}</h4>
                             <button
                               onClick={() => {
                                 const updatedSubtasks = aiPreview.subtasks?.filter((_, i) => i !== index) || []
@@ -973,13 +973,13 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                           </div>
 
                           {subtask.description && (
-                            <p className="text-sm text-gray-600 mb-3">{subtask.description}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{subtask.description}</p>
                           )}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                             {/* Phase Selection */}
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Phase</label>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Phase</label>
                               <select
                                 value={subtask.phaseName || ''}
                                 onChange={(e) => {
@@ -998,7 +998,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                             {/* User Assignment */}
                             <div>
-                              <label className="block text-xs font-medium text-gray-700 mb-1">Assign To</label>
+                              <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Assign To</label>
                               <select
                                 value={subtask.suggestedUserId || ''}
                                 onChange={(e) => {
@@ -1062,7 +1062,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                           subtasks: [...(prev.subtasks || []), newSubtask]
                         } : null)
                       }}
-                      className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 hover:border-primary-300 hover:text-primary-600 transition-colors"
+                      className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:border-primary-300 hover:text-primary-600 transition-colors"
                     >
                       + Add Custom Subtask
                     </button>
@@ -1089,7 +1089,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200">
+              <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
                 <button
                   onClick={discardAiContent}
                   className="btn-secondary"

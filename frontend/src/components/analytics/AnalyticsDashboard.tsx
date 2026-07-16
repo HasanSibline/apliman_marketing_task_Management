@@ -71,7 +71,7 @@ const AnalyticsDashboard: React.FC = () => {
         {/* Loading skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -84,7 +84,7 @@ const AnalyticsDashboard: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-white rounded-lg shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 animate-pulse">
               <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
               <div className="h-80 bg-gray-200 rounded"></div>
             </div>
@@ -99,8 +99,8 @@ const AnalyticsDashboard: React.FC = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <DocumentChartBarIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Analytics Data</h3>
-          <p className="text-gray-500">Analytics data will appear here once you have some tasks.</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Analytics Data</h3>
+          <p className="text-gray-500 dark:text-gray-400">Analytics data will appear here once you have some tasks.</p>
         </div>
       </div>
     )
@@ -113,12 +113,12 @@ const AnalyticsDashboard: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Tasks</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Tasks</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {dashboardData?.totalTasks || 0}
               </h3>
             </div>
@@ -127,7 +127,7 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-gray-500">
+            <span className="text-gray-500 dark:text-gray-400">
               {dashboardData?.completedTasks || 0} completed
             </span>
             <span className="text-primary-600 font-medium">
@@ -140,12 +140,12 @@ const AnalyticsDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Users</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Active Users</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {dashboardData?.activeUsers || 0}
               </h3>
             </div>
@@ -154,7 +154,7 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-gray-500">
+            <span className="text-gray-500 dark:text-gray-400">
               {dashboardData?.totalUsers || 0} total users
             </span>
             <span className="text-blue-600 font-medium">
@@ -167,12 +167,12 @@ const AnalyticsDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">In Progress</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {dashboardData?.inProgressTasks || 0}
               </h3>
             </div>
@@ -181,7 +181,7 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-gray-500">
+            <span className="text-gray-500 dark:text-gray-400">
               {dashboardData?.pendingTasks || 0} pending
             </span>
             <span className="text-yellow-600 font-medium">
@@ -194,12 +194,12 @@ const AnalyticsDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Overdue Tasks</p>
-              <h3 className="text-2xl font-bold text-gray-900 mt-1">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300">Overdue Tasks</p>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                 {dashboardData?.overdueTasks || 0}
               </h3>
             </div>
@@ -208,7 +208,7 @@ const AnalyticsDashboard: React.FC = () => {
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-gray-500">
+            <span className="text-gray-500 dark:text-gray-400">
               Need attention
             </span>
             <span className="text-red-600 font-medium">
@@ -225,12 +225,12 @@ const AnalyticsDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Tasks by Phase</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Tasks by Phase</h3>
           <div className="h-80">
             {!dashboardData?.tasksByPhase || dashboardData.tasksByPhase.length === 0 ? (
-              <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 No tasks data available
               </div>
             ) : (
@@ -281,12 +281,12 @@ const AnalyticsDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Task Status Distribution</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Task Status Distribution</h3>
           <div className="h-80">
             {!dashboardData ? (
-              <div className="flex items-center justify-center h-full text-gray-500">
+              <div className="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
                 No data available
               </div>
             ) : (
@@ -336,38 +336,38 @@ const AnalyticsDashboard: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white rounded-lg shadow-sm p-6"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Tasks</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Tasks</h3>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-900/40">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Task
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Phase
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Workflow
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Assigned To
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Created
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
               {(dashboardData?.recentTasks || []).slice(0, 10).map((task: any, index: number) => (
-                <tr key={task.id || index} className="hover:bg-gray-50">
+                <tr key={task.id || index} className="hover:bg-gray-50 dark:bg-gray-900/40">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">
                       {task.title}
                     </div>
-                    <div className="text-sm text-gray-500 truncate max-w-xs">
+                    <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
                       {task.description?.substring(0, 50)}...
                     </div>
                   </td>
@@ -379,13 +379,13 @@ const AnalyticsDashboard: React.FC = () => {
                       {task.phase}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {task.workflow || 'Unknown'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {task.assignedTo || 'Unassigned'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {new Date(task.createdAt).toLocaleDateString()}
                   </td>
                 </tr>
@@ -394,7 +394,7 @@ const AnalyticsDashboard: React.FC = () => {
           </table>
           {(!dashboardData?.recentTasks || dashboardData.recentTasks.length === 0) && (
             <div className="text-center py-8">
-              <p className="text-gray-500">No recent tasks found</p>
+              <p className="text-gray-500 dark:text-gray-400">No recent tasks found</p>
             </div>
           )}
         </div>
@@ -405,27 +405,27 @@ const AnalyticsDashboard: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.7 }}
-        className="bg-white rounded-lg shadow-sm p-6"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
       >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Metrics</h3>
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Performance Metrics</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
             <div className="text-3xl font-bold text-primary-600">
               {Math.round(taskAnalytics?.averageCompletionTime || 0)}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Days Avg Completion</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Days Avg Completion</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-green-600">
               {dashboardData?.tasksCompletedThisWeek || 0}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Tasks This Week</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Tasks This Week</div>
           </div>
           <div className="text-center">
             <div className="text-3xl font-bold text-yellow-600">
               {taskAnalytics?.overdueTasks?.length || 0}
             </div>
-            <div className="text-sm text-gray-600 mt-1">Overdue Tasks</div>
+            <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Overdue Tasks</div>
           </div>
         </div>
       </motion.div>
@@ -436,15 +436,15 @@ const AnalyticsDashboard: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
-          className="bg-white rounded-lg shadow-sm p-6"
+          className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
           <div className="flex items-center space-x-2 mb-4">
             <ArrowTrendingUpIcon className="h-6 w-6 text-primary-600" />
-            <h3 className="text-lg font-semibold text-gray-900">AI Insights</h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">AI Insights</h3>
           </div>
           <div className="prose prose-sm max-w-none">
             <div dangerouslySetInnerHTML={{ __html: insights.insights }} />
-            <h4 className="font-medium text-gray-900 mt-4">Recommendations</h4>
+            <h4 className="font-medium text-gray-900 dark:text-white mt-4">Recommendations</h4>
             <ul className="list-disc pl-4 space-y-2">
               {insights.recommendations.map((rec: string, index: number) => (
                 <li key={index}>{rec}</li>

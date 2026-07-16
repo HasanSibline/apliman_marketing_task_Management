@@ -50,17 +50,17 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-md bg-white rounded-lg shadow-xl"
+              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-xl"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3">
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
-                  <h2 className="text-xl font-semibold text-gray-900">Delete User</h2>
+                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Delete User</h2>
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -68,7 +68,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
 
               {/* Content */}
               <div className="p-6">
-                <p className="text-gray-700">
+                <p className="text-gray-700 dark:text-gray-200">
                   Are you sure you want to delete <span className="font-semibold">{user?.name}</span>? This action cannot be undone.
                 </p>
 

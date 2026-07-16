@@ -32,15 +32,15 @@ const AnalyticsPage: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-2">
           Comprehensive insights into tasks, performance, and team productivity
         </p>
       </div>
 
       {/* Tabs */}
       <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-        <Tab.List className="flex space-x-2 rounded-xl bg-gray-100 p-1.5">
+        <Tab.List className="flex space-x-2 rounded-xl bg-gray-100 dark:bg-gray-800 p-1.5">
           {tabs.map((tab) => (
             <Tab
               key={tab.name}
@@ -49,8 +49,8 @@ const AnalyticsPage: React.FC = () => {
                   'w-full rounded-lg py-3 text-sm font-semibold leading-5',
                   'ring-white ring-opacity-60 ring-offset-2 ring-offset-primary-400 focus:outline-none focus:ring-2 transition-all',
                   selected
-                    ? 'bg-white text-primary-700 shadow-md'
-                    : 'text-gray-600 hover:bg-white/[0.12] hover:text-primary-600'
+                    ? 'bg-white dark:bg-gray-800 text-primary-700 shadow-md'
+                    : 'text-gray-600 dark:text-gray-300 hover:bg-white/[0.12] hover:text-primary-600'
                 )
               }
             >

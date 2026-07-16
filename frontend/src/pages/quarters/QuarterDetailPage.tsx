@@ -49,7 +49,7 @@ interface QuarterDetail {
 }
 
 const STATUS_CONFIG = {
-    UPCOMING: { label: 'Upcoming', bg: 'bg-gray-100 text-gray-700', dot: 'bg-gray-400' },
+    UPCOMING: { label: 'Upcoming', bg: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200', dot: 'bg-gray-400' },
     ACTIVE: { label: 'Active', bg: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
     CLOSED: { label: 'Closed', bg: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
 }
@@ -84,23 +84,23 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
     }
 
     return (
-        <div className="bg-white rounded-[32px] border border-gray-100 overflow-hidden shadow-2xl shadow-gray-200/50">
-            <div className="p-8 border-b border-gray-50 bg-white flex items-center justify-between">
+        <div className="bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-2xl shadow-gray-200/50">
+            <div className="p-8 border-b border-gray-50 bg-white dark:bg-gray-800 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600">
                         <CalendarDaysIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">
+                        <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                             {viewDate.toLocaleDateString('en-US', { month: 'long' })}
                             <span className="text-primary-600 ml-2">{viewDate.getFullYear()}</span>
                         </h3>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Quarterly Schedule</p>
                     </div>
                 </div>
-                <div className="flex gap-2 p-1.5 bg-gray-50 rounded-2xl border border-gray-100">
-                    <button onClick={prevMonth} className="p-2.5 hover:bg-white hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
-                    <button onClick={nextMonth} className="p-2.5 hover:bg-white hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
+                <div className="flex gap-2 p-1.5 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
+                    <button onClick={prevMonth} className="p-2.5 hover:bg-white dark:bg-gray-800 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
+                    <button onClick={nextMonth} className="p-2.5 hover:bg-white dark:bg-gray-800 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
                 </div>
             </div>
             <div className="p-8">
@@ -111,7 +111,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                 </div>
                 <div className="grid grid-cols-7 gap-4">
                     {Array.from({ length: firstDay }).map((_, i) => (
-                        <div key={`empty-${i}`} className="h-40 bg-gray-50/20 rounded-[24px] border border-dashed border-gray-100" />
+                        <div key={`empty-${i}`} className="h-40 bg-gray-50/20 rounded-[24px] border border-dashed border-gray-100 dark:border-gray-700" />
                     ))}
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1
@@ -123,7 +123,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                             <div key={day} className={`h-40 p-4 rounded-[28px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${
                                 isToday 
                                 ? 'bg-primary-50/30 border-primary-100' 
-                                : 'bg-white border-gray-50 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-100/20'
+                                : 'bg-white dark:bg-gray-800 border-gray-50 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-100/20'
                             }`}>
                                 <div className="flex items-center justify-between mb-3">
                                     <span className={`text-sm font-black ${isToday ? 'text-primary-600' : 'text-gray-400 group-hover:text-primary-600'}`}>
@@ -138,7 +138,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                                         <motion.div 
                                             key={t.id}
                                             whileHover={{ x: 2 }}
-                                            className="text-[11px] font-bold leading-tight p-2.5 bg-white text-gray-700 rounded-xl border border-gray-100 shadow-sm hover:border-primary-200 hover:text-primary-700 transition"
+                                            className="text-[11px] font-bold leading-tight p-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-primary-200 hover:text-primary-700 transition"
                                             title={t.title}
                                         >
                                             <div className="flex items-center gap-1.5">
@@ -185,7 +185,7 @@ const QuarterDetailPage: React.FC = () => {
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[400px]">
             <ArrowPathIcon className="h-10 w-10 text-primary-500 animate-spin" />
-            <p className="mt-4 text-gray-500 font-medium">Loading quarter details...</p>
+            <p className="mt-4 text-gray-500 dark:text-gray-400 font-medium">Loading quarter details...</p>
         </div>
     )
 
@@ -200,32 +200,32 @@ const QuarterDetailPage: React.FC = () => {
             <div className="flex items-center justify-between">
                 <button
                     onClick={() => navigate(`/quarters?year=${quarter.year}`)}
-                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary-600 transition"
+                    className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-primary-600 transition"
                 >
                     <ChevronLeftIcon className="h-4 w-4" />
                     Back to Strategy Vault
                 </button>
                 {quarter.status === 'CLOSED' && (
-                    <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 border border-gray-200 rounded-full">
+                    <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-full">
                         <ArchiveBoxIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Historical Record &middot; Read Only</span>
+                        <span className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Historical Record &middot; Read Only</span>
                     </div>
                 )}
             </div>
 
             {/* Header Section */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
-                                <h1 className="text-4xl font-black text-gray-900 tracking-tight">{quarter.name} {quarter.year}</h1>
+                                <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">{quarter.name} {quarter.year}</h1>
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${cfg.bg}`}>
                                     <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
                                     {cfg.label}
                                 </span>
                             </div>
-                            <p className="text-gray-500 font-medium flex items-center gap-2">
+                            <p className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
                                 <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
                                 {new Date(quarter.startDate).toLocaleDateString()} &mdash; {new Date(quarter.endDate).toLocaleDateString()}
                             </p>
@@ -250,7 +250,7 @@ const QuarterDetailPage: React.FC = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="px-8 border-t border-gray-100 flex gap-8">
+                <div className="px-8 border-t border-gray-100 dark:border-gray-700 flex gap-8">
                     {[
                         { id: 'overview', label: 'Overview', icon: ChartBarIcon },
                         { id: 'objectives', label: 'Objectives', icon: FlagIcon },
@@ -261,7 +261,7 @@ const QuarterDetailPage: React.FC = () => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`py-4 flex items-center gap-2 text-sm font-bold border-b-2 transition-all ${
-                                activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600'
+                                activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600 dark:text-gray-300'
                             }`}
                         >
                             <tab.icon className="h-4 w-4" />
@@ -276,8 +276,8 @@ const QuarterDetailPage: React.FC = () => {
                 {activeTab === 'overview' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Objectives Highlight */}
-                        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <FlagIcon className="h-5 w-5 text-primary-500" />
                                 Key Objectives
                             </h3>
@@ -285,10 +285,10 @@ const QuarterDetailPage: React.FC = () => {
                                 {quarter.objectives.slice(0, 3).map(obj => (
                                     <div key={obj.id} className="space-y-1">
                                         <div className="flex items-center justify-between text-sm font-medium">
-                                            <span className="text-gray-900">{obj.title}</span>
-                                            <span className="text-gray-500">{obj.progress}%</span>
+                                            <span className="text-gray-900 dark:text-white">{obj.title}</span>
+                                            <span className="text-gray-500 dark:text-gray-400">{obj.progress}%</span>
                                         </div>
-                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                             <div className="h-full bg-primary-500 transition-all" style={{ width: `${obj.progress}%` }} />
                                         </div>
                                     </div>
@@ -302,15 +302,15 @@ const QuarterDetailPage: React.FC = () => {
                         </div>
 
                         {/* Recent Tasks */}
-                        <div className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm">
-                            <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <ClipboardDocumentListIcon className="h-5 w-5 text-blue-500" />
                                 Recent Tasks
                             </h3>
                             <div className="space-y-3">
                                 {quarter.tasks.slice(0, 4).map(task => (
-                                    <Link key={task.id} to={`/tasks/${task.id}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition group border border-transparent hover:border-primary-100 shadow-sm">
-                                        <span className="text-sm font-bold text-gray-800 group-hover:text-primary-600 truncate">{task.title}</span>
+                                    <Link key={task.id} to={`/tasks/${task.id}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl hover:bg-gray-100 dark:bg-gray-800 transition group border border-transparent hover:border-primary-100 shadow-sm">
+                                        <span className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-primary-600 truncate">{task.title}</span>
                                         {task.currentPhase ? (
                                             <span 
                                                 className="text-[11px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter"
@@ -319,7 +319,7 @@ const QuarterDetailPage: React.FC = () => {
                                                 {task.currentPhase.name}
                                             </span>
                                         ) : (
-                                            <span className="text-[11px] font-black text-gray-400 uppercase tracking-tighter ml-2 bg-white px-1.5 py-0.5 rounded border border-gray-100">
+                                            <span className="text-[11px] font-black text-gray-400 uppercase tracking-tighter ml-2 bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-700">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         )}
@@ -333,15 +333,15 @@ const QuarterDetailPage: React.FC = () => {
                 {activeTab === 'objectives' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {quarter.objectives.map(obj => (
-                            <Link key={obj.id} to={`/objectives/${obj.id}`} className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm hover:border-primary-300 transition-all group">
+                            <Link key={obj.id} to={`/objectives/${obj.id}`} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:border-primary-300 transition-all group">
                                 <div className="flex items-start justify-between mb-3">
-                                    <h4 className="font-bold text-gray-900 group-hover:text-primary-600">{obj.title}</h4>
-                                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${obj.status === 'ON_TRACK' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600">{obj.title}</h4>
+                                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${obj.status === 'ON_TRACK' ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                                         {obj.status}
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-3">
-                                    <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-primary-600 transition-all" style={{ width: `${obj.progress}%` }} />
                                     </div>
                                     <span className="text-xs font-black text-primary-600">{obj.progress}%</span>
@@ -352,9 +352,9 @@ const QuarterDetailPage: React.FC = () => {
                 )}
 
             {activeTab === 'tasks' && (
-                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden overflow-x-auto">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden overflow-x-auto">
                     <table className="min-w-full w-full text-left table-fixed">
-                        <thead className="bg-gray-50 text-[11px] font-black uppercase text-gray-400 border-b border-gray-100 tracking-widest">
+                        <thead className="bg-gray-50 dark:bg-gray-900/40 text-[11px] font-black uppercase text-gray-400 border-b border-gray-100 dark:border-gray-700 tracking-widest">
                             <tr>
                                 <th className="px-6 py-4 w-[40%]">Task Name</th>
                                 <th className="px-6 py-4 w-[20%]">Phase</th>
@@ -366,7 +366,7 @@ const QuarterDetailPage: React.FC = () => {
                         <tbody className="divide-y divide-gray-100">
                                 {quarter.tasks.map(task => (
                                     <tr key={task.id} className="hover:bg-gray-50/50 transition">
-                                    <td className="px-6 py-4 truncate text-sm font-bold text-gray-900" title={task.title}>{task.title}</td>
+                                    <td className="px-6 py-4 truncate text-sm font-bold text-gray-900 dark:text-white" title={task.title}>{task.title}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {task.currentPhase ? (
                                             <span 
@@ -376,7 +376,7 @@ const QuarterDetailPage: React.FC = () => {
                                                 {task.currentPhase.name}
                                             </span>
                                         ) : (
-                                            <span className="text-[11px] font-bold px-2.5 py-1 bg-gray-100 text-gray-600 rounded-full uppercase tracking-wider block w-max">
+                                            <span className="text-[11px] font-bold px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full uppercase tracking-wider block w-max">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         )}
@@ -387,13 +387,13 @@ const QuarterDetailPage: React.FC = () => {
                                                 <div className="h-6 w-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 shrink-0">
                                                     <UserCircleIcon className="h-4 w-4" />
                                                 </div>
-                                                <span className="text-xs text-gray-700 font-bold truncate">{task.assignedTo.name}</span>
+                                                <span className="text-xs text-gray-700 dark:text-gray-200 font-bold truncate">{task.assignedTo.name}</span>
                                             </div>
                                         ) : (
                                             <span className="text-xs text-gray-400">-</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-black">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-black">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right">
                                         <Link to={`/tasks/${task.id}`} className="p-2 text-gray-300 hover:text-primary-600 transition inline-block">
                                             <ChevronRightIcon className="h-4 w-4" />

@@ -374,10 +374,10 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="bg-gray-50 rounded-2xl p-4 hover:bg-gray-100 transition-colors border border-gray-100">
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-2xl p-4 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-black text-gray-900 tracking-tight">
+                      <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight">
                         {comment.user?.name || 'Unknown User'}
                       </p>
                       {comment.user?.position && (
@@ -388,7 +388,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                       {formatTimeAgo(comment.createdAt)}
                     </p>
                   </div>
-                  <div className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                  <div className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap leading-relaxed">
                     {highlightContent(comment.comment)}
                   </div>
                   
@@ -411,7 +411,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
           ))
         ) : (
           <div className="text-center py-12">
-            <div className="h-12 w-12 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100">
+            <div className="h-12 w-12 bg-gray-50 dark:bg-gray-900/40 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gray-700">
                <span className="text-xl">💬</span>
             </div>
             <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No strategic discussions yet</p>
@@ -420,7 +420,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
       </div>
 
       {/* Add Comment Form */}
-      <form onSubmit={handleSubmitComment} className="border-t border-gray-100 pt-6">
+      <form onSubmit={handleSubmitComment} className="border-t border-gray-100 dark:border-gray-700 pt-6">
         <div className="flex space-x-4">
           <div className="h-10 w-10 rounded-2xl bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden border-2 border-white">
             {user?.avatar ? (
@@ -473,7 +473,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-full left-0 mb-2 w-64 bg-white rounded-lg shadow-xl border border-gray-200 max-h-48 overflow-y-auto z-50"
+                    className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto z-50"
                   >
                     {filteredUsers.map((mentionUser, index) => (
                       <button
@@ -496,11 +496,11 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                         </div>
                         {/* User Info */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 truncate">
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
                             {mentionUser.name}
                           </p>
                           {mentionUser.position && (
-                            <p className="text-xs text-gray-600 truncate">
+                            <p className="text-xs text-gray-600 dark:text-gray-300 truncate">
                               {mentionUser.position}
                             </p>
                           )}
@@ -518,7 +518,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-full left-0 mb-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200 max-h-48 overflow-y-auto z-50"
+                    className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto z-50"
                   >
                     <div className="px-3 py-2 bg-purple-50 border-b border-purple-100">
                       <p className="text-xs font-medium text-purple-700">Reference a subtask</p>
@@ -532,7 +532,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                           index === selectedMentionIndex ? 'bg-purple-50' : ''
                         }`}
                       >
-                        <p className="text-sm font-medium text-gray-900 line-clamp-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
                           📋 {subtask.title}
                         </p>
                       </button>
@@ -554,7 +554,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={submitting}
-                  className="inline-flex items-center p-2 text-gray-600 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center p-2 text-gray-600 dark:text-gray-300 hover:text-blue-600 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                   title="Attach image"
                 >
                   <PhotoIcon className="h-4 w-4" />
@@ -572,7 +572,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 </button>
               </div>
             </div>
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Tip: Type @ to mention a team member, / to reference a subtask
             </p>
           </div>
@@ -620,7 +620,7 @@ const CommentImage: React.FC<{ imageId: string; mimeType: string; index: number 
 
   if (isLoading) {
     return (
-      <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     )
@@ -628,7 +628,7 @@ const CommentImage: React.FC<{ imageId: string; mimeType: string; index: number 
 
   if (error || !imageData) {
     return (
-      <div className="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
+      <div className="w-full h-32 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center">
         <span className="text-4xl">📷</span>
       </div>
     )
@@ -639,7 +639,7 @@ const CommentImage: React.FC<{ imageId: string; mimeType: string; index: number 
       href={imageData}
       target="_blank"
       rel="noopener noreferrer"
-      className="block rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors"
+      className="block rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 hover:border-blue-400 transition-colors"
     >
       <img
         src={imageData}

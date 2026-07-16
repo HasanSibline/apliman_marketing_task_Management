@@ -50,7 +50,7 @@ interface QuarterDetail extends Quarter {
 const STATUS_CONFIG = {
     UPCOMING: { label: 'Upcoming', bg: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-400' },
     ACTIVE: { label: 'Active', bg: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-    CLOSED: { label: 'Closed', bg: 'bg-gray-100 text-gray-700', dot: 'bg-gray-400' },
+    CLOSED: { label: 'Closed', bg: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200', dot: 'bg-gray-400' },
 }
 
 const QUARTER_NAMES = ['Q1', 'Q2', 'Q3', 'Q4']
@@ -82,41 +82,41 @@ function CreateQuarterModal({ onClose, onCreated }: { onClose: () => void; onCre
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-100">
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-lg font-bold text-gray-900">New Strategy Cycle</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-white">New Strategy Cycle</h2>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Cycle</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Cycle</label>
                             <select value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="select-field">
                                 {QUARTER_NAMES.map(q => <option key={q}>{q}</option>)}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Year</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Year</label>
                             <input type="number" value={form.year} onChange={e => setForm(p => ({ ...p, year: +e.target.value }))}
                                 className="input-field" min={2020} max={2100} />
                         </div>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Start Date</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Start Date</label>
                             <input type="date" value={form.startDate} onChange={e => setForm(p => ({ ...p, startDate: e.target.value }))}
                                 className="input-field" required />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-1">End Date</label>
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">End Date</label>
                             <input type="date" value={form.endDate} onChange={e => setForm(p => ({ ...p, endDate: e.target.value }))}
                                 className="input-field" required />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Status</label>
+                        <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Status</label>
                         <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as any }))} className="select-field">
                             <option value="UPCOMING">Upcoming (Invisible to team)</option>
                             <option value="ACTIVE">Active (Live now)</option>
@@ -180,14 +180,14 @@ function CloseQuarterModal({
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col border border-gray-100">
-                <div className="p-6 border-b border-gray-100">
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col border border-gray-100 dark:border-gray-700">
+                <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-lg font-bold text-gray-900">Close {quarter.name} | Review Tasks</h2>
-                            <p className="text-sm text-gray-500 mt-0.5 font-medium">Any tasks not selected will be moved to <span className="text-primary-600">Standby</span>.</p>
+                            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Close {quarter.name} | Review Tasks</h2>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">Any tasks not selected will be moved to <span className="text-primary-600">Standby</span>.</p>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                     </div>
                 </div>
 
@@ -197,13 +197,13 @@ function CloseQuarterModal({
                             <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-200">
                                 <CheckCircleIcon className="h-8 w-8 text-green-600" />
                             </div>
-                            <p className="text-gray-900 font-bold text-lg">Clean Sweep!</p>
-                            <p className="text-sm text-gray-500">Every single task in this quarter is completed.</p>
+                            <p className="text-gray-900 dark:text-white font-bold text-lg">Clean Sweep!</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">Every single task in this quarter is completed.</p>
                         </div>
                     ) : (
                         <>
                             <div className="flex items-center justify-between mb-2">
-                                <p className="text-sm font-bold text-gray-700 uppercase tracking-tight">{incompleteTasks.length} Incomplete tasks</p>
+                                <p className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-tight">{incompleteTasks.length} Incomplete tasks</p>
                                 <button onClick={() => setSelected(new Set(incompleteTasks.map(t => t.id)))}
                                     className="text-xs text-primary-600 hover:text-primary-700 font-bold bg-primary-50 px-2 py-1 rounded">Select All Tasks</button>
                             </div>
@@ -211,12 +211,12 @@ function CloseQuarterModal({
                                 {incompleteTasks.map(task => (
                                     <label key={task.id}
                                         className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition shadow-sm
-                      ${selected.has(task.id) ? 'border-primary-500 bg-primary-50' : 'border-white bg-white hover:border-gray-200'}`}>
+                      ${selected.has(task.id) ? 'border-primary-500 bg-primary-50' : 'border-white bg-white dark:bg-gray-800 hover:border-gray-200 dark:border-gray-700'}`}>
                                         <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggle(task.id)}
                                             className="mt-0.5 h-4 w-4 text-primary-600 focus:ring-primary-500 rounded border-gray-300" />
                                         <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-bold text-gray-900 truncate">{task.title}</p>
-                                            <p className="text-xs text-gray-500 font-medium">{task.assignedTo?.name ?? 'Unassigned'}</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{task.title}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{task.assignedTo?.name ?? 'Unassigned'}</p>
                                         </div>
                                         {selected.has(task.id) && (
                                             <span className="text-[11px] bg-primary-600 text-white px-2 py-0.5 rounded-full font-bold shadow-sm uppercase tracking-wider">
@@ -230,9 +230,9 @@ function CloseQuarterModal({
                     )}
 
                     {otherQuarters.length > 0 && selected.size > 0 && (
-                        <div className="mt-6 pt-6 border-t border-gray-200">
-                            <label className="block text-xs font-bold text-gray-500 uppercase mb-2">Move selected tasks to:</label>
-                            <select value={nextQuarterId} onChange={e => setNextQuarterId(e.target.value)} className="select-field border-2 border-gray-200">
+                        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                            <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Move selected tasks to:</label>
+                            <select value={nextQuarterId} onChange={e => setNextQuarterId(e.target.value)} className="select-field border-2 border-gray-200 dark:border-gray-700">
                                 <option value="">Draft (Standby / No Date)</option>
                                 {otherQuarters.map(q => (
                                     <option key={q.id} value={q.id}>{q.name} {q.year} ({q.status})</option>
@@ -242,7 +242,7 @@ function CloseQuarterModal({
                     )}
                 </div>
 
-                <div className="p-6 bg-white border-t border-gray-100 flex gap-3">
+                <div className="p-6 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex gap-3">
                     <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
                     <button onClick={handleClose} disabled={loading} className="btn-primary flex-1 flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700">
                         <LockClosedIcon className="h-4 w-4" />
@@ -397,13 +397,13 @@ const QuartersPage: React.FC = () => {
             {movingTask && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 text-left">
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6 border border-gray-100">
+                        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm p-6 border border-gray-100 dark:border-gray-700">
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h3 className="text-lg font-black text-gray-900 leading-none">Move to Cycle</h3>
-                                <p className="text-xs text-gray-500 mt-1 font-medium truncate max-w-[200px]">{movingTask.title}</p>
+                                <h3 className="text-lg font-black text-gray-900 dark:text-white leading-none">Move to Cycle</h3>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium truncate max-w-[200px]">{movingTask.title}</p>
                             </div>
-                            <button onClick={() => setMovingTask(null)} className="text-gray-400 hover:text-gray-600"><XMarkIcon className="h-5 w-5" /></button>
+                            <button onClick={() => setMovingTask(null)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                         </div>
                         
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
@@ -415,17 +415,17 @@ const QuartersPage: React.FC = () => {
                                         <button
                                             key={q.id}
                                             onClick={() => handleMoveTask(movingTask, q.id)}
-                                            className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                                            className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 transition-all group"
                                         >
                                             <div className="text-left">
-                                                <div className="text-sm font-bold text-gray-900">{q.name} {q.year}</div>
+                                                <div className="text-sm font-bold text-gray-900 dark:text-white">{q.name} {q.year}</div>
                                                 <div className="text-[11px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{q.status}</div>
                                             </div>
                                             <ChevronRightIcon className="h-4 w-4 text-gray-300 group-hover:text-primary-500" />
                                         </button>
                                     ))}
                                     {quarters.filter(q => q.status !== 'CLOSED').length === 0 && (
-                                        <p className="py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center italic bg-gray-50 rounded-lg">No active cycles available</p>
+                                        <p className="py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center italic bg-gray-50 dark:bg-gray-900/40 rounded-lg">No active cycles available</p>
                                     )}
                                 </div>
                             </div>
@@ -441,13 +441,13 @@ const QuartersPage: React.FC = () => {
                                         <button
                                             key={q.id}
                                             onClick={() => handleMoveTask(movingTask, q.id)}
-                                            className="w-full flex items-center justify-between p-2.5 rounded-xl border border-dashed border-gray-200 hover:border-gray-400 hover:bg-gray-50 transition-all group"
+                                            className="w-full flex items-center justify-between p-2.5 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:bg-gray-900/40 transition-all group"
                                         >
                                             <div className="text-left">
-                                                <div className="text-xs font-bold text-gray-600">{q.name} {q.year}</div>
+                                                <div className="text-xs font-bold text-gray-600 dark:text-gray-300">{q.name} {q.year}</div>
                                                 <div className="text-[11px] text-gray-400 font-black uppercase tracking-tighter leading-none mt-1">Archived History</div>
                                             </div>
-                                            <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-gray-600" />
+                                            <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-gray-600 dark:text-gray-300" />
                                         </button>
                                     ))}
                                 </div>
@@ -492,7 +492,7 @@ const QuartersPage: React.FC = () => {
                             </button>
                         )}
                         {isAdmin && (
-                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 active:scale-95 transition-all shadow-sm">
+                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 active:scale-95 transition-all shadow-sm">
                                 <PlusIcon className="h-5 w-5" />
                                 Start Year
                             </button>
@@ -506,8 +506,8 @@ const QuartersPage: React.FC = () => {
             {/* Strategy Vault Shelf (Horizontal Scroll) */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase">Strategy Vaults</h2>
-                    <div className="flex items-center gap-4 text-[11px] font-bold text-gray-500">
+                    <h2 className="text-sm font-black text-gray-900 dark:text-white tracking-tight uppercase">Strategy Vaults</h2>
+                    <div className="flex items-center gap-4 text-[11px] font-bold text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Active</span>
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Planned</span>
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-gray-400" /> Archived</span>
@@ -525,15 +525,15 @@ const QuartersPage: React.FC = () => {
                             <>
                                 <button 
                                     onClick={() => scrollShelf('left')}
-                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -ml-5"
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white dark:bg-gray-800 shadow-xl rounded-full border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -ml-5"
                                 >
-                                    <ChevronLeftIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
+                                    <ChevronLeftIcon className="h-4 w-4 text-gray-600 dark:text-gray-300 stroke-[2]" />
                                 </button>
                                 <button 
                                     onClick={() => scrollShelf('right')}
-                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white shadow-xl rounded-full border border-gray-100 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -mr-5"
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white dark:bg-gray-800 shadow-xl rounded-full border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -mr-5"
                                 >
-                                    <ChevronRightIcon className="h-4 w-4 text-gray-600 stroke-[2]" />
+                                    <ChevronRightIcon className="h-4 w-4 text-gray-600 dark:text-gray-300 stroke-[2]" />
                                 </button>
                             </>
                         )}
@@ -566,7 +566,7 @@ const QuartersPage: React.FC = () => {
                                         <div className={`absolute top-1 inset-0 rounded-sm shadow-md border transition-all duration-300
                                             ${selectedYear === year 
                                                 ? 'bg-primary-500 border-primary-400' 
-                                                : isYearCompleted(year) ? 'bg-gray-100 border-gray-200 shadow-none' : 'bg-white border-gray-300'}`}
+                                                : isYearCompleted(year) ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-none' : 'bg-white dark:bg-gray-800 border-gray-300'}`}
                                         >
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <FolderIcon className={`h-6 w-6 transition-colors ${selectedYear === year ? 'text-white' : 'text-gray-300'}`} />
@@ -597,7 +597,7 @@ const QuartersPage: React.FC = () => {
                                         </div>
                                     </div>
                                     
-                                    <span className={`text-[11px] font-black transition-colors ${selectedYear === year ? 'text-primary-700 underline underline-offset-4 decoration-2' : 'text-gray-900 uppercase tracking-tight'}`}>{year}</span>
+                                    <span className={`text-[11px] font-black transition-colors ${selectedYear === year ? 'text-primary-700 underline underline-offset-4 decoration-2' : 'text-gray-900 dark:text-white uppercase tracking-tight'}`}>{year}</span>
                                     {selectedYear === year && (
                                         <div className="absolute -inset-2 bg-primary-50 rounded-lg -z-10" />
                                     )}
@@ -615,33 +615,33 @@ const QuartersPage: React.FC = () => {
                             initial={{ opacity: 0, scale: 0.98 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.98 }}
-                            className="bg-white rounded-xl border border-gray-200 p-8 shadow-sm"
+                            className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-8 shadow-sm"
                         >
                             {/* Archive Filter: Logic to handle 'Shouldnt they stop appearing if closed' */}
                             {isYearCompleted(selectedYear) && (
-                                <div className="mb-8 p-4 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                                <div className="mb-8 p-4 bg-gray-50/80 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                                        <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                                             <ArchiveBoxIcon className="h-5 w-5 text-gray-400" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-gray-900 leading-none">{selectedYear} Strategic Archive</p>
+                                            <p className="text-sm font-black text-gray-900 dark:text-white leading-none">{selectedYear} Strategic Archive</p>
                                             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">This roadmap is fully finalized and read-only</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-black text-gray-400 bg-white px-2 py-1 rounded border border-gray-100 uppercase tracking-tighter">Historical Record</span>
+                                        <span className="text-[11px] font-black text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded border border-gray-100 dark:border-gray-700 uppercase tracking-tighter">Historical Record</span>
                                     </div>
                                 </div>
                             )}
 
-                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-100 gap-4">
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-100 dark:border-gray-700 gap-4">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
                                         <FolderIcon className="h-7 w-7" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-gray-900 leading-none mb-1">{selectedYear} Strategic Hub</h3>
+                                        <h3 className="text-xl font-black text-gray-900 dark:text-white leading-none mb-1">{selectedYear} Strategic Hub</h3>
                                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">
                                             Inside this vault: {quartersByYear[selectedYear]?.length || 0} Cycles · Cycle Planning
                                         </p>
@@ -658,10 +658,10 @@ const QuartersPage: React.FC = () => {
                                             whileHover={{ y: -4 }}
                                             key={q.id}
                                             onClick={() => navigate(`/quarters/${q.id}`)}
-                                            className="bg-white p-6 rounded-xl border border-gray-200 cursor-pointer relative group transition-all hover:shadow-md"
+                                            className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer relative group transition-all hover:shadow-md"
                                         >
                                             <div className="flex items-center justify-between mb-5">
-                                                <div className="text-base font-black text-gray-900 uppercase tracking-tight">{q.name}</div>
+                                                <div className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight">{q.name}</div>
                                                 <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-black uppercase tracking-wider ${cfg.bg} border border-black/5`}>
                                                     <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                                                     {cfg.label}
@@ -674,18 +674,18 @@ const QuartersPage: React.FC = () => {
                                                         <span>Completion</span>
                                                         <span className="text-primary-700">{progress}%</span>
                                                     </div>
-                                                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden border border-gray-50 shadow-inner">
+                                                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-50 shadow-inner">
                                                         <div className={`h-full rounded-full transition-all duration-1000 ${progress === 100 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }} />
                                                     </div>
                                                 </div>
 
                                                 <div className="flex items-center justify-between pt-2 border-t border-gray-200/50">
                                                     <div className="flex flex-col">
-                                                        <span className="text-base font-black text-gray-900 leading-none">{q.totalTasks}</span>
+                                                        <span className="text-base font-black text-gray-900 dark:text-white leading-none">{q.totalTasks}</span>
                                                         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Tasks</span>
                                                     </div>
                                                     <div className="flex flex-col text-right">
-                                                        <span className="text-base font-black text-gray-900 leading-none">{q.objectivesCount}</span>
+                                                        <span className="text-base font-black text-gray-900 dark:text-white leading-none">{q.objectivesCount}</span>
                                                         <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Goals</span>
                                                     </div>
                                                 </div>
@@ -694,9 +694,9 @@ const QuartersPage: React.FC = () => {
                                             {/* Lock Overlay for Upcoming (Strategic Lock) */}
                                             {q.status === 'UPCOMING' && !isAdmin && (
                                                 <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                    <div className="bg-white p-4 rounded-xl shadow-sm flex flex-col items-center gap-1.5 border border-gray-100">
+                                                    <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex flex-col items-center gap-1.5 border border-gray-100 dark:border-gray-700">
                                                         <LockClosedIcon className="h-6 w-6 text-gray-400" />
-                                                        <span className="text-[11px] font-black text-gray-900 uppercase tracking-widest">Vault Locked</span>
+                                                        <span className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Vault Locked</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -720,7 +720,7 @@ const QuartersPage: React.FC = () => {
                                             {isAdmin && q.status === 'ACTIVE' && (
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); openCloseModal(q); }}
-                                                    className="mt-6 w-full py-2.5 bg-white hover:bg-red-50 text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                    className="mt-6 w-full py-2.5 bg-white dark:bg-gray-800 hover:bg-red-50 text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <LockClosedIcon className="h-4 w-4" /> Close Cycle
                                                 </button>
@@ -736,14 +736,14 @@ const QuartersPage: React.FC = () => {
 
             {/* Standby / Backlog Section (Aligned with Objectives Page) */}
             <div className="pt-8">
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                    <div className="p-6 bg-gray-50/50 border-b border-gray-200 flex items-center justify-between">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="p-6 bg-gray-50/50 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <div className="h-10 w-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center">
                                 <InboxIcon className="h-5 w-5 stroke-[2.5]" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-black text-gray-900 leading-none">Standby Vault</h2>
+                                <h2 className="text-lg font-black text-gray-900 dark:text-white leading-none">Standby Vault</h2>
                                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Unassigned Backlog · Total: {backlogTotal}</p>
                             </div>
                         </div>
@@ -755,7 +755,7 @@ const QuartersPage: React.FC = () => {
                                 </button>
                             )}
                             {isAdmin && (
-                                <button onClick={() => navigate('/tasks')} className="px-4 py-2 bg-white text-gray-700 border border-gray-200 rounded-lg text-xs font-bold hover:bg-gray-50 transition shadow-sm">
+                                <button onClick={() => navigate('/tasks')} className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 dark:bg-gray-900/40 transition shadow-sm">
                                     Full Board
                                 </button>
                             )}
@@ -764,35 +764,35 @@ const QuartersPage: React.FC = () => {
                     
                     <div className="overflow-x-auto">
                         <table className="min-w-full divide-y divide-gray-100">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-gray-50 dark:bg-gray-900/40">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-widest">Task Details</th>
-                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-widest">Phase</th>
-                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 uppercase tracking-widest">Assignee</th>
-                                    <th className="px-6 py-3 text-right text-[11px] font-bold text-gray-500 uppercase tracking-widest">Action</th>
+                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Task Details</th>
+                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Phase</th>
+                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Assignee</th>
+                                    <th className="px-6 py-3 text-right text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-100">
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
                                 {backlogTasks.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-400 italic">No tasks on standby. Your inbox is clear.</td>
                                     </tr>
                                 ) : backlogTasks.map(task => (
-                                    <tr key={task.id} className="hover:bg-gray-50 transition-colors group">
+                                    <tr key={task.id} className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center border ${task.priority >= 4 ? 'border-red-100 bg-red-50 text-red-500' : 'border-gray-100 bg-gray-50 text-gray-400'}`}>
+                                                <div className={`h-8 w-8 rounded-lg flex items-center justify-center border ${task.priority >= 4 ? 'border-red-100 bg-red-50 text-red-500' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 text-gray-400'}`}>
                                                     <TicketIcon className="h-4 w-4" />
                                                 </div>
-                                                <div className="text-sm font-bold text-gray-900 truncate max-w-xs">{task.title}</div>
+                                                <div className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-xs">{task.title}</div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-flex px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-[11px] font-bold uppercase tracking-tight">
+                                            <span className="inline-flex px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded text-[11px] font-bold uppercase tracking-tight">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-sm font-bold text-gray-500">
+                                        <td className="px-6 py-4 text-sm font-bold text-gray-500 dark:text-gray-400">
                                             {task.assignedTo?.name ?? 'Unassigned'}
                                         </td>
                                         <td className="px-6 py-4 text-right">
@@ -807,7 +807,7 @@ const QuartersPage: React.FC = () => {
                                                         <span className="text-[11px] font-bold uppercase">Assign</span>
                                                     </button>
                                                 )}
-                                                <button onClick={() => navigate(`/tasks/${task.id}`)} className="p-2 hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors">
+                                                <button onClick={() => navigate(`/tasks/${task.id}`)} className="p-2 hover:text-primary-600 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors">
                                                     <EyeIcon className="h-5 w-5" />
                                                 </button>
                                             </div>
@@ -820,20 +820,20 @@ const QuartersPage: React.FC = () => {
 
                     {/* Standby Pagination */}
                     {backlogTotal > 5 && (
-                        <div className="p-4 bg-gray-50/50 border-t border-gray-200 flex items-center justify-between">
+                        <div className="p-4 bg-gray-50/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Page {backlogPage} of {Math.ceil(backlogTotal / 5)}</span>
                             <div className="flex gap-2">
                                 <button 
                                     disabled={backlogPage === 1}
                                     onClick={() => setBacklogPage(p => p - 1)}
-                                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition"
+                                    className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:bg-gray-900/40 transition"
                                 >
                                     Previous
                                 </button>
                                 <button 
                                     disabled={backlogPage >= Math.ceil(backlogTotal / 5)}
                                     onClick={() => setBacklogPage(p => p + 1)}
-                                    className="px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-600 disabled:opacity-30 hover:bg-gray-50 transition"
+                                    className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:bg-gray-900/40 transition"
                                 >
                                     Next
                                 </button>

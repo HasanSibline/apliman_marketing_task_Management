@@ -121,7 +121,7 @@ const CompanyLogin: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-          <p className="mt-4 text-gray-600">Loading company information...</p>
+          <p className="mt-4 text-gray-600 dark:text-gray-300">Loading company information...</p>
         </div>
       </div>
     );
@@ -131,7 +131,7 @@ const CompanyLogin: React.FC = () => {
   if (error && !company) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-100">
-        <div className="max-w-md w-full bg-white p-10 rounded-xl shadow-2xl">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 p-10 rounded-xl shadow-2xl">
           <div className="text-center">
             <svg
               className="mx-auto h-12 w-12 text-red-500"
@@ -146,11 +146,11 @@ const CompanyLogin: React.FC = () => {
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
               Company Not Found
             </h2>
             <p className="mt-2 text-center text-sm text-red-600">{error}</p>
-            <p className="mt-4 text-center text-sm text-gray-600">
+            <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-300">
               The company you're trying to access doesn't exist or has been deactivated.
             </p>
             <div className="mt-6 text-center">
@@ -195,7 +195,7 @@ const CompanyLogin: React.FC = () => {
       className="min-h-screen flex items-center justify-center"
       style={{ background: bgGradient }}
     >
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-xl shadow-2xl">
+      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-10 rounded-xl shadow-2xl">
         <div>
           {/* Company Logo */}
           {logoUrl ? (
@@ -220,10 +220,10 @@ const CompanyLogin: React.FC = () => {
               {company?.name?.charAt(0).toUpperCase()}
             </div>
           )}
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
             {company?.name}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
+          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
             Sign in to your account
           </p>
         </div>
@@ -239,7 +239,7 @@ const CompanyLogin: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
                 style={{ 
                   borderColor: error ? '#EF4444' : undefined 
                 }}
@@ -258,7 +258,7 @@ const CompanyLogin: React.FC = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
                 style={{ 
                   borderColor: error ? '#EF4444' : undefined 
                 }}

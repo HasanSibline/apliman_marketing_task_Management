@@ -119,7 +119,7 @@ const TeamAnalytics: React.FC = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
               <div className="h-8 bg-gray-200 rounded w-1/2"></div>
             </div>
@@ -127,7 +127,7 @@ const TeamAnalytics: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
               <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
               <div className="h-80 bg-gray-200 rounded"></div>
             </div>
@@ -142,8 +142,8 @@ const TeamAnalytics: React.FC = () => {
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
           <UserGroupIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No Team Data</h3>
-          <p className="text-gray-500">Team analytics will appear here.</p>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Team Data</h3>
+          <p className="text-gray-500 dark:text-gray-400">Team analytics will appear here.</p>
         </div>
       </div>
     )
@@ -165,8 +165,8 @@ const TeamAnalytics: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Team Analytics</h2>
-          <p className="text-gray-600 mt-1">Monitor team performance and collaboration</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Team Analytics</h2>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">Monitor team performance and collaboration</p>
         </div>
         <button
           onClick={handleExportTeamReport}
@@ -186,8 +186,8 @@ const TeamAnalytics: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Team Members</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Team Members</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {summary.totalTeamMembers || 0}
               </h3>
               <p className="text-sm text-primary-600 mt-2 font-medium">
@@ -208,8 +208,8 @@ const TeamAnalytics: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Total Tasks</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Total Tasks</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {summary.totalTasks || 0}
               </h3>
               <p className="text-sm text-success-600 mt-2 font-medium">
@@ -230,8 +230,8 @@ const TeamAnalytics: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 mb-1">Avg. Completion</p>
-              <h3 className="text-3xl font-bold text-gray-900">
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Avg. Completion</p>
+              <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {summary.averageCompletionRate || 0}%
               </h3>
               <div className="flex items-center gap-1 mt-2">
@@ -261,9 +261,9 @@ const TeamAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Team Performance Comparison</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Team Performance Comparison</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={performanceComparisonData}>
@@ -296,9 +296,9 @@ const TeamAnalytics: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-lg font-bold text-gray-900 mb-4">Completion Rate by Member</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Completion Rate by Member</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
               <BarChart data={performanceComparisonData} layout="horizontal">
@@ -335,10 +335,10 @@ const TeamAnalytics: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
       >
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <TrophyIcon className="h-5 w-5 text-warning-600" />
             Team Leaderboard
           </h3>
@@ -348,7 +348,7 @@ const TeamAnalytics: React.FC = () => {
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                 sortBy === 'completion'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
               By Rate
@@ -358,7 +358,7 @@ const TeamAnalytics: React.FC = () => {
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                 sortBy === 'assigned'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
               By Tasks
@@ -368,7 +368,7 @@ const TeamAnalytics: React.FC = () => {
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                 sortBy === 'name'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
               }`}
             >
               By Name
@@ -377,34 +377,34 @@ const TeamAnalytics: React.FC = () => {
         </div>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-900/40">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Rank
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Team Member
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Position
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Assigned
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Completed
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Completion Rate
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
               {teamMembers.map((member: any, index: number) => (
-                <tr key={member.id} className="hover:bg-gray-50 transition-colors">
+                <tr key={member.id} className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {index < 3 && sortBy === 'completion' && (
@@ -412,19 +412,19 @@ const TeamAnalytics: React.FC = () => {
                           {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
                           </span>
                       )}
-                      <span className="text-sm font-medium text-gray-900">#{index + 1}</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">#{index + 1}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">{member.name}</div>
-                      <div className="text-sm text-gray-500">{member.email}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">{member.name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{member.email}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {member.position || 'N/A'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {member.assignedTasks}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-success-600">
@@ -438,7 +438,7 @@ const TeamAnalytics: React.FC = () => {
                           style={{ width: `${member.completionRate}%` }}
                         ></div>
                       </div>
-                      <span className="text-sm font-medium text-gray-900">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {member.completionRate}%
                       </span>
                     </div>
@@ -448,7 +448,7 @@ const TeamAnalytics: React.FC = () => {
                       className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
                         member.status === 'ACTIVE'
                           ? 'bg-success-100 text-success-800'
-                          : 'bg-gray-100 text-gray-800'
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
                       }`}
                     >
                       {member.status}
@@ -459,7 +459,7 @@ const TeamAnalytics: React.FC = () => {
             </tbody>
           </table>
           {teamMembers.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
               No team members found
             </div>
           )}

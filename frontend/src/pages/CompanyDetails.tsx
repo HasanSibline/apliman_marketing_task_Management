@@ -145,7 +145,7 @@ export default function CompanyDetails() {
 
   if (error || !company) {
     return (
-      <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 py-8 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
             {error || 'Company not found'}
@@ -167,13 +167,13 @@ export default function CompanyDetails() {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <button
             onClick={() => navigate('/admin/companies')}
-            className="text-gray-600 hover:text-gray-900 mb-4 flex items-center"
+            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white mb-4 flex items-center"
           >
             ← Back to Companies
           </button>
@@ -188,8 +188,8 @@ export default function CompanyDetails() {
                 className="h-16 w-16 mr-4 border-2 border-white shadow-sm"
               />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">{company.name}</h1>
-                <p className="text-gray-600">{company.slug}</p>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{company.name}</h1>
+                <p className="text-gray-600 dark:text-gray-300">{company.slug}</p>
               </div>
             </div>
             
@@ -224,20 +224,20 @@ export default function CompanyDetails() {
         {/* Statistics Grid */}
         {company.stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 mb-1">Total Users</div>
-              <div className="text-3xl font-bold text-gray-900">{company.stats.totalUsers}</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Users</div>
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">{company.stats.totalUsers}</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 mb-1">Active Tasks</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Active Tasks</div>
               <div className="text-3xl font-bold text-blue-600">{company.stats.activeTasks}</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 mb-1">Completed Tasks</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Completed Tasks</div>
               <div className="text-3xl font-bold text-green-600">{company.stats.completedTasks}</div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 mb-1">AI Messages</div>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">AI Messages</div>
               <div className="text-3xl font-bold text-purple-600">{company.stats.aiMessagesCount}</div>
             </div>
           </div>
@@ -246,15 +246,15 @@ export default function CompanyDetails() {
         {/* Details Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Subscription Card */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Subscription Details</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Subscription Details</h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Plan:</span>
-                <span className="font-semibold text-gray-900">{company.subscriptionPlan}</span>
+                <span className="text-gray-600 dark:text-gray-300">Plan:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{company.subscriptionPlan}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Status:</span>
+                <span className="text-gray-600 dark:text-gray-300">Status:</span>
                 <span className={`font-semibold ${
                   company.subscriptionStatus === 'ACTIVE' ? 'text-green-600' :
                   company.subscriptionStatus === 'TRIAL' ? 'text-blue-600' :
@@ -264,23 +264,23 @@ export default function CompanyDetails() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Started:</span>
-                <span className="font-semibold text-gray-900">
+                <span className="text-gray-600 dark:text-gray-300">Started:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">
                   {new Date(company.subscriptionStart).toLocaleDateString()}
                 </span>
               </div>
               {company.subscriptionEnd && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Expires:</span>
-                    <span className="font-semibold text-gray-900">
+                    <span className="text-gray-600 dark:text-gray-300">Expires:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
                       {new Date(company.subscriptionEnd).toLocaleDateString()}
                     </span>
                   </div>
                   {daysUntilExpiry !== null && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Days Remaining:</span>
-                      <span className={`font-semibold ${daysUntilExpiry < 7 ? 'text-red-600' : 'text-gray-900'}`}>
+                      <span className="text-gray-600 dark:text-gray-300">Days Remaining:</span>
+                      <span className={`font-semibold ${daysUntilExpiry < 7 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
                         {daysUntilExpiry} days
                       </span>
                     </div>
@@ -297,28 +297,28 @@ export default function CompanyDetails() {
           </div>
 
           {/* AI Configuration Card */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Configuration</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">AI Configuration</h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">AI Status:</span>
+                <span className="text-gray-600 dark:text-gray-300">AI Status:</span>
                 <span className={`font-semibold ${company.aiEnabled ? 'text-green-600' : 'text-gray-400'}`}>
                   {company.aiEnabled ? '✓ Enabled' : '✗ Disabled'}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Provider:</span>
-                <span className="font-semibold text-gray-900">{company.aiProvider}</span>
+                <span className="text-gray-600 dark:text-gray-300">Provider:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{company.aiProvider}</span>
               </div>
               {company.stats && (
                 <>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Tokens Used:</span>
-                    <span className="font-semibold text-gray-900">{(company.stats.aiTokensUsed || 0).toLocaleString()}</span>
+                    <span className="text-gray-600 dark:text-gray-300">Tokens Used:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{(company.stats.aiTokensUsed || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Total Cost:</span>
-                    <span className="font-semibold text-gray-900">${(company.stats.aiTotalCost || 0).toFixed(4)}</span>
+                    <span className="text-gray-600 dark:text-gray-300">Total Cost:</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">${(company.stats.aiTotalCost || 0).toFixed(4)}</span>
                   </div>
                 </>
               )}
@@ -326,27 +326,27 @@ export default function CompanyDetails() {
           </div>
 
           {/* Resource Limits Card */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Resource Limits</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Resource Limits</h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-gray-600">Max Users:</span>
-                <span className="font-semibold text-gray-900">{company.maxUsers}</span>
+                <span className="text-gray-600 dark:text-gray-300">Max Users:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{company.maxUsers}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Max Tasks:</span>
-                <span className="font-semibold text-gray-900">{company.maxTasks}</span>
+                <span className="text-gray-600 dark:text-gray-300">Max Tasks:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{company.maxTasks}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">Max Storage:</span>
-                <span className="font-semibold text-gray-900">{company.maxStorage} GB</span>
+                <span className="text-gray-600 dark:text-gray-300">Max Storage:</span>
+                <span className="font-semibold text-gray-900 dark:text-white">{company.maxStorage} GB</span>
               </div>
             </div>
           </div>
 
           {/* Admin Actions Card */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Admin Actions</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Admin Actions</h2>
             <div className="space-y-3">
               <button
                 onClick={() => setShowResetPassword(true)}
@@ -355,9 +355,9 @@ export default function CompanyDetails() {
                 Reset Admin Password
               </button>
               {company.billingEmail && (
-                <div className="pt-3 border-t border-gray-200">
-                  <div className="text-sm text-gray-600">Billing Email:</div>
-                  <div className="font-semibold text-gray-900">{company.billingEmail}</div>
+                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
+                  <div className="text-sm text-gray-600 dark:text-gray-300">Billing Email:</div>
+                  <div className="font-semibold text-gray-900 dark:text-white">{company.billingEmail}</div>
                 </div>
               )}
             </div>
@@ -368,9 +368,9 @@ export default function CompanyDetails() {
       {/* Reset Password Modal */}
       {showResetPassword && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Reset Admin Password</h3>
-            <p className="text-gray-600 mb-4">Enter a new password for the company admin account.</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Reset Admin Password</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">Enter a new password for the company admin account.</p>
             <input
               type="password"
               value={newPassword}
@@ -384,7 +384,7 @@ export default function CompanyDetails() {
                   setShowResetPassword(false);
                   setNewPassword('');
                 }}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
               >
                 Cancel
               </button>
@@ -403,9 +403,9 @@ export default function CompanyDetails() {
       {/* Extend Subscription Modal */}
       {showExtendSubscription && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Extend Subscription</h3>
-            <p className="text-gray-600 mb-4">How many days would you like to extend the subscription?</p>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Extend Subscription</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">How many days would you like to extend the subscription?</p>
             <input
               type="number"
               value={extensionDays}
@@ -416,7 +416,7 @@ export default function CompanyDetails() {
             <div className="flex space-x-3">
               <button
                 onClick={() => setShowExtendSubscription(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
               >
                 Cancel
               </button>

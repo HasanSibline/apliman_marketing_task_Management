@@ -138,7 +138,7 @@ const UsersPage: React.FC = () => {
   const statusColors = {
     ACTIVE: 'bg-green-100 text-green-800',
     AWAY: 'bg-yellow-100 text-yellow-800',
-    OFFLINE: 'bg-gray-100 text-gray-800',
+    OFFLINE: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100',
     RETIRED: 'bg-rose-100 text-rose-800 border border-rose-100',
   }
 
@@ -147,7 +147,7 @@ const UsersPage: React.FC = () => {
     COMPANY_ADMIN: 'bg-indigo-100 text-indigo-800',
     ADMIN: 'bg-blue-100 text-blue-800',
     MANAGER: 'bg-primary-100 text-primary-700 border border-primary-100 shadow-sm shadow-primary-50',
-    EMPLOYEE: 'bg-gray-100 text-gray-800',
+    EMPLOYEE: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100',
   }
 
   const getRoleLabel = (role: string) => {
@@ -178,22 +178,22 @@ const UsersPage: React.FC = () => {
       {/* Strategic Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 tracking-tight font-outfit">Identity & Logistics</h1>
+          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight font-outfit">Identity & Logistics</h1>
           <p className="text-[11px] font-black text-gray-400 mt-1 uppercase tracking-[0.2em] italic underline decoration-gray-100 italic">
             Company Personnel Hub & Tactical Structure
           </p>
         </div>
         
         {/* Tab Selection Facility */}
-        <div className="flex p-1 bg-gray-50 border border-gray-100 rounded-xl w-fit">
+        <div className="flex p-1 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl w-fit">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex items-center px-6 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${
                 activeTab === tab.id
-                  ? 'bg-white text-primary-600 border border-gray-100'
-                  : 'text-gray-400 hover:text-gray-600'
+                  ? 'bg-white dark:bg-gray-800 text-primary-600 border border-gray-100 dark:border-gray-700'
+                  : 'text-gray-400 hover:text-gray-600 dark:text-gray-300'
               }`}
             >
               <tab.icon className="h-4 w-4 mr-2" />
@@ -225,7 +225,7 @@ const UsersPage: React.FC = () => {
             </div>
           ) : users.length === 0 ? (
             <div className="col-span-full text-center py-8">
-              <p className="text-gray-500">No users found</p>
+              <p className="text-gray-500 dark:text-gray-400">No users found</p>
             </div>
           ) : (
             users.map((userItem: any, index: number) => (
@@ -234,7 +234,7 @@ const UsersPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-between hover:border-primary-100 transition-all font-outfit"
+                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 flex flex-col justify-between hover:border-primary-100 transition-all font-outfit"
               >
                 <div className="flex items-center space-x-4">
                   <Avatar
@@ -245,12 +245,12 @@ const UsersPage: React.FC = () => {
                     rounded="2xl"
                   />
                   <div className="flex-1">
-                    <h3 className="text-lg font-black text-gray-900 tracking-tight uppercase">
+                    <h3 className="text-lg font-black text-gray-900 dark:text-white tracking-tight uppercase">
                       {userItem.name}
                     </h3>
-                    <p className="text-gray-600">{userItem.email}</p>
+                    <p className="text-gray-600 dark:text-gray-300">{userItem.email}</p>
                     {userItem.position && (
-                      <p className="text-sm text-gray-500">{userItem.position}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{userItem.position}</p>
                     )}
                     {userItem.department && (
                       <p className="text-xs text-primary-600 font-medium">{userItem.department.name}</p>
@@ -258,18 +258,18 @@ const UsersPage: React.FC = () => {
                   </div>
                   {canManageUser(userItem) && (
                     <Menu as="div" className="relative">
-                      <Menu.Button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <EllipsisVerticalIcon className="h-5 w-5 text-gray-500" />
+                      <Menu.Button className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-full transition-colors">
+                        <EllipsisVerticalIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                       </Menu.Button>
-                      <Menu.Items className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 focus:outline-none z-10">
+                      <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 focus:outline-none z-10">
                         <div className="py-1">
                           <Menu.Item>
                             {({ active }) => (
                               <button
                                 onClick={() => handleEdit(userItem)}
                                 className={`${
-                                  active ? 'bg-gray-100' : ''
-                                } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                                  active ? 'bg-gray-100 dark:bg-gray-800' : ''
+                                } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
                               >
                                 <PencilIcon className="h-4 w-4 mr-3" />
                                 Edit User
@@ -281,8 +281,8 @@ const UsersPage: React.FC = () => {
                               <button
                                 onClick={() => handleResetPassword(userItem)}
                                 className={`${
-                                  active ? 'bg-gray-100' : ''
-                                } flex items-center w-full px-4 py-2 text-sm text-gray-700`}
+                                  active ? 'bg-gray-100 dark:bg-gray-800' : ''
+                                } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
                               >
                                 <KeyIcon className="h-4 w-4 mr-3" />
                                 Reset Password
@@ -294,7 +294,7 @@ const UsersPage: React.FC = () => {
                               <button
                                 onClick={() => handleDelete(userItem)}
                                 className={`${
-                                  active ? 'bg-gray-100' : ''
+                                  active ? 'bg-gray-100 dark:bg-gray-800' : ''
                                 } flex items-center w-full px-4 py-2 text-sm text-red-600`}
                               >
                                 <TrashIcon className="h-4 w-4 mr-3" />
@@ -310,7 +310,7 @@ const UsersPage: React.FC = () => {
                 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <span className={`status-badge ${roleColors[userItem.role] || 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`status-badge ${roleColors[userItem.role] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'}`}>
                       {getRoleLabel(userItem.role)}
                     </span>
                     <span className={`status-badge ${statusColors[userItem.status as keyof typeof statusColors]}`}>
@@ -323,14 +323,14 @@ const UsersPage: React.FC = () => {
                     )}
                   </div>
                   
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     {userItem._count && (
                       <span>{userItem._count.assignedTasks} tasks</span>
                     )}
                   </div>
                 </div>
                 
-                <div className="mt-4 text-xs text-gray-500">
+                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
                   Joined {new Date(userItem.createdAt).toLocaleDateString()}
                 </div>
               </motion.div>

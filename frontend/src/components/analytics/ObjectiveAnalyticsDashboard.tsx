@@ -159,31 +159,31 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
 
     if (objectives.length === 0) {
         return (
-            <div className="bg-white rounded-2xl p-12 text-center border border-gray-200">
-                <p className="text-gray-500 font-medium">Not enough data to display analytics.</p>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-gray-700">
+                <p className="text-gray-500 dark:text-gray-400 font-medium">Not enough data to display analytics.</p>
             </div>
         )
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex-wrap gap-4">
-                <h2 className="text-xl font-black text-gray-900">Objectives Analytics</h2>
+            <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex-wrap gap-4">
+                <h2 className="text-xl font-black text-gray-900 dark:text-white">Objectives Analytics</h2>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 bg-gray-50/50 px-2 py-1.5 rounded-xl border border-gray-100 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-3 bg-gray-50/50 px-2 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                         <FunnelIcon className="h-5 w-5 text-gray-400 ml-1" />
                         <div className="relative">
                             <select 
                                 value={selectedQuarter} 
                                 onChange={e => setSelectedQuarter(e.target.value)}
-                                className="appearance-none bg-white border border-gray-300 text-gray-700 font-bold text-sm py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm min-w-[140px]"
+                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 text-gray-700 dark:text-gray-200 font-bold text-sm py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm min-w-[140px]"
                             >
                                 <option value="ALL">All Quarters</option>
                                 {availableQuarters.map(q => (
                                     <option key={q} value={q}>{q}</option>
                                 ))}
                             </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500 dark:text-gray-400">
                                 <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                             </div>
                         </div>
@@ -200,8 +200,8 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Status Distribution */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6">Status Distribution</h3>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Status Distribution</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -224,8 +224,8 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                 </motion.div>
 
                 {/* Progress by Quarter */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6">Average Progress by Quarter</h3>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Average Progress by Quarter</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={quarterData}>
@@ -244,8 +244,8 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                 </motion.div>
 
                 {/* Key Results Progress Overview */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 lg:col-span-2">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6">Key Results Performance</h3>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Key Results Performance</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={krData} layout="vertical" margin={{ left: 40, right: 20 }}>
@@ -271,12 +271,12 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                 </motion.div>
 
                 {/* Top Objectives */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 lg:col-span-2">
-                    <h3 className="text-lg font-bold text-gray-900 mb-4">Top Performing Objectives</h3>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Top Performing Objectives</h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="text-xs text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100">
+                                <tr className="text-xs text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
                                     <th className="pb-3 w-1/2">Objective</th>
                                     <th className="pb-3 w-1/4">Quarter</th>
                                     <th className="pb-3 w-1/4 text-right">Progress</th>
@@ -285,14 +285,14 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                             <tbody className="divide-y divide-gray-50">
                                 {topObjectives.map(obj => (
                                     <tr key={obj.id}>
-                                        <td className="py-3 pr-4 font-bold text-sm text-gray-900">{obj.title}</td>
-                                        <td className="py-3 text-sm text-gray-500">{obj.quarter ? `${obj.quarter.year} - ${obj.quarter.name}` : '-'}</td>
+                                        <td className="py-3 pr-4 font-bold text-sm text-gray-900 dark:text-white">{obj.title}</td>
+                                        <td className="py-3 text-sm text-gray-500 dark:text-gray-400">{obj.quarter ? `${obj.quarter.year} - ${obj.quarter.name}` : '-'}</td>
                                         <td className="py-3 text-right">
                                             <div className="flex items-center justify-end gap-3">
-                                                <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                <div className="w-24 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                                     <div className="h-full bg-success-500" style={{ width: `${obj.progress}%` }} />
                                                 </div>
-                                                <span className="text-sm font-black text-gray-900">{obj.progress}%</span>
+                                                <span className="text-sm font-black text-gray-900 dark:text-white">{obj.progress}%</span>
                                             </div>
                                         </td>
                                     </tr>

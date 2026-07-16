@@ -61,8 +61,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
       case 1: 
         return { 
           color: '#6B7280',
-          bg: 'bg-gray-100',
-          text: 'text-gray-700',
+          bg: 'bg-gray-100 dark:bg-gray-800',
+          text: 'text-gray-700 dark:text-gray-200',
           icon: ArrowDownIcon,
           label: 'Low'
         }
@@ -101,8 +101,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
       default: 
         return { 
           color: '#6B7280',
-          bg: 'bg-gray-100',
-          text: 'text-gray-700',
+          bg: 'bg-gray-100 dark:bg-gray-800',
+          text: 'text-gray-700 dark:text-gray-200',
           icon: ChevronUpIcon,
           label: 'Normal'
         }
@@ -140,7 +140,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
   return (
     <div
       onClick={() => navigate(`/tasks/${task.id}`)}
-      className="group bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden h-full flex flex-col"
+      className="group bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden h-full flex flex-col"
     >
       {/* Priority Bar */}
       <div 
@@ -152,7 +152,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
         {/* Header */}
         <div className="flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-2">
-            <h3 className="text-base font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors flex-1 flex items-center gap-2">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 transition-colors flex-1 flex items-center gap-2">
               {task.taskNumber && (
                 <span className="text-primary-600 font-mono text-xs border border-primary-200 px-1.5 rounded bg-primary-50 flex-shrink-0">
                   {task.taskNumber}
@@ -168,15 +168,15 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
           </div>
           
           {/* Description Preview */}
-          <p className="text-sm text-gray-600 line-clamp-2 mb-3">
+          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mb-3">
             {task.description}
           </p>
 
           {/* Assigned User */}
           {task.assignedTo && (
             <div className="flex items-center gap-1.5 mb-3 text-sm">
-              <UserCircleIcon className="h-4 w-4 text-gray-500" />
-              <span className="font-medium text-gray-700">{task.assignedTo.name}</span>
+              <UserCircleIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+              <span className="font-medium text-gray-700 dark:text-gray-200">{task.assignedTo.name}</span>
             </div>
           )}
         </div>
@@ -224,8 +224,8 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
         </div>
 
         {/* Footer - Activity Indicators */}
-        <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-auto">
-          <div className="flex items-center gap-3 text-xs text-gray-500">
+        <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700 mt-auto">
+          <div className="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
             {task.comments && task.comments.length > 0 && (
               <div className="flex items-center gap-1">
                 <ChatBubbleLeftIcon className="h-3.5 w-3.5" />
@@ -253,7 +253,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
             <div className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${
               isTimerRunning 
                 ? 'bg-green-100 text-green-700 animate-pulse' 
-                : 'bg-gray-100 text-gray-700'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'
             }`}>
               <ClockIcon className="h-3.5 w-3.5" />
               <span>{formatTime(currentTime)}</span>

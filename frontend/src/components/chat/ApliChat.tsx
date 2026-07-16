@@ -509,7 +509,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
   // Minimized view - Professional
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 w-80 bg-white rounded-xl shadow-xl z-50 border border-gray-200 overflow-hidden">
+      <div className="fixed bottom-6 right-6 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-50 border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div 
           className="bg-primary-600 text-white p-4 flex items-center justify-between cursor-pointer hover:bg-primary-700 transition-all duration-300"
           onClick={() => setIsMinimized(false)}
@@ -564,12 +564,12 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-6 right-6 w-[340px] h-[540px] bg-white rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col z-50 border border-gray-100 overflow-hidden"
+            className="fixed bottom-6 right-6 w-[340px] h-[540px] bg-white dark:bg-gray-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col z-50 border border-gray-100 dark:border-gray-700 overflow-hidden"
           >
             {/* Combined Header, Body and Input - Full Height Layout */}
-            <div className="flex flex-col h-full bg-white relative">
+            <div className="flex flex-col h-full bg-white dark:bg-gray-800 relative">
               {/* Chat Header */}
-              <div className="flex items-center justify-between px-5 py-4 bg-white border-b border-gray-100 flex-shrink-0 z-10 shadow-sm">
+              <div className="flex items-center justify-between px-5 py-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 z-10 shadow-sm">
                 <div className="flex items-center space-x-3.5">
                   <div className="relative">
                     <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center shadow-inner">
@@ -578,21 +578,21 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 tracking-tight">ApliChat</h2>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">ApliChat</h2>
                     <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase italic">Intelligence Hub</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <button 
                      onClick={() => setIsMinimized(true)}
-                     className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+                     className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors text-gray-400"
                      aria-label="Minimize Chat"
                   >
                      <MinusIcon className="w-5 h-5" />
                   </button>
                   <button 
                      onClick={handleClose}
-                     className="p-1.5 hover:bg-gray-100 text-gray-400 rounded-lg transition-colors"
+                     className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-lg transition-colors"
                      aria-label="Close Chat"
                   >
                      <XMarkIcon className="w-5 h-5" />
@@ -611,20 +611,20 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <div className="mb-6 inline-block p-5 bg-primary-50 rounded-full">
                       <ChatBubbleLeftRightIcon className="w-12 h-12 mx-auto text-primary-600" />
                     </div>
-                    <h4 className="text-base font-black text-gray-900 mb-2">ApliChat Intelligence</h4>
+                    <h4 className="text-base font-black text-gray-900 dark:text-white mb-2">ApliChat Intelligence</h4>
                     <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-4">
                       Ready for multimodal analysis
                     </p>
                     
                     {/* Compact Mention Hints */}
-                    <div className="flex items-center justify-center gap-3 text-[12px] text-gray-500">
-                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                    <div className="flex items-center justify-center gap-3 text-[12px] text-gray-500 dark:text-gray-400">
+                      <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
                         <span className="font-black text-primary-600">@</span> members
                       </span>
-                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                      <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
                         <span className="font-black text-primary-600">/</span> tasks
                       </span>
-                      <span className="flex items-center gap-1 bg-gray-50 px-2 py-1 rounded-md border border-gray-100">
+                      <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
                         <span className="font-black text-primary-600">#</span> tickets
                       </span>
                     </div>
@@ -640,14 +640,14 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border ${
-                      message.role === 'user' ? 'bg-primary-600 text-white border-primary-500' : 'bg-white text-secondary-600 border-gray-100'
+                      message.role === 'user' ? 'bg-primary-600 text-white border-primary-500' : 'bg-white dark:bg-gray-800 text-secondary-600 border-gray-100 dark:border-gray-700'
                     }`}>
                       {message.role === 'user' ? <span className="text-[11px] font-black">{getInitials(user?.name)}</span> : <CpuChipIcon className="w-5 h-5" />}
                     </div>
                     
                     <div className={`flex flex-col max-w-[82%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
                       <div className={`rounded-2xl px-4 py-2.5 shadow-sm relative group transition-all ${
-                        message.role === 'user' ? 'bg-primary-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none'
+                        message.role === 'user' ? 'bg-primary-600 text-white rounded-tr-none' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
                       }`}>
                         <div className="text-[13px] leading-relaxed relative z-10 font-medium whitespace-pre-wrap">
                           {(message.role === 'assistant' ? humanizeText(message.content) : message.content)
@@ -690,7 +690,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                                 className={`flex items-center gap-1.5 p-1 pr-2.5 rounded-lg text-[11px] cursor-pointer transition-all border ${
                                   message.role === 'user' 
                                     ? 'bg-primary-700/60 border-primary-500/50 hover:bg-primary-700' 
-                                    : 'bg-gray-50 border-gray-100 hover:border-gray-200'
+                                    : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:border-gray-700'
                                 }`}
                               >
                                 <div className={`w-6 h-6 rounded flex items-center justify-center ${message.role === 'user' ? 'bg-primary-600' : 'bg-primary-50'}`}>
@@ -715,10 +715,10 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
                 {streamingMessage && (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white border border-gray-100 text-secondary-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <CpuChipIcon className="w-5 h-5" />
                     </div>
-                    <div className="bg-white border border-gray-200 text-gray-800 rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[82%] shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[82%] shadow-sm">
                       <p className="text-[13px] leading-relaxed font-medium">{humanizeText(streamingMessage)}</p>
                     </div>
                   </div>
@@ -726,10 +726,10 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
                 {isTyping && !streamingMessage && (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white border border-gray-100 text-secondary-600 flex items-center justify-center flex-shrink-0 shadow-sm animation-pulse">
+                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 flex items-center justify-center flex-shrink-0 shadow-sm animation-pulse">
                       <CpuChipIcon className="w-5 h-5" />
                     </div>
-                    <div className="flex gap-1 p-2 bg-white border border-gray-100 rounded-full h-8 items-center px-4">
+                    <div className="flex gap-1 p-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full h-8 items-center px-4">
                       <div className="w-1 h-1 bg-primary-600 rounded-full animate-bounce"></div>
                       <div className="w-1 h-1 bg-primary-500 rounded-full animate-bounce delay-75"></div>
                       <div className="w-1 h-1 bg-primary-400 rounded-full animate-bounce delay-150"></div>
@@ -740,7 +740,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0 relative">
+              <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 relative">
                 {/* Autocomplete Suggestions */}
                 <AnimatePresence>
                   {suggestions.length > 0 && (
@@ -748,7 +748,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute left-4 right-4 bottom-full mb-3 bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden z-20 max-h-40"
+                      className="absolute left-4 right-4 bottom-full mb-3 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20 max-h-40"
                     >
                       <div className="p-2 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
                         <span className="text-[11px] font-black text-gray-400 tracking-widest uppercase">
@@ -762,7 +762,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                             onClick={() => applySuggestion(item)}
                             className="w-full text-left px-4 py-2 text-[12px] hover:bg-primary-50 border-b border-gray-50 last:border-0 transition-colors flex items-center justify-between group"
                           >
-                            <span className="text-gray-700 font-medium group-hover:text-primary-700 truncate max-w-[200px]">
+                            <span className="text-gray-700 dark:text-gray-200 font-medium group-hover:text-primary-700 truncate max-w-[200px]">
                               {suggestionType === 'user' ? item.name : suggestionType === 'task' ? item.title : item.title}
                             </span>
                             <span className="text-[11px] font-black text-gray-300 group-hover:text-primary-300">
@@ -789,9 +789,9 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                           initial={{ scale: 0.8, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           key={idx} 
-                          className="flex-shrink-0 group relative flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-2 py-1.5 shadow-sm"
+                          className="flex-shrink-0 group relative flex items-center gap-2 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl px-2 py-1.5 shadow-sm"
                         >
-                          <div className="w-8 h-8 rounded-lg bg-white border border-gray-200 overflow-hidden flex items-center justify-center">
+                          <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden flex items-center justify-center">
                             {file.type?.startsWith('image/') ? (
                               <img 
                                 src={file.base64 ? `data:${file.type};base64,${file.base64}` : file.url} 
@@ -803,7 +803,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                             )}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-gray-700 truncate max-w-[90px]">{file.name}</span>
+                            <span className="text-[11px] font-black text-gray-700 dark:text-gray-200 truncate max-w-[90px]">{file.name}</span>
                             <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Ready to analyze</span>
                           </div>
                           <button 
@@ -828,7 +828,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       onKeyDown={handleKeyDown}
                       disabled={isTyping || isUploading || aiBlocked}
                       placeholder={aiBlocked ? (quotaExhausted ? 'AI quota exhausted — contact your admin' : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
-                      className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100' : ''}`}
+                      className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}`}
                     />
                     
                     <button
@@ -848,7 +848,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     className={`p-3 rounded-2xl transition-all shadow-md ${
                       (inputValue.trim() || attachments.length > 0) && !isTyping && !isUploading && !aiBlocked
                         ? 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-105 active:scale-95'
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
                     }`}
                   >
                     <PaperAirplaneIcon className="w-5 h-5" />
@@ -872,13 +872,13 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
       {/* Confirm close modal - Professional */}
       {showConfirmClose && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-fade-in">
-          <div className="bg-white rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200 dark:border-gray-700">
             <div className="mb-6 text-center">
               <div className="w-14 h-14 bg-error-100 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <XMarkIcon className="w-8 h-8 text-error-600" />
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">End Chat Session?</h3>
-              <p className="text-gray-600 text-[11px] font-medium leading-relaxed italic uppercase opacity-60">
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">End Chat Session?</h3>
+              <p className="text-gray-600 dark:text-gray-300 text-[11px] font-medium leading-relaxed italic uppercase opacity-60">
                 Strategic Choice Required
               </p>
             </div>
@@ -894,13 +894,13 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   setShowConfirmClose(false)
                   onClose()
                 }}
-                className="w-full px-5 py-3.5 bg-gray-50 text-gray-700 border border-gray-100 rounded-xl hover:bg-gray-100 transition-all font-black uppercase tracking-[0.2em] text-[11px]"
+                className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:bg-gray-800 transition-all font-black uppercase tracking-[0.2em] text-[11px]"
               >
                 Just Close Window
               </button>
               <button
                 onClick={cancelClose}
-                className="w-full py-2 text-gray-400 hover:text-gray-600 font-bold text-[11px] uppercase tracking-widest transition-colors mt-2"
+                className="w-full py-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 font-bold text-[11px] uppercase tracking-widest transition-colors mt-2"
               >
                 Return to Chat
               </button>
