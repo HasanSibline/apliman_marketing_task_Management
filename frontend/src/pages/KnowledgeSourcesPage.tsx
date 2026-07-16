@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Plus, RefreshCw, Edit, Trash2, Globe, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import {
+  PlusIcon as Plus,
+  ArrowPathIcon as RefreshCw,
+  PencilSquareIcon as Edit,
+  TrashIcon as Trash2,
+  GlobeAltIcon as Globe,
+  ExclamationCircleIcon as AlertCircle,
+  CheckCircleIcon as CheckCircle,
+  ClockIcon as Clock,
+} from '@heroicons/react/24/outline';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 
