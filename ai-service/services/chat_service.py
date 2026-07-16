@@ -456,6 +456,7 @@ class ChatService:
             parts.append({"text": f"\n[SYSTEM NOTICE: Task-specific analysis mode is ACTIVE for the {file_count} file(s) above. If the user asks about these files, ignore generic company knowledge and focus on the file content.]"})
 
         max_attempts = max(len(self.api_keys) * 2, 4)  # Allow multiple passes through key pool
+        last_was_429 = False
 
         while attempts < max_attempts:
             current_key = self.api_key
@@ -502,13 +503,15 @@ class ChatService:
                             error_text = "Unknown Error"
                             
                         if response.status == 429:
-                            logger.warning(f"⚠️ Rate limited (429) on key index {self.current_key_index} (attempt {attempts+1}/{max_attempts}). Rotating...")
-                            last_error = "429"
+                            logger.warning(f"⚠️ Rate limited (429) on key index {self.current_key_index} (attempt {attempts+1}/{max_attempts}). Google said: {error_text[:400]}")
+                            last_error = error_text or "429"
                             got_429 = True
+                            last_was_429 = True
                         else:
                             logger.warning(f"API error ({response.status}): {error_text[:200]}")
                             last_error = error_text
                             api_error = error_text
+                            last_was_429 = False
 
             except Exception as e:
                 last_error = str(e)
@@ -535,8 +538,8 @@ class ChatService:
         # Out of attempts. Distinguish a REAL rate limit from any other failure so the
         # client sees the true cause instead of a misleading "quota exhausted" message.
         # We do NOT fail over to any platform/env key or other provider.
-        if str(last_error).strip() == "429":
-            raise Exception(f"AI quota exceeded (429) on the company's API key after {attempts} attempt(s).")
+        if last_was_429:
+            raise Exception(f"AI quota exceeded (429) on the company's API key after {attempts} attempt(s). Google said: {str(last_error)[:400]}")
         # Non-429 failure (invalid key, disabled API, wrong model, network, etc.)
         raise Exception(f"AI request to Gemini failed after {attempts} attempt(s): {last_error}")
 
