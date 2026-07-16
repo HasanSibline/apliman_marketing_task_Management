@@ -10,7 +10,7 @@ const Layout: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
       {/* Sidebar */}
       <Sidebar />
 

@@ -4,7 +4,10 @@ import {
   Bars3Icon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
+  SunIcon,
+  MoonIcon,
 } from '@heroicons/react/24/outline'
+import { useTheme } from '@/theme/useTheme'
 import NotificationBell from '../notifications/NotificationBell'
 import { Menu, Transition } from '@headlessui/react'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
@@ -16,6 +19,7 @@ import Avatar from '@/components/common/Avatar'
 const Header: React.FC = () => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
+  const { theme, toggle } = useTheme()
   const [onlineCount, setOnlineCount] = useState(0)
 
   // Fetch online users count
@@ -51,14 +55,14 @@ const Header: React.FC = () => {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
+    <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
       <div className="flex items-center justify-between h-16 px-6">
         {/* Left side */}
         <div className="flex items-center space-x-4">
           {/* Sidebar toggle */}
           <button
             onClick={() => dispatch(toggleSidebar())}
-            className="p-2 rounded-md text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-colors duration-200"
+            className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
           >
             <Bars3Icon className="h-5 w-5" />
           </button>
@@ -67,19 +71,29 @@ const Header: React.FC = () => {
         {/* Right side */}
         <div className="flex items-center space-x-4">
           {/* Team presence indicator */}
-          <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600">
+          <div className="hidden lg:flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
             <div className="flex items-center space-x-1">
               <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
               <span>{onlineCount} online</span>
             </div>
           </div>
 
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggle}
+            aria-label="Toggle dark mode"
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="p-2 rounded-md text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+          >
+            {theme === 'dark' ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+          </button>
+
           {/* Notifications */}
           <NotificationBell />
 
           {/* User menu */}
           <Menu as="div" className="relative">
-            <Menu.Button className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 transition-colors duration-200 group">
+            <Menu.Button className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 group">
               <Avatar
                 src={user?.avatar}
                 name={user?.name}
@@ -88,7 +102,7 @@ const Header: React.FC = () => {
                 rounded="xl"
               />
               <div className="hidden md:block text-left">
-                <p className="text-sm font-black text-gray-900 tracking-tight leading-none">{user?.name}</p>
+                <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight leading-none">{user?.name}</p>
                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.position || user?.role?.replace('_', ' ')}</p>
               </div>
             </Menu.Button>
@@ -102,17 +116,17 @@ const Header: React.FC = () => {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden border border-gray-100 p-2">
-                <div className="px-4 py-3 border-b border-gray-50 mb-1">
+              <Menu.Items className="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden border border-gray-100 dark:border-gray-700 p-2">
+                <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 mb-1">
                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">Signed in as</p>
-                   <p className="text-sm font-black text-gray-900 truncate">{user?.email}</p>
+                   <p className="text-sm font-black text-gray-900 dark:text-white truncate">{user?.email}</p>
                 </div>
                 <Menu.Item>
                   {({ active }) => (
                     <Link
                       to="/profile"
                       className={`${
-                        active ? 'bg-primary-50 text-primary-600' : 'text-gray-700'
+                        active ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300' : 'text-gray-700 dark:text-gray-200'
                       } flex items-center px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
                     >
                       <UserCircleIcon className="h-5 w-5 mr-3 opacity-60" />
@@ -125,7 +139,7 @@ const Header: React.FC = () => {
                     <button
                       onClick={handleLogout}
                       className={`${
-                        active ? 'bg-red-50 text-red-600' : 'text-gray-700'
+                        active ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'
                       } flex items-center w-full px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
                     >
                       <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3 opacity-60" />

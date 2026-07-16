@@ -52,11 +52,11 @@ const Sidebar: React.FC = () => {
         width: sidebarOpen ? 256 : 64,
       }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-y-0 left-0 z-50 bg-white shadow-lg border-r border-gray-200"
+      className="fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700"
     >
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex flex-col items-center justify-center py-4 border-b border-gray-200 min-h-[5rem]">
+        <div className="flex flex-col items-center justify-center py-4 border-b border-gray-200 dark:border-gray-700 min-h-[5rem]">
           {sidebarOpen ? (
             <motion.div
               initial={{ opacity: 0 }}
@@ -88,8 +88,8 @@ const Sidebar: React.FC = () => {
                 key={item.name}
                 to={item.href}
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${isActive
-                    ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-500'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-500 dark:bg-primary-900/30 dark:text-primary-300'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700/50 dark:hover:text-white'
                   }`}
               >
                 <item.icon
@@ -112,7 +112,7 @@ const Sidebar: React.FC = () => {
         </nav>
 
         {/* User info */}
-        <div className="border-t border-gray-200 p-4">
+        <div className="border-t border-gray-200 dark:border-gray-700 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
                 <Avatar 

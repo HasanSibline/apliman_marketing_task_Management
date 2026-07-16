@@ -7,7 +7,11 @@ import { Toaster } from 'react-hot-toast'
 import { store, persistor } from '@/store'
 import App from './App'
 import LoadingScreen from '@/components/ui/LoadingScreen'
+import { applyTheme, getInitialTheme } from '@/theme/useTheme'
 import './index.css'
+
+// Apply saved light/dark theme before first paint to avoid a flash.
+applyTheme(getInitialTheme())
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
