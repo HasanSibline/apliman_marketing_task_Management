@@ -52,7 +52,7 @@ export default function DayTasksPage() {
             <div className="flex items-center gap-4">
                 <button 
                     onClick={() => navigate(-1)} 
-                    className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-xl transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white"
                 >
                     <ArrowLeftIcon className="h-5 w-5" />
                 </button>
@@ -105,7 +105,7 @@ export default function DayTasksPage() {
                 ) : dayTasks.length > 0 ? (
                     <div className="divide-y divide-gray-100">
                         {dayTasks.map(task => (
-                            <div key={task.id} className="p-2 hover:bg-gray-50 dark:bg-gray-900/40 transition-colors">
+                            <div key={task.id} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <TaskListItem task={task as any} />
                             </div>
                         ))}

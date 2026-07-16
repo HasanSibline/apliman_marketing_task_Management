@@ -549,7 +549,7 @@ export default function CreateCompany() {
                         type="text"
                         value={formData.primaryColor}
                         onChange={e => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:bg-gray-800 transition"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-700 transition"
                         placeholder="#6366f1"
                       />
                     </div>
@@ -645,7 +645,7 @@ export default function CreateCompany() {
                         className={`group relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-300 text-left
                           ${selected
                             ? 'border-blue-600 bg-blue-50/30'
-                            : 'border-gray-100 dark:border-gray-700 bg-gray-50/50 hover:border-gray-300 hover:bg-white dark:bg-gray-800'}`}
+                            : 'border-gray-100 dark:border-gray-700 bg-gray-50/50 hover:border-gray-300 hover:bg-white dark:hover:bg-gray-700'}`}
                       >
                         <div className={`text-[11px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
                           ${plan === 'FREE_TRIAL' ? 'bg-purple-600 text-white shadow-sm' :
@@ -783,7 +783,7 @@ export default function CreateCompany() {
                 type="button"
                 onClick={prevStep}
                 className={`px-6 py-3 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400
-                  hover:bg-gray-50 dark:bg-gray-900/40 hover:text-gray-900 dark:text-white transition flex items-center gap-2
+                  hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:text-white transition flex items-center gap-2
                   ${step === 1 ? 'invisible' : ''}`}
               >
                 <span>←</span> Back

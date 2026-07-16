@@ -139,7 +139,7 @@ const ActivityPage: React.FC = () => {
       <div className="flex items-center space-x-4">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors"
+          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
         >
           <ArrowLeftIcon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
         </button>
@@ -165,7 +165,7 @@ const ActivityPage: React.FC = () => {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className="flex items-start space-x-4 p-4 hover:bg-gray-50 dark:bg-gray-900/40 rounded-lg transition-colors"
+                className="flex items-start space-x-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <div className="flex-shrink-0 mt-1">
                   {getActivityIcon(activity.type)}

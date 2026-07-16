@@ -357,7 +357,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-all duration-200"
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-all duration-200"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>

@@ -558,7 +558,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
               {/* Actions Menu */}
               <Menu as="div" className="relative flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                <Menu.Button className="p-2 rounded-lg hover:bg-gray-100 dark:bg-gray-800 transition-colors">
+                <Menu.Button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                   <EllipsisVerticalIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 </Menu.Button>
                 <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50 ring-1 ring-black ring-opacity-5">

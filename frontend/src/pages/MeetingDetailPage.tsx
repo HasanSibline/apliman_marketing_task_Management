@@ -281,7 +281,7 @@ const MeetingDetailPage: React.FC = () => {
                                 <button
                                     onClick={() => { setTranscript(null); setTranscriptMsg(null); fetchTranscript() }}
                                     disabled={transcriptLoading}
-                                    className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-full text-xs font-bold text-gray-400 hover:text-gray-600 dark:text-gray-300 hover:border-gray-200 dark:border-gray-700 hover:bg-white dark:bg-gray-800 transition-all disabled:opacity-50"
+                                    className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-full text-xs font-bold text-gray-400 hover:text-gray-600 dark:text-gray-300 hover:border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all disabled:opacity-50"
                                 >
                                     <ArrowPathIcon className={`h-3 w-3 ${transcriptLoading ? 'animate-spin' : ''}`} />
                                     <span>{transcriptLoading ? 'Checking...' : 'Sync transcript'}</span>

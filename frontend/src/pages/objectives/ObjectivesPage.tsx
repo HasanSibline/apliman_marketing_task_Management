@@ -264,7 +264,7 @@ const ObjectivesPage: React.FC = () => {
             <>
                 <motion.tr 
                     initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors group border-b border-gray-100 dark:border-gray-700"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group border-b border-gray-100 dark:border-gray-700"
                 >
                     <td className="px-6 py-4 cursor-pointer" onClick={() => navigate(`/objectives/${obj.id}`)}>
                         <div className="flex items-center gap-4">

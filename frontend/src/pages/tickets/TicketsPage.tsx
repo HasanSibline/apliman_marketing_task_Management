@@ -309,7 +309,7 @@ const TicketsPage: React.FC = () => {
                   <tr
                     key={ticket.id}
                     onClick={() => handleOpenDetail(ticket.id)}
-                    className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors cursor-pointer group"
+                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
@@ -383,7 +383,7 @@ const TicketsPage: React.FC = () => {
             <button
               disabled={page <= 1}
               onClick={() => setPage(p => p - 1)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Previous
             </button>
@@ -391,7 +391,7 @@ const TicketsPage: React.FC = () => {
             <button
               disabled={page >= totalPages}
               onClick={() => setPage(p => p + 1)}
-              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
               Next
             </button>

@@ -195,7 +195,7 @@ const NotificationManager: React.FC = () => {
       {/* Bell Icon with Badge */}
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className="relative p-2 rounded-full hover:bg-gray-100 dark:bg-gray-800 focus:outline-none"
+        className="relative p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none"
       >
         <BellIcon className="h-6 w-6 text-gray-600 dark:text-gray-300" />
         {unreadCount > 0 && (
@@ -230,7 +230,7 @@ const NotificationManager: React.FC = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900/40 ${
+                    className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${
                       !notification.read ? 'bg-blue-50' : ''
                     }`}
                   >

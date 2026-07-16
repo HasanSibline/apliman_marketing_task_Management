@@ -102,7 +102,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
                             navigate(`/tasks/${subtask.linkedTask.id}`)
                           }
                         }}
-                        className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 transition-all group"
+                        className="w-full text-left p-2.5 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all group"
                       >
                         <div className="flex items-start gap-2">
                           {subtask.isCompleted ? (
@@ -191,7 +191,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
               {subtasks.map((subtask) => (
                 <div
                   key={subtask.id}
-                  className="relative p-3 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 transition-all group"
+                  className="relative p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 transition-all group"
                 >
                   <div className="flex items-start gap-3">
                     {/* Checkbox */}

@@ -604,7 +604,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                           </div>
                         ) : (
                           <Menu as="div" className="relative">
-                            <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
+                            <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                               <span className="flex items-center justify-between">
                                 {task.phase.replace('_', ' ')}
                                 <ChevronDownIcon className="h-5 w-5 text-gray-400" />
@@ -645,7 +645,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     <div className="space-y-2">
                       <button
                         onClick={() => setShowComments(!showComments)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
                         <span className="flex items-center">
                           <ChatBubbleLeftIcon className="h-5 w-5 mr-2" />
@@ -658,7 +658,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                       <button
                         onClick={() => setShowFiles(!showFiles)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
                         <span className="flex items-center">
                           <PaperClipIcon className="h-5 w-5 mr-2" />
@@ -671,7 +671,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                       <button
                         onClick={() => setShowActivityLog(!showActivityLog)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
                         <span className="flex items-center">
                           <ArrowPathIcon className="h-5 w-5 mr-2" />
@@ -681,7 +681,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                       <button
                         onClick={() => setShowSubtasks(!showSubtasks)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
                         <span className="flex items-center">
                           <CheckIcon className="h-5 w-5 mr-2" />
@@ -694,7 +694,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
 
                       <button
                         onClick={() => setShowTimeTracker(!showTimeTracker)}
-                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:bg-gray-900/40"
+                        className="w-full flex items-center justify-between px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
                       >
                         <span className="flex items-center">
                           <PlayIcon className="h-5 w-5 mr-2" />

@@ -279,7 +279,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     <p className="text-sm text-gray-500 dark:text-gray-400">Loading users...</p>
                   ) : (
                     users.map((user) => (
-                      <label key={user.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:bg-gray-900/40 rounded cursor-pointer">
+                      <label key={user.id} className="flex items-center space-x-2 p-2 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer">
                         <input
                           type="checkbox"
                           checked={formData.assignedUserIds.includes(user.id)}
@@ -315,7 +315,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 <button
                   type="button"
                   onClick={onClose}
-                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900/40 transition-colors"
+                  className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   Cancel
                 </button>

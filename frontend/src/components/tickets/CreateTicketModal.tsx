@@ -57,7 +57,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Issue Category</label>
             <select 
               onChange={(e) => handleMetadataChange('it_category', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             >
               <option value="Hardware">Hardware</option>
               <option value="Software">Software</option>
@@ -71,7 +71,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. LAP-102"
               onChange={(e) => handleMetadataChange('asset_id', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
           </div>
         </div>
@@ -86,7 +86,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Type of Document</label>
             <select 
               onChange={(e) => handleMetadataChange('hr_doc_type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             >
               <option value="Salary Certificate">Salary Certificate</option>
               <option value="Contract Copy">Contract Copy</option>
@@ -100,7 +100,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. Needed for Visa"
               onChange={(e) => handleMetadataChange('hr_reason', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
           </div>
         </div>
@@ -117,7 +117,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. Global Tech Inc."
               onChange={(e) => handleMetadataChange('lead_name', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
           </div>
           <div>
@@ -126,7 +126,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="number" 
               placeholder="10000"
               onChange={(e) => handleMetadataChange('deal_value', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
           </div>
         </div>
@@ -141,7 +141,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">System Environment</label>
             <select 
               onChange={(e) => handleMetadataChange('environment', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             >
               <option value="Production">Production (Live)</option>
               <option value="Staging">Staging</option>
@@ -153,7 +153,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Severity</label>
             <select 
               onChange={(e) => handleMetadataChange('severity', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             >
               <option value="Minor">Minor / UI</option>
               <option value="Major">Major / Functional</option>
@@ -174,7 +174,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="text" 
               placeholder="e.g. AWS Marketplace"
               onChange={(e) => handleMetadataChange('provider', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
           </div>
           <div>
@@ -183,7 +183,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               type="number" 
               placeholder="0.00"
               onChange={(e) => handleMetadataChange('amount', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
           </div>
         </div>

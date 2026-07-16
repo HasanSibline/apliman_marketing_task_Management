@@ -34,6 +34,7 @@ import TicketsPage from '@/pages/tickets/TicketsPage'
 import TicketDetailPage from '@/pages/tickets/TicketDetailPage'
 import AuthCallback from '@/pages/auth/AuthCallback'
 import MeetingDetailPage from '@/pages/MeetingDetailPage'
+import SettingsPage from '@/pages/SettingsPage'
 
 // Super Admin Pages
 import AdminLogin from '@/pages/AdminLogin'
@@ -221,6 +222,14 @@ function App() {
         <Route path="tickets" element={<TicketsPage />} />
         <Route path="tickets/:id" element={<TicketDetailPage />} />
         <Route path="meetings/:id" element={<MeetingDetailPage />} />
+        <Route
+          path="settings"
+          element={
+            <ProtectedRoute roles={['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN']}>
+              <SettingsPage />
+            </ProtectedRoute>
+          }
+        />
       </Route>
 
       <Route path="/auth/microsoft/callback" element={<AuthCallback />} />

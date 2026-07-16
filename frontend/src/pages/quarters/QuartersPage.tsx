@@ -441,7 +441,7 @@ const QuartersPage: React.FC = () => {
                                         <button
                                             key={q.id}
                                             onClick={() => handleMoveTask(movingTask, q.id)}
-                                            className="w-full flex items-center justify-between p-2.5 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:bg-gray-900/40 transition-all group"
+                                            className="w-full flex items-center justify-between p-2.5 rounded-xl border border-dashed border-gray-200 dark:border-gray-700 hover:border-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all group"
                                         >
                                             <div className="text-left">
                                                 <div className="text-xs font-bold text-gray-600 dark:text-gray-300">{q.name} {q.year}</div>
@@ -755,7 +755,7 @@ const QuartersPage: React.FC = () => {
                                 </button>
                             )}
                             {isAdmin && (
-                                <button onClick={() => navigate('/tasks')} className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 dark:bg-gray-900/40 transition shadow-sm">
+                                <button onClick={() => navigate('/tasks')} className="px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow-sm">
                                     Full Board
                                 </button>
                             )}
@@ -778,7 +778,7 @@ const QuartersPage: React.FC = () => {
                                         <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-400 italic">No tasks on standby. Your inbox is clear.</td>
                                     </tr>
                                 ) : backlogTasks.map(task => (
-                                    <tr key={task.id} className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors group">
+                                    <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className={`h-8 w-8 rounded-lg flex items-center justify-center border ${task.priority >= 4 ? 'border-red-100 bg-red-50 text-red-500' : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 text-gray-400'}`}>
@@ -807,7 +807,7 @@ const QuartersPage: React.FC = () => {
                                                         <span className="text-[11px] font-bold uppercase">Assign</span>
                                                     </button>
                                                 )}
-                                                <button onClick={() => navigate(`/tasks/${task.id}`)} className="p-2 hover:text-primary-600 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors">
+                                                <button onClick={() => navigate(`/tasks/${task.id}`)} className="p-2 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                                                     <EyeIcon className="h-5 w-5" />
                                                 </button>
                                             </div>
@@ -826,14 +826,14 @@ const QuartersPage: React.FC = () => {
                                 <button 
                                     disabled={backlogPage === 1}
                                     onClick={() => setBacklogPage(p => p - 1)}
-                                    className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:bg-gray-900/40 transition"
+                                    className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                                 >
                                     Previous
                                 </button>
                                 <button 
                                     disabled={backlogPage >= Math.ceil(backlogTotal / 5)}
                                     onClick={() => setBacklogPage(p => p + 1)}
-                                    className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:bg-gray-900/40 transition"
+                                    className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                                 >
                                     Next
                                 </button>

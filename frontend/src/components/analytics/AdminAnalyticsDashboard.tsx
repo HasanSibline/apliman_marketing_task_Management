@@ -563,7 +563,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
               {(dashboardData.recentTasks || []).map((task: any) => (
-                <tr key={task.id} className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors">
+                <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900 dark:text-white max-w-xs truncate">
                       {task.title}

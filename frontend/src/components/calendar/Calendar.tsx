@@ -50,7 +50,7 @@ interface CalendarProps {
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
-    1: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900/40',
+    1: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700',
     2: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
     3: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
     4: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100',
@@ -159,10 +159,10 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                 <div className="flex items-center justify-between mb-4 px-1 text-gray-900 dark:text-white border-b border-gray-50 pb-2">
                     <span className="text-sm font-bold">{format(selectedDate, 'MMMM yyyy')}</span>
                     <div className="flex space-x-1">
-                        <button onClick={() => setSelectedDate(subMonths(selectedDate, 1))} className="p-1 hover:bg-gray-100 dark:bg-gray-800 rounded text-gray-500 dark:text-gray-400">
+                        <button onClick={() => setSelectedDate(subMonths(selectedDate, 1))} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">
                             <ChevronLeftIcon className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setSelectedDate(addMonths(selectedDate, 1))} className="p-1 hover:bg-gray-100 dark:bg-gray-800 rounded text-gray-500 dark:text-gray-400">
+                        <button onClick={() => setSelectedDate(addMonths(selectedDate, 1))} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">
                             <ChevronRightIcon className="h-4 w-4" />
                         </button>
                     </div>
@@ -185,7 +185,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 }}
                                 className={`
                                     text-[11px] py-1.5 rounded-md cursor-pointer transition-all
-                                    ${isSelected ? 'bg-primary-600 text-white font-bold' : 'hover:bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200'}
+                                    ${isSelected ? 'bg-primary-600 text-white font-bold' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200'}
                                     ${!isInMonth ? 'opacity-30' : ''}
                                     ${isTodayDate && !isSelected ? 'text-primary-600 font-bold' : ''}
                                 `}
@@ -276,15 +276,15 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                         <div className="flex items-center space-x-4">
                             <button 
                                 onClick={goToToday}
-                                className="px-4 py-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md transition-colors"
+                                className="px-4 py-1.5 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-md transition-colors"
                             >
                                 Today
                             </button>
                             <div className="flex items-center space-x-0.5">
-                                <button onClick={prevInterval} className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400">
+                                <button onClick={prevInterval} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400">
                                     <ChevronLeftIcon className="h-4 w-4" />
                                 </button>
-                                <button onClick={nextInterval} className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 rounded-md text-gray-500 dark:text-gray-400">
+                                <button onClick={nextInterval} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400">
                                     <ChevronRightIcon className="h-4 w-4" />
                                 </button>
                             </div>
@@ -311,7 +311,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                         <div className={`flex items-center space-x-3 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${
                             user?.isMicrosoftSynced 
                             ? 'bg-blue-50 text-blue-700 border border-blue-100' 
-                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:bg-gray-900/40'
+                            : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                         }`}>
                             <div className="flex items-center space-x-2">
                                 <svg className="h-4 w-4" viewBox="0 0 23 23" fill="currentColor">
@@ -373,7 +373,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                     {format(day, 'EEE')}
                                 </span>
                                 <div className={`flex items-center justify-center h-10 w-10 rounded-full text-2xl font-light ${
-                                    isToday(day) ? 'bg-primary-600 text-white font-bold' : 'text-gray-900 dark:text-white hover:bg-gray-100 dark:bg-gray-800'
+                                    isToday(day) ? 'bg-primary-600 text-white font-bold' : 'text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}>
                                     {format(day, 'd')}
                                 </div>

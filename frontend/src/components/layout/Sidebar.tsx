@@ -12,6 +12,7 @@ import {
   CalendarDaysIcon,
   FlagIcon,
   TicketIcon,
+  Squares2X2Icon,
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 import Logo from './Logo'
@@ -34,6 +35,7 @@ const Sidebar: React.FC = () => {
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
     { name: 'Knowledge Sources', href: '/knowledge-sources', icon: GlobeAltIcon, adminOnly: true },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
+    { name: 'Settings', href: '/settings', icon: Squares2X2Icon, adminOnly: true },
     { name: 'Profile', href: '/profile', icon: UserCircleIcon },
   ]
 
@@ -52,7 +54,7 @@ const Sidebar: React.FC = () => {
         width: sidebarOpen ? 256 : 64,
       }}
       transition={{ duration: 0.3 }}
-      className="fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700"
+      className={`fixed inset-y-0 left-0 z-50 bg-white dark:bg-gray-800 shadow-lg border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
       <div className="flex flex-col h-full">
         {/* Header */}

@@ -222,7 +222,7 @@ const GenericLogin: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotModal(false)}
-                    className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-md text-sm hover:bg-gray-50 dark:bg-gray-900/40"
+                    className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
                   >
                     Cancel
                   </button>

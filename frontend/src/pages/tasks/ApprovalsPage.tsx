@@ -264,7 +264,7 @@ const ApprovalsPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => navigate(`/tasks/${task.id}`)}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:bg-gray-900/40 transition-colors font-medium"
+                    className="px-4 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors font-medium"
                   >
                     View Details
                   </button>

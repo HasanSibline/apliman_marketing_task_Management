@@ -447,7 +447,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                             ) : (
                               <div className="space-y-2">
                                 {users.map(user => (
-                                  <label key={user.id} className="flex items-center hover:bg-gray-50 dark:bg-gray-900/40 p-1 rounded">
+                                  <label key={user.id} className="flex items-center hover:bg-gray-50 dark:hover:bg-gray-700 p-1 rounded">
                                     <input
                                       type="checkbox"
                                       checked={phase.allowedUserIds.includes(user.id)}

@@ -1,16 +1,27 @@
 import React from 'react'
 import { Outlet } from 'react-router-dom'
-import { useAppSelector } from '@/hooks/redux'
+import { useAppDispatch, useAppSelector } from '@/hooks/redux'
+import { toggleSidebar } from '@/store/slices/uiSlice'
 import Header from './Header'
 import Sidebar from './Sidebar'
 import FloatingChatButton from '../chat/FloatingChatButton'
 
 const Layout: React.FC = () => {
+  const dispatch = useAppDispatch()
   const { sidebarOpen } = useAppSelector((state) => state.ui)
   const { user } = useAppSelector((state) => state.auth)
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+      {/* Mobile drawer backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 lg:hidden"
+          onClick={() => dispatch(toggleSidebar())}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Sidebar */}
       <Sidebar />
 

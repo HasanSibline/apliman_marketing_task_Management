@@ -117,7 +117,7 @@ const DepartmentsManagement: React.FC = () => {
               </div>
               <button 
                 onClick={() => handleDelete(dept.id)}
-                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:bg-gray-800"
+                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <TrashIcon className="h-4 w-4" />
               </button>
@@ -162,7 +162,7 @@ const DepartmentsManagement: React.FC = () => {
               </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 rounded-lg">Cancel</button>
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancel</button>
               <button onClick={handleCreate} className="btn-primary">Create</button>
             </div>
           </div>

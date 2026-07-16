@@ -335,7 +335,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   {canEdit && !isEditing && (
                     <button 
                       onClick={() => setIsEditing(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 dark:bg-gray-900/40 hover:border-primary-500 transition-all shadow-sm"
+                      className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-primary-500 transition-all shadow-sm"
                     >
                       <PencilSquareIcon className="h-4 w-4 text-primary-600" /> Modify
                     </button>
@@ -391,7 +391,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <select
                               value={editData.receiverDeptId}
                               onChange={(e) => setEditData({...editData, receiverDeptId: e.target.value})}
-                              className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white dark:bg-gray-800 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                              className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
                             >
                                 <option value="">Select Destination...</option>
                                 {departments.map(d => (
@@ -406,7 +406,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <select
                               value={editData.status}
                               onChange={(e) => setEditData({...editData, status: e.target.value})}
-                              className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white dark:bg-gray-800 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                              className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
                             >
                                 {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                                   <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -473,7 +473,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                   onUpdate()
                                 } catch (error) { toast.error('Assignment failed') }
                               }}
-                              className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:bg-gray-800 font-black text-gray-800 dark:text-gray-100 transition-all"
+                              className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700 font-black text-gray-800 dark:text-gray-100 transition-all"
                             >
                               <option value="">Select Resource...</option>
                               {users.filter(u => u.departmentId === ticket.receiverDeptId).map(u => (
@@ -537,7 +537,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
                     <div className="space-y-2">
                         {attachments.map(att => (
-                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-white dark:bg-gray-800 transition-all group">
+                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all group">
                             <div className="flex items-center gap-3 min-w-0">
                                <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 shadow-sm">
                                   <DocumentIcon className="h-4 w-4" />

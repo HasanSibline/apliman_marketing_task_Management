@@ -99,8 +99,8 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                     </div>
                 </div>
                 <div className="flex gap-2 p-1.5 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
-                    <button onClick={prevMonth} className="p-2.5 hover:bg-white dark:bg-gray-800 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
-                    <button onClick={nextMonth} className="p-2.5 hover:bg-white dark:bg-gray-800 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
+                    <button onClick={prevMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
+                    <button onClick={nextMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
                 </div>
             </div>
             <div className="p-8">
@@ -309,7 +309,7 @@ const QuarterDetailPage: React.FC = () => {
                             </h3>
                             <div className="space-y-3">
                                 {quarter.tasks.slice(0, 4).map(task => (
-                                    <Link key={task.id} to={`/tasks/${task.id}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl hover:bg-gray-100 dark:bg-gray-800 transition group border border-transparent hover:border-primary-100 shadow-sm">
+                                    <Link key={task.id} to={`/tasks/${task.id}`} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition group border border-transparent hover:border-primary-100 shadow-sm">
                                         <span className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-primary-600 truncate">{task.title}</span>
                                         {task.currentPhase ? (
                                             <span 

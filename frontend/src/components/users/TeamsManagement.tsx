@@ -94,7 +94,7 @@ const TeamsManagement: React.FC = () => {
               </div>
               <button 
                 onClick={() => handleDelete(team.id)}
-                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:bg-gray-800"
+                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <TrashIcon className="h-4 w-4" />
               </button>
@@ -129,7 +129,7 @@ const TeamsManagement: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Members</label>
                 <div className="space-y-2 max-h-40 overflow-y-auto p-2 border rounded-lg">
                   {availableUsers.map(u => (
-                    <label key={u.id} className="flex items-center space-x-3 cursor-pointer p-1 hover:bg-gray-50 dark:bg-gray-900/40 rounded">
+                    <label key={u.id} className="flex items-center space-x-3 cursor-pointer p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
                       <input 
                         type="checkbox" 
                         checked={selectedUserIds.includes(u.id)}
@@ -143,7 +143,7 @@ const TeamsManagement: React.FC = () => {
               </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">
-              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:bg-gray-800 rounded-lg">Cancel</button>
+              <button onClick={() => setShowCreateModal(false)} className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg">Cancel</button>
               <button 
                 onClick={handleCreate} 
                 className="btn-primary"

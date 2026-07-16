@@ -362,7 +362,7 @@ const AnalyticsDashboard: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
               {(dashboardData?.recentTasks || []).slice(0, 10).map((task: any, index: number) => (
-                <tr key={task.id || index} className="hover:bg-gray-50 dark:bg-gray-900/40">
+                <tr key={task.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-xs">
                       {task.title}

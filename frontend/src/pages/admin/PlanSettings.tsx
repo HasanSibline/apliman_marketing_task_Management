@@ -148,7 +148,7 @@ const PlanSettings: React.FC = () => {
                             <div className="flex space-x-2 mt-4 border-t pt-4">
                                 <button
                                     onClick={() => handleEdit(plan)}
-                                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:bg-gray-900/40 focus:outline-none"
+                                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none"
                                 >
                                     <PencilSquareIcon className="h-4 w-4 mr-2" />
                                     Edit
@@ -256,7 +256,7 @@ const PlanSettings: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setIsEditing(false)}
-                                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900/40 focus:outline-none sm:mt-0 sm:col-start-1 sm:text-sm"
+                                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none sm:mt-0 sm:col-start-1 sm:text-sm"
                                         >
                                             Cancel
                                         </button>

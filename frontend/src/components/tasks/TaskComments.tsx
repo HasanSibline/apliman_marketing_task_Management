@@ -374,7 +374,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-2xl p-4 hover:bg-gray-100 dark:bg-gray-800 transition-colors border border-gray-100 dark:border-gray-700">
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-2xl p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight">

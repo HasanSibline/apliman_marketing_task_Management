@@ -632,7 +632,7 @@ const TicketDetailPage: React.FC = () => {
                   <select
                     value={editData.receiverDeptId}
                     onChange={(e) => setEditData({ ...editData, receiverDeptId: e.target.value })}
-                    className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white dark:bg-gray-800 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                    className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
                   >
                     {departments.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
@@ -645,7 +645,7 @@ const TicketDetailPage: React.FC = () => {
                     <select
                       value={editData.status}
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                      className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white dark:bg-gray-800 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                      className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
                     >
                       {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                         <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -762,7 +762,7 @@ const TicketDetailPage: React.FC = () => {
                               toast.error(err.response?.data?.message || 'Deployment failure')
                             }
                           }}
-                          className="w-full appearance-none text-xs border-2 border-primary-50 rounded-xl p-3.5 bg-primary-50/20 focus:bg-white dark:bg-gray-800 focus:border-primary-500 font-black text-gray-800 dark:text-gray-100 transition-all font-outfit"
+                          className="w-full appearance-none text-xs border-2 border-primary-50 rounded-xl p-3.5 bg-primary-50/20 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 font-black text-gray-800 dark:text-gray-100 transition-all font-outfit"
                         >
                           <option value="">Assign Specialists...</option>
                           {/* Cross-departmental search allowed as requested */}
@@ -832,7 +832,7 @@ const TicketDetailPage: React.FC = () => {
 
             <div className="space-y-2">
               {attachments.map(att => (
-                <div key={att.id} className="group flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-transparent hover:border-gray-100 dark:border-gray-700 hover:bg-white dark:bg-gray-800 transition-all">
+                <div key={att.id} className="group flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-transparent hover:border-gray-100 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 shadow-sm">
                       <DocumentIcon className="h-4 w-4" />
@@ -882,7 +882,7 @@ const TicketDetailPage: React.FC = () => {
               <textarea
                 value={editData.description}
                 onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                className="w-full px-6 py-5 bg-gray-50 dark:bg-gray-900/40 border-2 border-transparent rounded-[2rem] text-sm font-bold text-gray-800 dark:text-gray-100 leading-relaxed min-h-[220px] focus:outline-none focus:bg-white dark:bg-gray-800 focus:border-primary-500 transition-all font-outfit"
+                className="w-full px-6 py-5 bg-gray-50 dark:bg-gray-900/40 border-2 border-transparent rounded-[2rem] text-sm font-bold text-gray-800 dark:text-gray-100 leading-relaxed min-h-[220px] focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-outfit"
                 placeholder="Describe the objective context, required deliverables, and strategic background..."
               />
             ) : (

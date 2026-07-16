@@ -585,14 +585,14 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                 <div className="flex items-center gap-1">
                   <button 
                      onClick={() => setIsMinimized(true)}
-                     className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors text-gray-400"
+                     className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-400"
                      aria-label="Minimize Chat"
                   >
                      <MinusIcon className="w-5 h-5" />
                   </button>
                   <button 
                      onClick={handleClose}
-                     className="p-1.5 hover:bg-gray-100 dark:bg-gray-800 text-gray-400 rounded-lg transition-colors"
+                     className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 rounded-lg transition-colors"
                      aria-label="Close Chat"
                   >
                      <XMarkIcon className="w-5 h-5" />
@@ -828,7 +828,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       onKeyDown={handleKeyDown}
                       disabled={isTyping || isUploading || aiBlocked}
                       placeholder={aiBlocked ? (quotaExhausted ? 'AI quota exhausted — contact your admin' : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
-                      className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white dark:bg-gray-800 rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}`}
+                      className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}`}
                     />
                     
                     <button
@@ -894,7 +894,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                   setShowConfirmClose(false)
                   onClose()
                 }}
-                className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:bg-gray-800 transition-all font-black uppercase tracking-[0.2em] text-[11px]"
+                className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all font-black uppercase tracking-[0.2em] text-[11px]"
               >
                 Just Close Window
               </button>

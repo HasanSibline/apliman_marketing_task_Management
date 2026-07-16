@@ -311,7 +311,7 @@ export default function KnowledgeSourcesPage() {
                     </button>
                     <button
                       onClick={() => handleEdit(source)}
-                      className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-900/40 rounded-lg"
+                      className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg"
                       title="Edit"
                     >
                       <Edit className="w-5 h-5" />
@@ -425,7 +425,7 @@ export default function KnowledgeSourcesPage() {
                     <button
                       type="button"
                       onClick={closeModal}
-                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:bg-gray-900/40"
+                      className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
                     >
                       Cancel
                     </button>

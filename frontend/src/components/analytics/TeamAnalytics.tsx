@@ -404,7 +404,7 @@ const TeamAnalytics: React.FC = () => {
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
               {teamMembers.map((member: any, index: number) => (
-                <tr key={member.id} className="hover:bg-gray-50 dark:bg-gray-900/40 transition-colors">
+                <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {index < 3 && sortBy === 'completion' && (
