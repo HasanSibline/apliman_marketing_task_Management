@@ -528,9 +528,13 @@ class ChatService:
                 self._rotate_api_key()
                 continue
 
-        # All of the company's own key(s) are exhausted. We do NOT fail over to any
-        # platform/env key or other provider — surface the quota error to the client.
-        raise Exception(f"AI quota exhausted on all {len(self.api_keys)} company key(s) after {attempts} attempt(s). Last error: {last_error}")
+        # Out of attempts. Distinguish a REAL rate limit from any other failure so the
+        # client sees the true cause instead of a misleading "quota exhausted" message.
+        # We do NOT fail over to any platform/env key or other provider.
+        if str(last_error).strip() == "429":
+            raise Exception(f"AI quota exceeded (429) on the company's API key after {attempts} attempt(s).")
+        # Non-429 failure (invalid key, disabled API, wrong model, network, etc.)
+        raise Exception(f"AI request to Gemini failed after {attempts} attempt(s): {last_error}")
 
 
     def _build_system_prompt(
