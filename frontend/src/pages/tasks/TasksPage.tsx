@@ -116,8 +116,8 @@ const TasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Tasks</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tasks</h1>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">
             Manage and track your tasks by workflow type
           </p>
         </div>
@@ -157,7 +157,7 @@ const TasksPage: React.FC = () => {
           placeholder="Search tasks by title, description, assignee, or goals..."
           value={filters.search || ''}
           onChange={(e) => dispatch(setFilters({ search: e.target.value || undefined }))}
-          className="pl-11 pr-4 py-3.5 w-full border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
+          className="pl-11 pr-4 py-3.5 w-full border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
         />
         {filters.search && (
           <button
@@ -176,7 +176,7 @@ const TasksPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
           transition={{ duration: 0.2 }}
-          className="bg-white rounded-xl border border-gray-200 shadow-md p-6"
+          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md p-6"
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">

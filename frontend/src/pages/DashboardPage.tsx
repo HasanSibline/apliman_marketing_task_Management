@@ -191,32 +191,32 @@ const DashboardPage: React.FC = () => {
                <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-white rounded-xl p-8 border border-gray-100"
+                  className="bg-white dark:bg-gray-800 rounded-xl p-8 border border-gray-100 dark:border-gray-700"
                >
                   <div className="flex items-center justify-between mb-8">
                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-primary-50 text-primary-600 flex items-center justify-center border border-primary-100">
+                        <div className="h-12 w-12 rounded-2xl bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300 flex items-center justify-center border border-primary-100 dark:border-primary-800">
                            <FlagIcon className="h-6 w-6" />
                         </div>
                         <div>
-                           <h3 className="text-lg font-bold text-gray-900 tracking-tight">Strategy Velocity Hub</h3>
+                           <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Strategy Velocity Hub</h3>
                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{activeQuarter.name} Planning Archive</p>
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className="text-4xl font-black text-primary-600 tracking-tighter">{activeQuarter.avgProgress}%</p>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-300">Quarterly Momentum</p>
+                        <p className="text-4xl font-black text-primary-600 dark:text-primary-400 tracking-tighter">{activeQuarter.avgProgress}%</p>
+                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-300 dark:text-gray-500">Quarterly Momentum</p>
                      </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                     <div className="p-6 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Active Target Set</p>
-                        <p className="text-3xl font-black text-gray-900 leading-none">{activeQuarter.objectives?.length || 0}</p>
+                        <p className="text-3xl font-black text-gray-900 dark:text-white leading-none">{activeQuarter.objectives?.length || 0}</p>
                      </div>
-                     <div className="p-6 bg-gray-50 rounded-2xl border border-gray-100">
+                     <div className="p-6 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
                         <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Operation Completion</p>
-                        <p className="text-3xl font-black text-gray-900 leading-none">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</p>
+                        <p className="text-3xl font-black text-gray-900 dark:text-white leading-none">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</p>
                      </div>
                   </div>
                </motion.div>
@@ -227,15 +227,15 @@ const DashboardPage: React.FC = () => {
         <motion.div
            initial={{ opacity: 0, x: 30 }}
            animate={{ opacity: 1, x: 0 }}
-           className="lg:col-span-1 bg-white rounded-xl border border-gray-100 flex flex-col h-full overflow-hidden"
+           className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 flex flex-col h-full overflow-hidden"
         >
-          <div className="p-6 border-b border-gray-50 bg-gray-50/50">
+          <div className="p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
              <div className="flex items-center gap-4">
                 <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
                    <TrophyIcon className="h-6 w-6" />
                 </div>
                 <div>
-                   <h3 className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">Performance Elite</h3>
+                   <h3 className="text-lg font-black text-gray-900 dark:text-white tracking-tight leading-none mb-1">Performance Elite</h3>
                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Global Competition</p>
                 </div>
              </div>
@@ -254,7 +254,7 @@ const DashboardPage: React.FC = () => {
                   <div 
                     key={index} 
                     className={`flex items-center justify-between p-4 rounded-2xl transition-all group border
-                      ${isTopThree ? `${rankGradients[index]} text-white border-white/20` : 'bg-gray-50 text-gray-900 hover:bg-white hover:border-gray-200 border-transparent transition-colors'}`}
+                      ${isTopThree ? `${rankGradients[index]} text-white border-white/20` : 'bg-gray-50 dark:bg-gray-900/40 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 hover:border-gray-200 dark:hover:border-gray-600 border-transparent transition-colors'}`}
                   >
                      <div className="flex items-center gap-4">
                         <div className="relative">
@@ -274,15 +274,15 @@ const DashboardPage: React.FC = () => {
                            )}
                         </div>
                         <div className="min-w-0">
-                           <p className={`text-[11px] font-black uppercase tracking-tight truncate ${isTopThree ? 'text-white' : 'text-gray-900'}`}>{performer.name}</p>
+                           <p className={`text-[11px] font-black uppercase tracking-tight truncate ${isTopThree ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{performer.name}</p>
                            <p className={`text-[11px] font-bold uppercase tracking-tight truncate ${isTopThree ? 'text-white/70' : 'text-gray-400'}`}>
                               {isTopThree ? rankLabels[index] : performer.position}
                            </p>
                         </div>
                      </div>
                      <div className="flex flex-col items-end">
-                        <span className={`text-sm font-black ${isTopThree ? 'text-white' : 'text-primary-600'}`}>{performer.tasksCompleted}</span>
-                        <span className={`text-[8px] font-black uppercase tracking-widest ${isTopThree ? 'text-white/40' : 'text-gray-300'}`}>Resolved</span>
+                        <span className={`text-sm font-black ${isTopThree ? 'text-white' : 'text-primary-600 dark:text-primary-400'}`}>{performer.tasksCompleted}</span>
+                        <span className={`text-[11px] font-black uppercase tracking-widest ${isTopThree ? 'text-white/40' : 'text-gray-300 dark:text-gray-500'}`}>Resolved</span>
                      </div>
                   </div>
                 )
