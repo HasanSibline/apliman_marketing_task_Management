@@ -804,7 +804,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                           </div>
                           <div className="flex flex-col">
                             <span className="text-[11px] font-black text-gray-700 dark:text-gray-200 truncate max-w-[90px]">{file.name}</span>
-                            <span className="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">Ready to analyze</span>
+                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">Ready to analyze</span>
                           </div>
                           <button 
                             onClick={() => removeAttachment(idx)}

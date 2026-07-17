@@ -476,23 +476,23 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                                         <span className="text-[11px] font-black opacity-70 whitespace-nowrap">{format(date, 'h:mm a')}</span>
                                                         
                                                         {event.type === 'TICKET' && (
-                                                            <span className="text-[8px] font-black bg-white/20 px-1 py-0.5 rounded uppercase">TICKET</span>
+                                                            <span className="text-[11px] font-black bg-white/20 px-1 py-0.5 rounded uppercase">TICKET</span>
                                                         )}
                                                         
                                                         {event.type === 'MICROSOFT_EVENT' && (
                                                             <div className="flex flex-wrap items-center gap-1">
                                                                 <span className={`
-                                                                    text-[8px] font-black px-1 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm
+                                                                    text-[11px] font-black px-1 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm
                                                                     ${event.status === 'Live' ? 'bg-indigo-600 text-white animate-pulse' : 'bg-[#6264A7] text-white opacity-80'}
                                                                 `}>
                                                                     <VideoCameraIcon className="h-2 w-2" />
                                                                     TEAMS
                                                                 </span>
                                                                 {event.status === 'Live' && (
-                                                                    <span className="text-[8px] font-black bg-green-500 text-white px-1 rounded-sm uppercase tracking-tighter shadow-sm animate-bounce">LIVE</span>
+                                                                    <span className="text-[11px] font-black bg-green-500 text-white px-1 rounded-sm uppercase tracking-tighter shadow-sm animate-bounce">LIVE</span>
                                                                 )}
                                                                 {event.status === 'Completed' && (
-                                                                    <span className="text-[8px] font-black bg-gray-200 text-gray-500 dark:text-gray-400 px-1 rounded-sm uppercase tracking-tighter mt-1">DONE</span>
+                                                                    <span className="text-[11px] font-black bg-gray-200 text-gray-500 dark:text-gray-400 px-1 rounded-sm uppercase tracking-tighter mt-1">DONE</span>
                                                                 )}
                                                             </div>
                                                         )}

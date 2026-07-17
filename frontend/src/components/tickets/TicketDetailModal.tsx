@@ -435,11 +435,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                               <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester Authority</p>
+                               <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester Authority</p>
                                <p className="text-xs font-black text-gray-800 dark:text-gray-100 truncate">{ticket.requesterManager?.name || 'Authorized'}</p>
                             </div>
                             <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700">
-                               <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Receiver Authority</p>
+                               <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Receiver Authority</p>
                                <p className="text-xs font-black text-gray-800 dark:text-gray-100 truncate">{ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Not Selected'}</p>
                             </div>
                         </div>
@@ -544,7 +544,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                </div>
                                <div className="min-w-0 overflow-hidden">
                                   <p className="text-[11px] font-black text-gray-900 dark:text-white truncate uppercase tracking-tight">{att.fileName}</p>
-                                  <p className="text-[8px] text-gray-400 font-bold">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
+                                  <p className="text-[11px] text-gray-400 font-bold">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
                                </div>
                             </div>
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -620,7 +620,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           <div className={`max-w-[75%] space-y-1.5 ${comment.userId === user?.id ? 'items-end flex flex-col' : ''}`}>
                             <div className="flex items-center gap-3">
                               <span className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-tight">{comment.user.name}</span>
-                              <span className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              <span className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">{new Date(comment.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                             <div className={`px-5 py-4 rounded-2xl text-xs font-black leading-relaxed tracking-wide
                               ${comment.userId === user?.id 

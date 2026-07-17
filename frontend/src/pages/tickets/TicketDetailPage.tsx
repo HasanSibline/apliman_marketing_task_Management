@@ -500,7 +500,7 @@ const TicketDetailPage: React.FC = () => {
             {/* Status Switcher - Moved Up & Scaled Down */}
             {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a: any) => a.userId === user?.id)) ? (
               <div className="w-full md:w-80">
-                <p className="text-[8px] font-black uppercase text-white/40 tracking-[0.3em] mb-1.5 text-right">Strategic Ticket Status</p>
+                <p className="text-[11px] font-black uppercase text-white/40 tracking-[0.3em] mb-1.5 text-right">Strategic Ticket Status</p>
                 <div className="relative group">
                     <select
                     value={ticket.status}
@@ -542,7 +542,7 @@ const TicketDetailPage: React.FC = () => {
               </div>
             ) : (
               <div className="bg-white dark:bg-gray-800 text-slate-900 px-6 py-2.5 rounded-xl flex flex-col items-end shadow-xl border-b-2 border-slate-100 ring-4 ring-white/5">
-                <p className="text-[8px] font-black uppercase text-slate-400 tracking-[0.3em] mb-0.5">Operational State</p>
+                <p className="text-[11px] font-black uppercase text-slate-400 tracking-[0.3em] mb-0.5">Operational State</p>
                 <span className="text-sm font-black uppercase tracking-tight">
                   {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' : 
                    ticket.status === 'ASSIGNED' ? (() => {
@@ -662,11 +662,11 @@ const TicketDetailPage: React.FC = () => {
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester</p>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester</p>
                     <p className="text-[11px] font-black text-gray-900 dark:text-white truncate">{ticket.requester?.name}</p>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
-                    <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Logistical Target</p>
+                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Logistical Target</p>
                     <p className="text-[11px] font-black text-gray-900 dark:text-white truncate">{ticket.receiverDept?.name}</p>
                   </div>
                 </div>
@@ -676,13 +676,13 @@ const TicketDetailPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Members Included</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-[8px] font-bold bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
+                      <span className="text-[11px] font-bold bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
                       <div className="relative group">
-                        <button className="flex items-center gap-1 text-[8px] font-black text-white bg-primary-600 hover:bg-primary-700 px-2 py-1 rounded-md transition-all uppercase tracking-widest shadow-md active:scale-95">
+                        <button className="flex items-center gap-1 text-[11px] font-black text-white bg-primary-600 hover:bg-primary-700 px-2 py-1 rounded-md transition-all uppercase tracking-widest shadow-md active:scale-95">
                           <PlusIcon className="h-2 w-2" /> Invite Colleague
                         </button>
                         <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-100 dark:border-gray-700 p-2 z-[100] opacity-0 group-focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto transition-all scale-95 group-focus-within:scale-100 origin-top-right">
-                          <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-2">Collaborative Search</p>
+                          <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 px-2">Collaborative Search</p>
                           <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
                             {users.filter(u => u.id !== user?.id && !ticket.assignments?.some((a: any) => a.userId === u.id)).map(u => (
                               <button
@@ -693,7 +693,7 @@ const TicketDetailPage: React.FC = () => {
                                 <Avatar src={u.avatar} name={u.name} size="xs" rounded="lg" />
                                 <div className="text-left">
                                   <p className="text-[11px] font-black text-gray-900 dark:text-white group-hover/item:text-primary-600 transition-colors uppercase truncate tracking-tight">{u.name}</p>
-                                  <p className="text-[8px] font-bold text-gray-400 truncate uppercase tracking-widest">{u.department?.name || 'Logistics'}</p>
+                                  <p className="text-[11px] font-bold text-gray-400 truncate uppercase tracking-widest">{u.department?.name || 'Logistics'}</p>
                                 </div>
                               </button>
                             ))}
@@ -839,7 +839,7 @@ const TicketDetailPage: React.FC = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-[11px] font-black text-gray-900 dark:text-white truncate uppercase tracking-tight">{att.fileName}</p>
-                      <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
+                      <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
@@ -971,7 +971,7 @@ const TicketDetailPage: React.FC = () => {
               <div className="p-8 bg-gray-50/50 border-t border-gray-100 dark:border-gray-700 relative">
                 {showMentions && filteredUsers.length > 0 && (
                   <div className="absolute bottom-full left-8 mb-4 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
-                    <div className="bg-gray-50/80 px-4 py-2 text-[8px] font-black text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 italic tracking-widest">Target Selection</div>
+                    <div className="bg-gray-50/80 px-4 py-2 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 italic tracking-widest">Target Selection</div>
                     {filteredUsers.map(u => (
                       <button
                         key={u.id}
@@ -983,7 +983,7 @@ const TicketDetailPage: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-[11px] font-black text-gray-900 dark:text-white truncate uppercase tracking-tight">{u.name}</p>
-                          <p className="text-[8px] text-gray-400 font-bold uppercase tracking-widest truncate">{u.department?.name || 'External'}</p>
+                          <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest truncate">{u.department?.name || 'External'}</p>
                         </div>
                       </button>
                     ))}

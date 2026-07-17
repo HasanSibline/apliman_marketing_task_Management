@@ -148,7 +148,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                                         </motion.div>
                                     ))}
                                 </div>
-                                {isToday && <div className="absolute top-0 right-0 p-1 bg-primary-500 text-[8px] font-black text-white rounded-bl-xl uppercase tracking-tighter">Today</div>}
+                                {isToday && <div className="absolute top-0 right-0 p-1 bg-primary-500 text-[11px] font-black text-white rounded-bl-xl uppercase tracking-tighter">Today</div>}
                             </div>
                         )
                     })}
