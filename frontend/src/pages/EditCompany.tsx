@@ -429,7 +429,7 @@ export default function EditCompany() {
                   placeholder="Enter Gemini or Groq API key"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Only enter a new key if you want to update it. Supported: Gemini, Groq.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Only enter a new key if you want to update it. Supported: Gemini, Groq, OpenAI. Tip: paste multiple keys separated by commas — chat automatically fails over to the next key if one hits its rate limit.</p>
               </div>
 
               <div>
@@ -443,7 +443,7 @@ export default function EditCompany() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal / image support)</option>
-                  <option value="groq">Groq — Llama 3 (Text only)</option>
+                  <option value="groq">Groq — GPT-OSS 120B (Text only)</option>
                   <option value="openai">OpenAI — GPT-4o mini (Text only)</option>
                 </select>
               </div>

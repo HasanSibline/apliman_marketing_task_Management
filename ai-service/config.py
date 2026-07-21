@@ -49,7 +49,7 @@ class Config:
     
     # AI Model Configuration
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
-    GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     LEGACY_MODEL = os.getenv("LEGACY_MODEL", "gpt-3.5-turbo")  # For legacy system
 

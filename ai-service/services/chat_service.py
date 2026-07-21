@@ -251,37 +251,47 @@ class ChatService:
             }
 
     async def _generate_via_openai_compatible(self, prompt: str) -> str:
-        """Make a request to an OpenAI-compatible chat API (Groq or OpenAI)."""
+        """OpenAI-compatible chat API (Groq or OpenAI) with company-key rotation on 429."""
         url = f"{self.base_url}/chat/completions"
-        
         payload = {
             "model": self.model_name,
-            "messages": [
-                {"role": "user", "content": prompt}
-            ],
+            "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.5,
             "max_tokens": 2048,
-            "stream": False
+            "stream": False,
         }
-        
-        headers = {
-            'Content-Type': 'application/json',
-            'Authorization': f'Bearer {self.api_key}'
-        }
-        
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        return data['choices'][0]['message']['content']
-                    else:
+
+        attempts = 0
+        max_attempts = max(len(self.api_keys) * 2, 2)
+        last_error = None
+        last_was_429 = False
+
+        while attempts < max_attempts:
+            headers = {'Content-Type': 'application/json', 'Authorization': f'Bearer {self.api_key}'}
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
+                        if response.status == 200:
+                            data = await response.json()
+                            return data['choices'][0]['message']['content']
                         error_text = await response.text()
-                        logger.error(f"❌ {self.provider} Chat API error ({response.status}): {error_text}")
-                        raise Exception(f"{self.provider} API failure ({response.status}): {error_text}")
-        except Exception as e:
-            logger.error(f"❌ {self.provider} Chat request failed: {str(e)}")
-            raise e
+                        logger.error(f"❌ {self.provider} Chat API error ({response.status}): {error_text[:200]}")
+                        last_error = f"{self.provider} API failure ({response.status}): {error_text}"
+                        last_was_429 = response.status == 429
+            except Exception as e:
+                last_error = str(e)
+                last_was_429 = False
+
+            attempts += 1
+            # On a rate limit, try the company's next key (if it supplied more than one).
+            if last_was_429 and self._rotate_api_key():
+                logger.info(f"🔄 Rotated to next {self.provider} company key after 429")
+                continue
+            break
+
+        if last_was_429:
+            raise Exception(f"AI quota exceeded (429) on the company's {self.provider} key(s).")
+        raise Exception(last_error or f"{self.provider} request failed")
 
     async def _generate_via_rest(
         self, 

@@ -713,14 +713,14 @@ export default function CreateCompany() {
                   <div className="space-y-5">
                     <Field label="Company AI API Key" name="aiApiKey" placeholder="Enter API Key..." required
                       value={formData.aiApiKey ?? ''} onChange={handleChange} error={fieldErrors.aiApiKey}
-                      hint="Paste your Gemini or Groq API key here depending on the selected provider." />
+                      hint="Paste the API key for the selected provider. Tip: paste multiple keys separated by commas for automatic failover if one hits its rate limit." />
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Primary AI Provider</label>
                       <select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
                         className="select-field w-full text-sm">
                         <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal / image support)</option>
-                        <option value="groq">Groq — Llama 3 (Text only)</option>
+                        <option value="groq">Groq — GPT-OSS 120B (Text only)</option>
                         <option value="openai">OpenAI — GPT-4o mini (Text only)</option>
                       </select>
                     </div>

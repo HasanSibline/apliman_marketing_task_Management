@@ -67,8 +67,11 @@ def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
     assigned a key via the admin panel cannot use AI.
     """
     if provided_key and provided_key.strip():
+        # A company may store multiple comma-separated keys for chat failover; the
+        # single-shot endpoints just use the first one.
+        first = provided_key.split(",")[0].strip()
         logger.info(f"[{endpoint_name}] Using company-provided API key")
-        return provided_key.strip()
+        return first
     raise HTTPException(
         status_code=400,
         detail="AI is not configured for your company. Please contact your administrator to add an AI API key."
