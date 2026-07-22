@@ -348,7 +348,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       <TrashIcon className="h-5 w-5" />
                     </button>
                   )}
-                  <div className="w-px h-8 bg-gray-200 mx-2" />
+                  <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-2" />
                   <button
                     onClick={onClose}
                     className="p-2.5 bg-gray-100/50 hover:bg-gray-200 rounded-xl text-gray-400 hover:text-gray-900 dark:text-white transition-all"
@@ -461,7 +461,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         {/* Hand-off assignment */}
                         {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED') && 
                           (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || isAdmin) && (
-                          <div className="pt-4 border-t border-gray-50 space-y-3">
+                          <div className="pt-4 border-t border-gray-50 dark:border-gray-700 space-y-3">
                             <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Delegated Assignee</p>
                             <select
                               value={ticket.assigneeId || ''}
@@ -566,7 +566,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                          </div>
                        ))}
                        {attachments.length === 0 && (
-                         <div className="py-8 text-center border-2 border-dashed border-gray-50 rounded-2xl">
+                         <div className="py-8 text-center border-2 border-dashed border-gray-50 dark:border-gray-700 rounded-2xl">
                             <p className="text-[11px] font-black text-gray-300 uppercase italic">No files attached</p>
                          </div>
                        )}
@@ -652,7 +652,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           <button
                             key={u.id}
                             onClick={() => insertMention(u.name)}
-                            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
+                            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-primary-50 text-left transition-all border-b border-gray-50 dark:border-gray-700 last:border-0 group"
                           >
                             <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
                               {u.avatar ? (

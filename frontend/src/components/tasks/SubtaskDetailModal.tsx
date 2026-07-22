@@ -138,7 +138,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 <div className="flex justify-end gap-3 pt-4 border-t">
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     Close
                   </button>
@@ -358,7 +358,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowUserDropdown(!showUserDropdown)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         <span className="text-sm text-gray-700 dark:text-gray-200">
                           {selectedUsers.length === 0 
@@ -385,7 +385,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                   type="checkbox"
                                   checked={selectedUsers.includes(user.id)}
                                   onChange={() => toggleUserSelection(user.id)}
-                                  className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                  className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                                 />
                                 <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                                   <span className="text-sm font-medium text-white">
@@ -438,7 +438,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
-                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                       >
                         <span className="text-sm text-gray-700 dark:text-gray-200">
                           {currentPhase ? currentPhase.name : 'Select phase'}

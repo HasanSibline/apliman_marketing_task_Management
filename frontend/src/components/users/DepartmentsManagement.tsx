@@ -122,7 +122,7 @@ const DepartmentsManagement: React.FC = () => {
                 <TrashIcon className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-4 pt-4 border-t border-gray-50">
+            <div className="mt-4 pt-4 border-t border-gray-50 dark:border-gray-700">
               <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-300">
                 <span>Team Members</span>
                 <span className="font-semibold">{dept.users?.length || 0}</span>

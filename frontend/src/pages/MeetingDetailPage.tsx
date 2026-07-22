@@ -228,7 +228,7 @@ const MeetingDetailPage: React.FC = () => {
             <div className="flex-1 grid grid-cols-12 gap-8 overflow-hidden min-h-0">
                 {/* Transcript Panel */}
                 <div className="col-span-12 lg:col-span-8 flex flex-col bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-2xl shadow-gray-200/50 overflow-hidden">
-                    <div className="px-8 py-8 border-b border-gray-50 bg-gradient-to-br from-white to-gray-50/50">
+                    <div className="px-8 py-8 border-b border-gray-50 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50/50">
                         <div className="flex items-start justify-between">
                             <div className="space-y-1">
                                 <div className="flex items-center space-x-2 text-indigo-600 mb-2">

@@ -233,7 +233,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
               className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
               {/* Strategic Header Strip */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-50 bg-gray-50/50">
+              <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50">
                 <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight font-outfit uppercase">Identify Modification</h2>
                 <button
                   onClick={onClose}
@@ -257,7 +257,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     value={formData.name}
                     onChange={handleChange}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.name ? 'border-red-300' : 'border-gray-300'
+                      errors.name ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                     }`}
                     placeholder="Enter full name"
                   />
@@ -278,7 +278,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     value={formData.email}
                     onChange={handleChange}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
+                      errors.email ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                     }`}
                     placeholder="Enter email address"
                   />
@@ -328,7 +328,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     value={formData.position}
                     onChange={handleChange}
                     className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.position ? 'border-red-300' : 'border-gray-300'
+                      errors.position ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
                     }`}
                     placeholder="Enter job position"
                   />
@@ -387,7 +387,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       name="isTicketApprover"
                       checked={formData.isTicketApprover}
                       onChange={handleChange}
-                      className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
+                      className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
                     />
                     <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
                       <span className="text-sm font-semibold text-gray-900 dark:text-white leading-none">Ticket Approver / Manager Role</span>
@@ -403,7 +403,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       name="strategyAccess"
                       value={formData.strategyAccess}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
                     >
                       <option value="NONE">No Access</option>
                       <option value="READ">Read Only (View strategy)</option>
@@ -423,7 +423,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="ACTIVE">Active</option>
                     <option value="AWAY">Away</option>

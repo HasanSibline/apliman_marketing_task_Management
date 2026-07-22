@@ -60,7 +60,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
             type="date"
             value={dateRange.from}
             onChange={(e) => onDateRangeChange({ ...dateRange, from: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
           />
         </div>
 
@@ -74,7 +74,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
             type="date"
             value={dateRange.to}
             onChange={(e) => onDateRangeChange({ ...dateRange, to: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
           />
         </div>
 
@@ -86,7 +86,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <select
             value={workflowFilter}
             onChange={(e) => onWorkflowChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
           >
             <option value="">All Workflows</option>
             {workflows.map((workflow) => (
@@ -105,7 +105,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <select
             value={phaseFilter}
             onChange={(e) => onPhaseChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
           >
             <option value="">All Phases</option>
             {phases.map((phase) => (

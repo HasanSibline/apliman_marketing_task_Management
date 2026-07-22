@@ -85,7 +85,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-2xl shadow-gray-200/50">
-            <div className="p-8 border-b border-gray-50 bg-white dark:bg-gray-800 flex items-center justify-between">
+            <div className="p-8 border-b border-gray-50 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <div className="h-12 w-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600">
                         <CalendarDaysIcon className="h-6 w-6" />
@@ -123,7 +123,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                             <div key={day} className={`h-40 p-4 rounded-[28px] border transition-all duration-300 flex flex-col group relative overflow-hidden ${
                                 isToday 
                                 ? 'bg-primary-50/30 border-primary-100' 
-                                : 'bg-white dark:bg-gray-800 border-gray-50 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-100/20'
+                                : 'bg-white dark:bg-gray-800 border-gray-50 dark:border-gray-700 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-100/20'
                             }`}>
                                 <div className="flex items-center justify-between mb-3">
                                     <span className={`text-sm font-black ${isToday ? 'text-primary-600' : 'text-gray-400 group-hover:text-primary-600'}`}>
@@ -363,7 +363,7 @@ const QuarterDetailPage: React.FC = () => {
                                 <th className="px-6 py-4 w-[5%] whitespace-nowrap"></th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-100">
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                                 {quarter.tasks.map(task => (
                                     <tr key={task.id} className="hover:bg-gray-50/50 transition">
                                     <td className="px-6 py-4 truncate text-sm font-bold text-gray-900 dark:text-white" title={task.title}>{task.title}</td>

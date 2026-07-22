@@ -96,7 +96,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden"
           >
             <div className={`p-8 ${styles.bg} border-b ${styles.border} flex items-center gap-4`}>
-              <div className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-gray-50 flex-shrink-0">
+              <div className="h-12 w-12 rounded-2xl bg-white flex items-center justify-center shadow-sm border border-gray-50 dark:border-gray-700 flex-shrink-0">
                 {styles.icon}
               </div>
               <div className="flex-1">

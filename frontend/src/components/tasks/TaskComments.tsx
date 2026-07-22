@@ -440,7 +440,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                     <img
                       src={url}
                       alt={`Preview ${index + 1}`}
-                      className="h-20 w-20 object-cover rounded-lg border border-gray-300"
+                      className="h-20 w-20 object-cover rounded-lg border border-gray-300 dark:border-gray-600"
                     />
                     <button
                       type="button"
@@ -462,7 +462,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 onKeyDown={handleKeyDown}
                 placeholder="Add a comment... (use @ to mention users, / to reference subtasks)"
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 disabled={submitting}
               />
               

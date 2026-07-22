@@ -377,7 +377,7 @@ const TaskDetailPage: React.FC = () => {
                 </h1>
 
                 {/* Meta Info - Simplified */}
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-300 mb-6 py-3 border-y border-gray-50 bg-gray-50/30 px-4 rounded-xl">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-300 mb-6 py-3 border-y border-gray-50 dark:border-gray-700 bg-gray-50/30 px-4 rounded-xl">
                   <div className="flex items-center gap-2 group">
                     <UserIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
                     <span>Assignee: <strong className="text-gray-900 dark:text-white">{currentTask.assignedTo?.name || 'Unassigned'}</strong></span>
@@ -705,12 +705,12 @@ const TaskDetailPage: React.FC = () => {
                       placeholder="Search tasks to add as blocker..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       autoFocus
                     />
                   </div>
 
-                  <div className="max-h-60 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg divide-y divide-gray-100">
+                  <div className="max-h-60 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg divide-y divide-gray-100 dark:divide-gray-700">
                     {searchResults.length > 0 ? (
                       searchResults
                         .filter(t => t.id !== id)

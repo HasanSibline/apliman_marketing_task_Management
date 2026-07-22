@@ -176,7 +176,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                             <select 
                                 value={selectedQuarter} 
                                 onChange={e => setSelectedQuarter(e.target.value)}
-                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 text-gray-700 dark:text-gray-200 font-bold text-sm py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm min-w-[140px]"
+                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold text-sm py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm min-w-[140px]"
                             >
                                 <option value="ALL">All Quarters</option>
                                 {availableQuarters.map(q => (
@@ -282,7 +282,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                                     <th className="pb-3 w-1/4 text-right">Progress</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-50">
+                            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                                 {topObjectives.map(obj => (
                                     <tr key={obj.id}>
                                         <td className="py-3 pr-4 font-bold text-sm text-gray-900 dark:text-white">{obj.title}</td>

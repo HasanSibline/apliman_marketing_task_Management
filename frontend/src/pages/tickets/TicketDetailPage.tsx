@@ -849,7 +849,7 @@ const TicketDetailPage: React.FC = () => {
                 </div>
               ))}
               {attachments.length === 0 && (
-                <div className="py-6 text-center border-2 border-dashed border-gray-50 rounded-2xl">
+                <div className="py-6 text-center border-2 border-dashed border-gray-50 dark:border-gray-700 rounded-2xl">
                   <p className="text-[11px] font-black text-gray-300 uppercase italic">Repository Empty</p>
                 </div>
               )}
@@ -976,7 +976,7 @@ const TicketDetailPage: React.FC = () => {
                       <button
                         key={u.id}
                         onClick={() => insertMention(u.name)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-left transition-all border-b border-gray-50 last:border-0 group"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-left transition-all border-b border-gray-50 dark:border-gray-700 last:border-0 group"
                       >
                         <div className="h-8 w-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 group-hover:scale-110 transition-transform">
                           {u.avatar ? <img src={formatAssetUrl(u.avatar)} className="h-full w-full object-cover" /> : <span className="text-[11px] font-black">{u.name.charAt(0)}</span>}

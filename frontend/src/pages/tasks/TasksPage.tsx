@@ -209,7 +209,7 @@ const TasksPage: React.FC = () => {
               <select
                 value={filters.workflowId || ''}
                 onChange={(e) => dispatch(setFilters({ workflowId: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white hover:border-primary-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white hover:border-primary-400"
               >
                 <option value="">All Workflows</option>
                 {workflows.map(workflow => (
@@ -229,7 +229,7 @@ const TasksPage: React.FC = () => {
               <select
                 value={filters.priority || ''}
                 onChange={(e) => dispatch(setFilters({ priority: e.target.value ? parseInt(e.target.value) : undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500 transition-all bg-white hover:border-warning-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500 transition-all bg-white hover:border-warning-400"
               >
                 <option value="">All Priorities</option>
                 <option value="1">Low</option>
@@ -249,7 +249,7 @@ const TasksPage: React.FC = () => {
               <select
                 value={filters.phase || ''}
                 onChange={(e) => dispatch(setFilters({ phase: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white hover:border-secondary-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white hover:border-secondary-400"
               >
                 <option value="">All Phases</option>
                 {phases.map(phase => (
@@ -269,7 +269,7 @@ const TasksPage: React.FC = () => {
               <select
                 value={filters.assignedToId || ''}
                 onChange={(e) => dispatch(setFilters({ assignedToId: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-all bg-white hover:border-success-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-all bg-white hover:border-success-400"
               >
                 <option value="">All Users</option>
                 <option value={user?.id}>My Tasks</option>

@@ -131,7 +131,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
           dragActive 
             ? 'border-primary-500 bg-primary-50' 
-            : 'border-gray-300 hover:border-gray-400'
+            : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
         }`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}

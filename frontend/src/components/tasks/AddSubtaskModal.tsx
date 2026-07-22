@@ -142,7 +142,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter subtask title"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   autoFocus
                 />
               </div>
@@ -157,7 +157,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter subtask description"
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 />
               </div>
 
@@ -170,7 +170,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <span className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2">
                       {selectedUser ? (
@@ -250,7 +250,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                     <button
                       type="button"
                       onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                       <span className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2">
                         {selectedPhase && (
@@ -316,7 +316,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   placeholder="e.g., 2.5"
                   step="0.5"
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -325,7 +325,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
             <div className="flex gap-3 mt-6 pt-6 border-t">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Cancel
               </button>

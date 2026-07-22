@@ -267,7 +267,7 @@ export default function EditCompany() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
 
@@ -282,7 +282,7 @@ export default function EditCompany() {
                   onChange={handleChange}
                   required
                   disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                 />
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Slug cannot be changed after creation</p>
               </div>
@@ -297,13 +297,13 @@ export default function EditCompany() {
                     name="primaryColor"
                     value={formData.primaryColor}
                     onChange={handleChange}
-                    className="h-12 w-20 border border-gray-300 rounded cursor-pointer"
+                    className="h-12 w-20 border border-gray-300 dark:border-gray-600 rounded cursor-pointer"
                   />
                   <input
                     type="text"
                     value={formData.primaryColor}
                     onChange={(e) => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg"
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg"
                   />
                 </div>
               </div>
@@ -318,7 +318,7 @@ export default function EditCompany() {
                     <img
                       src={logoPreview}
                       alt="Logo preview"
-                      className="h-24 w-24 object-contain border border-gray-300 rounded-lg p-2 bg-white dark:bg-gray-800"
+                      className="h-24 w-24 object-contain border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-white dark:bg-gray-800"
                     />
                     <button
                       type="button"
@@ -351,7 +351,7 @@ export default function EditCompany() {
                   name="billingEmail"
                   value={formData.billingEmail || ''}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function EditCompany() {
                 name="subscriptionPlan"
                 value={formData.subscriptionPlan}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
               >
                 <option value="FREE_TRIAL">Free Trial (10 users, 500 tasks, 2 GB) - 7 Days</option>
                 <option value="PRO">Pro (25 users, 5000 tasks, 10 GB) - $99/month</option>
@@ -411,7 +411,7 @@ export default function EditCompany() {
                     name="aiEnabled"
                     checked={formData.aiEnabled}
                     onChange={handleChange}
-                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Enable AI Features</span>
                 </label>
@@ -427,7 +427,7 @@ export default function EditCompany() {
                   value={formData.aiApiKey || ''}
                   onChange={handleChange}
                   placeholder="Enter Gemini or Groq API key"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Only enter a new key if you want to update it. Supported: Gemini, Groq, OpenAI. Tip: paste multiple keys separated by commas — chat automatically fails over to the next key if one hits its rate limit.</p>
               </div>
@@ -440,7 +440,7 @@ export default function EditCompany() {
                   name="aiProvider"
                   value={formData.aiProvider}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal / image support)</option>
                   <option value="groq">Groq — GPT-OSS 120B (Text only)</option>
@@ -456,7 +456,7 @@ export default function EditCompany() {
             <button
               type="button"
               onClick={() => navigate(`/admin/companies/${id}`)}
-              className="px-6 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Cancel
             </button>

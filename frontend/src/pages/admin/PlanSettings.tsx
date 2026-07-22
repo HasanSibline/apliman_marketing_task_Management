@@ -148,7 +148,7 @@ const PlanSettings: React.FC = () => {
                             <div className="flex space-x-2 mt-4 border-t pt-4">
                                 <button
                                     onClick={() => handleEdit(plan)}
-                                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none"
+                                    className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none"
                                 >
                                     <PencilSquareIcon className="h-4 w-4 mr-2" />
                                     Edit
@@ -187,7 +187,7 @@ const PlanSettings: React.FC = () => {
                                             required
                                             value={currentPlan.name || ''}
                                             onChange={(e) => setCurrentPlan({ ...currentPlan, name: e.target.value })}
-                                            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                            className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                         />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
@@ -198,7 +198,7 @@ const PlanSettings: React.FC = () => {
                                                 required
                                                 value={currentPlan.price || 0}
                                                 onChange={(e) => setCurrentPlan({ ...currentPlan, price: parseFloat(e.target.value) })}
-                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             />
                                         </div>
                                         <div>
@@ -208,7 +208,7 @@ const PlanSettings: React.FC = () => {
                                                 required
                                                 value={currentPlan.maxUsers || 0}
                                                 onChange={(e) => setCurrentPlan({ ...currentPlan, maxUsers: parseInt(e.target.value) })}
-                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             />
                                         </div>
                                     </div>
@@ -220,7 +220,7 @@ const PlanSettings: React.FC = () => {
                                                 required
                                                 value={currentPlan.maxTasks || 0}
                                                 onChange={(e) => setCurrentPlan({ ...currentPlan, maxTasks: parseInt(e.target.value) })}
-                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             />
                                         </div>
                                         <div>
@@ -230,7 +230,7 @@ const PlanSettings: React.FC = () => {
                                                 required
                                                 value={currentPlan.maxStorage || 0}
                                                 onChange={(e) => setCurrentPlan({ ...currentPlan, maxStorage: parseInt(e.target.value) })}
-                                                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                                             />
                                         </div>
                                     </div>
@@ -240,7 +240,7 @@ const PlanSettings: React.FC = () => {
                                             type="checkbox"
                                             checked={currentPlan.aiEnabled || false}
                                             onChange={(e) => setCurrentPlan({ ...currentPlan, aiEnabled: e.target.checked })}
-                                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded"
                                         />
                                         <label htmlFor="aiEnabled" className="ml-2 block text-sm text-gray-900 dark:text-white font-medium">
                                             Enable AI Features for this plan
@@ -256,7 +256,7 @@ const PlanSettings: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setIsEditing(false)}
-                                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none sm:mt-0 sm:col-start-1 sm:text-sm"
+                                            className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 dark:border-gray-600 shadow-sm px-4 py-2 bg-white dark:bg-gray-800 text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none sm:mt-0 sm:col-start-1 sm:text-sm"
                                         >
                                             Cancel
                                         </button>

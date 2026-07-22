@@ -134,7 +134,7 @@ const TeamsManagement: React.FC = () => {
                         type="checkbox" 
                         checked={selectedUserIds.includes(u.id)}
                         onChange={() => toggleUser(u.id)}
-                        className="rounded border-gray-300 text-primary-600 shadow-sm"
+                        className="rounded border-gray-300 dark:border-gray-600 text-primary-600 shadow-sm"
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-200">{u.name} ({u.department?.name || 'No Dept'})</span>
                     </label>

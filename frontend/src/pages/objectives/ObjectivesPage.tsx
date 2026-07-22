@@ -89,7 +89,7 @@ function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string
                     {editing ? (
                         <>
                             <input type="number" value={val} onChange={e => setVal(+e.target.value)}
-                                className="w-20 text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500" />
+                                className="w-20 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500" />
                             <button onClick={save} className="text-xs text-primary-600 font-medium hover:text-primary-700">Save</button>
                             <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 dark:text-gray-300">Cancel</button>
                         </>
@@ -448,7 +448,7 @@ const ObjectivesPage: React.FC = () => {
                                             <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
+                                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                                         {filtered.map(obj => (
                                             <ExpanderRow key={obj.id} obj={obj} />
                                         ))}

@@ -54,7 +54,7 @@ const LoadingScreen: React.FC = () => {
 
           {/* Progress Bar */}
           <motion.div
-            className="mt-6 bg-gray-200 rounded-full h-2 overflow-hidden"
+            className="mt-6 bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}

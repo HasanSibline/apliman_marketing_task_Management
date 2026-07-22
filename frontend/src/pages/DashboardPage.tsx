@@ -263,7 +263,7 @@ const DashboardPage: React.FC = () => {
                               name={performer.name}
                               size="md"
                               rounded="xl"
-                              className={isTopThree ? 'border-white/30 bg-white/10' : 'border-white bg-gray-200'}
+                              className={isTopThree ? 'border-white/30 bg-white/10' : 'border-white bg-gray-200 dark:bg-gray-700'}
                            />
                            {isTopThree && (
                               <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white flex items-center justify-center border-2 border-gray-900 shadow-none scale-110">

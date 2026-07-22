@@ -750,7 +750,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       className="absolute left-4 right-4 bottom-full mb-3 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20 max-h-40"
                     >
-                      <div className="p-2 border-b border-gray-50 flex items-center justify-between bg-gray-50/50">
+                      <div className="p-2 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between bg-gray-50/50">
                         <span className="text-[11px] font-black text-gray-400 tracking-widest uppercase">
                           Select {suggestionType === 'user' ? 'a Team Member' : suggestionType === 'task' ? 'a Task' : 'a Ticket'}
                         </span>
@@ -760,7 +760,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                           <button
                             key={idx}
                             onClick={() => applySuggestion(item)}
-                            className="w-full text-left px-4 py-2 text-[12px] hover:bg-primary-50 border-b border-gray-50 last:border-0 transition-colors flex items-center justify-between group"
+                            className="w-full text-left px-4 py-2 text-[12px] hover:bg-primary-50 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors flex items-center justify-between group"
                           >
                             <span className="text-gray-700 dark:text-gray-200 font-medium group-hover:text-primary-700 truncate max-w-[200px]">
                               {suggestionType === 'user' ? item.name : suggestionType === 'task' ? item.title : item.title}

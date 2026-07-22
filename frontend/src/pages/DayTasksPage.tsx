@@ -103,7 +103,7 @@ export default function DayTasksPage() {
                         Loading tasks...
                     </div>
                 ) : dayTasks.length > 0 ? (
-                    <div className="divide-y divide-gray-100">
+                    <div className="divide-y divide-gray-100 dark:divide-gray-700">
                         {dayTasks.map(task => (
                             <div key={task.id} className="p-2 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                                 <TaskListItem task={task as any} />

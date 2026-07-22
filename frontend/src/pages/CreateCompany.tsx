@@ -136,7 +136,7 @@ function Field({
           placeholder={placeholder}
           className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 border text-gray-900 dark:text-white placeholder-gray-400 text-sm
             focus:outline-none focus:ring-2 focus:ring-blue-500 transition
-            ${error ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'}`}
+            ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'}`}
         />
       )}
       {error && (
@@ -186,7 +186,7 @@ function PasswordStrength({ password }: { password: string }) {
         <span className="text-xs text-gray-500 dark:text-gray-400">Password strength</span>
         <span className={`text-xs font-semibold ${level.text}`}>{level.label}</span>
       </div>
-      <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${level.color}`} style={{ width }} />
       </div>
       <p className="text-xs text-gray-400">Tip: mix uppercase, numbers & symbols</p>
@@ -614,7 +614,7 @@ export default function CreateCompany() {
                     placeholder="Create a strong password"
                     className={`w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-gray-900 dark:text-white placeholder-gray-400 text-sm
                       focus:outline-none focus:ring-2 focus:ring-blue-500 transition
-                      ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-300 hover:border-gray-400'}`}
+                      ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'}`}
                   />
                   {fieldErrors.adminPassword && (
                     <p className="mt-1.5 text-xs text-red-500 font-medium flex items-center gap-1">⚠ {fieldErrors.adminPassword}</p>
@@ -765,7 +765,7 @@ export default function CreateCompany() {
                       { label: 'AI Status', value: formData.aiApiKey ? 'ENABLED' : 'DISABLED', color: formData.aiApiKey ? 'text-blue-600 font-bold' : 'text-gray-400' },
                       { label: 'Support', value: 'Standard', color: 'text-gray-400' },
                     ].map(({ label, value, required, color, weight }) => (
-                      <div key={label} className="flex flex-col border-b border-gray-50 pb-2">
+                      <div key={label} className="flex flex-col border-b border-gray-50 dark:border-gray-700 pb-2">
                         <span className="text-gray-400 text-[11px] font-bold uppercase tracking-tight">{label}</span>
                         <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800 dark:text-gray-100'} ${required && !value ? 'text-red-500' : ''}`}>
                           {value || (required ? '⚠ REQUIRED' : '—')}

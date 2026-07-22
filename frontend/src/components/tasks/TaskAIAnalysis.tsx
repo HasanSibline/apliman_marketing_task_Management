@@ -104,7 +104,7 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
           <div className="flex items-center justify-between">
             <span className="text-sm text-gray-600 dark:text-gray-300">Completeness Score</span>
             <div className="flex items-center">
-              <div className="w-32 h-2 bg-gray-200 rounded-full mr-2">
+              <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full mr-2">
                 <div
                   className={`h-2 rounded-full ${
                     analysis.completeness.score >= 0.8 ? 'bg-green-500' :

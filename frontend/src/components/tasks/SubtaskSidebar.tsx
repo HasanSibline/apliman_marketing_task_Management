@@ -202,7 +202,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
                       {subtask.isCompleted ? (
                         <CheckCircleIconSolid className="h-5 w-5 text-green-500 hover:text-green-600 transition-colors" />
                       ) : (
-                        <div className="h-5 w-5 rounded-full border-2 border-gray-300 hover:border-blue-500 transition-colors" />
+                        <div className="h-5 w-5 rounded-full border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500 transition-colors" />
                       )}
                     </button>
                     

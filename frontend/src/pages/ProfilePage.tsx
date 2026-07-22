@@ -112,7 +112,7 @@ const ProfilePage: React.FC = () => {
               <Avatar
                 src={user?.avatar}
                 name={user?.name}
-                className="h-24 w-24 border-4 border-gray-50 shadow-lg"
+                className="h-24 w-24 border-4 border-gray-50 dark:border-gray-700 shadow-lg"
                 size="lg"
                 rounded="2xl"
               />

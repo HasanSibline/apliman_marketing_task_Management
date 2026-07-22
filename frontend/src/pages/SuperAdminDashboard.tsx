@@ -56,7 +56,7 @@ function ResetPasswordModal({
             type="email"
             value={email}
             onChange={e => setEmail(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
             placeholder="admin@company.com"
           />
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Must match the COMPANY_ADMIN user's email</p>
@@ -64,7 +64,7 @@ function ResetPasswordModal({
 
         <div className="flex gap-3 mt-6">
           <button onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+            className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
             Cancel
           </button>
           <button
@@ -340,7 +340,7 @@ export default function SuperAdminDashboard() {
         {/* Table */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100">
+            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900/40">
                 <tr>
                   {['Company', 'Admin', 'Plan', 'Status', 'Users', 'Tasks', 'AI', 'Actions'].map(h => (
@@ -350,7 +350,7 @@ export default function SuperAdminDashboard() {
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
                 {companies.map(company => {
                   return (
                     <tr key={company.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">

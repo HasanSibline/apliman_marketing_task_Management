@@ -213,7 +213,7 @@ function CloseQuarterModal({
                                         className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition shadow-sm
                       ${selected.has(task.id) ? 'border-primary-500 bg-primary-50' : 'border-white bg-white dark:bg-gray-800 hover:border-gray-200 dark:border-gray-700'}`}>
                                         <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggle(task.id)}
-                                            className="mt-0.5 h-4 w-4 text-primary-600 focus:ring-primary-500 rounded border-gray-300" />
+                                            className="mt-0.5 h-4 w-4 text-primary-600 focus:ring-primary-500 rounded border-gray-300 dark:border-gray-600" />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{task.title}</p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{task.assignedTo?.name ?? 'Unassigned'}</p>
@@ -566,7 +566,7 @@ const QuartersPage: React.FC = () => {
                                         <div className={`absolute top-1 inset-0 rounded-sm shadow-md border transition-all duration-300
                                             ${selectedYear === year 
                                                 ? 'bg-primary-500 border-primary-400' 
-                                                : isYearCompleted(year) ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-none' : 'bg-white dark:bg-gray-800 border-gray-300'}`}
+                                                : isYearCompleted(year) ? 'bg-gray-100 dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-none' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600'}`}
                                         >
                                             <div className="absolute inset-0 flex items-center justify-center">
                                                 <FolderIcon className={`h-6 w-6 transition-colors ${selectedYear === year ? 'text-white' : 'text-gray-300'}`} />
@@ -674,7 +674,7 @@ const QuartersPage: React.FC = () => {
                                                         <span>Completion</span>
                                                         <span className="text-primary-700">{progress}%</span>
                                                     </div>
-                                                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-50 shadow-inner">
+                                                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-50 dark:border-gray-700 shadow-inner">
                                                         <div className={`h-full rounded-full transition-all duration-1000 ${progress === 100 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }} />
                                                     </div>
                                                 </div>
@@ -763,7 +763,7 @@ const QuartersPage: React.FC = () => {
                     </div>
                     
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-100">
+                        <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-900/40">
                                 <tr>
                                     <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Task Details</th>
@@ -772,7 +772,7 @@ const QuartersPage: React.FC = () => {
                                     <th className="px-6 py-3 text-right text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100">
+                            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                                 {backlogTasks.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-400 italic">No tasks on standby. Your inbox is clear.</td>

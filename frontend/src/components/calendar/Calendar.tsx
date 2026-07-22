@@ -156,7 +156,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
 
         return (
             <div className="p-4 select-none">
-                <div className="flex items-center justify-between mb-4 px-1 text-gray-900 dark:text-white border-b border-gray-50 pb-2">
+                <div className="flex items-center justify-between mb-4 px-1 text-gray-900 dark:text-white border-b border-gray-50 dark:border-gray-700 pb-2">
                     <span className="text-sm font-bold">{format(selectedDate, 'MMMM yyyy')}</span>
                     <div className="flex space-x-1">
                         <button onClick={() => setSelectedDate(subMonths(selectedDate, 1))} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-gray-500 dark:text-gray-400">
@@ -360,7 +360,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
 
                 {/* Day Header Bar */}
                 <div className="grid grid-cols-[64px_1fr] bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shrink-0">
-                    <div className="flex items-end justify-center pb-2 border-r border-gray-50">
+                    <div className="flex items-end justify-center pb-2 border-r border-gray-50 dark:border-gray-700">
                         <span className="text-[11px] font-black text-gray-300 mb-2">GMT</span>
                     </div>
                     <div 
@@ -368,7 +368,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                         style={{ gridTemplateColumns: `repeat(${displayDays.length}, 1fr)` }}
                     >
                         {displayDays.map((day: Date) => (
-                            <div key={day.toString()} className="flex flex-col items-center py-4 border-r border-gray-50 last:border-r-0">
+                            <div key={day.toString()} className="flex flex-col items-center py-4 border-r border-gray-50 dark:border-gray-700 last:border-r-0">
                                 <span className={`text-[11px] font-black uppercase tracking-widest mb-1 ${isToday(day) ? 'text-primary-600' : 'text-gray-400'}`}>
                                     {format(day, 'EEE')}
                                 </span>
@@ -391,7 +391,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                         {/* Hour markers */}
                         <div className="bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700">
                             {hours.map(h => (
-                                <div key={h} className="h-[60px] flex items-start justify-center pt-1 border-b border-gray-50 border-r-0">
+                                <div key={h} className="h-[60px] flex items-start justify-center pt-1 border-b border-gray-50 dark:border-gray-700 border-r-0">
                                     <span className="text-[11px] font-bold text-gray-300">
                                         {format(setHours(new Date(), h), 'h a')}
                                     </span>
@@ -407,7 +407,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                             {/* Horizontal separators */}
                             <div className="absolute inset-0 z-0">
                                 {hours.map(h => (
-                                    <div key={h} className="h-[60px] border-b border-gray-50 bg-white dark:bg-gray-800" />
+                                    <div key={h} className="h-[60px] border-b border-gray-50 dark:border-gray-700 bg-white dark:bg-gray-800" />
                                 ))}
                             </div>
 
@@ -492,7 +492,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                                                     <span className="text-[11px] font-black bg-green-500 text-white px-1 rounded-sm uppercase tracking-tighter shadow-sm animate-bounce">LIVE</span>
                                                                 )}
                                                                 {event.status === 'Completed' && (
-                                                                    <span className="text-[11px] font-black bg-gray-200 text-gray-500 dark:text-gray-400 px-1 rounded-sm uppercase tracking-tighter mt-1">DONE</span>
+                                                                    <span className="text-[11px] font-black bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1 rounded-sm uppercase tracking-tighter mt-1">DONE</span>
                                                                 )}
                                                             </div>
                                                         )}

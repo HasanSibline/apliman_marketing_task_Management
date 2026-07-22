@@ -156,7 +156,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                       className={`mt-1 h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${
                         subtask.isCompleted
                           ? 'bg-green-500 border-green-500 text-white shadow-lg'
-                          : 'border-gray-300 hover:border-blue-500 hover:bg-blue-50'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50'
                       }`}
                     >
                       {subtask.isCompleted && <CheckIcon className="h-4 w-4" />}
@@ -268,7 +268,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
 
         {/* Empty State */}
         {subtasks.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/40 rounded-xl border-2 border-dashed border-gray-300">
+          <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/40 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
             <FlagIcon className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No subtasks yet</h3>
             <p className="mt-2 text-gray-500 dark:text-gray-400">Break down this task into smaller, manageable pieces.</p>
@@ -277,7 +277,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
       </div>
 
       {/* Add Subtask Form */}
-      <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-6 border-2 border-dashed border-gray-300">
+      <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-6 border-2 border-dashed border-gray-300 dark:border-gray-600">
         <form onSubmit={handleSubmit} className="flex items-center space-x-4">
         <div className="flex-1">
           <input
@@ -285,7 +285,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
             value={newSubtask}
             onChange={(e) => setNewSubtask(e.target.value)}
               placeholder="Add a new subtask..."
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
             disabled={submitting}
           />
         </div>

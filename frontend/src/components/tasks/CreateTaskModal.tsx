@@ -377,7 +377,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     name="workflowId"
                     value={formData.workflowId}
                     onChange={(e) => handleWorkflowChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     disabled={isLoadingWorkflows}
                   >
                     <option value="">Select a workflow</option>
@@ -419,7 +419,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         required
                         value={formData.title}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                         placeholder="Enter task title"
                       />
                       <button
@@ -479,7 +479,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     rows={4}
                     value={formData.description}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Describe the task in detail"
                   />
                 </div>
@@ -495,7 +495,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     rows={3}
                     value={formData.goals}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     placeholder="Define what success looks like for this task"
                   />
                 </div>
@@ -511,7 +511,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       name="priority"
                       value={formData.priority}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value={1}>1 - Low</option>
                       <option value={2}>2 - Medium</option>
@@ -532,7 +532,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       value={formData.dueDate}
                       onChange={handleChange}
                       min={new Date().toISOString().split('T')[0]}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                   </div>
                 </div>
@@ -548,7 +548,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       name="quarterId"
                       value={formData.quarterId}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="">No Quarter</option>
                       {quarters.map((q) => (
@@ -570,7 +570,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         // Reset keyResultId whenever objective changes
                         setFormData(prev => ({ ...prev, keyResultId: '' }));
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     >
                       <option value="">No Objective</option>
                       {objectives
@@ -619,7 +619,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         name="assignedToId"
                         value={formData.assignedToId}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       >
                         <option value="">Select primary assignee</option>
                         {users.map((u: any) => (
@@ -657,7 +657,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   }))
                                 }
                               }}
-                              className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                              className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                             />
                             <span className="text-sm text-gray-700 dark:text-gray-200">
                               {u.name} ({u.email}) {u.id === user?.id ? '(You)' : ''}
@@ -689,7 +689,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         type="checkbox"
                         checked={formData.generateSubtasks}
                         onChange={(e) => setFormData(prev => ({ ...prev, generateSubtasks: e.target.checked }))}
-                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
                       />
                       <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Generate AI subtasks based on task type and workflow
@@ -701,7 +701,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         type="checkbox"
                         checked={formData.autoAssign}
                         onChange={(e) => setFormData(prev => ({ ...prev, autoAssign: e.target.checked }))}
-                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                        className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
                       />
                       <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Auto-assign subtasks to team members based on their roles
@@ -761,7 +761,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 type="text"
                                 value={subtask.title}
                                 onChange={(e) => updateSubtask(index, 'title', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 placeholder="Subtask title"
                               />
                             </div>
@@ -774,7 +774,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 rows={2}
                                 value={subtask.description}
                                 onChange={(e) => updateSubtask(index, 'description', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 placeholder="Brief description"
                               />
                             </div>
@@ -787,7 +787,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 <select
                                   value={subtask.phaseName}
                                   onChange={(e) => updateSubtask(index, 'phaseName', e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 >
                                   {selectedWorkflow?.phases.map((phase) => (
                                     <option key={phase.id} value={phase.name}>
@@ -807,7 +807,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   step="0.5"
                                   value={subtask.estimatedHours}
                                   onChange={(e) => updateSubtask(index, 'estimatedHours', e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
                                 />
                               </div>
                             </div>
@@ -987,7 +987,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   updatedSubtasks[index] = { ...updatedSubtasks[index], phaseName: e.target.value }
                                   setAiPreview(prev => prev ? { ...prev, subtasks: updatedSubtasks } : null)
                                 }}
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                               >
                                 <option value="">Select Phase</option>
                                 {selectedWorkflow?.phases.map(phase => (
@@ -1012,7 +1012,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   }
                                   setAiPreview(prev => prev ? { ...prev, subtasks: updatedSubtasks } : null)
                                 }}
-                                className="w-full px-2 py-1 text-xs border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                               >
                                 <option value="">Unassigned</option>
                                 {users.map((u: any) => (
@@ -1062,7 +1062,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                           subtasks: [...(prev.subtasks || []), newSubtask]
                         } : null)
                       }}
-                      className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:border-primary-300 hover:text-primary-600 transition-colors"
+                      className="mt-3 w-full px-4 py-2 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-300 hover:border-primary-300 hover:text-primary-600 transition-colors"
                     >
                       + Add Custom Subtask
                     </button>

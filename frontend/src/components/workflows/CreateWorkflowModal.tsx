@@ -266,7 +266,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                       required
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="e.g., Social Media Workflow"
                     />
                   </div>
@@ -280,7 +280,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                       required
                       value={formData.taskType}
                       onChange={(e) => setFormData(prev => ({ ...prev, taskType: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">Select task type</option>
                       {taskTypes.map(type => (
@@ -299,7 +299,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Describe this workflow..."
                   />
                 </div>
@@ -316,7 +316,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                           type="button"
                           onClick={() => setFormData(prev => ({ ...prev, color }))}
                           className={`w-8 h-8 rounded-full border-2 ${
-                            formData.color === color ? 'border-gray-800' : 'border-gray-300'
+                            formData.color === color ? 'border-gray-800' : 'border-gray-300 dark:border-gray-600'
                           }`}
                           style={{ backgroundColor: color }}
                         />
@@ -330,7 +330,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                         type="checkbox"
                         checked={formData.isDefault}
                         onChange={(e) => setFormData(prev => ({ ...prev, isDefault: e.target.checked }))}
-                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Set as default workflow for this task type
@@ -379,7 +379,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                               required
                               value={phase.name}
                               onChange={(e) => updatePhase(index, 'name', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                               placeholder="e.g., In Progress"
                             />
                           </div>
@@ -395,7 +395,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                                   type="button"
                                   onClick={() => updatePhase(index, 'color', color)}
                                   className={`w-6 h-6 rounded-full border-2 ${
-                                    phase.color === color ? 'border-gray-800' : 'border-gray-300'
+                                    phase.color === color ? 'border-gray-800' : 'border-gray-300 dark:border-gray-600'
                                   }`}
                                   style={{ backgroundColor: color }}
                                 />
@@ -412,7 +412,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                             type="text"
                             value={phase.description}
                             onChange={(e) => updatePhase(index, 'description', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             placeholder="Describe this phase"
                           />
                         </div>
@@ -441,7 +441,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                               </button>
                             </div>
                           </div>
-                          <div className="bg-white dark:bg-gray-800 border border-gray-300 rounded-md p-3 max-h-40 overflow-y-auto">
+                          <div className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-3 max-h-40 overflow-y-auto">
                             {users.length === 0 ? (
                               <p className="text-sm text-gray-500 dark:text-gray-400">Loading users...</p>
                             ) : (
@@ -452,7 +452,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                                       type="checkbox"
                                       checked={phase.allowedUserIds.includes(user.id)}
                                       onChange={() => toggleUser(index, user.id)}
-                                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                      className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
                                     />
                                     <span className="ml-2 text-sm text-gray-700 dark:text-gray-200 flex-1">
                                       {user.name}
