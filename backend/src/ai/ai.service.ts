@@ -93,8 +93,9 @@ export class AiService {
 
     let quotaExhausted = company.aiQuotaExhausted;
 
-    // Auto-reset: if reset time has passed, clear the exhaustion flag
-    if (quotaExhausted && company.aiQuotaResetAt && new Date() > company.aiQuotaResetAt) {
+    // Auto-reset: clear the flag once its window passed, or if it never had one
+    // (a legacy row written by the old permanent-lockout logic).
+    if (quotaExhausted && (!company.aiQuotaResetAt || new Date() > company.aiQuotaResetAt)) {
       await this.prisma.company.update({
         where: { id: user.companyId },
         data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
@@ -342,8 +343,18 @@ export class AiService {
 
     if (!company) return null;
 
-    // Auto-reset if the lockout window has passed.
-    if (company.aiQuotaExhausted && company.aiQuotaResetAt && new Date() > company.aiQuotaResetAt) {
+    // Auto-reset once the lockout window has passed.
+    //
+    // A null aiQuotaResetAt on an exhausted company is a legacy row: the old logic
+    // flagged FREE_TRIAL companies with no reset time, which no expiry check could
+    // ever clear. Every lockout we write now carries an expiry, so treat a missing
+    // one as stale and release it. Production applies schema with `prisma db push`,
+    // which does not run migration SQL, so this is what actually heals those rows
+    // there rather than the UPDATE in the migration.
+    const lockoutExpired =
+      company.aiQuotaExhausted && (!company.aiQuotaResetAt || new Date() > company.aiQuotaResetAt);
+
+    if (lockoutExpired) {
       await this.prisma.company.update({
         where: { id: user.companyId },
         data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
