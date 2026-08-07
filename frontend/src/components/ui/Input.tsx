@@ -33,7 +33,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           {...rest}
         />
         {error ? (
-          <p className="mt-1 text-xs text-error-600">{error}</p>
+          <p className="mt-1 text-xs text-error-600 dark:text-error-400">{error}</p>
         ) : hint ? (
           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{hint}</p>
         ) : null}

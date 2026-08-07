@@ -120,7 +120,7 @@ const ApprovalsPage: React.FC = () => {
               placeholder="Search tasks..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
             />
           </div>
 
@@ -130,7 +130,7 @@ const ApprovalsPage: React.FC = () => {
             <select
               value={selectedWorkflow}
               onChange={(e) => setSelectedWorkflow(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none"
             >
               <option value="">All Workflows</option>
               {workflows.map(workflow => (
@@ -179,7 +179,7 @@ const ApprovalsPage: React.FC = () => {
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{task.description}</p>
                   </div>
                   {task.priority && task.priority >= 8 && (
-                    <span className="ml-4 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">
+                    <span className="ml-4 px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium rounded-full">
                       High Priority
                     </span>
                   )}
@@ -215,7 +215,7 @@ const ApprovalsPage: React.FC = () => {
                   )}
                   {(task as any).approvalPhase && (
                     <div 
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-300"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border border-amber-300"
                     >
                       → {(task as any).approvalPhase.name}
                     </div>
@@ -235,12 +235,12 @@ const ApprovalsPage: React.FC = () => {
                 </div>
 
                 {/* Approval Message */}
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
-                  <p className="text-sm text-amber-800">
+                <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-lg p-3 mb-4">
+                  <p className="text-sm text-amber-800 dark:text-amber-300">
                     <strong>{(task as any).requestedBy?.name || task.assignedTo?.name || 'Someone'}</strong> is requesting approval to move task <strong>"{task.title}"</strong> to <strong>"{(task as any).approvalPhase?.name}"</strong>.
                   </p>
                   {(task as any).requestedAt && (
-                    <p className="text-xs text-amber-600 mt-1">
+                    <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                       Requested {new Date((task as any).requestedAt).toLocaleDateString()} at {new Date((task as any).requestedAt).toLocaleTimeString()}
                     </p>
                   )}
@@ -257,7 +257,7 @@ const ApprovalsPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => handleRejectPhaseChange((task as any).approvalId, task.title)}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50 transition-colors font-medium"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-red-300 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors font-medium"
                   >
                     <XCircleIcon className="h-5 w-5" />
                     Send Back for Revision

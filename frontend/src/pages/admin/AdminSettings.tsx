@@ -7,8 +7,9 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import PlatformAiSettings, { PlatformAiConfig } from '@/components/admin/PlatformAiSettings';
 
-interface SystemSettings {
+interface SystemSettings extends PlatformAiConfig {
   maxFileSize: number;
   allowedFileTypes: string;
   sessionTimeout: number;
@@ -19,6 +20,11 @@ const AdminSettings: React.FC = () => {
     maxFileSize: 5242880, // 5MB
     allowedFileTypes: 'image/jpeg,image/png,image/webp,application/pdf',
     sessionTimeout: 480, // 8 hours
+    platformAiEnabled: false,
+    platformAiProvider: 'anthropic',
+    platformAiModel: null,
+    platformAiKeySet: false,
+    platformAiApiKey: '',
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -32,7 +38,7 @@ const AdminSettings: React.FC = () => {
     try {
       const response = await api.get('/system/settings');
       if (response.data) {
-        setSettings(response.data);
+        setSettings((current) => ({ ...current, ...response.data }));
       }
     } catch (error) {
       console.error('Error fetching system settings:', error);
@@ -45,8 +51,9 @@ const AdminSettings: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await api.put('/system/settings', settings);
-      toast.success('System settings updated successfully');
+      const { data } = await api.put('/system/settings', settings);
+      if (data) setSettings((current) => ({ ...current, ...data }));
+      toast.success('Settings saved');
     } catch (error) {
       console.error('Error saving settings:', error);
       toast.error('Failed to save settings');
@@ -102,7 +109,7 @@ const AdminSettings: React.FC = () => {
           </div>
           <button
             onClick={() => window.location.href = '/admin/plans'}
-            className="px-4 py-2 bg-indigo-50 text-indigo-700 text-sm font-medium rounded-lg hover:bg-indigo-100 transition-colors"
+            className="px-4 py-2 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-sm font-medium rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
           >
             Go to Plan Settings
           </button>
@@ -135,11 +142,16 @@ const AdminSettings: React.FC = () => {
       </div>
 
       <div className="space-y-6">
+        <PlatformAiSettings
+          config={settings}
+          onChange={(next) => setSettings((current) => ({ ...current, ...next }))}
+        />
+
         {settingsSections.map((section) => (
           <div key={section.title} className="bg-white dark:bg-gray-800 shadow rounded-lg">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center">
-                <section.icon className="h-6 w-6 text-indigo-600 mr-3" />
+                <section.icon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-3" />
                 <h2 className="text-lg font-medium text-gray-900 dark:text-white">{section.title}</h2>
               </div>
             </div>
@@ -156,7 +168,7 @@ const AdminSettings: React.FC = () => {
                       type={setting.type}
                       value={setting.value}
                       onChange={(e) => setting.onChange(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     />
                     <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{setting.description}</p>
                   </div>
@@ -170,7 +182,7 @@ const AdminSettings: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <ServerIcon className="h-6 w-6 text-indigo-600 mr-3" />
+              <ServerIcon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-3" />
               <h2 className="text-lg font-medium text-gray-900 dark:text-white">System Information</h2>
             </div>
           </div>
@@ -197,7 +209,7 @@ const AdminSettings: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center">
-              <ShieldCheckIcon className="h-6 w-6 text-indigo-600 mr-3" />
+              <ShieldCheckIcon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-3" />
               <h2 className="text-lg font-medium text-gray-900 dark:text-white">Security</h2>
             </div>
           </div>
@@ -207,7 +219,7 @@ const AdminSettings: React.FC = () => {
                 <p className="text-sm font-medium text-gray-900 dark:text-white">JWT Authentication</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Secure token-based authentication</p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
                 Active
               </span>
             </div>
@@ -216,7 +228,7 @@ const AdminSettings: React.FC = () => {
                 <p className="text-sm font-medium text-gray-900 dark:text-white">Multi-Tenant Isolation</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Company data isolation enforced</p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
                 Active
               </span>
             </div>
@@ -225,7 +237,7 @@ const AdminSettings: React.FC = () => {
                 <p className="text-sm font-medium text-gray-900 dark:text-white">Password Encryption</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400">Bcrypt with 12 salt rounds</p>
               </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
                 Active
               </span>
             </div>
@@ -245,20 +257,20 @@ const AdminSettings: React.FC = () => {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Changes'}
         </button>
       </div>
 
-      <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+      <div className="mt-6 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 rounded-lg p-4">
         <div className="flex">
           <div className="flex-shrink-0">
             <ShieldCheckIcon className="h-5 w-5 text-yellow-400" aria-hidden="true" />
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-yellow-800">Important Notice</h3>
-            <div className="mt-2 text-sm text-yellow-700">
+            <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Important Notice</h3>
+            <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-300">
               <p>
                 Changes to system settings affect all companies on the platform.
                 Use caution when modifying these values.

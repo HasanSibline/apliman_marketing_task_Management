@@ -157,12 +157,12 @@ const TasksPage: React.FC = () => {
           placeholder="Search tasks by title, description, assignee, or goals..."
           value={filters.search || ''}
           onChange={(e) => dispatch(setFilters({ search: e.target.value || undefined }))}
-          className="pl-11 pr-4 py-3.5 w-full border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:border-gray-300 placeholder:text-gray-400"
+          className="pl-11 pr-4 py-3.5 w-full border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:border-gray-300 dark:hover:border-gray-600 placeholder:text-gray-400"
         />
         {filters.search && (
           <button
             onClick={() => dispatch(setFilters({ search: undefined }))}
-            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>
@@ -180,12 +180,12 @@ const TasksPage: React.FC = () => {
         >
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary-100 rounded-lg">
-                <FunnelIcon className="h-5 w-5 text-primary-600" />
+              <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
+                <FunnelIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
               </div>
             <div>
-                <h3 className="text-lg font-bold text-gray-900">Filter Tasks</h3>
-                <p className="text-sm text-gray-500">Refine your search criteria</p>
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filter Tasks</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Refine your search criteria</p>
               </div>
             </div>
             {activeFiltersCount > 0 && (
@@ -202,14 +202,14 @@ const TasksPage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {/* Workflow Filter */}
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
                 <div className="h-2 w-2 rounded-full bg-primary-500"></div>
                 Workflow
               </label>
               <select
                 value={filters.workflowId || ''}
                 onChange={(e) => dispatch(setFilters({ workflowId: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white hover:border-primary-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white dark:bg-gray-800 hover:border-primary-400"
               >
                 <option value="">All Workflows</option>
                 {workflows.map(workflow => (
@@ -222,14 +222,14 @@ const TasksPage: React.FC = () => {
 
             {/* Priority Filter */}
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
                 <div className="h-2 w-2 rounded-full bg-warning-500"></div>
                 Priority
               </label>
               <select
                 value={filters.priority || ''}
                 onChange={(e) => dispatch(setFilters({ priority: e.target.value ? parseInt(e.target.value) : undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500 transition-all bg-white hover:border-warning-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500 transition-all bg-white dark:bg-gray-800 hover:border-warning-400"
               >
                 <option value="">All Priorities</option>
                 <option value="1">Low</option>
@@ -242,14 +242,14 @@ const TasksPage: React.FC = () => {
 
             {/* Phase Filter */}
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
                 <div className="h-2 w-2 rounded-full bg-secondary-500"></div>
                 Phase
               </label>
               <select
                 value={filters.phase || ''}
                 onChange={(e) => dispatch(setFilters({ phase: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white hover:border-secondary-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white dark:bg-gray-800 hover:border-secondary-400"
               >
                 <option value="">All Phases</option>
                 {phases.map(phase => (
@@ -262,14 +262,14 @@ const TasksPage: React.FC = () => {
 
             {/* Assigned To Filter */}
             <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
                 <div className="h-2 w-2 rounded-full bg-success-500"></div>
                 Assigned To
               </label>
               <select
                 value={filters.assignedToId || ''}
                 onChange={(e) => dispatch(setFilters({ assignedToId: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-all bg-white hover:border-success-400"
+                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-all bg-white dark:bg-gray-800 hover:border-success-400"
               >
                 <option value="">All Users</option>
                 <option value={user?.id}>My Tasks</option>
@@ -284,23 +284,23 @@ const TasksPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-3 flex-wrap p-4 bg-primary-50 rounded-lg border border-primary-200"
+          className="flex items-center gap-3 flex-wrap p-4 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-200"
         >
           <div className="flex items-center gap-2">
-            <FunnelIcon className="h-4 w-4 text-primary-600" />
-            <span className="text-sm font-bold text-gray-900">Active Filters:</span>
+            <FunnelIcon className="h-4 w-4 text-primary-600 dark:text-primary-400" />
+            <span className="text-sm font-bold text-gray-900 dark:text-white">Active Filters:</span>
           </div>
           {filters.search && (
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-primary-300 text-primary-700 rounded-lg text-sm font-medium shadow-sm"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-primary-300 text-primary-700 dark:text-primary-300 rounded-lg text-sm font-medium shadow-sm"
             >
               <MagnifyingGlassIcon className="h-4 w-4" />
               "{filters.search}"
               <button
                 onClick={() => dispatch(setFilters({ search: undefined }))}
-                className="hover:bg-primary-100 rounded-full p-0.5 transition-colors"
+                className="hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
@@ -310,13 +310,13 @@ const TasksPage: React.FC = () => {
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-primary-300 text-primary-700 rounded-lg text-sm font-medium shadow-sm"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-primary-300 text-primary-700 dark:text-primary-300 rounded-lg text-sm font-medium shadow-sm"
             >
               <div className="h-2 w-2 rounded-full bg-primary-500"></div>
               {workflows.find(w => w.id === filters.workflowId)?.name}
               <button
                 onClick={() => dispatch(setFilters({ workflowId: undefined }))}
-                className="hover:bg-primary-100 rounded-full p-0.5 transition-colors"
+                className="hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
@@ -326,12 +326,12 @@ const TasksPage: React.FC = () => {
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-warning-300 text-warning-700 rounded-lg text-sm font-medium shadow-sm"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-warning-300 text-warning-700 dark:text-warning-300 rounded-lg text-sm font-medium shadow-sm"
             >
               {['Low', 'Medium', 'High', 'Urgent', 'Critical'][filters.priority - 1]}
               <button
                 onClick={() => dispatch(setFilters({ priority: undefined }))}
-                className="hover:bg-warning-100 rounded-full p-0.5 transition-colors"
+                className="hover:bg-warning-100 dark:hover:bg-warning-900/30 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
@@ -341,12 +341,12 @@ const TasksPage: React.FC = () => {
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-secondary-300 text-secondary-700 rounded-lg text-sm font-medium shadow-sm"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-secondary-300 text-secondary-700 dark:text-secondary-300 rounded-lg text-sm font-medium shadow-sm"
             >
               {phases.find(p => p.id === filters.phase)?.name || filters.phase}
               <button
                 onClick={() => dispatch(setFilters({ phase: undefined }))}
-                className="hover:bg-secondary-100 rounded-full p-0.5 transition-colors"
+                className="hover:bg-secondary-100 dark:hover:bg-secondary-900/30 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
@@ -356,12 +356,12 @@ const TasksPage: React.FC = () => {
             <motion.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-success-300 text-success-700 rounded-lg text-sm font-medium shadow-sm"
+              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-success-300 text-success-700 dark:text-success-300 rounded-lg text-sm font-medium shadow-sm"
             >
               {filters.assignedToId === user?.id ? 'My Tasks' : 'Assigned'}
               <button
                 onClick={() => dispatch(setFilters({ assignedToId: undefined }))}
-                className="hover:bg-success-100 rounded-full p-0.5 transition-colors"
+                className="hover:bg-success-100 dark:hover:bg-success-900/30 rounded-full p-0.5 transition-colors"
               >
                 <XMarkIcon className="h-3.5 w-3.5" />
               </button>
@@ -374,13 +374,13 @@ const TasksPage: React.FC = () => {
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-16">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Loading tasks...</p>
+          <p className="text-gray-600 dark:text-gray-300">Loading tasks...</p>
         </div>
       ) : tasks.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
+        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="text-6xl mb-4">📋</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks found</h3>
-          <p className="text-gray-500 mb-6">
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No tasks found</h3>
+          <p className="text-gray-500 dark:text-gray-400 mb-6">
             {activeFiltersCount > 0 
               ? 'Try adjusting your filters or create a new task'
               : 'Get started by creating your first task'}
@@ -399,20 +399,20 @@ const TasksPage: React.FC = () => {
             const isCollapsed = collapsedSections.has(workflowName)
             
             return (
-              <div key={workflowName} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div key={workflowName} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
                 {/* Section Header */}
                 <button
                   onClick={() => toggleSection(workflowName)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                   style={{
                     borderLeft: workflow ? `4px solid ${workflow.color}` : '4px solid #6B7280'
                   }}
                 >
                   <div className="flex items-center gap-3">
                     {isCollapsed ? (
-                      <ChevronRightIcon className="h-5 w-5 text-gray-500" />
+                      <ChevronRightIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     ) : (
-                      <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                      <ChevronDownIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     )}
                     <div className="flex items-center gap-2">
                       {workflow && (
@@ -421,13 +421,13 @@ const TasksPage: React.FC = () => {
                           style={{ backgroundColor: workflow.color }}
                         />
                       )}
-                      <h2 className="text-lg font-semibold text-gray-900">{workflowName}</h2>
+                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{workflowName}</h2>
                     </div>
-                    <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-sm font-medium">
                       {workflowTasks.length} {workflowTasks.length === 1 ? 'task' : 'tasks'}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-500">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
                     {workflow?.taskType || 'General'}
                   </div>
                 </button>
@@ -465,26 +465,26 @@ const TasksPage: React.FC = () => {
 
       {/* Completed Tasks Section */}
       {!isLoading && completedTasks.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
             <button
             onClick={() => toggleSection('Completed Tasks')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors border-l-4 border-green-500"
+            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-4 border-green-500"
           >
             <div className="flex items-center gap-3">
               {collapsedSections.has('Completed Tasks') ? (
-                <ChevronRightIcon className="h-5 w-5 text-gray-500" />
+                <ChevronRightIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               ) : (
-                <ChevronDownIcon className="h-5 w-5 text-gray-500" />
+                <ChevronDownIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
               )}
               <div className="flex items-center gap-2">
                 <div className="h-3 w-3 rounded-full bg-green-500" />
-                <h2 className="text-lg font-semibold text-gray-900">Completed Tasks</h2>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Completed Tasks</h2>
               </div>
-              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
                 {completedTasks.length} {completedTasks.length === 1 ? 'task' : 'tasks'}
               </span>
             </div>
-            <div className="text-sm text-green-600 font-medium">
+            <div className="text-sm text-green-600 dark:text-green-400 font-medium">
               ✓ All Done
             </div>
             </button>
@@ -518,7 +518,7 @@ const TasksPage: React.FC = () => {
 
       {/* Task Count */}
       {!isLoading && tasks.length > 0 && (
-        <div className="text-center text-sm text-gray-500 py-4">
+        <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">
           Showing {activeTasks.length} active task{activeTasks.length !== 1 ? 's' : ''} across {Object.keys(groupedTasks).length} workflow{Object.keys(groupedTasks).length !== 1 ? 's' : ''}
           {completedTasks.length > 0 && ` • ${completedTasks.length} completed task${completedTasks.length !== 1 ? 's' : ''}`}
         </div>

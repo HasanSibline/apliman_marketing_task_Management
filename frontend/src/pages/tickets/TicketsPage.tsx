@@ -157,17 +157,17 @@ const TicketsPage: React.FC = () => {
   const getStatusBadge = (ticket: any) => {
     switch (ticket.status as TicketStatus) {
       case 'PENDING_REC_MGR': 
-        return <span className="px-3 py-1 bg-orange-50 text-orange-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-orange-100 italic">Pending Approval</span>
-      case 'OPEN': return <span className="px-3 py-1 bg-blue-50 text-blue-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-blue-100">Open</span>
+        return <span className="px-3 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-orange-100 dark:border-orange-900/40 italic">Pending Approval</span>
+      case 'OPEN': return <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-blue-100 dark:border-blue-900/40">Open</span>
       case 'ASSIGNED': 
         const acceptedCount = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
         return (
-          <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-indigo-100 italic">
+          <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-indigo-100 dark:border-indigo-900/40 italic">
             Assigned: {acceptedCount > 1 ? `${acceptedCount} Specialists` : (ticket.assignee?.name || '1 Specialist')}
           </span>
         )
-      case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-emerald-100">Resolved</span>
-      case 'CANCELLED': return <span className="px-3 py-1 bg-rose-50 text-rose-700 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-rose-100">Cancelled</span>
+      case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-emerald-100 dark:border-emerald-900/40">Resolved</span>
+      case 'CANCELLED': return <span className="px-3 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-lg text-[11px] font-black uppercase tracking-[0.1em] border border-rose-100 dark:border-rose-900/40">Cancelled</span>
       default: return null
     }
   }
@@ -190,7 +190,7 @@ const TicketsPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setShowCreateModal(true)} 
-              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-primary-700 rounded-lg font-black text-[11px] uppercase tracking-widest hover:bg-primary-50 active:scale-95 transition-all shadow-sm"
+              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 rounded-lg font-black text-[11px] uppercase tracking-widest hover:bg-primary-50 dark:hover:bg-primary-900/30 active:scale-95 transition-all shadow-sm"
             >
               <PlusIcon className="h-4 w-4" />
               Initiate Request
@@ -204,20 +204,20 @@ const TicketsPage: React.FC = () => {
 
       {/* Pending Requests Section */}
       {tickets.some(t => t.assignments?.some((a: any) => a.userId === user?.id && a.status === 'PENDING')) && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 shadow-sm animate-in slide-in-from-top-4 duration-500">
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-xl p-6 shadow-sm animate-in slide-in-from-top-4 duration-500">
           <div className="flex items-center gap-2 mb-4">
             <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            <h3 className="text-[11px] font-black text-amber-800 uppercase tracking-widest leading-none">Pending Requests</h3>
+            <h3 className="text-[11px] font-black text-amber-800 dark:text-amber-300 uppercase tracking-widest leading-none">Pending Requests</h3>
           </div>
           <div className="space-y-3">
             {tickets.filter(t => t.assignments?.some((a: any) => a.userId === user?.id && a.status === 'PENDING')).map(ticket => (
-              <div key={ticket.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-amber-100 shadow-sm hover:border-amber-300 transition-all">
+              <div key={ticket.id} className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 bg-white dark:bg-gray-800 rounded-xl border border-amber-100 dark:border-amber-900/40 shadow-sm hover:border-amber-300 transition-all">
                 <div className="flex items-center gap-4">
-                   <div className="h-10 w-10 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <TicketIcon className="h-5 w-5 text-amber-600" />
+                   <div className="h-10 w-10 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <TicketIcon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                    </div>
                    <div className="min-w-0">
-                      <p className="text-[11px] font-black text-amber-600 uppercase tracking-tight mb-0.5">{ticket.ticketNumber}</p>
+                      <p className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-tight mb-0.5">{ticket.ticketNumber}</p>
                       <h4 className="text-sm font-black text-gray-900 dark:text-white truncate max-w-md">{ticket.title}</h4>
                       <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest mt-1">Invited by {ticket.requester?.name}</p>
                    </div>
@@ -231,7 +231,7 @@ const TicketsPage: React.FC = () => {
                    </button>
                    <button 
                      onClick={(e) => { e.stopPropagation(); promptAction(e, 'decline_invite', ticket.id); }}
-                     className="px-4 py-2 bg-white dark:bg-gray-800 text-rose-600 border border-rose-100 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all flex items-center gap-2"
+                     className="px-4 py-2 bg-white dark:bg-gray-800 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all flex items-center gap-2"
                    >
                      <XCircleIcon className="h-4 w-4" /> Decline
                    </button>
@@ -248,7 +248,7 @@ const TicketsPage: React.FC = () => {
           <button
             onClick={() => { setActiveTab('ACTIVE'); setPage(1); }}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'ACTIVE' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+              activeTab === 'ACTIVE' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             Active
@@ -256,7 +256,7 @@ const TicketsPage: React.FC = () => {
           <button
             onClick={() => { setActiveTab('HISTORY'); setPage(1); }}
             className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
-              activeTab === 'HISTORY' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+              activeTab === 'HISTORY' ? 'bg-white dark:bg-gray-800 text-primary-600 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
             }`}
           >
             History
@@ -272,7 +272,7 @@ const TicketsPage: React.FC = () => {
             placeholder="Search by ID, department, or title..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-11 pr-4 py-2.5 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all shadow-sm placeholder:text-gray-400 text-sm"
+            className="pl-11 pr-4 py-2.5 w-full border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all shadow-sm placeholder:text-gray-400 text-sm"
           />
         </div>
       </div>
@@ -294,7 +294,7 @@ const TicketsPage: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900/40">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">ID &amp; Title</th>
@@ -313,7 +313,7 @@ const TicketsPage: React.FC = () => {
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
-                        <span className="text-xs font-semibold text-primary-600 mb-0.5">{ticket.ticketNumber}</span>
+                        <span className="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-0.5">{ticket.ticketNumber}</span>
                         <span className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 transition-colors truncate max-w-xs">{ticket.title}</span>
                       </div>
                     </td>
@@ -326,7 +326,7 @@ const TicketsPage: React.FC = () => {
                           {ticket.requester?.department?.name || 'General'}
                         </span>
                         <ArrowRightIcon className="h-3 w-3 text-gray-400" />
-                        <span className="text-xs font-medium text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
+                        <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full">
                           {ticket.receiverDept?.name || 'IT'}
                         </span>
                       </div>
@@ -351,7 +351,7 @@ const TicketsPage: React.FC = () => {
                         {isAdmin && (
                           <button
                             onClick={(e) => promptAction(e, 'delete', ticket.id)}
-                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"
                           >
                             <TrashIcon className="h-4 w-4" />
                           </button>
@@ -360,11 +360,11 @@ const TicketsPage: React.FC = () => {
                           isAdmin) &&
                           ticket.status === 'PENDING_REC_MGR' && (
                           <>
-                            <button onClick={(e) => promptAction(e, 'approve', ticket.id)} className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"><CheckCircleIcon className="h-4 w-4" /></button>
-                            <button onClick={(e) => promptAction(e, 'reject', ticket.id)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><XCircleIcon className="h-4 w-4" /></button>
+                            <button onClick={(e) => promptAction(e, 'approve', ticket.id)} className="p-1.5 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"><CheckCircleIcon className="h-4 w-4" /></button>
+                            <button onClick={(e) => promptAction(e, 'reject', ticket.id)} className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"><XCircleIcon className="h-4 w-4" /></button>
                           </>
                         )}
-                        <button className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"><ChatBubbleLeftRightIcon className="h-4 w-4" /></button>
+                        <button className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"><ChatBubbleLeftRightIcon className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>

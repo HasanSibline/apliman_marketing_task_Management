@@ -62,7 +62,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
         type="button"
         onClick={generateContent}
         disabled={isLoading}
-        className="inline-flex items-center space-x-2 px-3 py-2 text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+        className="inline-flex items-center space-x-2 px-3 py-2 text-primary-600 dark:text-primary-400 hover:text-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"
         title="Generate Content"
       >
         {isLoading ? (
@@ -102,7 +102,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
             <button
               type="button"
               onClick={copyToClipboard}
-              className="inline-flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:text-gray-200"
+              className="inline-flex items-center space-x-2 text-gray-600 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200"
             >
               <ClipboardDocumentIcon className="h-5 w-5" />
               <span>Copy to Clipboard</span>
@@ -111,7 +111,7 @@ const ContentSuggester: React.FC<ContentSuggesterProps> = ({ title, type, onSugg
               <button
                 type="button"
                 onClick={handleApply}
-                className="inline-flex items-center space-x-2 text-primary-600 hover:text-primary-700"
+                className="inline-flex items-center space-x-2 text-primary-600 dark:text-primary-400 hover:text-primary-700"
               >
                 <SparklesIcon className="h-5 w-5" />
                 <span>Apply Suggestions</span>

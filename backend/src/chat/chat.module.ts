@@ -6,10 +6,11 @@ import { ChatLearningService } from './chat-learning.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CompaniesModule } from '../companies/companies.module';
 import { MicrosoftModule } from '../microsoft/microsoft.module';
+import { AiModule } from '../ai/ai.module';
 import { forwardRef } from '@nestjs/common';
 
 @Module({
-  imports: [PrismaModule, HttpModule, forwardRef(() => CompaniesModule), MicrosoftModule],
+  imports: [PrismaModule, HttpModule, forwardRef(() => CompaniesModule), MicrosoftModule, AiModule],
   controllers: [ChatController],
   providers: [ChatService, ChatLearningService],
   exports: [ChatService, ChatLearningService],

@@ -595,7 +595,7 @@ export class CompaniesService {
   /**
    * Encrypt API key using AES-256-CBC
    */
-  private encryptApiKey(apiKey: string): string {
+  encryptApiKey(apiKey: string): string {
     try {
       const encryptionKey = process.env.ENCRYPTION_KEY;
       if (!encryptionKey) {

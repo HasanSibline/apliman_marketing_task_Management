@@ -105,7 +105,7 @@ const WorkflowsPage: React.FC = () => {
                         {workflow.name}
                       </h3>
                       {workflow.isDefault && (
-                        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                        <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded-full">
                           Default
                         </span>
                       )}
@@ -113,7 +113,7 @@ const WorkflowsPage: React.FC = () => {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => handleDeleteWorkflow(workflow.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
+                        className="text-red-600 dark:text-red-400 hover:text-red-800 p-1"
                         title="Delete workflow"
                       >
                         <TrashIcon className="h-4 w-4" />

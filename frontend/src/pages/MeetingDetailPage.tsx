@@ -20,11 +20,11 @@ import { format } from 'date-fns'
 
 // Color palette for speakers — cycles through if > 5 unique speakers
 const SPEAKER_PALETTES = [
-    { avatar: 'from-indigo-500 to-indigo-600', bubble: 'bg-indigo-50 border-indigo-100', text: 'text-indigo-900', name: 'text-indigo-700' },
-    { avatar: 'from-violet-500 to-violet-600', bubble: 'bg-violet-50 border-violet-100', text: 'text-violet-900', name: 'text-violet-700' },
-    { avatar: 'from-emerald-500 to-emerald-600', bubble: 'bg-emerald-50 border-emerald-100', text: 'text-emerald-900', name: 'text-emerald-700' },
-    { avatar: 'from-rose-500 to-rose-600', bubble: 'bg-rose-50 border-rose-100', text: 'text-rose-900', name: 'text-rose-700' },
-    { avatar: 'from-amber-500 to-amber-600', bubble: 'bg-amber-50 border-amber-100', text: 'text-amber-900', name: 'text-amber-700' },
+    { avatar: 'from-indigo-500 to-indigo-600', bubble: 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-100 dark:border-indigo-900/40', text: 'text-indigo-900 dark:text-indigo-300', name: 'text-indigo-700 dark:text-indigo-300' },
+    { avatar: 'from-violet-500 to-violet-600', bubble: 'bg-violet-50 dark:bg-violet-900/30 border-violet-100 dark:border-violet-900/40', text: 'text-violet-900 dark:text-violet-300', name: 'text-violet-700 dark:text-violet-300' },
+    { avatar: 'from-emerald-500 to-emerald-600', bubble: 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-100 dark:border-emerald-900/40', text: 'text-emerald-900 dark:text-emerald-300', name: 'text-emerald-700 dark:text-emerald-300' },
+    { avatar: 'from-rose-500 to-rose-600', bubble: 'bg-rose-50 dark:bg-rose-900/30 border-rose-100 dark:border-rose-900/40', text: 'text-rose-900 dark:text-rose-300', name: 'text-rose-700 dark:text-rose-300' },
+    { avatar: 'from-amber-500 to-amber-600', bubble: 'bg-amber-50 dark:bg-amber-900/30 border-amber-100 dark:border-amber-900/40', text: 'text-amber-900 dark:text-amber-300', name: 'text-amber-700 dark:text-amber-300' },
 ]
 
 const SpeakerTranscript: React.FC<{ transcript: string; isChatFallback: boolean }> = ({ transcript, isChatFallback }) => {
@@ -164,7 +164,7 @@ const MeetingDetailPage: React.FC = () => {
         return (
             <div className="h-full flex flex-col items-center justify-center p-20">
                 <div className="relative mb-8">
-                    <div className="h-20 w-20 border-8 border-indigo-50 rounded-full" />
+                    <div className="h-20 w-20 border-8 border-indigo-50 dark:border-indigo-900/40 rounded-full" />
                     <div className="absolute top-0 h-20 w-20 border-8 border-indigo-600 rounded-full border-t-transparent animate-spin" />
                 </div>
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Accessing Meeting Data</h3>
@@ -200,7 +200,7 @@ const MeetingDetailPage: React.FC = () => {
                                 href={meeting.joinUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-green-50 text-green-700 border border-green-100 hover:bg-green-100 transition-all"
+                                className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-900/40 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all"
                             >
                                 <LinkIcon className="h-4 w-4" />
                                 <span>Join Meeting</span>
@@ -228,10 +228,10 @@ const MeetingDetailPage: React.FC = () => {
             <div className="flex-1 grid grid-cols-12 gap-8 overflow-hidden min-h-0">
                 {/* Transcript Panel */}
                 <div className="col-span-12 lg:col-span-8 flex flex-col bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-2xl shadow-gray-200/50 overflow-hidden">
-                    <div className="px-8 py-8 border-b border-gray-50 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50/50">
+                    <div className="px-8 py-8 border-b border-gray-50 dark:border-gray-700 bg-gradient-to-br from-white dark:from-gray-800 to-gray-50/50">
                         <div className="flex items-start justify-between">
                             <div className="space-y-1">
-                                <div className="flex items-center space-x-2 text-indigo-600 mb-2">
+                                <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 mb-2">
                                     <VideoCameraIcon className="h-4 w-4" />
                                     <p className="text-[11px] font-black uppercase tracking-[0.2em]">Teams Online Meeting</p>
                                 </div>
@@ -281,7 +281,7 @@ const MeetingDetailPage: React.FC = () => {
                                 <button
                                     onClick={() => { setTranscript(null); setTranscriptMsg(null); fetchTranscript() }}
                                     disabled={transcriptLoading}
-                                    className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-full text-xs font-bold text-gray-400 hover:text-gray-600 dark:text-gray-300 hover:border-gray-200 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all disabled:opacity-50"
+                                    className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-full text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 hover:border-gray-200 dark:hover:border-gray-700 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all disabled:opacity-50"
                                 >
                                     <ArrowPathIcon className={`h-3 w-3 ${transcriptLoading ? 'animate-spin' : ''}`} />
                                     <span>{transcriptLoading ? 'Checking...' : 'Sync transcript'}</span>
@@ -328,7 +328,7 @@ const MeetingDetailPage: React.FC = () => {
                     {/* Attendees */}
                     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-200/30 p-5">
                         <h2 className="text-sm font-black text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
-                            <UserGroupIcon className="h-4 w-4 text-indigo-600" />
+                            <UserGroupIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                             <span>Attendees</span>
                             <span className="text-xs font-black text-gray-300 ml-auto">({meeting?.attendees?.length || 0})</span>
                         </h2>
@@ -353,7 +353,7 @@ const MeetingDetailPage: React.FC = () => {
                                             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{person.type}</p>
                                         </div>
                                     </div>
-                                    <div className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600' : 'bg-gray-50 dark:bg-gray-900/40 text-gray-400'}`}>
+                                    <div className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600 dark:text-green-400' : 'bg-gray-50 dark:bg-gray-900/40 text-gray-400'}`}>
                                         {person.status}
                                     </div>
                                 </div>

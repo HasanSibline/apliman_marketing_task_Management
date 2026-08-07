@@ -104,8 +104,8 @@ const DepartmentsManagement: React.FC = () => {
           <div key={dept.id} className="card p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <UserGroupIcon className="h-6 w-6 text-blue-600" />
+                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                  <UserGroupIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white">{dept.name}</h3>
@@ -143,7 +143,7 @@ const DepartmentsManagement: React.FC = () => {
                   type="text" 
                   value={newDeptName}
                   onChange={(e) => setNewDeptName(e.target.value)}
-                  className="input mt-1" 
+                  className="input-field mt-1" 
                   placeholder="e.g. Sales, Development" 
                 />
               </div>
@@ -152,7 +152,7 @@ const DepartmentsManagement: React.FC = () => {
                 <select 
                   value={selectedManagerId}
                   onChange={(e) => setSelectedManagerId(e.target.value)}
-                  className="input mt-1"
+                  className="input-field mt-1"
                 >
                   <option value="">Select a manager</option>
                   {availableUsers.map(u => (

@@ -50,8 +50,8 @@ interface QuarterDetail {
 
 const STATUS_CONFIG = {
     UPCOMING: { label: 'Upcoming', bg: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200', dot: 'bg-gray-400' },
-    ACTIVE: { label: 'Active', bg: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-    CLOSED: { label: 'Closed', bg: 'bg-blue-100 text-blue-700', dot: 'bg-blue-500' },
+    ACTIVE: { label: 'Active', bg: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300', dot: 'bg-green-500' },
+    CLOSED: { label: 'Closed', bg: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300', dot: 'bg-blue-500' },
 }
 
 // --- Simplified Calendar Component ---
@@ -87,13 +87,13 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
         <div className="bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-2xl shadow-gray-200/50">
             <div className="p-8 border-b border-gray-50 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-600">
+                    <div className="h-12 w-12 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center text-primary-600 dark:text-primary-400">
                         <CalendarDaysIcon className="h-6 w-6" />
                     </div>
                     <div>
                         <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
                             {viewDate.toLocaleDateString('en-US', { month: 'long' })}
-                            <span className="text-primary-600 ml-2">{viewDate.getFullYear()}</span>
+                            <span className="text-primary-600 dark:text-primary-400 ml-2">{viewDate.getFullYear()}</span>
                         </h3>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Quarterly Schedule</p>
                     </div>
@@ -111,7 +111,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                 </div>
                 <div className="grid grid-cols-7 gap-4">
                     {Array.from({ length: firstDay }).map((_, i) => (
-                        <div key={`empty-${i}`} className="h-40 bg-gray-50/20 rounded-[24px] border border-dashed border-gray-100 dark:border-gray-700" />
+                        <div key={`empty-${i}`} className="h-40 bg-gray-50/20 dark:bg-gray-900/20 rounded-[24px] border border-dashed border-gray-100 dark:border-gray-700" />
                     ))}
                     {Array.from({ length: daysInMonth }).map((_, i) => {
                         const day = i + 1
@@ -126,7 +126,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                                 : 'bg-white dark:bg-gray-800 border-gray-50 dark:border-gray-700 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-100/20'
                             }`}>
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className={`text-sm font-black ${isToday ? 'text-primary-600' : 'text-gray-400 group-hover:text-primary-600'}`}>
+                                    <span className={`text-sm font-black ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 group-hover:text-primary-600'}`}>
                                         {day.toString().padStart(2, '0')}
                                     </span>
                                     {dayTasks.length > 0 && (
@@ -233,17 +233,17 @@ const QuarterDetailPage: React.FC = () => {
 
                         {/* Stats Summary */}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            <div className="bg-primary-50 p-4 rounded-xl border border-primary-100 flex flex-col items-center justify-center min-w-[120px]">
-                                <span className="text-xs font-bold text-primary-600 uppercase tracking-widest mb-1">Completion</span>
-                                <span className="text-2xl font-black text-primary-900">{completionPct}%</span>
+                            <div className="bg-primary-50 dark:bg-primary-900/30 p-4 rounded-xl border border-primary-100 dark:border-primary-900/40 flex flex-col items-center justify-center min-w-[120px]">
+                                <span className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1">Completion</span>
+                                <span className="text-2xl font-black text-primary-900 dark:text-primary-300">{completionPct}%</span>
                             </div>
-                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 flex flex-col items-center justify-center min-w-[120px]">
-                                <span className="text-xs font-bold text-blue-600 uppercase tracking-widest mb-1">Objectives</span>
-                                <span className="text-2xl font-black text-blue-900">{quarter.objectivesCount}</span>
+                            <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 flex flex-col items-center justify-center min-w-[120px]">
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Objectives</span>
+                                <span className="text-2xl font-black text-blue-900 dark:text-blue-300">{quarter.objectivesCount}</span>
                             </div>
-                            <div className="bg-green-50 p-4 rounded-xl border border-green-100 flex flex-col items-center justify-center min-w-[120px] md:col-span-1 col-span-2">
-                                <span className="text-xs font-bold text-green-600 uppercase tracking-widest mb-1">Total Tasks</span>
-                                <span className="text-2xl font-black text-green-900">{quarter.totalTasks}</span>
+                            <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-xl border border-green-100 dark:border-green-900/40 flex flex-col items-center justify-center min-w-[120px] md:col-span-1 col-span-2">
+                                <span className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest mb-1">Total Tasks</span>
+                                <span className="text-2xl font-black text-green-900 dark:text-green-300">{quarter.totalTasks}</span>
                             </div>
                         </div>
                     </div>
@@ -261,7 +261,7 @@ const QuarterDetailPage: React.FC = () => {
                             key={tab.id}
                             onClick={() => setActiveTab(tab.id as any)}
                             className={`py-4 flex items-center gap-2 text-sm font-bold border-b-2 transition-all ${
-                                activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600 dark:text-gray-300'
+                                activeTab === tab.id ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300'
                             }`}
                         >
                             <tab.icon className="h-4 w-4" />
@@ -294,7 +294,7 @@ const QuarterDetailPage: React.FC = () => {
                                     </div>
                                 ))}
                                 {quarter.objectives.length > 3 && (
-                                    <button onClick={() => setActiveTab('objectives')} className="text-primary-600 text-xs font-bold hover:underline">
+                                    <button onClick={() => setActiveTab('objectives')} className="text-primary-600 dark:text-primary-400 text-xs font-bold hover:underline">
                                         View all {quarter.objectives.length} objectives
                                     </button>
                                 )}
@@ -344,7 +344,7 @@ const QuarterDetailPage: React.FC = () => {
                                     <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-primary-600 transition-all" style={{ width: `${obj.progress}%` }} />
                                     </div>
-                                    <span className="text-xs font-black text-primary-600">{obj.progress}%</span>
+                                    <span className="text-xs font-black text-primary-600 dark:text-primary-400">{obj.progress}%</span>
                                 </div>
                             </Link>
                         ))}
@@ -384,7 +384,7 @@ const QuarterDetailPage: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {task.assignedTo ? (
                                             <div className="flex items-center gap-2">
-                                                <div className="h-6 w-6 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 shrink-0">
+                                                <div className="h-6 w-6 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0">
                                                     <UserCircleIcon className="h-4 w-4" />
                                                 </div>
                                                 <span className="text-xs text-gray-700 dark:text-gray-200 font-bold truncate">{task.assignedTo.name}</span>

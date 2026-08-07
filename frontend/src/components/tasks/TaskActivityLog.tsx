@@ -57,29 +57,29 @@ const TaskActivityLog: React.FC<TaskActivityLogProps> = ({ activities }) => {
   const getActivityColor = (type: string) => {
     switch (type) {
       case 'PHASE_CHANGE':
-        return 'text-blue-600 bg-blue-100'
+        return 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30'
       case 'COMMENT_ADDED':
-        return 'text-green-600 bg-green-100'
+        return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30'
       case 'FILE_ADDED':
-        return 'text-purple-600 bg-purple-100'
+        return 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30'
       case 'TASK_UPDATED':
-        return 'text-orange-600 bg-orange-100'
+        return 'text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-900/30'
       case 'ASSIGNED':
-        return 'text-indigo-600 bg-indigo-100'
+        return 'text-indigo-600 dark:text-indigo-400 bg-indigo-100 dark:bg-indigo-900/30'
       case 'COMPLETED':
-        return 'text-green-600 bg-green-100'
+        return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30'
       case 'DUE_DATE_UPDATED':
-        return 'text-yellow-600 bg-yellow-100'
+        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30'
       case 'PRIORITY_UPDATED':
-        return 'text-red-600 bg-red-100'
+        return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30'
       case 'AI_ANALYSIS':
-        return 'text-primary-600 bg-primary-100'
+        return 'text-primary-600 dark:text-primary-400 bg-primary-100 dark:bg-primary-900/30'
       case 'TASK_REJECTED':
-        return 'text-red-600 bg-red-100'
+        return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30'
       case 'TIME_TRACKING_STARTED':
-        return 'text-green-600 bg-green-100'
+        return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30'
       case 'TIME_TRACKING_PAUSED':
-        return 'text-yellow-600 bg-yellow-100'
+        return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/30'
       case 'TIME_TRACKING_STOPPED':
         return 'text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800'
       default:

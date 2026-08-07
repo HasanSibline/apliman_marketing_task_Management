@@ -357,7 +357,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-all duration-200"
+                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-all duration-200"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -377,7 +377,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     name="workflowId"
                     value={formData.workflowId}
                     onChange={(e) => handleWorkflowChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                     disabled={isLoadingWorkflows}
                   >
                     <option value="">Select a workflow</option>
@@ -426,7 +426,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         type="button"
                         onClick={generateAIContent}
                         disabled={isGeneratingContent || !formData.title.trim() || aiBlocked}
-                        title={aiBlocked ? (quotaExhausted ? `AI quota exhausted${resetCountdown ? ` — resets in ${resetCountdown}` : ' (contact admin to upgrade)'}` : 'AI is not enabled for your company') : ''}
+                        title={aiBlocked ? (quotaExhausted ? `The AI provider rate limited this company's key${resetCountdown ? `. Back in ${resetCountdown}` : '. Try again shortly'}` : 'AI is not enabled for your company') : ''}
                         className="btn-secondary text-sm flex items-center space-x-2 disabled:opacity-40 disabled:cursor-not-allowed absolute right-2 top-1/2 -translate-y-1/2"
                       >
                         <SparklesIcon className="h-4 w-4" />
@@ -436,7 +436,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                     {/* Loading Stage Display */}
                     {isGeneratingContent && loadingStage && (
-                      <div className="mt-2 text-sm text-purple-600 animate-pulse flex items-center">
+                      <div className="mt-2 text-sm text-purple-600 dark:text-purple-400 animate-pulse flex items-center">
                         <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce mr-2"></div>
                         {loadingStage}
                       </div>
@@ -591,7 +591,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         name="keyResultId"
                         value={formData.keyResultId}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-blue-200 bg-blue-50 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
+                        className="w-full px-3 py-2 border border-blue-200 bg-blue-50 dark:bg-blue-900/30 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
                       >
                         <option value="">Overall Objective</option>
                         {objectives
@@ -657,7 +657,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   }))
                                 }
                               }}
-                              className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
+                              className="rounded border-gray-300 dark:border-gray-600 text-primary-600 dark:text-primary-400 focus:ring-primary-500"
                             />
                             <span className="text-sm text-gray-700 dark:text-gray-200">
                               {u.name} ({u.email}) {u.id === user?.id ? '(You)' : ''}
@@ -689,7 +689,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         type="checkbox"
                         checked={formData.generateSubtasks}
                         onChange={(e) => setFormData(prev => ({ ...prev, generateSubtasks: e.target.checked }))}
-                        className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
+                        className="rounded border-gray-300 dark:border-gray-600 text-purple-600 dark:text-purple-400 focus:ring-purple-500"
                       />
                       <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Generate AI subtasks based on task type and workflow
@@ -701,14 +701,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         type="checkbox"
                         checked={formData.autoAssign}
                         onChange={(e) => setFormData(prev => ({ ...prev, autoAssign: e.target.checked }))}
-                        className="rounded border-gray-300 dark:border-gray-600 text-purple-600 focus:ring-purple-500"
+                        className="rounded border-gray-300 dark:border-gray-600 text-purple-600 dark:text-purple-400 focus:ring-purple-500"
                       />
                       <span className="ml-2 text-sm text-gray-700 dark:text-gray-200">
                         Auto-assign subtasks to team members based on their roles
                       </span>
                     </label>
 
-                    <div className="text-xs text-gray-500 dark:text-gray-400 bg-purple-50 p-3 rounded-md">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/30 p-3 rounded-md">
                       <p className="font-medium mb-1">AI will help with:</p>
                       <ul className="list-disc list-inside space-y-1">
                         <li>Task type detection from title</li>
@@ -761,7 +761,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 type="text"
                                 value={subtask.title}
                                 onChange={(e) => updateSubtask(index, 'title', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
                                 placeholder="Subtask title"
                               />
                             </div>
@@ -774,7 +774,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 rows={2}
                                 value={subtask.description}
                                 onChange={(e) => updateSubtask(index, 'description', e.target.value)}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
                                 placeholder="Brief description"
                               />
                             </div>
@@ -787,7 +787,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 <select
                                   value={subtask.phaseName}
                                   onChange={(e) => updateSubtask(index, 'phaseName', e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
                                 >
                                   {selectedWorkflow?.phases.map((phase) => (
                                     <option key={phase.id} value={phase.name}>
@@ -807,7 +807,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   step="0.5"
                                   value={subtask.estimatedHours}
                                   onChange={(e) => updateSubtask(index, 'estimatedHours', e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
                                 />
                               </div>
                             </div>
@@ -815,7 +815,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                             {subtask.suggestedRole && (
                               <div className="flex items-center space-x-2">
                                 <span className="text-xs text-gray-500 dark:text-gray-400">Suggested for:</span>
-                                <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-full">
                                   {subtask.suggestedRole}
                                 </span>
                               </div>
@@ -825,7 +825,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       ))}
                     </div>
 
-                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 bg-green-50 p-3 rounded-md">
+                    <div className="mt-4 text-sm text-gray-600 dark:text-gray-300 bg-green-50 dark:bg-green-900/30 p-3 rounded-md">
                       <p className="font-medium mb-1">📝 These subtasks were generated by AI based on your task details.</p>
                       <p>You can edit, remove, or add custom subtasks. They will be created automatically when you create the task.</p>
                     </div>
@@ -834,7 +834,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               </div>
 
                 {/* Footer - Fixed */}
-                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50">
+                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
                   <button
                     type="button"
                     onClick={onClose}
@@ -893,14 +893,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   <SparklesIcon className="h-6 w-6 mr-2 text-purple-500" />
                   AI Generated Content Preview
                   {aiPreview.aiProvider === 'fallback' && (
-                    <span className="ml-2 text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                    <span className="ml-2 text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded-full">
                       Fallback Mode
                     </span>
                   )}
                 </h2>
                 <button
                   onClick={discardAiContent}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -1026,17 +1026,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                           <div className="flex flex-wrap gap-2 text-xs">
                             {subtask.phaseName && (
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                              <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded inline-flex items-center gap-1">
                                 <MapPinIcon className="w-3 h-3" /> {subtask.phaseName}
                               </span>
                             )}
                             {(subtask.suggestedUserName || subtask.suggestedRole) && (
-                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                              <span className="bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded inline-flex items-center gap-1">
                                 <UserIcon className="w-3 h-3" /> {subtask.suggestedUserName || subtask.suggestedRole}
                               </span>
                             )}
                             {subtask.estimatedHours && (
-                              <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded inline-flex items-center gap-1">
+                              <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 px-2 py-1 rounded inline-flex items-center gap-1">
                                 <ClockIcon className="w-3 h-3" /> {subtask.estimatedHours}h
                               </span>
                             )}
@@ -1071,8 +1071,8 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* AI Provider Info */}
                 <div className={`p-4 rounded-lg ${aiPreview.aiProvider === 'fallback'
-                  ? 'bg-yellow-50 border border-yellow-200'
-                  : 'bg-green-50 border border-green-200'
+                  ? 'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200'
+                  : 'bg-green-50 dark:bg-green-900/30 border border-green-200'
                   }`}>
                   <p className="text-sm">
                     {aiPreview.aiProvider === 'fallback' ? (

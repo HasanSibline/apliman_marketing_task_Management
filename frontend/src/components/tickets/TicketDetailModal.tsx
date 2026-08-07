@@ -308,12 +308,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
         >
           {isLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <ArrowPathIcon className="h-10 w-10 text-primary-600 animate-spin" />
+              <ArrowPathIcon className="h-10 w-10 text-primary-600 dark:text-primary-400 animate-spin" />
             </div>
           ) : (
             <>
               {/* Premium Header Strip */}
-              <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+              <div className="px-8 py-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-gray-50 dark:from-gray-900/20 to-white dark:to-gray-800">
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <span className="bg-primary-600 text-white px-4 py-1.5 rounded-xl text-[11px] font-black tracking-widest uppercase border border-primary-500">
                     {ticket.ticketNumber}
@@ -337,13 +337,13 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       onClick={() => setIsEditing(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-primary-500 transition-all shadow-sm"
                     >
-                      <PencilSquareIcon className="h-4 w-4 text-primary-600" /> Modify
+                      <PencilSquareIcon className="h-4 w-4 text-primary-600 dark:text-primary-400" /> Modify
                     </button>
                   )}
                   {isAdmin && (
                     <button 
                       onClick={handleDeleteTicket}
-                      className="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm"
+                      className="p-2.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 dark:border-rose-900/40 shadow-sm"
                     >
                       <TrashIcon className="h-5 w-5" />
                     </button>
@@ -351,7 +351,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-2" />
                   <button
                     onClick={onClose}
-                    className="p-2.5 bg-gray-100/50 hover:bg-gray-200 rounded-xl text-gray-400 hover:text-gray-900 dark:text-white transition-all"
+                    className="p-2.5 bg-gray-100/50 dark:bg-gray-900/40 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white dark:text-white transition-all"
                   >
                     <XMarkIcon className="h-6 w-6" />
                   </button>
@@ -360,7 +360,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
               <div className="flex-1 flex overflow-hidden">
                 {/* Left Panel: Configuration & Metadata */}
-                <div className="w-[480px] border-r border-gray-100 dark:border-gray-700 overflow-y-auto p-8 space-y-8 bg-gray-50/20">
+                <div className="w-[480px] border-r border-gray-100 dark:border-gray-700 overflow-y-auto p-8 space-y-8 bg-gray-50/20 dark:bg-gray-900/20">
                   
                   {/* Process Control Card */}
                   <div className="bg-white dark:bg-gray-800 p-6 rounded-[1.5rem] border border-gray-100 dark:border-gray-700 space-y-6">
@@ -370,9 +370,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                         <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest italic tracking-tighter">Process Workflow</span>
                       </div>
                       <span className={`px-4 py-1.5 rounded-xl text-[11px] font-black uppercase tracking-widest border
-                        ${ticket.status === 'RESOLVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                          ticket.status === 'CANCELLED' ? 'bg-rose-50 text-rose-700 border-rose-100' :
-                          'bg-indigo-50 text-indigo-700 border-indigo-100'}`}>
+                        ${ticket.status === 'RESOLVED' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border-emerald-100 dark:border-emerald-900/40' : 
+                          ticket.status === 'CANCELLED' ? 'bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 border-rose-100 dark:border-rose-900/40' :
+                          'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-100 dark:border-indigo-900/40'}`}>
                         {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' :
                           ticket.status === 'ASSIGNED' ? (() => {
                             const count = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
@@ -387,11 +387,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     {isEditing ? (
                       <div className="space-y-4 pt-2">
                          <div className="space-y-2">
-                            <label className="text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1">Redirect To Dept</label>
+                            <label className="text-[11px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1">Redirect To Dept</label>
                             <select
                               value={editData.receiverDeptId}
                               onChange={(e) => setEditData({...editData, receiverDeptId: e.target.value})}
-                              className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                              className="w-full text-xs border-2 border-primary-50 dark:border-primary-900/40 rounded-xl p-3 bg-primary-50/30 dark:bg-primary-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
                             >
                                 <option value="">Select Destination...</option>
                                 {departments.map(d => (
@@ -402,11 +402,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
                          {isAdmin && (
                          <div className="space-y-2">
-                            <label className="text-[11px] font-black text-rose-600 uppercase tracking-widest ml-1">Manual Status Override</label>
+                            <label className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest ml-1">Manual Status Override</label>
                             <select
                               value={editData.status}
                               onChange={(e) => setEditData({...editData, status: e.target.value})}
-                              className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                              className="w-full text-xs border-2 border-rose-50 dark:border-rose-900/40 rounded-xl p-3 bg-rose-50/30 dark:bg-rose-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
                             >
                                 {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                                   <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -425,7 +425,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             </button>
                             <button 
                               onClick={() => { setIsEditing(false); fetchTicketDetails(); }}
-                              className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all"
+                              className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
                             >
                                Cancel
                             </button>
@@ -434,11 +434,11 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     ) : (
                       <div className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
-                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                            <div className="p-3 bg-gray-50/50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
                                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Requester Authority</p>
                                <p className="text-xs font-black text-gray-800 dark:text-gray-100 truncate">{ticket.requesterManager?.name || 'Authorized'}</p>
                             </div>
-                            <div className="p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                            <div className="p-3 bg-gray-50/50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
                                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1 italic">Receiver Authority</p>
                                <p className="text-xs font-black text-gray-800 dark:text-gray-100 truncate">{ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Not Selected'}</p>
                             </div>
@@ -452,7 +452,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                               <button onClick={handleApprove} className="w-full bg-emerald-600 text-white rounded-xl py-3 text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-emerald-100 hover:bg-emerald-700 transition-all">
                                 <CheckCircleIcon className="h-4 w-4" /> Finalize Approval
                               </button>
-                              <button onClick={handleReject} className="w-full bg-rose-50 text-rose-600 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest border border-rose-100 flex items-center justify-center gap-2 hover:bg-rose-100 transition-all">
+                              <button onClick={handleReject} className="w-full bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest border border-rose-100 dark:border-rose-900/40 flex items-center justify-center gap-2 hover:bg-rose-100 dark:hover:bg-rose-900/30 transition-all">
                                 <XCircleIcon className="h-4 w-4" /> Reject Request
                               </button>
                             </div>
@@ -528,7 +528,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       <button 
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
-                        className="p-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-all"
+                        className="p-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-all"
                       >
                          {isUploading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <PlusIcon className="h-4 w-4" />}
                       </button>
@@ -537,9 +537,9 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
 
                     <div className="space-y-2">
                         {attachments.map(att => (
-                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/50 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all group">
+                         <div key={att.id} className="flex items-center justify-between p-3 bg-gray-50/50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all group">
                             <div className="flex items-center gap-3 min-w-0">
-                               <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 shadow-sm">
+                               <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm">
                                   <DocumentIcon className="h-4 w-4" />
                                </div>
                                <div className="min-w-0 overflow-hidden">
@@ -550,14 +550,14 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                <button 
                                  onClick={() => handleDownload(att.id, att.fileName)}
-                                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg"
+                                 className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
                                >
                                   <ArrowDownTrayIcon className="h-4 w-4" />
                                </button>
                                {(isAdmin || ticket.requesterId === user?.id) && (
                                  <button 
                                    onClick={() => handleDeleteAttachment(att.id)}
-                                   className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg"
+                                   className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg"
                                  >
                                     <TrashIcon className="h-4 w-4" />
                                  </button>
@@ -580,7 +580,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       <textarea
                         value={editData.description}
                         onChange={(e) => setEditData({...editData, description: e.target.value})}
-                        className="w-full px-5 py-4 bg-white dark:bg-gray-800 border-2 border-primary-50 rounded-[1.5rem] text-[11px] font-bold text-gray-800 dark:text-gray-100 leading-relaxed min-h-[160px] focus:outline-none focus:border-primary-500 transition-all font-outfit"
+                        className="w-full px-5 py-4 bg-white dark:bg-gray-800 border-2 border-primary-50 dark:border-primary-900/40 rounded-[1.5rem] text-[11px] font-bold text-gray-800 dark:text-gray-100 leading-relaxed min-h-[160px] focus:outline-none focus:border-primary-500 transition-all font-outfit"
                         placeholder="Define background and context..."
                       />
                     ) : (
@@ -595,7 +595,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                 <div className="flex-1 flex flex-col bg-white dark:bg-gray-800">
                   {/* Comm Channel */}
                   <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8">
-                    <div className="flex items-center gap-2 mb-4 bg-gray-50/50 p-2 rounded-xl w-fit">
+                    <div className="flex items-center gap-2 mb-4 bg-gray-50/50 dark:bg-gray-900/40 p-2 rounded-xl w-fit">
                         <ChatBubbleLeftRightIcon className="h-4 w-4 text-primary-500" />
                         <h3 className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest italic tracking-tighter">Organizational Engagement Thread</h3>
                     </div>
@@ -644,17 +644,17 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                   </div>
 
                   {/* Broadcasting Center */}
-                  <div className="p-8 border-t border-gray-100 dark:border-gray-700 bg-gray-50/10 relative">
+                  <div className="p-8 border-t border-gray-100 dark:border-gray-700 bg-gray-50/10 dark:bg-gray-900/10 relative">
                     {showMentions && filteredUsers.length > 0 && (
                       <div className="absolute bottom-full left-8 mb-4 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
-                        <div className="bg-gray-50/50 px-5 py-3 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 italic tracking-widest">Broadcast Target Selector</div>
+                        <div className="bg-gray-50/50 dark:bg-gray-900/40 px-5 py-3 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 italic tracking-widest">Broadcast Target Selector</div>
                         {filteredUsers.map(u => (
                           <button
                             key={u.id}
                             onClick={() => insertMention(u.name)}
-                            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-primary-50 text-left transition-all border-b border-gray-50 dark:border-gray-700 last:border-0 group"
+                            className="w-full flex items-center gap-4 px-5 py-4 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-left transition-all border-b border-gray-50 dark:border-gray-700 last:border-0 group"
                           >
-                            <div className="h-10 w-10 rounded-xl bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
+                            <div className="h-10 w-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center overflow-hidden border border-primary-200 shadow-sm group-hover:scale-110 transition-transform">
                               {u.avatar ? (
                                 <img 
                                   src={formatAssetUrl(u.avatar)} 

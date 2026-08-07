@@ -43,7 +43,7 @@ function ResetPasswordModal({
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-orange-600 text-xl">🔑</div>
+          <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 text-xl">🔑</div>
           <div>
             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Reset Admin Password</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400">{company.name}</p>
@@ -112,9 +112,9 @@ function CredentialsModal({
         </div>
 
         {/* Warning */}
-        <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+        <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-xl flex items-start gap-2">
           <span className="text-amber-500 mt-0.5">⚠️</span>
-          <p className="text-xs text-amber-700 font-medium">
+          <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
             This password is shown only once. Copy and share it with the company admin securely before closing.
           </p>
         </div>
@@ -132,8 +132,8 @@ function CredentialsModal({
                   onClick={() => copy(value, label)}
                   className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition
                     ${copied === label
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'}`}
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
+                      : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'}`}
                 >
                   {copied === label ? '✓ Copied' : 'Copy'}
                 </button>
@@ -150,7 +150,7 @@ function CredentialsModal({
               navigator.clipboard.writeText(all);
               toast.success('All credentials copied!');
             }}
-            className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition"
+            className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition"
           >
             📋 Copy All
           </button>
@@ -255,13 +255,13 @@ export default function SuperAdminDashboard() {
 
   const planBadge: Record<string, string> = {
     FREE: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
-    PRO: 'bg-purple-100 text-purple-700',
-    ENTERPRISE: 'bg-indigo-100 text-indigo-700',
+    PRO: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
+    ENTERPRISE: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300',
   };
   const statusBadge: Record<string, string> = {
-    ACTIVE: 'bg-green-100 text-green-700',
-    TRIAL: 'bg-blue-100 text-blue-700',
-    EXPIRED: 'bg-red-100 text-red-700',
+    ACTIVE: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300',
+    TRIAL: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300',
+    EXPIRED: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300',
     SUSPENDED: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300',
   };
 
@@ -301,7 +301,7 @@ export default function SuperAdminDashboard() {
               onClick={() => navigate('/admin/plans')}
               className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition font-semibold shadow-sm flex items-center gap-2"
             >
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
               </svg>
@@ -317,17 +317,17 @@ export default function SuperAdminDashboard() {
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">{error}</div>
+          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl">{error}</div>
         )}
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           {[
             { label: 'Companies', value: companies.length, color: 'text-gray-900 dark:text-white' },
-            { label: 'Active', value: companies.filter(c => c.subscriptionStatus === 'ACTIVE').length, color: 'text-green-600' },
-            { label: 'Trial', value: companies.filter(c => c.subscriptionStatus === 'TRIAL').length, color: 'text-blue-600' },
-            { label: 'Suspended', value: companies.filter(c => !c.isActive || c.subscriptionStatus === 'SUSPENDED').length, color: 'text-red-600' },
-            { label: 'Total Users', value: companies.reduce((a, c) => a + (c._count?.users || 0), 0), color: 'text-indigo-600' },
+            { label: 'Active', value: companies.filter(c => c.subscriptionStatus === 'ACTIVE').length, color: 'text-green-600 dark:text-green-400' },
+            { label: 'Trial', value: companies.filter(c => c.subscriptionStatus === 'TRIAL').length, color: 'text-blue-600 dark:text-blue-400' },
+            { label: 'Suspended', value: companies.filter(c => !c.isActive || c.subscriptionStatus === 'SUSPENDED').length, color: 'text-red-600 dark:text-red-400' },
+            { label: 'Total Users', value: companies.reduce((a, c) => a + (c._count?.users || 0), 0), color: 'text-indigo-600 dark:text-indigo-400' },
             { label: 'AI Enabled', value: companies.filter(c => c.aiEnabled).length, color: 'text-primary-600 dark:text-primary-400' },
           ].map(s => (
             <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-100 dark:border-gray-700">
@@ -407,7 +407,7 @@ export default function SuperAdminDashboard() {
                           onClick={() => handleToggleAI(company.id, company.aiEnabled)}
                           title={company.aiEnabled ? 'Disable AI' : 'Enable AI'}
                           className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition
-                            ${company.aiEnabled ? 'bg-green-50 text-green-700 hover:bg-green-100' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-gray-200'}`}
+                            ${company.aiEnabled ? 'bg-green-50 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
                         >
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -420,26 +420,26 @@ export default function SuperAdminDashboard() {
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-1.5">
                           {/* View */}
-                          <ActionBtn title="View Details" color="text-blue-600 hover:bg-blue-50"
+                          <ActionBtn title="View Details" color="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
                             onClick={() => navigate(`/admin/companies/${company.id}`)}>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </ActionBtn>
 
                           {/* Edit */}
-                          <ActionBtn title="Edit Company" color="text-indigo-600 hover:bg-indigo-50"
+                          <ActionBtn title="Edit Company" color="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
                             onClick={() => navigate(`/admin/companies/${company.id}/edit`)}>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                           </ActionBtn>
 
                           {/* Reset password */}
-                          <ActionBtn title="Reset Admin Password" color="text-orange-500 hover:bg-orange-50"
+                          <ActionBtn title="Reset Admin Password" color="text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30"
                             onClick={() => setResetTarget(company)}>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                           </ActionBtn>
 
                           {/* Delete */}
-                          <ActionBtn title="Delete Company" color="text-red-500 hover:bg-red-50"
+                          <ActionBtn title="Delete Company" color="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
                             onClick={() => handleDeleteCompany(company.id, company.name)}>
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                           </ActionBtn>

@@ -57,56 +57,56 @@ const AdminAnalytics: React.FC = () => {
       value: stats.totalCompanies,
       icon: BuildingOfficeIcon,
       color: 'bg-blue-500',
-      textColor: 'text-blue-600',
-      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600 dark:text-blue-400',
+      bgColor: 'bg-blue-50 dark:bg-blue-900/30',
     },
     {
       name: 'Active Companies',
       value: stats.activeCompanies,
       icon: CheckCircleIcon,
       color: 'bg-green-500',
-      textColor: 'text-green-600',
-      bgColor: 'bg-green-50',
+      textColor: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-50 dark:bg-green-900/30',
     },
     {
       name: 'On Trial',
       value: stats.companiesOnTrial,
       icon: ClockIcon,
       color: 'bg-yellow-500',
-      textColor: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
+      textColor: 'text-yellow-600 dark:text-yellow-400',
+      bgColor: 'bg-yellow-50 dark:bg-yellow-900/30',
     },
     {
       name: 'Suspended/Expired',
       value: stats.suspendedCompanies + stats.companiesExpired,
       icon: ExclamationTriangleIcon,
       color: 'bg-red-500',
-      textColor: 'text-red-600',
-      bgColor: 'bg-red-50',
+      textColor: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-50 dark:bg-red-900/30',
     },
     {
       name: 'Total Users',
       value: stats.totalUsers,
       icon: UsersIcon,
       color: 'bg-purple-500',
-      textColor: 'text-purple-600',
-      bgColor: 'bg-purple-50',
+      textColor: 'text-purple-600 dark:text-purple-400',
+      bgColor: 'bg-purple-50 dark:bg-purple-900/30',
     },
     {
       name: 'Total Tasks',
       value: stats.totalTasks,
       icon: ChartBarIcon,
       color: 'bg-indigo-500',
-      textColor: 'text-indigo-600',
-      bgColor: 'bg-indigo-50',
+      textColor: 'text-indigo-600 dark:text-indigo-400',
+      bgColor: 'bg-indigo-50 dark:bg-indigo-900/30',
     },
     {
       name: 'AI Messages',
       value: stats.totalAIMessages,
       icon: CpuChipIcon,
       color: 'bg-pink-500',
-      textColor: 'text-pink-600',
-      bgColor: 'bg-pink-50',
+      textColor: 'text-pink-600 dark:text-pink-400',
+      bgColor: 'bg-pink-50 dark:bg-pink-900/30',
     },
   ];
 
@@ -195,14 +195,14 @@ const AdminAnalytics: React.FC = () => {
         </div>
       </div>
 
-      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="mt-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg p-4">
         <div className="flex">
           <div className="flex-shrink-0">
             <ChartBarIcon className="h-5 w-5 text-blue-400" aria-hidden="true" />
           </div>
           <div className="ml-3">
-            <h3 className="text-sm font-medium text-blue-800">Analytics Note</h3>
-            <div className="mt-2 text-sm text-blue-700">
+            <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">Analytics Note</h3>
+            <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
               <p>
                 These statistics are calculated in real-time across all companies. 
                 For detailed company-specific analytics, visit individual company pages.

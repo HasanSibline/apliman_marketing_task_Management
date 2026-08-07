@@ -12,11 +12,12 @@ logger = logging.getLogger(__name__)
 class ContextLearningService:
     """Advanced AI-powered context learning service that learns and updates user information"""
 
-    def __init__(self, api_key: str, model_name: str):
+    def __init__(self, api_key: str, model_name: str, provider: str = "gemini"):
         self.api_key = api_key
         self.model_name = model_name
+        self.provider = (provider or "gemini").lower()
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-        logger.info(f"✅ ContextLearningService initialized with {model_name}")
+        logger.info(f"✅ ContextLearningService initialized with {self.provider} ({model_name})")
 
     async def extract_and_update_context(
         self,
@@ -326,11 +327,58 @@ JSON Response:"""
                 pass
         
     async def _generate_via_rest(self, prompt: str) -> str:
-        """Make a stateless request to Gemini API via REST with retry logic for rate limits"""
+        """Make a stateless request to the configured provider with retry logic for rate limits.
+
+        Background learning is a second AI call per chat message, so it uses the same
+        provider as the conversation itself. Sending a Claude/Groq key to Google's
+        endpoint — which is what happened before this was provider-aware — burned a
+        request and always failed.
+        """
+        if self.provider == "anthropic":
+            from .anthropic_client import generate as anthropic_generate
+
+            # Background learning is best-effort: keep it cheap and short.
+            return await anthropic_generate(
+                api_key=self.api_key,
+                prompt=prompt,
+                model=self.model_name,
+                max_tokens=1024,
+                effort="low",
+            )
+
+        if self.provider in ("groq", "openai"):
+            base_url = (
+                "https://api.groq.com/openai/v1"
+                if self.provider == "groq"
+                else "https://api.openai.com/v1"
+            )
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{base_url}/chat/completions",
+                    headers={
+                        "Content-Type": "application/json",
+                        "Authorization": f"Bearer {self.api_key}",
+                    },
+                    json={
+                        "model": self.model_name,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "temperature": 0.3,
+                        "max_tokens": 1024,
+                    },
+                    timeout=aiohttp.ClientTimeout(total=20),
+                ) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return data["choices"][0]["message"]["content"]
+                    error_text = await response.text()
+                    raise Exception(
+                        f"{self.provider} learning API failure ({response.status}): {error_text[:200]}"
+                    )
+
         payload = {
             "contents": [{"parts": [{"text": prompt}]}]
         }
-        
+
         attempts = 0
         max_attempts = 2 # Fewer attempts for background learning than for main chat
         last_error = None

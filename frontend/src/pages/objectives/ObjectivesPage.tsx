@@ -49,10 +49,10 @@ interface Quarter {
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CFG = {
-    ON_TRACK: { label: 'On Track', dot: 'bg-green-500', text: 'text-green-700', bg: 'bg-green-100', Icon: CheckCircleIcon },
-    AT_RISK: { label: 'At Risk', dot: 'bg-yellow-500', text: 'text-yellow-700', bg: 'bg-yellow-100', Icon: ExclamationTriangleIcon },
-    OFF_TRACK: { label: 'Off Track', dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-100', Icon: XCircleIcon },
-    COMPLETED: { label: 'Completed', dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-100', Icon: CheckCircleIcon },
+    ON_TRACK: { label: 'On Track', dot: 'bg-green-500', text: 'text-green-700 dark:text-green-300', bg: 'bg-green-100 dark:bg-green-900/30', Icon: CheckCircleIcon },
+    AT_RISK: { label: 'At Risk', dot: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-300', bg: 'bg-yellow-100 dark:bg-yellow-900/30', Icon: ExclamationTriangleIcon },
+    OFF_TRACK: { label: 'Off Track', dot: 'bg-red-500', text: 'text-red-700 dark:text-red-300', bg: 'bg-red-100 dark:bg-red-900/30', Icon: XCircleIcon },
+    COMPLETED: { label: 'Completed', dot: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-100 dark:bg-blue-900/30', Icon: CheckCircleIcon },
     CANCELLED: { label: 'Cancelled', dot: 'bg-gray-400', text: 'text-gray-600 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800', Icon: XMarkIcon },
 }
 
@@ -90,8 +90,8 @@ function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string
                         <>
                             <input type="number" value={val} onChange={e => setVal(+e.target.value)}
                                 className="w-20 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500" />
-                            <button onClick={save} className="text-xs text-primary-600 font-medium hover:text-primary-700">Save</button>
-                            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 dark:text-gray-300">Cancel</button>
+                            <button onClick={save} className="text-xs text-primary-600 dark:text-primary-400 font-medium hover:text-primary-700">Save</button>
+                            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">Cancel</button>
                         </>
                     ) : (
                         <>
@@ -138,7 +138,7 @@ function CreateObjectiveModal({
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Objective</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
@@ -313,7 +313,7 @@ const ObjectivesPage: React.FC = () => {
                     </td>
                 </motion.tr>
                 {(expanded || (canEdit && obj.keyResults.length === 0)) && (
-                    <tr className="bg-gray-50/50">
+                    <tr className="bg-gray-50/50 dark:bg-gray-900/40">
                         <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100 dark:border-gray-700">
                             <div className="pl-14 pr-8 space-y-3">
                                 {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Key Results</h4>}
@@ -321,7 +321,7 @@ const ObjectivesPage: React.FC = () => {
                                     <KRBar key={kr.id} kr={kr} canEdit={canEdit} onUpdate={updateKR} />
                                 ))}
                                 {canEdit && !addingKR && (
-                                    <button onClick={() => setAddingKR(true)} className="flex items-center gap-1 text-xs text-primary-600 hover:text-primary-700 font-medium pt-1">
+                                    <button onClick={() => setAddingKR(true)} className="flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium pt-1">
                                         <PlusIcon className="h-3.5 w-3.5" /> {obj.keyResults.length === 0 ? 'Add first key result' : 'Add key result'}
                                     </button>
                                 )}
@@ -370,17 +370,17 @@ const ObjectivesPage: React.FC = () => {
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="bg-white/10 p-1 rounded-xl flex">
-                            <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'list' ? 'bg-white dark:bg-gray-800 text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
+                            <button onClick={() => setViewMode('list')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'list' ? 'bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
                                 <ListBulletIcon className="h-4 w-4" />
                                 List
                             </button>
-                            <button onClick={() => setViewMode('analytics')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'analytics' ? 'bg-white dark:bg-gray-800 text-primary-700 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
+                            <button onClick={() => setViewMode('analytics')} className={`px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition ${viewMode === 'analytics' ? 'bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 shadow-sm' : 'text-primary-100 hover:text-white'}`}>
                                 <ChartBarIcon className="h-4 w-4" />
                                 Analytics
                             </button>
                         </div>
                         {canEdit && (
-                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 transition shadow-sm border border-primary-200">
+                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 rounded-lg font-bold text-sm hover:bg-primary-50 dark:hover:bg-primary-900/30 transition shadow-sm border border-primary-200">
                                 <PlusIcon className="h-4 w-4 stroke-2" />
                                 New Objective
                             </button>
@@ -397,10 +397,10 @@ const ObjectivesPage: React.FC = () => {
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                         {[
                             { label: 'Total', value: stats.total, color: 'text-gray-900 dark:text-white' },
-                            { label: 'On Track', value: stats.onTrack, color: 'text-green-700' },
-                            { label: 'At Risk', value: stats.atRisk, color: 'text-yellow-700' },
-                            { label: 'Completed', value: stats.completed, color: 'text-blue-700' },
-                            { label: 'Avg Progress', value: `${stats.avgProgress}%`, color: 'text-primary-700' },
+                            { label: 'On Track', value: stats.onTrack, color: 'text-green-700 dark:text-green-300' },
+                            { label: 'At Risk', value: stats.atRisk, color: 'text-yellow-700 dark:text-yellow-300' },
+                            { label: 'Completed', value: stats.completed, color: 'text-blue-700 dark:text-blue-300' },
+                            { label: 'Avg Progress', value: `${stats.avgProgress}%`, color: 'text-primary-700 dark:text-primary-300' },
                         ].map(s => (
                             <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
                                 <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mb-1">{s.label}</p>
@@ -438,7 +438,7 @@ const ObjectivesPage: React.FC = () => {
                     ) : (
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
+                                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-900/40">
                                         <tr>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/3">Objective & Progress</th>

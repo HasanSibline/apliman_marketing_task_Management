@@ -36,11 +36,11 @@ const StatsCard: React.FC<StatsCardProps> = ({
           {change && (
             <div className="flex items-center mt-2">
               <span className={`text-sm font-medium ${
-                change.type === 'increase' ? 'text-green-600' : 'text-red-600'
+                change.type === 'increase' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
               }`}>
                 {change.type === 'increase' ? '+' : '-'}{Math.abs(change.value)}%
               </span>
-              <span className="text-sm text-gray-500 ml-1">from last month</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400 ml-1">from last month</span>
             </div>
           )}
         </div>

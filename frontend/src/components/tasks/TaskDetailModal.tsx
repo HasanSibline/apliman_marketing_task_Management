@@ -174,10 +174,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
   const getPriorityColor = (priority: number) => {
     switch (priority) {
       case 1: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
-      case 2: return 'bg-blue-100 text-blue-800'
-      case 3: return 'bg-yellow-100 text-yellow-800'
-      case 4: return 'bg-orange-100 text-orange-800'
-      case 5: return 'bg-red-100 text-red-800'
+      case 2: return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+      case 3: return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+      case 4: return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300'
+      case 5: return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
       default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
     }
   }
@@ -196,10 +196,10 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
   const getPhaseColor = (phase: string) => {
     switch (phase) {
       case 'PENDING_APPROVAL': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
-      case 'APPROVED': return 'bg-blue-100 text-blue-800'
-      case 'ASSIGNED': return 'bg-purple-100 text-purple-800'
-      case 'IN_PROGRESS': return 'bg-yellow-100 text-yellow-800'
-      case 'COMPLETED': return 'bg-green-100 text-green-800'
+      case 'APPROVED': return 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300'
+      case 'ASSIGNED': return 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300'
+      case 'IN_PROGRESS': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+      case 'COMPLETED': return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
       case 'ARCHIVED': return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
       default: return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'
     }
@@ -266,7 +266,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     )}
                     <button
                       onClick={onClose}
-                      className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                     >
                       <XMarkIcon className="h-6 w-6" />
                     </button>
@@ -417,7 +417,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                                   }
                                 }}
                                 disabled={isLoading}
-                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md transition-colors"
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-md transition-colors"
                               >
                                 {isLoading ? (
                                   <ArrowPathIcon className="h-3 w-3 animate-spin mr-1" />
@@ -460,7 +460,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                                     setIsLoading(false)
                                   }
                                 }}
-                                className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium"
                                 disabled={isLoading}
                               >
                                 {isLoading ? 'Saving...' : 'Save'}
@@ -503,7 +503,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                                   }
                                 }}
                                 disabled={isLoading}
-                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-md transition-colors"
+                                className="inline-flex items-center px-2 py-1 text-xs font-medium text-primary-600 dark:text-primary-400 hover:text-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-md transition-colors"
                               >
                                 {isLoading ? (
                                   <ArrowPathIcon className="h-3 w-3 animate-spin mr-1" />
@@ -584,8 +584,8 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         <h4 className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">Task Phase</h4>
                         {task.phase === 'PENDING_APPROVAL' && (user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') ? (
                           <div className="space-y-2">
-                            <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <span className="text-sm font-medium text-yellow-800">Pending Approval</span>
+                            <div className="flex items-center justify-between px-4 py-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 rounded-md">
+                              <span className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Pending Approval</span>
                               <div className="flex items-center space-x-2">
                                 <button
                                   onClick={() => handlePhaseChange('APPROVED')}
@@ -625,7 +625,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                                         } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
                                       >
                                         {task.phase === phase.key && (
-                                          <CheckIcon className="h-4 w-4 mr-3 text-primary-600" />
+                                          <CheckIcon className="h-4 w-4 mr-3 text-primary-600 dark:text-primary-400" />
                                         )}
                                         <span className={task.phase !== phase.key ? 'ml-7' : ''}>
                                           {phase.title}

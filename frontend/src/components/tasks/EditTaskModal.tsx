@@ -115,20 +115,20 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Task</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
 
             {isLocked && (
-              <div className="mb-6 p-4 bg-indigo-50 border border-indigo-100 rounded-xl flex items-center gap-3">
-                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600">
+              <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-900/40 rounded-xl flex items-center gap-3">
+                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400">
                   <LockClosedIcon className="h-5 w-5" />
                 </div>
                 <div>
-                    <p className="text-sm font-bold text-indigo-900 leading-none">Strategic Lock Active</p>
-                    <p className="text-xs text-indigo-600 mt-1 uppercase tracking-wider font-bold">This task is part of a future cycle ({task?.quarter?.name}) and is restricted to Admin review.</p>
+                    <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300 leading-none">Strategic Lock Active</p>
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 uppercase tracking-wider font-bold">This task is part of a future cycle ({task?.quarter?.name}) and is restricted to Admin review.</p>
                 </div>
               </div>
             )}
@@ -144,7 +144,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   required
                 />
               </div>
@@ -158,7 +158,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                 />
               </div>
 
@@ -171,7 +171,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   value={formData.goals}
                   onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                 />
               </div>
 
@@ -186,7 +186,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value={1}>Low</option>
                     <option value={2}>Medium</option>
@@ -204,7 +204,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     type="date"
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   />
                 </div>
               </div>
@@ -219,7 +219,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   <select
                     value={formData.quarterId}
                     onChange={(e) => setFormData({ ...formData, quarterId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">No Quarter</option>
                     {quarters.map((q) => (
@@ -236,7 +236,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   <select
                     value={formData.objectiveId}
                     onChange={(e) => setFormData({ ...formData, objectiveId: e.target.value, keyResultId: '' })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   >
                     <option value="">No Objective</option>
                     {objectives
@@ -256,7 +256,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     <select
                       value={formData.keyResultId}
                       onChange={(e) => setFormData({ ...formData, keyResultId: e.target.value })}
-                      className="w-full px-4 py-2 border border-blue-300 bg-blue-50/50 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent font-medium"
+                      className="w-full px-4 py-2 border border-blue-300 bg-blue-50/50 dark:bg-blue-900/40 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
                     >
                       <option value="">Overall Objective</option>
                       {objectives
@@ -296,7 +296,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                               })
                             }
                           }}
-                          className="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
+                          className="w-4 h-4 text-blue-600 dark:text-blue-400 border-gray-300 dark:border-gray-600 rounded focus:ring-primary-500"
                         />
                         <span className="text-sm text-gray-700 dark:text-gray-200">{user.name} - {user.position}</span>
                       </label>

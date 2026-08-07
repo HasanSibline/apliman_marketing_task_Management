@@ -4,12 +4,12 @@ import { BRAND } from '@/config/brand'
 
 const LoadingScreen: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-900/20 to-primary-100 dark:to-primary-900/20 flex items-center justify-center">
       <div className="glass-card rounded-2xl p-8 max-w-md w-full mx-4">
         <div className="text-center">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-800">{BRAND.name}</h1>
+            <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">{BRAND.name}</h1>
           </div>
 
           {/* Loading Animation */}
@@ -44,10 +44,10 @@ const LoadingScreen: React.FC = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <h2 className="text-xl font-semibold text-gray-800 mb-2">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-2">
               Loading {BRAND.fullName}
             </h2>
-            <p className="text-gray-600 text-sm">
+            <p className="text-gray-600 dark:text-gray-300 text-sm">
               Preparing your workspace...
             </p>
           </motion.div>

@@ -147,12 +147,12 @@ export default function CompanyDetails() {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
             {error || 'Company not found'}
           </div>
           <button
             onClick={() => navigate('/admin/companies')}
-            className="mt-4 text-blue-600 hover:text-blue-800"
+            className="mt-4 text-blue-600 dark:text-blue-400 hover:text-blue-800"
           >
             ← Back to Companies
           </button>
@@ -173,7 +173,7 @@ export default function CompanyDetails() {
         <div className="mb-8">
           <button
             onClick={() => navigate('/admin/companies')}
-            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white mb-4 flex items-center"
+            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mb-4 flex items-center"
           >
             ← Back to Companies
           </button>
@@ -230,15 +230,15 @@ export default function CompanyDetails() {
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
               <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Active Tasks</div>
-              <div className="text-3xl font-bold text-blue-600">{company.stats.activeTasks}</div>
+              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{company.stats.activeTasks}</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
               <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Completed Tasks</div>
-              <div className="text-3xl font-bold text-green-600">{company.stats.completedTasks}</div>
+              <div className="text-3xl font-bold text-green-600 dark:text-green-400">{company.stats.completedTasks}</div>
             </div>
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
               <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">AI Messages</div>
-              <div className="text-3xl font-bold text-purple-600">{company.stats.aiMessagesCount}</div>
+              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{company.stats.aiMessagesCount}</div>
             </div>
           </div>
         )}
@@ -256,9 +256,9 @@ export default function CompanyDetails() {
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-300">Status:</span>
                 <span className={`font-semibold ${
-                  company.subscriptionStatus === 'ACTIVE' ? 'text-green-600' :
-                  company.subscriptionStatus === 'TRIAL' ? 'text-blue-600' :
-                  'text-red-600'
+                  company.subscriptionStatus === 'ACTIVE' ? 'text-green-600 dark:text-green-400' :
+                  company.subscriptionStatus === 'TRIAL' ? 'text-blue-600 dark:text-blue-400' :
+                  'text-red-600 dark:text-red-400'
                 }`}>
                   {company.subscriptionStatus}
                 </span>
@@ -302,7 +302,7 @@ export default function CompanyDetails() {
             <div className="space-y-3">
               <div className="flex justify-between">
                 <span className="text-gray-600 dark:text-gray-300">AI Status:</span>
-                <span className={`font-semibold ${company.aiEnabled ? 'text-green-600' : 'text-gray-400'}`}>
+                <span className={`font-semibold ${company.aiEnabled ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
                   {company.aiEnabled ? '✓ Enabled' : '✗ Disabled'}
                 </span>
               </div>
@@ -376,7 +376,7 @@ export default function CompanyDetails() {
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="New password (min 8 characters)"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-4"
             />
             <div className="flex space-x-3">
               <button
@@ -411,7 +411,7 @@ export default function CompanyDetails() {
               value={extensionDays}
               onChange={(e) => setExtensionDays(parseInt(e.target.value))}
               min={1}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-4"
             />
             <div className="flex space-x-3">
               <button

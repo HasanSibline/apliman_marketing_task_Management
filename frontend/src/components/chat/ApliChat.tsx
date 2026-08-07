@@ -572,8 +572,8 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               <div className="flex items-center justify-between px-5 py-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 z-10 shadow-sm">
                 <div className="flex items-center space-x-3.5">
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center shadow-inner">
-                      <CpuChipIcon className="w-6 h-6 text-primary-600" />
+                    <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center shadow-inner">
+                      <CpuChipIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
                     </div>
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
@@ -601,15 +601,15 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               </div>
 
               {/* Message History */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30 scroll-smooth">
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30 dark:bg-gray-900/30 scroll-smooth">
                 {messages.length === 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mt-12 px-6"
                   >
-                    <div className="mb-6 inline-block p-5 bg-primary-50 rounded-full">
-                      <ChatBubbleLeftRightIcon className="w-12 h-12 mx-auto text-primary-600" />
+                    <div className="mb-6 inline-block p-5 bg-primary-50 dark:bg-primary-900/30 rounded-full">
+                      <ChatBubbleLeftRightIcon className="w-12 h-12 mx-auto text-primary-600 dark:text-primary-400" />
                     </div>
                     <h4 className="text-base font-black text-gray-900 dark:text-white mb-2">ApliChat Intelligence</h4>
                     <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-4">
@@ -619,13 +619,13 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     {/* Compact Mention Hints */}
                     <div className="flex items-center justify-center gap-3 text-[12px] text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
-                        <span className="font-black text-primary-600">@</span> members
+                        <span className="font-black text-primary-600 dark:text-primary-400">@</span> members
                       </span>
                       <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
-                        <span className="font-black text-primary-600">/</span> tasks
+                        <span className="font-black text-primary-600 dark:text-primary-400">/</span> tasks
                       </span>
                       <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
-                        <span className="font-black text-primary-600">#</span> tickets
+                        <span className="font-black text-primary-600 dark:text-primary-400">#</span> tickets
                       </span>
                     </div>
                   </motion.div>
@@ -640,7 +640,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
                   >
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border ${
-                      message.role === 'user' ? 'bg-primary-600 text-white border-primary-500' : 'bg-white dark:bg-gray-800 text-secondary-600 border-gray-100 dark:border-gray-700'
+                      message.role === 'user' ? 'bg-primary-600 text-white border-primary-500' : 'bg-white dark:bg-gray-800 text-secondary-600 dark:text-secondary-400 border-gray-100 dark:border-gray-700'
                     }`}>
                       {message.role === 'user' ? <span className="text-[11px] font-black">{getInitials(user?.name)}</span> : <CpuChipIcon className="w-5 h-5" />}
                     </div>
@@ -656,7 +656,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                               // Highlight Mentions (@user)
                               if (part.startsWith('@')) {
                                 return (
-                                  <span key={i} className={`font-black underline decoration-2 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-primary-600 decoration-primary-200'}`}>
+                                  <span key={i} className={`font-black underline decoration-2 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-primary-600 dark:text-primary-400 decoration-primary-200'}`}>
                                     {part}
                                   </span>
                                 );
@@ -668,7 +668,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                                   <button 
                                     key={i} 
                                     onClick={() => navigate(`/tickets/code/${code}`)}
-                                    className={`font-black italic underline decoration-2 transition-all hover:scale-105 active:scale-95 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-indigo-600 decoration-indigo-200'}`}
+                                    className={`font-black italic underline decoration-2 transition-all hover:scale-105 active:scale-95 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-indigo-600 dark:text-indigo-400 decoration-indigo-200'}`}
                                   >
                                     {part}
                                   </button>
@@ -690,14 +690,14 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                                 className={`flex items-center gap-1.5 p-1 pr-2.5 rounded-lg text-[11px] cursor-pointer transition-all border ${
                                   message.role === 'user' 
                                     ? 'bg-primary-700/60 border-primary-500/50 hover:bg-primary-700' 
-                                    : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:border-gray-700'
+                                    : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-700 dark:border-gray-700'
                                 }`}
                               >
-                                <div className={`w-6 h-6 rounded flex items-center justify-center ${message.role === 'user' ? 'bg-primary-600' : 'bg-primary-50'}`}>
+                                <div className={`w-6 h-6 rounded flex items-center justify-center ${message.role === 'user' ? 'bg-primary-600' : 'bg-primary-50 dark:bg-primary-900/30'}`}>
                                   {file.type?.startsWith('image/') ? (
                                     <img src={file.url} className="w-full h-full object-cover rounded" alt="" />
                                   ) : (
-                                    <PaperClipIcon className={`w-3 h-3 ${message.role === 'user' ? 'text-primary-100' : 'text-primary-600'}`} />
+                                    <PaperClipIcon className={`w-3 h-3 ${message.role === 'user' ? 'text-primary-100' : 'text-primary-600 dark:text-primary-400'}`} />
                                   )}
                                 </div>
                                 <span className="truncate max-w-[80px] font-black">{file.name}</span>
@@ -715,7 +715,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
                 {streamingMessage && (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 dark:text-secondary-400 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <CpuChipIcon className="w-5 h-5" />
                     </div>
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[82%] shadow-sm">
@@ -726,7 +726,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
 
                 {isTyping && !streamingMessage && (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 flex items-center justify-center flex-shrink-0 shadow-sm animation-pulse">
+                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 dark:text-secondary-400 flex items-center justify-center flex-shrink-0 shadow-sm animation-pulse">
                       <CpuChipIcon className="w-5 h-5" />
                     </div>
                     <div className="flex gap-1 p-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full h-8 items-center px-4">
@@ -750,7 +750,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
                       className="absolute left-4 right-4 bottom-full mb-3 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20 max-h-40"
                     >
-                      <div className="p-2 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between bg-gray-50/50">
+                      <div className="p-2 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/40">
                         <span className="text-[11px] font-black text-gray-400 tracking-widest uppercase">
                           Select {suggestionType === 'user' ? 'a Team Member' : suggestionType === 'task' ? 'a Task' : 'a Ticket'}
                         </span>
@@ -760,7 +760,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                           <button
                             key={idx}
                             onClick={() => applySuggestion(item)}
-                            className="w-full text-left px-4 py-2 text-[12px] hover:bg-primary-50 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors flex items-center justify-between group"
+                            className="w-full text-left px-4 py-2 text-[12px] hover:bg-primary-50 dark:hover:bg-primary-900/30 border-b border-gray-50 dark:border-gray-700 last:border-0 transition-colors flex items-center justify-between group"
                           >
                             <span className="text-gray-700 dark:text-gray-200 font-medium group-hover:text-primary-700 truncate max-w-[200px]">
                               {suggestionType === 'user' ? item.name : suggestionType === 'task' ? item.title : item.title}
@@ -799,7 +799,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                                 alt="" 
                               />
                             ) : (
-                              <PaperClipIcon className="w-4 h-4 text-primary-600" />
+                              <PaperClipIcon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                             )}
                           </div>
                           <div className="flex flex-col">
@@ -808,7 +808,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                           </div>
                           <button 
                             onClick={() => removeAttachment(idx)}
-                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-100 text-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
                           >
                             <XMarkIcon className="w-3 h-3" />
                           </button>
@@ -827,7 +827,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
                       disabled={isTyping || isUploading || aiBlocked}
-                      placeholder={aiBlocked ? (quotaExhausted ? 'AI quota exhausted — contact your admin' : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
+                      placeholder={aiBlocked ? (quotaExhausted ? `AI is rate limited${resetCountdown ? ` — back in ${resetCountdown}` : ' — try again shortly'}` : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
                       className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}`}
                     />
                     
@@ -835,16 +835,16 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isTyping || isUploading}
                       title="Attach Files"
-                      className="absolute right-2 top-1.5 p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-all"
+                      className="absolute right-2 top-1.5 p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-all"
                     >
-                      <PaperClipIcon className={`w-5 h-5 ${attachments.length > 0 ? 'text-primary-600' : ''}`} />
+                      <PaperClipIcon className={`w-5 h-5 ${attachments.length > 0 ? 'text-primary-600 dark:text-primary-400' : ''}`} />
                     </button>
                   </div>
                   
                   <button
                     onClick={sendMessage}
                     disabled={(!inputValue.trim() && attachments.length === 0) || isTyping || isUploading || aiBlocked}
-                    title={aiBlocked ? (quotaExhausted ? `Quota exhausted${resetCountdown ? ` — resets in ${resetCountdown}` : ' (free tier — contact admin)'}` : 'AI not enabled') : ''}
+                    title={aiBlocked ? (quotaExhausted ? `The AI provider rate limited this company's key${resetCountdown ? `. Back in ${resetCountdown}` : '. Try again shortly'}` : 'AI is not enabled for your company') : ''}
                     className={`p-3 rounded-2xl transition-all shadow-md ${
                       (inputValue.trim() || attachments.length > 0) && !isTyping && !isUploading && !aiBlocked
                         ? 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-105 active:scale-95'
@@ -874,8 +874,8 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-fade-in">
           <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200 dark:border-gray-700">
             <div className="mb-6 text-center">
-              <div className="w-14 h-14 bg-error-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <XMarkIcon className="w-8 h-8 text-error-600" />
+              <div className="w-14 h-14 bg-error-100 dark:bg-error-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <XMarkIcon className="w-8 h-8 text-error-600 dark:text-error-400" />
               </div>
               <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">End Chat Session?</h3>
               <p className="text-gray-600 dark:text-gray-300 text-[11px] font-medium leading-relaxed italic uppercase opacity-60">
@@ -900,7 +900,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               </button>
               <button
                 onClick={cancelClose}
-                className="w-full py-2 text-gray-400 hover:text-gray-600 dark:text-gray-300 font-bold text-[11px] uppercase tracking-widest transition-colors mt-2"
+                className="w-full py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 font-bold text-[11px] uppercase tracking-widest transition-colors mt-2"
               >
                 Return to Chat
               </button>

@@ -21,8 +21,10 @@ import {
 import { analyticsApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { useChartTheme } from '@/theme/chartTheme'
 
 const TeamAnalytics: React.FC = () => {
+  const chart = useChartTheme()
   const [isLoading, setIsLoading] = useState(true)
   const [teamData, setTeamData] = useState<any>(null)
   const [sortBy, setSortBy] = useState<'completion' | 'assigned' | 'name'>('completion')
@@ -182,7 +184,7 @@ const TeamAnalytics: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-primary-50 to-white rounded-xl shadow-sm p-6 border border-primary-100"
+          className="bg-gradient-to-br from-primary-50 dark:from-primary-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-primary-100 dark:border-primary-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -190,7 +192,7 @@ const TeamAnalytics: React.FC = () => {
               <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {summary.totalTeamMembers || 0}
               </h3>
-              <p className="text-sm text-primary-600 mt-2 font-medium">
+              <p className="text-sm text-primary-600 dark:text-primary-400 mt-2 font-medium">
                 {teamData.activeMembers || 0} active
               </p>
             </div>
@@ -204,7 +206,7 @@ const TeamAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-success-50 to-white rounded-xl shadow-sm p-6 border border-success-100"
+          className="bg-gradient-to-br from-success-50 dark:from-success-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-success-100 dark:border-success-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -212,7 +214,7 @@ const TeamAnalytics: React.FC = () => {
               <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {summary.totalTasks || 0}
               </h3>
-              <p className="text-sm text-success-600 mt-2 font-medium">
+              <p className="text-sm text-success-600 dark:text-success-400 mt-2 font-medium">
                 {summary.tasksCompletedThisWeek || 0} this week
               </p>
             </div>
@@ -226,7 +228,7 @@ const TeamAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-warning-50 to-white rounded-xl shadow-sm p-6 border border-warning-100"
+          className="bg-gradient-to-br from-warning-50 dark:from-warning-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-warning-100 dark:border-warning-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -236,12 +238,12 @@ const TeamAnalytics: React.FC = () => {
               </h3>
               <div className="flex items-center gap-1 mt-2">
                 {summary.averageCompletionRate >= 75 ? (
-                  <ArrowTrendingUpIcon className="h-4 w-4 text-success-600" />
+                  <ArrowTrendingUpIcon className="h-4 w-4 text-success-600 dark:text-success-400" />
                 ) : (
-                  <ArrowTrendingDownIcon className="h-4 w-4 text-warning-600" />
+                  <ArrowTrendingDownIcon className="h-4 w-4 text-warning-600 dark:text-warning-400" />
                 )}
                 <p className={`text-sm font-medium ${
-                  summary.averageCompletionRate >= 75 ? 'text-success-600' : 'text-warning-600'
+                  summary.averageCompletionRate >= 75 ? 'text-success-600 dark:text-success-400' : 'text-warning-600 dark:text-warning-400'
                 }`}>
                   Team performance
                 </p>
@@ -267,21 +269,17 @@ const TeamAnalytics: React.FC = () => {
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={performanceComparisonData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, ...chart.tick }}
                   angle={-45}
                   textAnchor="end"
                   height={80}
                 />
-                <YAxis tick={{ fontSize: 12 }} />
+                <YAxis tick={{ fontSize: 12, ...chart.tick }} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
+                  contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                 />
                 <Legend />
                 <Bar dataKey="completed" fill="#10B981" name="Completed" radius={[8, 8, 0, 0]} />
@@ -302,20 +300,16 @@ const TeamAnalytics: React.FC = () => {
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
               <BarChart data={performanceComparisonData} layout="horizontal">
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis type="number" tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                <XAxis type="number" tick={{ fontSize: 12, ...chart.tick }} />
                 <YAxis 
                   type="category" 
                 dataKey="name" 
-                  tick={{ fontSize: 11 }}
+                  tick={{ fontSize: 11, ...chart.tick }}
                   width={80}
               />
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                }}
+                contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                   formatter={(value: any) => `${value}%`}
               />
               <Bar 
@@ -339,7 +333,7 @@ const TeamAnalytics: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-            <TrophyIcon className="h-5 w-5 text-warning-600" />
+            <TrophyIcon className="h-5 w-5 text-warning-600 dark:text-warning-400" />
             Team Leaderboard
           </h3>
           <div className="flex gap-2">
@@ -348,7 +342,7 @@ const TeamAnalytics: React.FC = () => {
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                 sortBy === 'completion'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               By Rate
@@ -358,7 +352,7 @@ const TeamAnalytics: React.FC = () => {
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                 sortBy === 'assigned'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               By Tasks
@@ -368,7 +362,7 @@ const TeamAnalytics: React.FC = () => {
               className={`px-3 py-1.5 text-sm rounded-lg transition-colors ${
                 sortBy === 'name'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
               By Name
@@ -376,7 +370,7 @@ const TeamAnalytics: React.FC = () => {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900/40">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -402,7 +396,7 @@ const TeamAnalytics: React.FC = () => {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {teamMembers.map((member: any, index: number) => (
                 <tr key={member.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -427,7 +421,7 @@ const TeamAnalytics: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {member.assignedTasks}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-success-600">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-success-600 dark:text-success-400">
                     {member.completedTasks}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

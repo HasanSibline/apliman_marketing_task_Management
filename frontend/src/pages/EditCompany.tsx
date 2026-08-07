@@ -237,7 +237,7 @@ export default function EditCompany() {
         <div className="mb-8">
           <button
             onClick={() => navigate(`/admin/companies/${id}`)}
-            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white mb-4 flex items-center"
+            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mb-4 flex items-center"
           >
             ← Back to Company Details
           </button>
@@ -246,7 +246,7 @@ export default function EditCompany() {
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
             {error}
           </div>
         )}
@@ -267,7 +267,7 @@ export default function EditCompany() {
                   value={formData.name}
                   onChange={handleChange}
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
 
@@ -351,7 +351,7 @@ export default function EditCompany() {
                   name="billingEmail"
                   value={formData.billingEmail || ''}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -369,7 +369,7 @@ export default function EditCompany() {
                 name="subscriptionPlan"
                 value={formData.subscriptionPlan}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-4"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-4"
               >
                 <option value="FREE_TRIAL">Free Trial (10 users, 500 tasks, 2 GB) - 7 Days</option>
                 <option value="PRO">Pro (25 users, 5000 tasks, 10 GB) - $99/month</option>
@@ -411,7 +411,7 @@ export default function EditCompany() {
                     name="aiEnabled"
                     checked={formData.aiEnabled}
                     onChange={handleChange}
-                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-900"
                   />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Enable AI Features</span>
                 </label>
@@ -426,10 +426,16 @@ export default function EditCompany() {
                   name="aiApiKey"
                   value={formData.aiApiKey || ''}
                   onChange={handleChange}
-                  placeholder="Enter Gemini or Groq API key"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="Leave empty to use the platform key"
+                  className="input-field font-mono"
                 />
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Only enter a new key if you want to update it. Supported: Gemini, Groq, OpenAI. Tip: paste multiple keys separated by commas — chat automatically fails over to the next key if one hits its rate limit.</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Leave this empty and the company uses the platform key from Settings &rarr; AI Platform.
+                  Add a key here only to bill this company's AI usage separately. Multiple comma-separated
+                  keys fail over automatically when one hits its rate limit.
+                </p>
               </div>
 
               <div>
@@ -440,12 +446,16 @@ export default function EditCompany() {
                   name="aiProvider"
                   value={formData.aiProvider}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="select-field"
                 >
-                  <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal / image support)</option>
-                  <option value="groq">Groq — GPT-OSS 120B (Text only)</option>
-                  <option value="openai">OpenAI — GPT-4o mini (Text only)</option>
+                  <option value="anthropic">Claude (Anthropic) — recommended, reads images and PDFs</option>
+                  <option value="gemini">Google Gemini — reads images, low free-tier rate limit</option>
+                  <option value="groq">Groq — GPT-OSS 120B (text only)</option>
+                  <option value="openai">OpenAI — GPT-4o mini (text only)</option>
                 </select>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  Only used when this company has its own key above.
+                </p>
               </div>
             </div>
           </div>

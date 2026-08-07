@@ -91,7 +91,7 @@ const AuthCallback: React.FC = () => {
     return (
         <div className="h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-800">
             <div className="relative mb-10 scale-125">
-                <div className="h-24 w-24 border-[12px] border-indigo-50 rounded-full" />
+                <div className="h-24 w-24 border-[12px] border-indigo-50 dark:border-indigo-900/40 rounded-full" />
                 {!timedOut && (
                     <div className="absolute top-0 h-24 w-24 border-[12px] border-indigo-600 rounded-full border-t-transparent animate-spin" />
                 )}

@@ -7,6 +7,7 @@ import {
 import { ArrowDownTrayIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { useChartTheme } from '@/theme/chartTheme'
 
 interface KeyResult {
     id: string
@@ -36,6 +37,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives: Objective[] }) {
+    const chart = useChartTheme()
     const [selectedQuarter, setSelectedQuarter] = useState<string>('ALL')
 
     const availableQuarters = useMemo(() => {
@@ -170,7 +172,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
             <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex-wrap gap-4">
                 <h2 className="text-xl font-black text-gray-900 dark:text-white">Objectives Analytics</h2>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-3 bg-gray-50/50 px-2 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+                    <div className="flex items-center gap-3 bg-gray-50/50 dark:bg-gray-900/40 px-2 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                         <FunnelIcon className="h-5 w-5 text-gray-400 ml-1" />
                         <div className="relative">
                             <select 
@@ -217,7 +219,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>
-                                <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}/>
+                                <Tooltip contentStyle={{ ...chart.tooltip, borderRadius: '12px', border: 'none' }} labelStyle={chart.tooltipLabel}/>
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
@@ -229,12 +231,12 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={quarterData}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
-                                <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#6B7280' }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fontSize: 12, fill: '#6B7280' }} axisLine={false} tickLine={false} domain={[0, 100]} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={chart.grid} />
+                                <XAxis dataKey="name" tick={{ fontSize: 12, ...chart.tick }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 12, ...chart.tick }} axisLine={false} tickLine={false} domain={[0, 100]} />
                                 <Tooltip 
                                     cursor={{ fill: '#F3F4F6' }}
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ ...chart.tooltip, borderRadius: '12px', border: 'none' }} labelStyle={chart.tooltipLabel}
                                     formatter={(value) => [`${value}%`, 'Avg Progress']}
                                 />
                                 <Bar dataKey="avgProgress" fill="#4F46E5" radius={[6, 6, 0, 0]} maxBarSize={50} />
@@ -249,12 +251,12 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={krData} layout="vertical" margin={{ left: 40, right: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#E5E7EB" />
+                                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke={chart.grid} />
                                 <XAxis type="number" domain={[0, 100]} hide />
                                 <YAxis 
                                     dataKey="name" 
                                     type="category" 
-                                    tick={{ fontSize: 11, fill: '#6B7280' }} 
+                                    tick={{ fontSize: 11, ...chart.tick }} 
                                     axisLine={false} 
                                     tickLine={false} 
                                     width={120}
@@ -262,7 +264,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                                 <Tooltip 
                                     cursor={{ fill: '#F3F4F6' }}
                                     formatter={(value) => [`${value}%`, 'Progress']}
-                                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ ...chart.tooltip, borderRadius: '12px', border: 'none' }} labelStyle={chart.tooltipLabel}
                                 />
                                 <Bar dataKey="Progress" fill="#10B981" radius={[0, 4, 4, 0]} barSize={20} />
                             </BarChart>

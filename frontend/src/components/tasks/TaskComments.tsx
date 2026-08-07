@@ -272,7 +272,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
         elements.push(
           <span 
             key={`mention-${idx}`}
-            className="bg-blue-100 text-blue-700 px-1 rounded font-medium"
+            className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded font-medium"
           >
             @{item.name}
           </span>
@@ -290,7 +290,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 toast.error('Subtask not linked to a task')
               }
             }}
-            className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-medium cursor-pointer hover:bg-purple-200 transition-colors"
+            className="inline-flex items-center gap-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded font-medium cursor-pointer hover:bg-purple-200 transition-colors"
           >
             <span className="text-xs">📋</span>
             {item.title}
@@ -462,7 +462,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 onKeyDown={handleKeyDown}
                 placeholder="Add a comment... (use @ to mention users, / to reference subtasks)"
                 rows={3}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                 disabled={submitting}
               />
               
@@ -480,8 +480,8 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                         key={mentionUser.id}
                         type="button"
                         onClick={() => insertMention(mentionUser)}
-                        className={`w-full px-3 py-2 text-left hover:bg-blue-50 transition-colors flex items-center gap-3 ${
-                          index === selectedMentionIndex ? 'bg-blue-50' : ''
+                        className={`w-full px-3 py-2 text-left hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors flex items-center gap-3 ${
+                          index === selectedMentionIndex ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                         }`}
                       >
                         {/* Avatar Circle with Initial */}
@@ -520,16 +520,16 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                     exit={{ opacity: 0, y: -10 }}
                     className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto z-50"
                   >
-                    <div className="px-3 py-2 bg-purple-50 border-b border-purple-100">
-                      <p className="text-xs font-medium text-purple-700">Reference a subtask</p>
+                    <div className="px-3 py-2 bg-purple-50 dark:bg-purple-900/30 border-b border-purple-100 dark:border-purple-900/40">
+                      <p className="text-xs font-medium text-purple-700 dark:text-purple-300">Reference a subtask</p>
                     </div>
                     {filteredSubtasks.map((subtask, index) => (
                       <button
                         key={subtask.id}
                         type="button"
                         onClick={() => insertSubtask(subtask)}
-                        className={`w-full px-3 py-2 text-left hover:bg-purple-50 transition-colors ${
-                          index === selectedMentionIndex ? 'bg-purple-50' : ''
+                        className={`w-full px-3 py-2 text-left hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors ${
+                          index === selectedMentionIndex ? 'bg-purple-50 dark:bg-purple-900/30' : ''
                         }`}
                       >
                         <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">
@@ -562,7 +562,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 <button
                   type="submit"
                   disabled={(!newComment.trim() && attachedImages.length === 0) || submitting}
-                  className="inline-flex items-center p-2 text-blue-600 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
+                  className="inline-flex items-center p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors"
                 >
                   {submitting ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>

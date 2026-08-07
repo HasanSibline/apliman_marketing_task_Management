@@ -15,25 +15,28 @@ logger = logging.getLogger(__name__)
 class ChatService:
     """Service for handling conversational AI chat with context and memory"""
 
-    def __init__(self, api_keys: List[str], provider: str = "gemini"):
+    def __init__(self, api_keys: List[str], provider: str = "gemini", model: Optional[str] = None):
         self.config = get_config()
         self.api_keys = api_keys if isinstance(api_keys, list) else [api_keys]
         self.current_key_index = 0
         self.api_key = self.api_keys[0] # For backwards compatibility with internal services
         self.provider = provider.lower()
-        
+
         # Use the global config model if no environment override
-        if self.provider == "groq":
-            self.model_name = self.config.GROQ_MODEL
+        if self.provider == "anthropic":
+            self.model_name = model or self.config.ANTHROPIC_MODEL
+            self.base_url = "https://api.anthropic.com/v1"
+        elif self.provider == "groq":
+            self.model_name = model or self.config.GROQ_MODEL
             self.base_url = "https://api.groq.com/openai/v1"
         elif self.provider == "openai":
-            self.model_name = self.config.OPENAI_MODEL
+            self.model_name = model or self.config.OPENAI_MODEL
             self.base_url = "https://api.openai.com/v1"
         else:
-            self.model_name = self.config.GEMINI_MODEL
+            self.model_name = model or self.config.GEMINI_MODEL
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-            
-        self.learning_service = ContextLearningService(self.api_key, self.model_name)
+
+        self.learning_service = ContextLearningService(self.api_key, self.model_name, provider=self.provider)
         logger.info(f"✅ ChatService initialized with {self.provider} ({self.model_name}) and {len(self.api_keys)} API keys")
 
     def _rotate_api_key(self):
@@ -175,7 +178,21 @@ class ChatService:
             )
 
             # Generate response via appropriate provider
-            if self.provider in ("groq", "openai") and not has_media:
+            if self.provider == "anthropic":
+                # Claude reads images and PDFs natively, so attachments go through as
+                # real content blocks rather than being rejected like the text-only
+                # OpenAI-compatible providers below.
+                from .anthropic_client import generate as anthropic_generate
+
+                user_prompt = f"{history_text}\n\nUser: {message}\nApliChat:"
+                response_text = await anthropic_generate(
+                    api_key=self.api_key,
+                    prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    model=self.model_name,
+                    files=files,
+                )
+            elif self.provider in ("groq", "openai") and not has_media:
                 # Groq and OpenAI share the OpenAI-compatible chat API. We flatten the
                 # prompt (it already includes any appended document text).
                 full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"

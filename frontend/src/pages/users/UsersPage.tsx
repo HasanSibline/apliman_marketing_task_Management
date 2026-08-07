@@ -136,16 +136,16 @@ const UsersPage: React.FC = () => {
   }
 
   const statusColors = {
-    ACTIVE: 'bg-green-100 text-green-800',
-    AWAY: 'bg-yellow-100 text-yellow-800',
+    ACTIVE: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300',
+    AWAY: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300',
     OFFLINE: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100',
     RETIRED: 'bg-rose-100 text-rose-800 border border-rose-100',
   }
 
   const roleColors: Record<string, string> = {
-    SUPER_ADMIN: 'bg-purple-100 text-purple-800',
-    COMPANY_ADMIN: 'bg-indigo-100 text-indigo-800',
-    ADMIN: 'bg-blue-100 text-blue-800',
+    SUPER_ADMIN: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300',
+    COMPANY_ADMIN: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300',
+    ADMIN: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300',
     MANAGER: 'bg-primary-100 text-primary-700 border border-primary-100 shadow-sm shadow-primary-50',
     EMPLOYEE: 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100',
   }
@@ -193,7 +193,7 @@ const UsersPage: React.FC = () => {
               className={`flex items-center px-6 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${
                 activeTab === tab.id
                   ? 'bg-white dark:bg-gray-800 text-primary-600 border border-gray-100 dark:border-gray-700'
-                  : 'text-gray-400 hover:text-gray-600 dark:text-gray-300'
+                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300'
               }`}
             >
               <tab.icon className="h-4 w-4 mr-2" />
@@ -240,7 +240,7 @@ const UsersPage: React.FC = () => {
                   <Avatar
                     src={userItem.avatar}
                     name={userItem.name}
-                    className="h-12 w-12 border-4 border-primary-50"
+                    className="h-12 w-12 border-4 border-primary-50 dark:border-primary-900/40"
                     size="md"
                     rounded="2xl"
                   />
@@ -253,7 +253,7 @@ const UsersPage: React.FC = () => {
                       <p className="text-sm text-gray-500 dark:text-gray-400">{userItem.position}</p>
                     )}
                     {userItem.department && (
-                      <p className="text-xs text-primary-600 font-medium">{userItem.department.name}</p>
+                      <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">{userItem.department.name}</p>
                     )}
                   </div>
                   {canManageUser(userItem) && (
@@ -295,7 +295,7 @@ const UsersPage: React.FC = () => {
                                 onClick={() => handleDelete(userItem)}
                                 className={`${
                                   active ? 'bg-gray-100 dark:bg-gray-800' : ''
-                                } flex items-center w-full px-4 py-2 text-sm text-red-600`}
+                                } flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400`}
                               >
                                 <TrashIcon className="h-4 w-4 mr-3" />
                                 Delete User
@@ -317,7 +317,7 @@ const UsersPage: React.FC = () => {
                       {userItem.status}
                     </span>
                     {userItem.strategyAccess && userItem.strategyAccess !== 'NONE' && (
-                      <span className={`status-badge ${userItem.strategyAccess === 'EDIT' ? 'bg-amber-100 text-amber-800' : 'bg-blue-50 text-blue-700'}`}>
+                      <span className={`status-badge ${userItem.strategyAccess === 'EDIT' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'}`}>
                         Strategy {userItem.strategyAccess === 'EDIT' ? 'Admin' : 'Reader'}
                       </span>
                     )}

@@ -60,7 +60,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -72,8 +72,8 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
                   Are you sure you want to delete <span className="font-semibold">{user?.name}</span>? This action cannot be undone.
                 </p>
 
-                <div className="mt-4 p-4 bg-red-50 rounded-lg">
-                  <p className="text-sm text-red-700">
+                <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
+                  <p className="text-sm text-red-700 dark:text-red-300">
                     This will permanently delete the user account and all associated data. Tasks assigned to this user will be unassigned.
                   </p>
                 </div>

@@ -31,6 +31,36 @@
   html.dark body {
     @apply bg-gray-900 text-gray-100;
   }
+
+  /* Dark-mode safety net for native form controls.
+     @tailwindcss/forms gives every control `background-color: #fff` via
+     `[type='text'], select, textarea, …` (specificity 0,1,0), so a control that
+     ships no colour of its own renders as a white pill on a dark page. The
+     selector below is deliberately (0,1,1): high enough to beat the plugin's
+     base styles, low enough that any `dark:` utility (0,2,0) still wins. */
+  html.dark
+    :where(input, select, textarea):not(
+      :where(
+        [type='checkbox'],
+        [type='radio'],
+        [type='range'],
+        [type='color'],
+        [type='file'],
+        [type='submit'],
+        [type='button'],
+        [type='image']
+      )
+    ) {
+    background-color: theme('colors.gray.900');
+    color: theme('colors.gray.100');
+    border-color: theme('colors.gray.600');
+  }
+
+  /* Native dropdown lists (Firefox needs this; Chromium follows color-scheme). */
+  :where(html.dark) :where(option, optgroup) {
+    background-color: theme('colors.gray.800');
+    color: theme('colors.gray.100');
+  }
 }
 
 @layer components {
@@ -88,7 +118,7 @@
 
   /* Glass Effect */
   .glass-card {
-    @apply bg-white bg-opacity-80 backdrop-blur-lg border border-white border-opacity-20;
+    @apply bg-white bg-opacity-80 backdrop-blur-lg border border-white border-opacity-20 dark:bg-gray-800 dark:bg-opacity-80 dark:border-gray-700 dark:border-opacity-40;
   }
 
   /* Loading Spinner */
@@ -96,10 +126,14 @@
     @apply animate-spin rounded-full border-2 border-gray-300 border-t-primary-600;
   }
 
-  /* Utility Classes */
+  /* Utility Classes.
+     Tailwind ships `line-clamp-*` natively since 3.3, but these predate that and are
+     still referenced widely. Keeping them means also declaring the standard property —
+     without it, browsers that dropped the -webkit- prefixed box model don't clamp. */
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -107,6 +141,7 @@
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -142,9 +177,29 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
 
-/* Focus styles for accessibility */
-.focus-visible {
-  @apply focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+/* Keyboard focus floor.
+   Roughly a dozen interactive elements set `focus:outline-none` without supplying a
+   replacement ring, which leaves keyboard users with no visible focus at all. This
+   restores a brand-coloured ring for keyboard navigation only (`:focus-visible` does
+   not fire on mouse clicks, so it costs nothing visually for pointer users).
+   Any element that declares its own focus ring still wins on specificity. */
+:focus-visible {
+  outline: 2px solid rgb(var(--color-primary-500));
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+/* Skip-to-content and other visually-hidden-until-focused helpers. */
+.sr-only-focusable:not(:focus):not(:focus-within) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
 /* Animation utilities */
@@ -191,10 +246,26 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   animation: slideInDown 0.3s ease-out;
 }
 
-/* Dark mode support (if needed in future) */
-@media (prefers-color-scheme: dark) {
-  .dark-mode {
-    @apply bg-gray-900 text-white;
+/* Respect the OS "reduce motion" setting.
+   The app animates on nearly every mount (fade-in, slide-in, pulse, spin) and none of
+   it carried a reduced-motion escape hatch, which is a vestibular-trigger risk and an
+   accessibility requirement. Motion collapses to near-instant rather than 0s so
+   transition-end handlers still fire, and spinners keep turning because a frozen
+   spinner reads as a hung app. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-spin,
+  .spinner {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 

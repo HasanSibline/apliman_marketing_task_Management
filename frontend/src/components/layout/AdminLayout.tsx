@@ -61,7 +61,7 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-700">
       {/* Top Navigation Bar */}
       <nav className="bg-gradient-to-r from-primary-800 to-primary-950 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -92,7 +92,7 @@ const AdminLayout: React.FC = () => {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className="w-64 bg-white shadow-lg min-h-[calc(100vh-4rem)]">
+        <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg min-h-[calc(100vh-4rem)]">
           <nav className="mt-5 px-2">
             <div className="space-y-1">
               {adminNavigation.map((item) => {
@@ -102,18 +102,18 @@ const AdminLayout: React.FC = () => {
                     key={item.name}
                     to={item.href}
                     className={`${isActive
-                        ? 'bg-primary-50 text-primary-900 border-l-4 border-primary-600'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-900 dark:text-primary-300 border-l-4 border-primary-600'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white'
                       } group flex items-start px-3 py-3 text-sm font-medium rounded-md transition-colors`}
                   >
                     <item.icon
-                      className={`${isActive ? 'text-primary-600' : 'text-gray-400 group-hover:text-gray-500'
+                      className={`${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 group-hover:text-gray-500'
                         } flex-shrink-0 h-6 w-6`}
                       aria-hidden="true"
                     />
                     <div className="ml-3">
                       <p className="font-medium">{item.name}</p>
-                      <p className="text-xs text-gray-500">{item.description}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{item.description}</p>
                     </div>
                   </NavLink>
                 );
@@ -122,31 +122,31 @@ const AdminLayout: React.FC = () => {
           </nav>
 
           {/* System Info */}
-          <div className="mt-8 px-4 py-4 bg-primary-50 mx-2 rounded-lg">
-            <h4 className="text-xs font-semibold text-primary-900 uppercase tracking-wider">
+          <div className="mt-8 px-4 py-4 bg-primary-50 dark:bg-primary-900/30 mx-2 rounded-lg">
+            <h4 className="text-xs font-semibold text-primary-900 dark:text-primary-300 uppercase tracking-wider">
               System Status
             </h4>
             <div className="mt-2 space-y-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600">Role</span>
-                <span className="font-medium text-primary-900">SUPER_ADMIN</span>
+                <span className="text-gray-600 dark:text-gray-300">Role</span>
+                <span className="font-medium text-primary-900 dark:text-primary-300">SUPER_ADMIN</span>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-600">Access Level</span>
-                <span className="font-medium text-success-600">Full</span>
+                <span className="text-gray-600 dark:text-gray-300">Access Level</span>
+                <span className="font-medium text-success-600 dark:text-success-400">Full</span>
               </div>
             </div>
           </div>
 
           {/* Warning Banner */}
           <div className="mt-4 px-4">
-            <div className="bg-warning-50 border-l-4 border-warning-400 p-3">
+            <div className="bg-warning-50 dark:bg-warning-900/30 border-l-4 border-warning-400 p-3">
               <div className="flex">
                 <div className="flex-shrink-0">
                   <ShieldCheckIcon className="h-5 w-5 text-warning-400" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-xs text-warning-700">
+                  <p className="text-xs text-warning-700 dark:text-warning-300">
                     You are in the {BRAND.name} platform administration portal. All actions are logged.
                   </p>
                 </div>

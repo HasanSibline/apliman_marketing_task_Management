@@ -10,10 +10,12 @@ import { analyticsApi } from '@/services/api'
 import { useAppSelector } from '@/hooks/redux'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import toast from 'react-hot-toast'
+import { useChartTheme } from '@/theme/chartTheme'
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4']
 
 const AnalyticsDashboard: React.FC = () => {
+  const chart = useChartTheme()
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [taskAnalytics, setTaskAnalytics] = useState<any>(null)
@@ -122,15 +124,15 @@ const AnalyticsDashboard: React.FC = () => {
                 {dashboardData?.totalTasks || 0}
               </h3>
             </div>
-            <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center">
-              <DocumentChartBarIcon className="h-6 w-6 text-primary-600" />
+            <div className="h-12 w-12 bg-primary-100 dark:bg-primary-900/30 rounded-lg flex items-center justify-center">
+              <DocumentChartBarIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">
               {dashboardData?.completedTasks || 0} completed
             </span>
-            <span className="text-primary-600 font-medium">
+            <span className="text-primary-600 dark:text-primary-400 font-medium">
               {dashboardData?.completionRate || 0}%
             </span>
           </div>
@@ -149,15 +151,15 @@ const AnalyticsDashboard: React.FC = () => {
                 {dashboardData?.activeUsers || 0}
               </h3>
             </div>
-            <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <UserGroupIcon className="h-6 w-6 text-blue-600" />
+            <div className="h-12 w-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+              <UserGroupIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">
               {dashboardData?.totalUsers || 0} total users
             </span>
-            <span className="text-blue-600 font-medium">
+            <span className="text-blue-600 dark:text-blue-400 font-medium">
               {Math.round((dashboardData?.activeUsers || 0) / (dashboardData?.totalUsers || 1) * 100)}%
             </span>
           </div>
@@ -176,15 +178,15 @@ const AnalyticsDashboard: React.FC = () => {
                 {dashboardData?.inProgressTasks || 0}
               </h3>
             </div>
-            <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <ClockIcon className="h-6 w-6 text-yellow-600" />
+            <div className="h-12 w-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+              <ClockIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">
               {dashboardData?.pendingTasks || 0} pending
             </span>
-            <span className="text-yellow-600 font-medium">
+            <span className="text-yellow-600 dark:text-yellow-400 font-medium">
               Active tasks
             </span>
           </div>
@@ -203,15 +205,15 @@ const AnalyticsDashboard: React.FC = () => {
                 {dashboardData?.overdueTasks || 0}
               </h3>
             </div>
-            <div className="h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <ClockIcon className="h-6 w-6 text-red-600" />
+            <div className="h-12 w-12 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+              <ClockIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
             </div>
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
             <span className="text-gray-500 dark:text-gray-400">
               Need attention
             </span>
-            <span className="text-red-600 font-medium">
+            <span className="text-red-600 dark:text-red-400 font-medium">
               {dashboardData?.overdueTasks > 0 ? 'Action required' : 'All on track'}
             </span>
           </div>
@@ -243,27 +245,22 @@ const AnalyticsDashboard: React.FC = () => {
                   }))}
                   margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                   <XAxis 
                     dataKey="phase" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, ...chart.tick }}
                     tickLine={{ stroke: '#e0e0e0' }}
                     angle={-45}
                     textAnchor="end"
                     height={80}
                   />
                   <YAxis 
-                    tick={{ fontSize: 12 }}
+                    tick={{ fontSize: 12, ...chart.tick }}
                     tickLine={{ stroke: '#e0e0e0' }}
                     axisLine={{ stroke: '#e0e0e0' }}
                   />
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
+                    contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                   />
                   <Bar 
                     dataKey="count" 
@@ -305,7 +302,7 @@ const AnalyticsDashboard: React.FC = () => {
                     outerRadius={100}
                     fill="#8884d8"
                     dataKey="value"
-                    stroke="#fff"
+                    stroke={chart.isDark ? '#1f2937' : '#fff'}
                     strokeWidth={2}
                   >
                     {[
@@ -317,12 +314,7 @@ const AnalyticsDashboard: React.FC = () => {
                     ))}
                   </Pie>
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff', 
-                      border: '1px solid #e0e0e0',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
+                    contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                   />
                 </PieChart>
               </ResponsiveContainer>
@@ -340,7 +332,7 @@ const AnalyticsDashboard: React.FC = () => {
       >
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Recent Tasks</h3>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900/40">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -360,7 +352,7 @@ const AnalyticsDashboard: React.FC = () => {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {(dashboardData?.recentTasks || []).slice(0, 10).map((task: any, index: number) => (
                 <tr key={task.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -410,19 +402,19 @@ const AnalyticsDashboard: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Performance Metrics</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="text-center">
-            <div className="text-3xl font-bold text-primary-600">
+            <div className="text-3xl font-bold text-primary-600 dark:text-primary-400">
               {Math.round(taskAnalytics?.averageCompletionTime || 0)}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Days Avg Completion</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-green-600">
+            <div className="text-3xl font-bold text-green-600 dark:text-green-400">
               {dashboardData?.tasksCompletedThisWeek || 0}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Tasks This Week</div>
           </div>
           <div className="text-center">
-            <div className="text-3xl font-bold text-yellow-600">
+            <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
               {taskAnalytics?.overdueTasks?.length || 0}
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">Overdue Tasks</div>
@@ -439,7 +431,7 @@ const AnalyticsDashboard: React.FC = () => {
           className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6"
         >
           <div className="flex items-center space-x-2 mb-4">
-            <ArrowTrendingUpIcon className="h-6 w-6 text-primary-600" />
+            <ArrowTrendingUpIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">AI Insights</h3>
           </div>
           <div className="prose prose-sm max-w-none">

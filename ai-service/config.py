@@ -51,6 +51,9 @@ class Config:
     GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
     GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    # Claude. Requests may override this per-company via the platform "model" setting.
+    # Use "claude-haiku-4-5" for the cheapest option.
+    ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-5")
     LEGACY_MODEL = os.getenv("LEGACY_MODEL", "gpt-3.5-turbo")  # For legacy system
 
     @classmethod

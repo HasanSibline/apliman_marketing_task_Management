@@ -201,24 +201,24 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
       case 2:
         return {
           color: '#3B82F6',
-          bg: 'bg-blue-100',
-          text: 'text-blue-700',
+          bg: 'bg-blue-100 dark:bg-blue-900/30',
+          text: 'text-blue-700 dark:text-blue-300',
           icon: ChevronUpIcon,
           label: 'Medium'
         }
       case 3:
         return {
           color: '#F59E0B',
-          bg: 'bg-amber-100',
-          text: 'text-amber-700',
+          bg: 'bg-amber-100 dark:bg-amber-900/30',
+          text: 'text-amber-700 dark:text-amber-300',
           icon: ArrowUpIcon,
           label: 'High'
         }
       case 4:
         return {
           color: '#EF4444',
-          bg: 'bg-red-100',
-          text: 'text-red-700',
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          text: 'text-red-700 dark:text-red-300',
           icon: BoltIcon,
           label: 'Urgent'
         }
@@ -226,7 +226,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
         return {
           color: '#DC2626',
           bg: 'bg-red-200',
-          text: 'text-red-800',
+          text: 'text-red-800 dark:text-red-300',
           icon: FireIcon,
           label: 'Critical'
         }
@@ -401,7 +401,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`px-3 pb-2 min-h-[500px] max-h-[calc(100vh-200px)] overflow-y-auto ${snapshot.isDraggingOver ? 'bg-blue-50' : ''
+                      className={`px-3 pb-2 min-h-[500px] max-h-[calc(100vh-200px)] overflow-y-auto ${snapshot.isDraggingOver ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                         }`}
                       style={{ backgroundColor: snapshot.isDraggingOver ? '#DEEBFF' : phase.color }}
                     >
@@ -517,8 +517,8 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
           {task.taskType && task.taskType !== 'GENERAL' && (
             <div className="absolute top-3 right-3">
               <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-medium ${task.taskType === 'SUBTASK'
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'bg-blue-100 text-blue-700'
+                  ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                  : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
                 }`}>
                 {task.taskType === 'SUBTASK' && <SparklesIcon className="h-3 w-3 mr-1" />}
                 {task.taskType}
@@ -536,7 +536,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                   title={task.title}
                 >
                   {task.taskNumber && (
-                    <span className="text-primary-600 font-mono text-sm border border-primary-200 px-1.5 rounded bg-primary-50 flex-shrink-0">
+                    <span className="text-primary-600 dark:text-primary-400 font-mono text-sm border border-primary-200 px-1.5 rounded bg-primary-50 dark:bg-primary-900/30 flex-shrink-0">
                       {task.taskNumber}
                     </span>
                   )}
@@ -566,7 +566,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                     {({ active }) => (
                       <button
                         onClick={() => onTaskClick(task)}
-                        className={`${active ? 'bg-blue-50 text-blue-700' : 'text-gray-700 dark:text-gray-200'
+                        className={`${active ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700' : 'text-gray-700 dark:text-gray-200'
                           } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
                       >
                         <PencilIcon className="h-4 w-4 mr-3" />
@@ -591,7 +591,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                                 }
                               }
                             }}
-                            className={`${active ? 'bg-red-50 text-red-700' : 'text-red-600'
+                            className={`${active ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300' : 'text-red-600'
                               } flex items-center w-full px-4 py-3 text-sm font-medium transition-colors`}
                           >
                             <TrashIcon className="h-4 w-4 mr-3" />
@@ -607,12 +607,12 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
             {/* Assigned To */}
             {task.assignedTo && (
-              <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 rounded-xl">
-                <UserCircleIconOutline className="h-5 w-5 text-blue-600" />
+              <div className="flex items-center space-x-2 mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
+                <UserCircleIconOutline className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <div>
-                  <p className="text-sm font-medium text-blue-900">{task.assignedTo.name}</p>
+                  <p className="text-sm font-medium text-blue-900 dark:text-blue-300">{task.assignedTo.name}</p>
                   {task.assignedTo.position && (
-                    <p className="text-xs text-blue-600">{task.assignedTo.position}</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">{task.assignedTo.position}</p>
                   )}
                 </div>
               </div>
@@ -628,7 +628,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
               {/* Subtasks Progress */}
               {subtaskProgress && (
-                <div className="inline-flex items-center space-x-1.5 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg">
+                <div className="inline-flex items-center space-x-1.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg">
                   <FlagIcon className="h-4 w-4" />
                   <span className="text-xs font-semibold">{subtaskProgress}</span>
                 </div>
@@ -654,11 +654,11 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
 
             {/* Due Date Warning */}
             {isOverdue && (
-              <div className="flex items-center space-x-2 mb-4 p-3 bg-red-50 rounded-xl border border-red-200">
+              <div className="flex items-center space-x-2 mb-4 p-3 bg-red-50 dark:bg-red-900/30 rounded-xl border border-red-200">
                 <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
                 <div>
-                  <p className="text-sm font-medium text-red-900">Overdue</p>
-                  <p className="text-xs text-red-600">
+                  <p className="text-sm font-medium text-red-900 dark:text-red-300">Overdue</p>
+                  <p className="text-xs text-red-600 dark:text-red-400">
                     Due {new Date(task.dueDate!).toLocaleDateString()}
                   </p>
                 </div>

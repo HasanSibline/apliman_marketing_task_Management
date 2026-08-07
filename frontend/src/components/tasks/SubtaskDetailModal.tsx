@@ -70,7 +70,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
             >
               <button
                 onClick={onClose}
-                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:text-gray-300"
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
@@ -78,7 +78,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               <div className="space-y-6">
                 {/* Header */}
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0">
                     <span className="text-2xl">📋</span>
                   </div>
                   <div className="flex-1">
@@ -118,16 +118,16 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 </div>
 
                 {/* Info Box */}
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <div className="text-yellow-600 flex-shrink-0">
+                    <div className="text-yellow-600 dark:text-yellow-400 flex-shrink-0">
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                       </svg>
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-sm font-semibold text-yellow-800 mb-1">Not Assigned Yet</h4>
-                      <p className="text-sm text-yellow-700">
+                      <h4 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-1">Not Assigned Yet</h4>
+                      <p className="text-sm text-yellow-700 dark:text-yellow-300">
                         This subtask hasn't been assigned to anyone. Assign it to a team member to create an individual task and enable full tracking.
                       </p>
                     </div>
@@ -303,7 +303,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                       </span>
                     )}
                     {subtask.isCompleted && (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300">
                         <CheckCircleIconSolid className="h-3.5 w-3.5" />
                         Completed
                       </span>
@@ -312,7 +312,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -385,7 +385,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                   type="checkbox"
                                   checked={selectedUsers.includes(user.id)}
                                   onChange={() => toggleUserSelection(user.id)}
-                                  className="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"
+                                  className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:text-blue-400 focus:ring-primary-500"
                                 />
                                 <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
                                   <span className="text-sm font-medium text-white">
@@ -463,7 +463,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                   setShowPhaseDropdown(false)
                                 }}
                                 className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-left ${
-                                  selectedPhase === phase.id ? 'bg-blue-50' : ''
+                                  selectedPhase === phase.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                                 }`}
                               >
                                 <span 
@@ -472,7 +472,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                 />
                                 <span className="text-sm font-medium text-gray-900 dark:text-white">{phase.name}</span>
                                 {selectedPhase === phase.id && (
-                                  <CheckIcon className="h-4 w-4 text-blue-600 ml-auto" />
+                                  <CheckIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 ml-auto" />
                                 )}
                               </button>
                             ))}
@@ -515,7 +515,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                     disabled={isUpdating}
                     className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-colors ${
                       subtask.isCompleted
-                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
                         : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                   >

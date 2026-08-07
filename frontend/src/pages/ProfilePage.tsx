@@ -95,7 +95,7 @@ const ProfilePage: React.FC = () => {
     <div className="max-w-4xl mx-auto space-y-6">
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 transition"
+        className="flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition"
       >
         <ArrowLeftIcon className="h-4 w-4 mr-2" />
         Back
@@ -126,7 +126,7 @@ const ProfilePage: React.FC = () => {
             <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{user?.name}</h1>
             <p className="text-gray-500 dark:text-gray-400 font-bold text-sm tracking-tight">{user?.email}</p>
             <div className="flex items-center gap-2 mt-2">
-              <span className="bg-primary-50 text-primary-700 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-primary-100">
+              <span className="bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-primary-100 dark:border-primary-900/40">
                 {user?.role?.replace('_', ' ')}
               </span>
               {user?.position && (
@@ -146,7 +146,7 @@ const ProfilePage: React.FC = () => {
             onClick={() => setActiveTab('profile')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'profile'
               ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:border-gray-300'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
           >
             Profile Information
@@ -155,7 +155,7 @@ const ProfilePage: React.FC = () => {
             onClick={() => setActiveTab('password')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'password'
               ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200 hover:border-gray-300'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:border-gray-300 dark:hover:border-gray-600'
               }`}
           >
             Change Password
@@ -183,7 +183,7 @@ const ProfilePage: React.FC = () => {
                   placeholder="Enter your full name"
                 />
                 {profileForm.formState.errors.name && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                     {profileForm.formState.errors.name.message}
                   </p>
                 )}
@@ -200,7 +200,7 @@ const ProfilePage: React.FC = () => {
                   placeholder="Enter your email"
                 />
                 {profileForm.formState.errors.email && (
-                  <p className="mt-1 text-sm text-red-600">
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                     {profileForm.formState.errors.email.message}
                   </p>
                 )}
@@ -278,7 +278,7 @@ const ProfilePage: React.FC = () => {
                 </button>
               </div>
               {passwordForm.formState.errors.oldPassword && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                   {passwordForm.formState.errors.oldPassword.message}
                 </p>
               )}
@@ -308,7 +308,7 @@ const ProfilePage: React.FC = () => {
                 </button>
               </div>
               {passwordForm.formState.errors.newPassword && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                   {passwordForm.formState.errors.newPassword.message}
                 </p>
               )}
@@ -338,7 +338,7 @@ const ProfilePage: React.FC = () => {
                 </button>
               </div>
               {passwordForm.formState.errors.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
                   {passwordForm.formState.errors.confirmPassword.message}
                 </p>
               )}

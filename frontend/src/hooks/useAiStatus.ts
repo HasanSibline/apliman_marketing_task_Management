@@ -11,7 +11,7 @@ export interface AiUsage {
 export interface AiStatus {
   aiEnabled: boolean;
   quotaExhausted: boolean;
-  quotaResetAt: string | null; // ISO string or null (free tier = null = permanent)
+  quotaResetAt: string | null; // ISO string; null when AI is not rate limited
   provider: string;
   myUsage: Partial<AiUsage>;
   isLoading: boolean;
@@ -77,9 +77,6 @@ export function useAiStatus(): AiStatus {
       };
       update();
       countdownRef.current = setInterval(update, 1000);
-    } else if (status.quotaExhausted && !status.quotaResetAt) {
-      // Free tier — permanently exhausted
-      setResetCountdown(null);
     } else {
       setResetCountdown(null);
     }

@@ -185,11 +185,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
               className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
               {/* Strategic Header Strip */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50">
+              <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
                 <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight font-outfit uppercase">Onboard Personnel</h2>
                 <button
                   onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -214,7 +214,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     placeholder="Enter full name"
                   />
                   {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.name}</p>
                   )}
                 </div>
 
@@ -235,7 +235,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     placeholder="Enter email address"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600">{errors.email}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
                   )}
                 </div>
 
@@ -283,7 +283,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                       name="isTicketApprover"
                       checked={formData.isTicketApprover}
                       onChange={handleChange}
-                      className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-600 transition-all cursor-pointer"
+                      className="h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-primary-600 dark:text-primary-400 focus:ring-primary-600 transition-all cursor-pointer"
                     />
                     <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
                       <span className="text-sm font-semibold text-gray-900 dark:text-white leading-none">Ticket Approver</span>
@@ -326,7 +326,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     placeholder="Enter job position"
                   />
                   {errors.position && (
-                    <p className="mt-1 text-sm text-red-600">{errors.position}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.position}</p>
                   )}
                 </div>
 
@@ -385,7 +385,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     placeholder="Enter password (min 8 characters)"
                   />
                   {errors.password && (
-                    <p className="mt-1 text-sm text-red-600">{errors.password}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.password}</p>
                   )}
                 </div>
 
@@ -406,7 +406,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     placeholder="Confirm password"
                   />
                   {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
                   )}
                 </div>
 

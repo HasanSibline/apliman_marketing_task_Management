@@ -175,7 +175,7 @@ const ActivityPage: React.FC = () => {
                     <span className="font-medium">{activity.user?.name || activity.userName || 'Unknown User'}</span>
                     {' '}{activity.message || activity.description}
                     {activity.taskTitle && (
-                      <span className="font-medium text-primary-600">
+                      <span className="font-medium text-primary-600 dark:text-primary-400">
                         {' "'}{activity.taskTitle}{'"'}
                       </span>
                     )}

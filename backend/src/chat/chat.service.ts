@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { Inject, forwardRef } from '@nestjs/common';
 import { CompaniesService } from '../companies/companies.service';
 import { MicrosoftService } from '../microsoft/microsoft.service';
+import { AiService } from '../ai/ai.service';
 import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from './dto/chat.dto';
 
 import { ConfigService } from '@nestjs/config';
@@ -22,6 +23,7 @@ export class ChatService {
     private microsoftService: MicrosoftService,
     @Inject(forwardRef(() => CompaniesService))
     private companiesService: CompaniesService,
+    private aiService: AiService,
   ) {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
@@ -209,51 +211,21 @@ export class ChatService {
         throw new Error('Your account is not associated with a company. Please contact support.');
       }
 
-      // Get company's AI API key and provider info
-      const company = await this.prisma.company.findUnique({
-        where: { id: userCompanyId },
-        select: {
-          aiApiKey: true,
-          aiEnabled: true,
-          aiProvider: true,
-          aiQuotaExhausted: true,
-          aiQuotaResetAt: true,
-          subscriptionPlan: true,
-          name: true
-        },
-      });
+      // Resolve the credential through the shared resolver: the company's own key
+      // first, then the platform-wide key a super admin configured.
+      const aiCredential = await this.aiService.resolveAiCredential(userId);
 
-      this.logger.log(`🏢 Company found: ${company?.name}, AI Enabled: ${company?.aiEnabled}, Provider: ${company?.aiProvider}`);
-
-      if (!company || !company.aiEnabled || !company.aiApiKey) {
-        throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
+      if (!aiCredential) {
+        throw new Error(
+          'AI is not enabled for your company. Please ask your administrator to add an AI API key, ' +
+            'or configure a platform key in Settings → AI Platform.',
+        );
       }
 
-      // Auto-reset quota if time has passed
-      let quotaExhausted = company.aiQuotaExhausted;
-      if (quotaExhausted && company.aiQuotaResetAt && new Date() > company.aiQuotaResetAt) {
-        await this.prisma.company.update({
-          where: { id: userCompanyId },
-          data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
-        });
-        quotaExhausted = false;
-      }
+      const aiApiKey = aiCredential.apiKey;
+      const company = { name: aiCredential.companyName, aiProvider: aiCredential.provider };
 
-      // Reject immediately if quota is exhausted
-      if (quotaExhausted) {
-        const resetMsg = company.aiQuotaResetAt
-          ? ` AI will be available again at ${company.aiQuotaResetAt.toISOString()}.`
-          : ' Your free plan quota is permanently exhausted. Please upgrade or contact your administrator.';
-        throw new Error(`⏳ AI quota exceeded for your company.${resetMsg}`);
-      }
-
-      // CRITICAL: Decrypt the AI API key using centralized decryption
-      const aiApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
-
-      if (!aiApiKey || aiApiKey.includes('[DECRYPTION_FAILED]')) {
-        this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
-        throw new Error('Internal error decrypting your AI key. Please contact support.');
-      }
+      this.logger.log(`🏢 Company: ${company.name}, Provider: ${aiCredential.provider}`);
 
       // Get knowledge sources (COMPANY-SPECIFIC ONLY)
       const knowledgeSources = await this.prisma.knowledgeSource.findMany({
@@ -323,8 +295,9 @@ export class ChatService {
         knowledgeSources,
         additionalContext,
         isDeepAnalysis,
-        api_key: aiApiKey, // CRITICAL: Pass company-specific API key (snake_case for Python)
-        provider: company.aiProvider || 'gemini', // CRITICAL: Pass company provider
+        api_key: aiApiKey, // CRITICAL: Pass resolved API key (snake_case for Python)
+        provider: aiCredential.provider || 'gemini',
+        model: aiCredential.model ?? undefined, // platform key may pin a model
         companyName: company.name, // CRITICAL: Pass actual company name
         files: normalizedFiles, // Pass absolute URL files for multimodal support
         userToken, // Pass user's access token for file fetching

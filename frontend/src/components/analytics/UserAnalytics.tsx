@@ -23,10 +23,12 @@ import {
 import { analyticsApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
+import { useChartTheme } from '@/theme/chartTheme'
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
 
 const UserAnalytics: React.FC = () => {
+  const chart = useChartTheme()
   const [isLoading, setIsLoading] = useState(true)
   const [userAnalytics, setUserAnalytics] = useState<any>(null)
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
@@ -171,7 +173,7 @@ const UserAnalytics: React.FC = () => {
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               timeRange === range
                 ? 'bg-primary-600 text-white'
-                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white'
+                : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
             }`}
           >
             {range.charAt(0).toUpperCase() + range.slice(1)}
@@ -184,7 +186,7 @@ const UserAnalytics: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-primary-50 to-white rounded-xl shadow-sm p-6 border border-primary-100"
+          className="bg-gradient-to-br from-primary-50 dark:from-primary-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-primary-100 dark:border-primary-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -192,7 +194,7 @@ const UserAnalytics: React.FC = () => {
               <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalAssignedTasks || 0}
               </h3>
-              <p className="text-sm text-primary-600 mt-2 font-medium">
+              <p className="text-sm text-primary-600 dark:text-primary-400 mt-2 font-medium">
                 {stats.inProgressTasks || 0} in progress
               </p>
             </div>
@@ -206,7 +208,7 @@ const UserAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-success-50 to-white rounded-xl shadow-sm p-6 border border-success-100"
+          className="bg-gradient-to-br from-success-50 dark:from-success-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-success-100 dark:border-success-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -214,7 +216,7 @@ const UserAnalytics: React.FC = () => {
               <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.completedTasks || 0}
               </h3>
-              <p className="text-sm text-success-600 mt-2 font-medium">
+              <p className="text-sm text-success-600 dark:text-success-400 mt-2 font-medium">
                 {stats.completionRate || 0}% completion rate
               </p>
             </div>
@@ -228,7 +230,7 @@ const UserAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-warning-50 to-white rounded-xl shadow-sm p-6 border border-warning-100"
+          className="bg-gradient-to-br from-warning-50 dark:from-warning-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-warning-100 dark:border-warning-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -236,7 +238,7 @@ const UserAnalytics: React.FC = () => {
               <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalCreatedTasks || 0}
               </h3>
-              <p className="text-sm text-warning-600 mt-2 font-medium">
+              <p className="text-sm text-warning-600 dark:text-warning-400 mt-2 font-medium">
                 Tasks I created
               </p>
             </div>
@@ -270,15 +272,11 @@ const UserAnalytics: React.FC = () => {
                     <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
+                <XAxis dataKey="date" tick={{ fontSize: 12, ...chart.tick }} />
+                <YAxis tick={{ fontSize: 12, ...chart.tick }} />
                 <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
+                  contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                 />
                 <Legend />
                 <Area
@@ -322,7 +320,7 @@ const UserAnalytics: React.FC = () => {
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
-                  stroke="#fff"
+                  stroke={chart.isDark ? '#1f2937' : '#fff'}
                   strokeWidth={2}
                 >
                   {taskStatusData.map((_: any, index: number) => (
@@ -330,11 +328,7 @@ const UserAnalytics: React.FC = () => {
                   ))}
                 </Pie>
               <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
+                contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                 />
               </PieChart>
           </ResponsiveContainer>
@@ -391,8 +385,8 @@ const UserAnalytics: React.FC = () => {
         <div className="space-y-3">
           {/* Excellent Performance */}
           {stats.completionRate >= 80 && (
-            <div className="p-4 bg-success-50 rounded-lg border border-success-200">
-              <p className="text-sm text-success-800">
+            <div className="p-4 bg-success-50 dark:bg-success-900/30 rounded-lg border border-success-200">
+              <p className="text-sm text-success-800 dark:text-success-300">
                 <strong>🌟 Excellent Work!</strong> Your completion rate is {stats.completionRate}%. 
                 You've completed {stats.completedTasks} out of {stats.totalAssignedTasks} tasks. 
                 Keep up the outstanding performance!
@@ -402,8 +396,8 @@ const UserAnalytics: React.FC = () => {
           
           {/* Good Performance */}
           {stats.completionRate >= 60 && stats.completionRate < 80 && (
-            <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
-              <p className="text-sm text-primary-800">
+            <div className="p-4 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-200">
+              <p className="text-sm text-primary-800 dark:text-primary-300">
                 <strong>👍 Good Job!</strong> Your completion rate is {stats.completionRate}%. 
                 You've completed {stats.completedTasks} tasks. Keep pushing forward!
               </p>
@@ -412,8 +406,8 @@ const UserAnalytics: React.FC = () => {
           
           {/* Needs Improvement */}
           {stats.completionRate < 60 && stats.totalAssignedTasks > 0 && (
-            <div className="p-4 bg-warning-50 rounded-lg border border-warning-200">
-              <p className="text-sm text-warning-800">
+            <div className="p-4 bg-warning-50 dark:bg-warning-900/30 rounded-lg border border-warning-200">
+              <p className="text-sm text-warning-800 dark:text-warning-300">
                 <strong>💪 Room for Growth!</strong> Your completion rate is {stats.completionRate}%. 
                 You have {stats.inProgressTasks} tasks in progress and {stats.pendingTasks} pending. 
                 Focus on completing your current tasks to improve your rate.
@@ -423,8 +417,8 @@ const UserAnalytics: React.FC = () => {
           
           {/* High Initiative */}
           {stats.totalCreatedTasks > stats.totalAssignedTasks && (
-            <div className="p-4 bg-primary-50 rounded-lg border border-primary-200">
-              <p className="text-sm text-primary-800">
+            <div className="p-4 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-200">
+              <p className="text-sm text-primary-800 dark:text-primary-300">
                 <strong>🚀 Great Initiative!</strong> You've created {stats.totalCreatedTasks} tasks 
                 compared to {stats.totalAssignedTasks} assigned to you. Excellent leadership and proactivity!
               </p>

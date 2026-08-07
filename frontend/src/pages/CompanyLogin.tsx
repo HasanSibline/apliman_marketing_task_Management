@@ -118,7 +118,7 @@ const CompanyLogin: React.FC = () => {
   // Loading state
   if (companyLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 dark:from-blue-900/20 to-indigo-100 dark:to-indigo-900/20">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-300">Loading company information...</p>
@@ -130,7 +130,7 @@ const CompanyLogin: React.FC = () => {
   // Error state (company not found or inactive)
   if (error && !company) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-pink-100">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 dark:from-red-900/20 to-pink-100 dark:to-pink-900/20">
         <div className="max-w-md w-full bg-white dark:bg-gray-800 p-10 rounded-xl shadow-2xl">
           <div className="text-center">
             <svg
@@ -149,14 +149,14 @@ const CompanyLogin: React.FC = () => {
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
               Company Not Found
             </h2>
-            <p className="mt-2 text-center text-sm text-red-600">{error}</p>
+            <p className="mt-2 text-center text-sm text-red-600 dark:text-red-400">{error}</p>
             <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-300">
               The company you're trying to access doesn't exist or has been deactivated.
             </p>
             <div className="mt-6 text-center">
               <button
                 onClick={() => window.history.back()}
-                className="inline-flex items-center text-indigo-600 hover:text-indigo-500 font-medium"
+                className="inline-flex items-center text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 font-medium"
               >
                 <svg
                   className="w-4 h-4 mr-2"
@@ -239,7 +239,7 @@ const CompanyLogin: React.FC = () => {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
                 style={{ 
                   borderColor: error ? '#EF4444' : undefined 
                 }}
@@ -258,7 +258,7 @@ const CompanyLogin: React.FC = () => {
                 type="password"
                 autoComplete="current-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
                 style={{ 
                   borderColor: error ? '#EF4444' : undefined 
                 }}
@@ -270,7 +270,7 @@ const CompanyLogin: React.FC = () => {
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm text-center bg-red-50 p-2 rounded">
+            <div className="text-red-600 dark:text-red-400 text-sm text-center bg-red-50 dark:bg-red-900/30 p-2 rounded">
               {error}
             </div>
           )}

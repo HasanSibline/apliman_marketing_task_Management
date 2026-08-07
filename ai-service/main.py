@@ -230,38 +230,41 @@ async def api_keys_status():
             "message": str(e)
         }
 
-@app.post("/test-ai")
-async def test_ai(test_text: Optional[str] = "This is a test task"):
-    """Test AI provider integration with optional test text"""
+class TestAiRequest(BaseModel):
+    api_key: str
+    provider: Optional[str] = "gemini"
+    model: Optional[str] = None
+    text: Optional[str] = "Reply with the single word: ready"
+
+
+@app.post("/test-ai", dependencies=[Depends(require_service_token)])
+async def test_ai(request: TestAiRequest):
+    """Verify one API key with a single live call.
+
+    Used by the super-admin panel to confirm a key works before handing the app to
+    users, so it deliberately makes the cheapest possible request rather than
+    generating a full task.
+    """
     try:
-        # Generate both description and goals
-        description = await content_generator.generate_description(test_text)
-        goals = await content_generator.generate_goals(test_text)
-        
+        generator = ContentGenerator(request.api_key, provider=request.provider, model=request.model)
+        reply = await generator._make_request(request.text)
+
         return {
             "status": "success",
             "timestamp": datetime.utcnow().isoformat(),
-            "ai_provider": "gemini",
-            "test_text": test_text,
-            "results": {
-                "description": description,
-                "goals": goals
-            }
+            "ai_provider": generator.provider,
+            "model": generator.model,
+            "reply": (reply or "").strip()[:200],
         }
     except Exception as e:
         logger.error(f"AI test failed: {e}")
-        
-        # Prepare help message
-        help_message = "Please check your GOOGLE_API_KEY and internet connection"
-        
         raise HTTPException(
-            status_code=500,
+            status_code=502,
             detail={
                 "status": "error",
                 "message": str(e),
-                "ai_provider": "gemini",
-                "help": help_message
-            }
+                "ai_provider": request.provider,
+            },
         )
 
 class GenerateContentRequest(BaseModel):
@@ -271,6 +274,7 @@ class GenerateContentRequest(BaseModel):
     company_name: Optional[str] = None  # Company name for personalized AI responses
     api_key: Optional[str] = None  # Company-specific API key
     provider: Optional[str] = "gemini"  # Selected AI provider
+    model: Optional[str] = None  # Optional model override (set by the platform key)
 
 class ScrapeUrlRequest(BaseModel):
     url: str
@@ -280,7 +284,7 @@ async def generate_content(request: GenerateContentRequest):
     """Generate content using configured AI provider with optional knowledge sources"""
     try:
         api_key_to_use = resolve_api_key(request.api_key, "generate-content")
-        temp_generator = ContentGenerator(api_key_to_use, provider=request.provider)
+        temp_generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
         
         # Set knowledge sources if provided
         if request.knowledge_sources:
@@ -320,13 +324,14 @@ class SummarizeRequest(BaseModel):
     max_length: int = 150
     api_key: Optional[str] = None
     provider: Optional[str] = "gemini"
+    model: Optional[str] = None  # Optional model override (set by the platform key)
 
 @app.post("/summarize", dependencies=[Depends(require_service_token)])
 async def summarize(request: SummarizeRequest):
     """Summarize text using configured AI provider"""
     try:
         api_key_to_use = resolve_api_key(request.api_key, "summarize")
-        temp_generator = ContentGenerator(api_key_to_use, provider=request.provider)
+        temp_generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
         summary = await temp_generator.summarize_text(request.text, request.max_length)
         return {"summary": summary}
     except Exception as e:
@@ -361,6 +366,7 @@ class ChatRequest(BaseModel):
     isDeepAnalysis: bool = False
     api_key: Optional[str] = None  # Company-specific API key
     provider: Optional[str] = "gemini"  # Selected AI provider
+    model: Optional[str] = None  # Optional model override (set by the platform key)
     files: Optional[List[Any]] = None # Use Any to avoid strict Pydantic dictionary validation if something weird is sent
     userToken: Optional[str] = None # User's access token for file fetching
 
@@ -369,7 +375,7 @@ async def chat(request: ChatRequest):
     """Process chat message with ApliChat"""
     try:
         api_key_pool = resolve_api_key_pool(request.api_key, "chat", provider=request.provider)
-        temp_chat_service = ChatService(api_key_pool, provider=request.provider)
+        temp_chat_service = ChatService(api_key_pool, provider=request.provider, model=request.model)
         
         # Process chat message (now async)
         result = await temp_chat_service.process_chat_message(
@@ -410,7 +416,7 @@ async def detect_task_type(request: dict):
         
         api_key_to_use = resolve_api_key(api_key, "detect-task-type")
         provider = request.get("provider", "gemini")
-        temp_generator = ContentGenerator(api_key_to_use, provider=provider)
+        temp_generator = ContentGenerator(api_key_to_use, provider=provider, model=request.get("model"))
         task_type = await temp_generator.detect_task_type(title)
         
         return {
@@ -441,7 +447,7 @@ async def generate_subtasks(request: dict):
         
         api_key_to_use = resolve_api_key(api_key, "generate-subtasks")
         provider = request.get('provider', 'gemini')
-        temp_generator = ContentGenerator(api_key_to_use, provider=provider)
+        temp_generator = ContentGenerator(api_key_to_use, provider=provider, model=request.get("model"))
         
         # Set knowledge sources if provided
         if knowledge_sources:
@@ -492,7 +498,7 @@ async def generate_performance_insights(request: dict):
         
         # Use temp generator for insight generation with company key
         provider = request.get("provider", "gemini")
-        temp_generator = ContentGenerator(api_key_to_use, provider=provider)
+        temp_generator = ContentGenerator(api_key_to_use, provider=provider, model=request.get("model"))
         response = await temp_generator._make_request(prompt)
         
         # Try to parse as JSON, fallback to structured response

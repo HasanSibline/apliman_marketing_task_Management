@@ -48,10 +48,10 @@ interface ObjectiveDetail {
 }
 
 const STATUS_CFG = {
-    ON_TRACK: { label: 'On Track', dot: 'bg-green-500', text: 'text-green-700', bg: 'bg-green-100' },
-    AT_RISK: { label: 'At Risk', dot: 'bg-yellow-500', text: 'text-yellow-700', bg: 'bg-yellow-100' },
-    OFF_TRACK: { label: 'Off Track', dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-100' },
-    COMPLETED: { label: 'Completed', dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-100' },
+    ON_TRACK: { label: 'On Track', dot: 'bg-green-500', text: 'text-green-700 dark:text-green-300', bg: 'bg-green-100 dark:bg-green-900/30' },
+    AT_RISK: { label: 'At Risk', dot: 'bg-yellow-500', text: 'text-yellow-700 dark:text-yellow-300', bg: 'bg-yellow-100 dark:bg-yellow-900/30' },
+    OFF_TRACK: { label: 'Off Track', dot: 'bg-red-500', text: 'text-red-700 dark:text-red-300', bg: 'bg-red-100 dark:bg-red-900/30' },
+    COMPLETED: { label: 'Completed', dot: 'bg-blue-500', text: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-100 dark:bg-blue-900/30' },
     CANCELLED: { label: 'Cancelled', dot: 'bg-gray-400', text: 'text-gray-600 dark:text-gray-300', bg: 'bg-gray-100 dark:bg-gray-800' },
 }
 
@@ -179,7 +179,7 @@ const ObjectiveDetailPage: React.FC = () => {
                             </div>
                             {obj.quarter && (
                                 <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1.5 font-medium">
-                                    <CalendarIconOutline className="h-4 w-4 border-b border-primary-100" />
+                                    <CalendarIconOutline className="h-4 w-4 border-b border-primary-100 dark:border-primary-900/40" />
                                     {obj.quarter.name} {obj.quarter.year} cycle
                                 </p>
                             )}
@@ -187,7 +187,7 @@ const ObjectiveDetailPage: React.FC = () => {
                         </div>
 
                         {/* Progress Circle */}
-                        <div className="relative shrink-0 flex flex-col items-center gap-2 bg-primary-50 p-6 rounded-2xl border border-primary-100">
+                        <div className="relative shrink-0 flex flex-col items-center gap-2 bg-primary-50 dark:bg-primary-900/30 p-6 rounded-2xl border border-primary-100 dark:border-primary-900/40">
                             <div className="relative h-24 w-24">
                                 <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100">
                                     <circle cx="50" cy="50" r="45" fill="none" stroke="#E5E7EB" strokeWidth="8" />
@@ -195,10 +195,10 @@ const ObjectiveDetailPage: React.FC = () => {
                                         strokeDasharray={`${(obj.progress / 100) * 283} 283`} strokeLinecap="round" className="transition-all duration-1000" />
                                 </svg>
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-xl font-black text-primary-900">{obj.progress}%</span>
+                                    <span className="text-xl font-black text-primary-900 dark:text-primary-300">{obj.progress}%</span>
                                 </div>
                             </div>
-                            <span className="text-[11px] font-bold uppercase tracking-widest text-primary-600">Overall Progress</span>
+                            <span className="text-[11px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400">Overall Progress</span>
                         </div>
                     </div>
                 </div>
@@ -208,9 +208,9 @@ const ObjectiveDetailPage: React.FC = () => {
                 {/* Left: Key Results (2/3) */}
                 <div className="lg:col-span-2 space-y-6">
                     <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/40">
                             <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-primary-100 rounded-lg text-primary-600">
+                                <div className="p-1.5 bg-primary-100 dark:bg-primary-900/30 rounded-lg text-primary-600 dark:text-primary-400">
                                     <CheckCircleIcon className="h-5 w-5" />
                                 </div>
                                 <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Key Results</h2>
@@ -251,7 +251,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                                 setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit })
                                                                 setUpdatingValue(kr.currentValue.toString())
                                                             }}
-                                                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-2xl transition-all"
+                                                            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-2xl transition-all"
                                                         >
                                                             <PencilIcon className="h-3.5 w-3.5" />
                                                         </button>
@@ -261,14 +261,14 @@ const ObjectiveDetailPage: React.FC = () => {
                                                 <div className="flex items-center gap-4 mt-auto">
                                                     <div className="flex-1">
                                                         <div className="flex items-center justify-between mb-2">
-                                                            <span className={`text-[11px] font-black uppercase tracking-tighter ${isDone ? 'text-green-600' : 'text-primary-600'}`}>
+                                                            <span className={`text-[11px] font-black uppercase tracking-tighter ${isDone ? 'text-green-600 dark:text-green-400' : 'text-primary-600 dark:text-primary-400'}`}>
                                                                 {isDone ? 'Goal Achieved' : `${Math.round(progressPct)}% Progress`}
                                                             </span>
                                                             <span className="text-lg font-black text-gray-900 dark:text-white">
                                                                 {kr.currentValue} <span className="text-[11px] font-bold text-gray-400 tracking-tight">{kr.unit}</span>
                                                             </span>
                                                         </div>
-                                                        <div className="h-3 bg-gray-100/50 rounded-full overflow-hidden p-[2px] border border-gray-50/50">
+                                                        <div className="h-3 bg-gray-100/50 dark:bg-gray-900/40 rounded-full overflow-hidden p-[2px] border border-gray-50/50">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${progressPct}%` }}
@@ -299,9 +299,9 @@ const ObjectiveDetailPage: React.FC = () => {
                 {/* Right: Linked Tasks (1/3) */}
                 <div className="space-y-6">
                     <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50">
+                        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/40">
                             <div className="flex items-center gap-2">
-                                <div className="p-1.5 bg-blue-100 rounded-lg text-blue-600">
+                                <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400">
                                     <ClipboardDocumentListIcon className="h-5 w-5" />
                                 </div>
                                 <h2 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Linked Tasks</h2>
@@ -364,7 +364,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                 {canEdit && (
                                                     <button
                                                         onClick={() => unlinkTask(task.id)}
-                                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                                                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
                                                         title="Unlink Task"
                                                     >
                                                         <XMarkIcon className="h-4 w-4" />
@@ -387,11 +387,11 @@ const ObjectiveDetailPage: React.FC = () => {
                         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[80vh]">
                         <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                             <h3 className="text-xl font-black text-gray-900 dark:text-white">Link Task to Objective</h3>
-                            <button onClick={() => setShowLinkTask(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
+                            <button onClick={() => setShowLinkTask(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
                                 <XMarkIcon className="h-6 w-6" />
                             </button>
                         </div>
-                        <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50">
+                        <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
                             <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1.5">Optional: Assign to a Key Result</label>
                             <select 
                                 value={selectedKRForTask} 
@@ -412,7 +412,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                     <button
                                         key={task.id}
                                         onClick={() => linkTask(task.id)}
-                                        className="w-full text-left p-4 hover:bg-primary-50 rounded-xl border border-transparent hover:border-primary-100 transition group flex items-center justify-between"
+                                        className="w-full text-left p-4 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl border border-transparent hover:border-primary-100 transition group flex items-center justify-between"
                                     >
                                         <div className="min-w-0">
                                             <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-700 truncate">{task.title}</p>
@@ -434,7 +434,7 @@ const ObjectiveDetailPage: React.FC = () => {
                         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-black text-gray-900 dark:text-white">New Key Result</h3>
-                            <button onClick={() => setAddingKR(false)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
+                            <button onClick={() => setAddingKR(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
                                 <XMarkIcon className="h-6 w-6" />
                             </button>
                         </div>
@@ -463,7 +463,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex gap-3 pt-4">
-                                <button type="button" onClick={() => setAddingKR(false)} className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 transition">Cancel</button>
+                                <button type="button" onClick={() => setAddingKR(false)} className="flex-1 px-4 py-3 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition">Cancel</button>
                                 <button type="submit" className="flex-1 px-4 py-3 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-200">Add KR</button>
                             </div>
                         </form>
@@ -478,7 +478,7 @@ const ObjectiveDetailPage: React.FC = () => {
                         className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm p-6 border border-gray-100 dark:border-gray-700">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Update Value</h3>
-                            <button onClick={() => setUpdatingKR(null)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
+                            <button onClick={() => setUpdatingKR(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
                                 <XMarkIcon className="h-6 w-6" />
                             </button>
                         </div>
@@ -504,7 +504,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                 />
                             </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setUpdatingKR(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 transition">Cancel</button>
+                                <button type="button" onClick={() => setUpdatingKR(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition">Cancel</button>
                                 <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-200">Save</button>
                             </div>
                         </form>

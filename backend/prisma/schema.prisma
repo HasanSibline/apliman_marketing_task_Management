@@ -558,6 +558,14 @@ model SystemSettings {
   maxFileSize      Int      @default(5242880)
   allowedFileTypes String   @default("image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document")
   sessionTimeout   Int      @default(480)
+
+  // Platform-wide AI key. Used by every company that has no key of its own.
+  // Set by a super admin in Settings → AI Platform. Encrypted at rest.
+  platformAiEnabled  Boolean @default(false)
+  platformAiProvider String  @default("anthropic")
+  platformAiApiKey   String?
+  platformAiModel    String?
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

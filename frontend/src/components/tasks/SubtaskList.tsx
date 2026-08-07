@@ -104,15 +104,15 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
-            <FlagIcon className="h-5 w-5 mr-2 text-blue-600" />
+            <FlagIcon className="h-5 w-5 mr-2 text-blue-600 dark:text-blue-400" />
             Subtasks
           </h3>
           <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
               <CheckCircleIcon className="h-3 w-3 mr-1" />
               {subtasks.filter(s => s.isCompleted).length} completed
             </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
               {subtasks.length - subtasks.filter(s => s.isCompleted).length} remaining
             </span>
           </div>
@@ -156,7 +156,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                       className={`mt-1 h-6 w-6 rounded-lg border-2 flex items-center justify-center transition-all duration-200 ${
                         subtask.isCompleted
                           ? 'bg-green-500 border-green-500 text-white shadow-lg'
-                          : 'border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30'
                       }`}
                     >
                       {subtask.isCompleted && <CheckIcon className="h-4 w-4" />}
@@ -184,13 +184,13 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                       <div className="flex flex-wrap items-center gap-3 mt-3">
                         {/* Assignee */}
                         {subtask.assignedTo && (
-                          <div className="flex items-center space-x-1.5 bg-blue-50 px-2.5 py-1 rounded-lg">
-                            <UserIcon className="h-3.5 w-3.5 text-blue-600" />
-                            <span className="text-xs font-medium text-blue-700">
+                          <div className="flex items-center space-x-1.5 bg-blue-50 dark:bg-blue-900/30 px-2.5 py-1 rounded-lg">
+                            <UserIcon className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                            <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
                               {subtask.assignedTo.name}
                             </span>
                             {subtask.assignedTo.position && (
-                              <span className="text-xs text-blue-600">
+                              <span className="text-xs text-blue-600 dark:text-blue-400">
                                 ({subtask.assignedTo.position})
                               </span>
                             )}
@@ -218,9 +218,9 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
 
                         {/* Estimated Hours */}
                         {subtask.estimatedHours && (
-                          <div className="flex items-center space-x-1.5 bg-purple-50 px-2.5 py-1 rounded-lg">
-                            <ClockIcon className="h-3.5 w-3.5 text-purple-600" />
-                            <span className="text-xs font-medium text-purple-700">
+                          <div className="flex items-center space-x-1.5 bg-purple-50 dark:bg-purple-900/30 px-2.5 py-1 rounded-lg">
+                            <ClockIcon className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                            <span className="text-xs font-medium text-purple-700 dark:text-purple-300">
                               {subtask.estimatedHours}h
                             </span>
                           </div>
@@ -253,7 +253,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleDelete(subtask.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200"
                         title="Delete subtask"
               >
                 <TrashIcon className="h-4 w-4" />
@@ -285,14 +285,14 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
             value={newSubtask}
             onChange={(e) => setNewSubtask(e.target.value)}
               placeholder="Add a new subtask..."
-              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+              className="w-full px-4 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200"
             disabled={submitting}
           />
         </div>
         <button
           type="submit"
           disabled={!newSubtask.trim() || submitting}
-            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           {submitting ? (
               <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>

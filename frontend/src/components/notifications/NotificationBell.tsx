@@ -180,13 +180,13 @@ const NotificationBell: React.FC = () => {
 
   const getNotificationColor = (type: string) => {
     switch (type) {
-      case 'task_created':       return 'text-purple-600'
-      case 'task_assigned':      return 'text-blue-600'
-      case 'task_approved':      return 'text-green-600'
-      case 'task_rejected':      return 'text-red-600'
-      case 'task_completed':     return 'text-green-600'
-      case 'task_phase_changed': return 'text-yellow-600'
-      case 'MICROSOFT_MEETING':  return 'text-indigo-600'
+      case 'task_created':       return 'text-purple-600 dark:text-purple-400'
+      case 'task_assigned':      return 'text-blue-600 dark:text-blue-400'
+      case 'task_approved':      return 'text-green-600 dark:text-green-400'
+      case 'task_rejected':      return 'text-red-600 dark:text-red-400'
+      case 'task_completed':     return 'text-green-600 dark:text-green-400'
+      case 'task_phase_changed': return 'text-yellow-600 dark:text-yellow-400'
+      case 'MICROSOFT_MEETING':  return 'text-indigo-600 dark:text-indigo-400'
       default:                   return 'text-gray-600 dark:text-gray-300'
     }
   }
@@ -197,7 +197,7 @@ const NotificationBell: React.FC = () => {
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
       >
         <BellIcon className="h-6 w-6" />
         {unreadCount > 0 && (
@@ -222,7 +222,7 @@ const NotificationBell: React.FC = () => {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllAsRead}
-                    className="text-sm text-blue-600 hover:text-blue-700"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700"
                   >
                     Mark all read
                   </button>
@@ -231,7 +231,7 @@ const NotificationBell: React.FC = () => {
               {notifications.length > 0 && (
                 <button
                   onClick={clearAllNotifications}
-                  className="text-sm text-red-600 hover:text-red-700 w-full text-left"
+                  className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 w-full text-left"
                 >
                   Clear all notifications
                 </button>
@@ -248,12 +248,12 @@ const NotificationBell: React.FC = () => {
                   No notifications
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
                       className={`p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
-                        !notification.read ? 'bg-blue-50' : ''
+                        !notification.read ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                       }`}
                       onClick={() => {
                         // Mark as read

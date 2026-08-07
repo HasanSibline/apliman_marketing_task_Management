@@ -395,7 +395,7 @@ const TicketDetailPage: React.FC = () => {
   if (isLoading && !ticket) {
     return (
       <div className="flex-1 flex items-center justify-center p-20">
-        <ArrowPathIcon className="h-10 w-10 text-primary-600 animate-spin" />
+        <ArrowPathIcon className="h-10 w-10 text-primary-600 dark:text-primary-400 animate-spin" />
       </div>
     )
   }
@@ -520,7 +520,7 @@ const TicketDetailPage: React.FC = () => {
                         toast.error(err.response?.data?.message || 'Sync failure')
                       }
                     }}
-                    className="w-full appearance-none bg-white dark:bg-gray-800 text-slate-800 pr-10 pl-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] cursor-pointer hover:shadow-xl transition-all focus:outline-none shadow-lg border-b-2 border-slate-100 ring-2 ring-white/5"
+                    className="w-full appearance-none bg-white dark:bg-gray-800 text-slate-800 dark:text-gray-100 pr-10 pl-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] cursor-pointer hover:shadow-xl transition-all focus:outline-none shadow-lg border-b-2 border-slate-100 dark:border-gray-700 ring-2 ring-white/5"
                   >
                     <option value="PENDING_REC_MGR">Pending approval</option>
                     <option value="OPEN">Open</option>
@@ -541,7 +541,7 @@ const TicketDetailPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="bg-white dark:bg-gray-800 text-slate-900 px-6 py-2.5 rounded-xl flex flex-col items-end shadow-xl border-b-2 border-slate-100 ring-4 ring-white/5">
+              <div className="bg-white dark:bg-gray-800 text-slate-900 dark:text-white px-6 py-2.5 rounded-xl flex flex-col items-end shadow-xl border-b-2 border-slate-100 dark:border-gray-700 ring-4 ring-white/5">
                 <p className="text-[11px] font-black uppercase text-slate-400 tracking-[0.3em] mb-0.5">Operational State</p>
                 <span className="text-sm font-black uppercase tracking-tight">
                   {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' : 
@@ -592,12 +592,12 @@ const TicketDetailPage: React.FC = () => {
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 rounded-xl border-2 border-amber-500 bg-amber-50 shadow-sm transition-all">
+                <div className="p-4 rounded-xl border-2 border-amber-500 bg-amber-50 dark:bg-amber-900/30 shadow-sm transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[11px] font-black uppercase tracking-tight text-gray-900 dark:text-white">
                       Departmental Authorization Stage
                     </span>
-                    <ClockIcon className="h-4 w-4 text-amber-600" />
+                    <ClockIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   </div>
                   <p className="text-[11px] font-bold text-gray-600 dark:text-gray-300 italic">
                     Wait for {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Department Manager'} to authorize this ticket.
@@ -608,7 +608,7 @@ const TicketDetailPage: React.FC = () => {
                       <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
                         <CheckCircleIcon className="h-4 w-4" /> Finalize
                       </button>
-                      <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 text-rose-600 border border-rose-100 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all">
+                      <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 rounded-lg text-[11px] font-black uppercase tracking-widest hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all">
                         <XCircleIcon className="h-4 w-4" /> Reject
                       </button>
                     </div>
@@ -628,11 +628,11 @@ const TicketDetailPage: React.FC = () => {
             {isEditing ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Receiver Dept</label>
+                  <label className="text-[11px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1 italic">Receiver Dept</label>
                   <select
                     value={editData.receiverDeptId}
                     onChange={(e) => setEditData({ ...editData, receiverDeptId: e.target.value })}
-                    className="w-full text-xs border-2 border-primary-50 rounded-xl p-3 bg-primary-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                    className="w-full text-xs border-2 border-primary-50 dark:border-primary-900/40 rounded-xl p-3 bg-primary-50/30 dark:bg-primary-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-black text-gray-800 dark:text-gray-100"
                   >
                     {departments.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
@@ -641,11 +641,11 @@ const TicketDetailPage: React.FC = () => {
                 </div>
                 {isAdmin && (
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black text-rose-600 uppercase tracking-widest ml-1 italic">Direct Status Override</label>
+                    <label className="text-[11px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest ml-1 italic">Direct Status Override</label>
                     <select
                       value={editData.status}
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                      className="w-full text-xs border-2 border-rose-50 rounded-xl p-3 bg-rose-50/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
+                      className="w-full text-xs border-2 border-rose-50 dark:border-rose-900/40 rounded-xl p-3 bg-rose-50/30 dark:bg-rose-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-black text-gray-800 dark:text-gray-100"
                     >
                       {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                         <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -655,7 +655,7 @@ const TicketDetailPage: React.FC = () => {
                 )}
                 <div className="grid grid-cols-2 gap-2 pt-2">
                   <button onClick={handleUpdateTicket} className="bg-primary-600 text-white rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-primary-700 transition-all">Sync Changes</button>
-                  <button onClick={() => setIsEditing(false)} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 transition-all">Discard</button>
+                  <button onClick={() => setIsEditing(false)} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl py-3 text-[11px] font-black uppercase tracking-widest hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Discard</button>
                 </div>
               </div>
             ) : (
@@ -676,7 +676,7 @@ const TicketDetailPage: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1">Members Included</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
+                      <span className="text-[11px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
                       <div className="relative group">
                         <button className="flex items-center gap-1 text-[11px] font-black text-white bg-primary-600 hover:bg-primary-700 px-2 py-1 rounded-md transition-all uppercase tracking-widest shadow-md active:scale-95">
                           <PlusIcon className="h-2 w-2" /> Invite Colleague
@@ -688,7 +688,7 @@ const TicketDetailPage: React.FC = () => {
                               <button
                                 key={u.id}
                                 onClick={() => handleInvite(u.id)}
-                                className="w-full flex items-center gap-2 p-2 hover:bg-primary-50 rounded-lg transition-all group/item overflow-hidden"
+                                className="w-full flex items-center gap-2 p-2 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-all group/item overflow-hidden"
                               >
                                 <Avatar src={u.avatar} name={u.name} size="xs" rounded="lg" />
                                 <div className="text-left">
@@ -748,7 +748,7 @@ const TicketDetailPage: React.FC = () => {
 
                   {(ticket.status === 'OPEN' || ticket.status === 'ASSIGNED' || ticket.status === 'PENDING_REC_MGR') && (canAuthoriseRec || isAdmin) && (
                     <div className="space-y-2 pt-2">
-                      <p className="text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Add more colleagues</p>
+                      <p className="text-[11px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1 italic">Add more colleagues</p>
                       <div className="relative">
                         <select
                           value=""
@@ -762,7 +762,7 @@ const TicketDetailPage: React.FC = () => {
                               toast.error(err.response?.data?.message || 'Deployment failure')
                             }
                           }}
-                          className="w-full appearance-none text-xs border-2 border-primary-50 rounded-xl p-3.5 bg-primary-50/20 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 font-black text-gray-800 dark:text-gray-100 transition-all font-outfit"
+                          className="w-full appearance-none text-xs border-2 border-primary-50 dark:border-primary-900/40 rounded-xl p-3.5 bg-primary-50/20 dark:bg-primary-900/20 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 font-black text-gray-800 dark:text-gray-100 transition-all font-outfit"
                         >
                           <option value="">Assign Specialists...</option>
                           {/* Cross-departmental search allowed as requested */}
@@ -823,7 +823,7 @@ const TicketDetailPage: React.FC = () => {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
-                className="p-1.5 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-all"
+                className="p-1.5 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-all"
               >
                 {isUploading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <PlusIcon className="h-4 w-4" />}
               </button>
@@ -834,7 +834,7 @@ const TicketDetailPage: React.FC = () => {
               {attachments.map(att => (
                 <div key={att.id} className="group flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-transparent hover:border-gray-100 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 shadow-sm">
+                    <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm">
                       <DocumentIcon className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
@@ -843,8 +843,8 @@ const TicketDetailPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => handleDownload(att.id, att.fileName)} className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><ArrowDownTrayIcon className="h-4 w-4" /></button>
-                    {canEdit && <button onClick={() => handleDeleteAttachment(att.id)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"><TrashIcon className="h-4 w-4" /></button>}
+                    <button onClick={() => handleDownload(att.id, att.fileName)} className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"><ArrowDownTrayIcon className="h-4 w-4" /></button>
+                    {canEdit && <button onClick={() => handleDeleteAttachment(att.id)} className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"><TrashIcon className="h-4 w-4" /></button>}
                   </div>
                 </div>
               ))}
@@ -867,12 +867,12 @@ const TicketDetailPage: React.FC = () => {
             </div>
 
             {ticket.status === 'CANCELLED' && ticket.comments?.some((c: any) => c.comment.startsWith('Rejected:')) && (
-              <div className="p-5 bg-rose-50 border-l-4 border-rose-500 rounded-xl mb-4 animate-in slide-in-from-top-4 duration-500">
+              <div className="p-5 bg-rose-50 dark:bg-rose-900/30 border-l-4 border-rose-500 rounded-xl mb-4 animate-in slide-in-from-top-4 duration-500">
                 <div className="flex items-center gap-3 mb-2">
-                  <XCircleIcon className="h-5 w-5 text-rose-600" />
-                  <span className="text-xs font-black uppercase tracking-widest text-rose-700">Strategic Rejection Notated</span>
+                  <XCircleIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
+                  <span className="text-xs font-black uppercase tracking-widest text-rose-700 dark:text-rose-300">Strategic Rejection Notated</span>
                 </div>
-                <p className="text-sm font-bold text-rose-900 leading-relaxed italic">
+                <p className="text-sm font-bold text-rose-900 dark:text-rose-300 leading-relaxed italic">
                   "{ticket.comments.find((c: any) => c.comment.startsWith('Rejected:'))?.comment.replace('Rejected: ', '')}"
                 </p>
               </div>
@@ -894,9 +894,9 @@ const TicketDetailPage: React.FC = () => {
 
           {/* Communication Feed */}
           <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col overflow-hidden h-[700px]">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 flex items-center justify-between">
+            <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="h-9 w-9 bg-primary-100 text-primary-600 rounded-xl flex items-center justify-center border border-primary-200 shadow-sm">
+                <div className="h-9 w-9 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl flex items-center justify-center border border-primary-200 shadow-sm">
                   <ChatBubbleLeftRightIcon className="h-5 w-5" />
                 </div>
                 <div>
@@ -910,7 +910,7 @@ const TicketDetailPage: React.FC = () => {
               {ticket.comments?.map((comment: any) => (
                 comment.isSystem ? (
                   <div key={comment.id} className="flex justify-center my-6">
-                    <div className="bg-gray-100/50 backdrop-blur-sm border border-gray-200/50 px-5 py-3 rounded-xl shadow-sm animate-in zoom-in duration-500 max-w-[90%]">
+                    <div className="bg-gray-100/50 dark:bg-gray-900/40 backdrop-blur-sm border border-gray-200/50 px-5 py-3 rounded-xl shadow-sm animate-in zoom-in duration-500 max-w-[90%]">
                       <p className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest text-center whitespace-pre-wrap">
                         {comment.comment.replace(/^\s*[\u2022\-\*]\s+/, '')}
                       </p>
@@ -962,23 +962,23 @@ const TicketDetailPage: React.FC = () => {
 
             {/* Feed Input */}
             {(ticket.status === 'RESOLVED' || ticket.status === 'CANCELLED') ? (
-              <div className="p-8 bg-gray-100/50 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center">
+              <div className="p-8 bg-gray-100/50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center">
                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em] italic">
                   Intelligence Feed Archived · Ticket {ticket.status === 'RESOLVED' ? 'Finalized' : 'Terminated'}
                 </p>
               </div>
             ) : (
-              <div className="p-8 bg-gray-50/50 border-t border-gray-100 dark:border-gray-700 relative">
+              <div className="p-8 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700 relative">
                 {showMentions && filteredUsers.length > 0 && (
                   <div className="absolute bottom-full left-8 mb-4 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
-                    <div className="bg-gray-50/80 px-4 py-2 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 italic tracking-widest">Target Selection</div>
+                    <div className="bg-gray-50/80 dark:bg-gray-900/40 px-4 py-2 text-[11px] font-black text-gray-400 uppercase border-b border-gray-100 dark:border-gray-700 italic tracking-widest">Target Selection</div>
                     {filteredUsers.map(u => (
                       <button
                         key={u.id}
                         onClick={() => insertMention(u.name)}
-                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 text-left transition-all border-b border-gray-50 dark:border-gray-700 last:border-0 group"
+                        className="w-full flex items-center gap-3 px-4 py-3 hover:bg-primary-50 dark:hover:bg-primary-900/30 text-left transition-all border-b border-gray-50 dark:border-gray-700 last:border-0 group"
                       >
-                        <div className="h-8 w-8 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center overflow-hidden border border-primary-200 group-hover:scale-110 transition-transform">
+                        <div className="h-8 w-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 flex items-center justify-center overflow-hidden border border-primary-200 group-hover:scale-110 transition-transform">
                           {u.avatar ? <img src={formatAssetUrl(u.avatar)} className="h-full w-full object-cover" /> : <span className="text-[11px] font-black">{u.name.charAt(0)}</span>}
                         </div>
                         <div className="min-w-0">

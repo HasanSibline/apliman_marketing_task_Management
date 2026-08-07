@@ -19,7 +19,7 @@ const NotFoundPage: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.1 }}
             className="mb-8"
           >
-            <h1 className="text-9xl font-bold text-primary-600">404</h1>
+            <h1 className="text-9xl font-bold text-primary-600 dark:text-primary-400">404</h1>
           </motion.div>
           
           <motion.div
@@ -52,7 +52,7 @@ const NotFoundPage: React.FC = () => {
             <div className="text-sm text-gray-500 dark:text-gray-400">
               <button
                 onClick={() => window.history.back()}
-                className="text-primary-600 hover:text-primary-500 font-medium"
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-500 font-medium"
               >
                 Go back to previous page
               </button>

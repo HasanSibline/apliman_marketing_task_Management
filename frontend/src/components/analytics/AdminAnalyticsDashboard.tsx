@@ -26,6 +26,7 @@ import { analyticsApi, workflowsApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import AnalyticsFilters from './AnalyticsFilters'
+import { useChartTheme } from '@/theme/chartTheme'
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#F97316']
 
@@ -34,6 +35,7 @@ interface AdminAnalyticsDashboardProps {
 }
 
 const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
+  const chart = useChartTheme()
   const [isLoading, setIsLoading] = useState(true)
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [dateRange, setDateRange] = useState({ from: '', to: '' })
@@ -337,7 +339,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-br from-primary-50 to-white rounded-xl shadow-sm p-6 border border-primary-100"
+          className="bg-gradient-to-br from-primary-50 dark:from-primary-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-primary-100 dark:border-primary-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -346,7 +348,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                 {dashboardData.totalTasks || 0}
               </h3>
               <div className="flex items-center gap-2 mt-2">
-                <span className="text-xs text-primary-600 font-medium">
+                <span className="text-xs text-primary-600 dark:text-primary-400 font-medium">
                   {dashboardData.completionRate || 0}% Complete
                 </span>
               </div>
@@ -361,7 +363,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-gradient-to-br from-success-50 to-white rounded-xl shadow-sm p-6 border border-success-100"
+          className="bg-gradient-to-br from-success-50 dark:from-success-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-success-100 dark:border-success-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -370,8 +372,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                 {dashboardData.completedTasks || 0}
               </h3>
               <div className="flex items-center gap-1 mt-2">
-                <ArrowTrendingUpIcon className="h-4 w-4 text-success-600" />
-                <span className="text-xs text-success-600 font-medium">
+                <ArrowTrendingUpIcon className="h-4 w-4 text-success-600 dark:text-success-400" />
+                <span className="text-xs text-success-600 dark:text-success-400 font-medium">
                   {dashboardData.tasksCompletedThisWeek || 0} this week
                 </span>
               </div>
@@ -386,7 +388,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-gradient-to-br from-warning-50 to-white rounded-xl shadow-sm p-6 border border-warning-100"
+          className="bg-gradient-to-br from-warning-50 dark:from-warning-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-warning-100 dark:border-warning-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -395,8 +397,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                 {dashboardData.inProgressTasks || 0}
               </h3>
               <div className="flex items-center gap-1 mt-2">
-                <ClockIcon className="h-4 w-4 text-warning-600" />
-                <span className="text-xs text-warning-600 font-medium">
+                <ClockIcon className="h-4 w-4 text-warning-600 dark:text-warning-400" />
+                <span className="text-xs text-warning-600 dark:text-warning-400 font-medium">
                   {dashboardData.pendingTasks || 0} pending
                 </span>
               </div>
@@ -411,7 +413,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-gradient-to-br from-error-50 to-white rounded-xl shadow-sm p-6 border border-error-100"
+          className="bg-gradient-to-br from-error-50 dark:from-error-900/20 to-white dark:to-gray-800 rounded-xl shadow-sm p-6 border border-error-100 dark:border-error-900/40"
         >
           <div className="flex items-center justify-between">
             <div>
@@ -422,11 +424,11 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
               <div className="flex items-center gap-1 mt-2">
                 {dashboardData.overdueTasks > 0 ? (
                   <>
-                    <ExclamationCircleIcon className="h-4 w-4 text-error-600" />
-                    <span className="text-xs text-error-600 font-medium">Needs attention</span>
+                    <ExclamationCircleIcon className="h-4 w-4 text-error-600 dark:text-error-400" />
+                    <span className="text-xs text-error-600 dark:text-error-400 font-medium">Needs attention</span>
                   </>
                 ) : (
-                  <span className="text-xs text-success-600 font-medium">All on track!</span>
+                  <span className="text-xs text-success-600 dark:text-success-400 font-medium">All on track!</span>
                 )}
               </div>
             </div>
@@ -447,29 +449,24 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <ChartBarIcon className="h-5 w-5 text-primary-600" />
+            <ChartBarIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
             Tasks by Phase
           </h3>
           <div className="h-80">
             {dashboardData.tasksByPhase && dashboardData.tasksByPhase.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dashboardData.tasksByPhase}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                   <XAxis 
                     dataKey="phase" 
-                    tick={{ fontSize: 11 }}
+                    tick={{ fontSize: 11, ...chart.tick }}
                     angle={-45}
                     textAnchor="end"
                     height={100}
                   />
-                  <YAxis tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12, ...chart.tick }} />
                   <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                    }}
+                    contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                   />
                   <Bar dataKey="count" fill="#3B82F6" radius={[8, 8, 0, 0]} />
                 </BarChart>
@@ -507,7 +504,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                   outerRadius={100}
                   fill="#8884d8"
                   dataKey="value"
-                  stroke="#fff"
+                  stroke={chart.isDark ? '#1f2937' : '#fff'}
                   strokeWidth={2}
                 >
                   {[
@@ -520,11 +517,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                   ))}
                 </Pie>
                 <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
+                  contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -541,7 +534,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
       >
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Tasks</h3>
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-900/40">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -561,7 +554,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {(dashboardData.recentTasks || []).map((task: any) => (
                 <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-6 py-4">
@@ -610,24 +603,24 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
         >
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-            <UserGroupIcon className="h-5 w-5 text-primary-600" />
+            <UserGroupIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
             Top Performers
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {dashboardData.topPerformers.map((performer: any, index: number) => (
               <div
                 key={performer.email}
-                className="p-4 bg-gradient-to-br from-primary-50 to-white rounded-lg border border-primary-100"
+                className="p-4 bg-gradient-to-br from-primary-50 dark:from-primary-900/20 to-white dark:to-gray-800 rounded-lg border border-primary-100 dark:border-primary-900/40"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-2xl font-bold text-primary-600">#{index + 1}</span>
+                  <span className="text-2xl font-bold text-primary-600 dark:text-primary-400">#{index + 1}</span>
                   <span className="text-sm font-medium text-gray-500 dark:text-gray-400">{performer.position}</span>
                 </div>
                 <h4 className="font-semibold text-gray-900 dark:text-white mb-1">{performer.name}</h4>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">{performer.email}</p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500 dark:text-gray-400">Tasks Completed</span>
-                  <span className="text-lg font-bold text-primary-600">{performer.tasksCompleted}</span>
+                  <span className="text-lg font-bold text-primary-600 dark:text-primary-400">{performer.tasksCompleted}</span>
                 </div>
               </div>
             ))}

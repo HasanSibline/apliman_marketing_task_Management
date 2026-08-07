@@ -63,7 +63,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
             </div>
             <button
               onClick={() => navigate(`/tasks/${task.parentTask!.id}`)}
-              className="w-full text-left p-3 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors group"
+              className="w-full text-left p-3 rounded-lg bg-blue-50 dark:bg-blue-900/30 hover:bg-blue-100 dark:hover:bg-blue-900/30 border border-blue-200 transition-colors group"
             >
               <div className="flex items-start justify-between mb-2">
                 <h3 className="font-semibold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-2">
@@ -137,7 +137,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
               {onAddSubtask && (
                 <button
                   onClick={onAddSubtask}
-                  className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                  className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
                   title="Add Subtask"
                 >
                   <PlusIcon className="h-5 w-5" />
@@ -180,7 +180,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
               {onAddSubtask && (
                 <button
                   onClick={onAddSubtask}
-                  className="mt-3 text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium"
                 >
                   Add your first subtask
                 </button>
@@ -257,7 +257,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
                     {subtask.description && (
                       <button
                         onClick={(e) => handleShowDetails(subtask, e)}
-                        className="flex-shrink-0 p-1 rounded hover:bg-blue-50 text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="flex-shrink-0 p-1 rounded hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="View details"
                       >
                         <InformationCircleIcon className="h-4 w-4" />

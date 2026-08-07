@@ -51,10 +51,10 @@ interface CalendarProps {
 
 const PRIORITY_COLORS: Record<number, string> = {
     1: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700',
-    2: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
-    3: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
-    4: 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100',
-    5: 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100',
+    2: 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-200 hover:bg-blue-100 dark:hover:bg-blue-900/30',
+    3: 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-200 hover:bg-amber-100 dark:hover:bg-amber-900/30',
+    4: 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 border-orange-200 hover:bg-orange-100 dark:hover:bg-orange-900/30',
+    5: 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-200 hover:bg-red-100 dark:hover:bg-red-900/30',
 }
 
 type ViewType = 'workWeek' | 'week' | 'day'
@@ -202,7 +202,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
     return (
         <div className="flex h-full bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700">
             {/* Sidebar like Teams */}
-            <div className="w-64 flex-shrink-0 bg-gray-50/10 border-r border-gray-200 dark:border-gray-700 flex flex-col pt-4">
+            <div className="w-64 flex-shrink-0 bg-gray-50/10 dark:bg-gray-900/10 border-r border-gray-200 dark:border-gray-700 flex flex-col pt-4">
                 <div className="px-6 flex items-center justify-between mb-2">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Calendar</h2>
                     <button onClick={handleRefresh} className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors">
@@ -301,7 +301,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                     key={v}
                                     onClick={() => setViewType(v)}
                                     className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
-                                        viewType === v ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-200'
+                                        viewType === v ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                                     }`}
                                 >
                                     {v === 'workWeek' ? 'Work week' : v.charAt(0).toUpperCase() + v.slice(1)}
@@ -369,7 +369,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                     >
                         {displayDays.map((day: Date) => (
                             <div key={day.toString()} className="flex flex-col items-center py-4 border-r border-gray-50 dark:border-gray-700 last:border-r-0">
-                                <span className={`text-[11px] font-black uppercase tracking-widest mb-1 ${isToday(day) ? 'text-primary-600' : 'text-gray-400'}`}>
+                                <span className={`text-[11px] font-black uppercase tracking-widest mb-1 ${isToday(day) ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}>
                                     {format(day, 'EEE')}
                                 </span>
                                 <div className={`flex items-center justify-center h-10 w-10 rounded-full text-2xl font-light ${

@@ -250,8 +250,8 @@ export default function KnowledgeSourcesPage() {
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
                           source.type === 'OWN_COMPANY'
-                            ? 'bg-indigo-100 text-indigo-800'
-                            : 'bg-orange-100 text-orange-800'
+                            ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300'
+                            : 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300'
                         }`}
                       >
                         {source.type === 'OWN_COMPANY' ? companyName : 'COMPETITOR'}
@@ -265,7 +265,7 @@ export default function KnowledgeSourcesPage() {
                       >
                         {source.isActive ? 'Active' : 'Inactive'}
                       </span>
-                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
+                      <span className="px-3 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-full text-xs font-semibold">
                         Priority: {source.priority}
                       </span>
                     </div>
@@ -274,7 +274,7 @@ export default function KnowledgeSourcesPage() {
                       href={source.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline text-sm mb-2 block"
+                      className="text-blue-600 dark:text-blue-400 hover:underline text-sm mb-2 block"
                     >
                       {source.url}
                     </a>
@@ -292,8 +292,8 @@ export default function KnowledgeSourcesPage() {
                     </div>
 
                     {source.scrapingError && (
-                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-800">
+                      <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-800 dark:text-red-300">
                           <strong>Error:</strong> {source.scrapingError}
                         </p>
                       </div>
@@ -304,7 +304,7 @@ export default function KnowledgeSourcesPage() {
                     <button
                       onClick={() => handleScrape(source.id)}
                       disabled={scraping === source.id}
-                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Scrape content"
                     >
                       <RefreshCw className={`w-5 h-5 ${scraping === source.id ? 'animate-spin' : ''}`} />
@@ -318,7 +318,7 @@ export default function KnowledgeSourcesPage() {
                     </button>
                     <button
                       onClick={() => handleDelete(source.id)}
-                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                      className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                       title="Delete"
                     >
                       <Trash2 className="w-5 h-5" />
@@ -348,7 +348,7 @@ export default function KnowledgeSourcesPage() {
                       type="text"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -361,7 +361,7 @@ export default function KnowledgeSourcesPage() {
                       type="url"
                       value={formData.url}
                       onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -373,7 +373,7 @@ export default function KnowledgeSourcesPage() {
                     <select
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value as 'OWN_COMPANY' | 'COMPETITOR' })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     >
                       <option value="OWN_COMPANY">{companyName}</option>
@@ -388,7 +388,7 @@ export default function KnowledgeSourcesPage() {
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       rows={3}
                     />
                   </div>
@@ -403,7 +403,7 @@ export default function KnowledgeSourcesPage() {
                       max="5"
                       value={formData.priority}
                       onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     />
                   </div>
@@ -414,7 +414,7 @@ export default function KnowledgeSourcesPage() {
                       id="isActive"
                       checked={formData.isActive}
                       onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 dark:border-gray-600 rounded"
+                      className="h-4 w-4 text-indigo-600 dark:text-indigo-400 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded"
                     />
                     <label htmlFor="isActive" className="ml-2 block text-sm text-gray-900 dark:text-white">
                       Active

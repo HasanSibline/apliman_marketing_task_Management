@@ -300,7 +300,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create Cross-Dept Ticket</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
@@ -335,7 +335,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     value={assigneeId}
                     onChange={(e) => setAssigneeId(e.target.value)}
                     disabled={!receiverDeptId}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium disabled:bg-gray-50 dark:bg-gray-900/40 disabled:text-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium disabled:bg-gray-50 dark:disabled:bg-gray-900/40 disabled:text-gray-400 dark:disabled:text-gray-500"
                   >
                     <option value="">Direct to Department Manager</option>
                     {deptUsers.map((u) => (
@@ -346,13 +346,13 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               </div>
 
               {/* Approval Checkbox */}
-              <div className="flex items-center gap-3 p-3 bg-primary-50/50 rounded-xl border border-primary-100">
+              <div className="flex items-center gap-3 p-3 bg-primary-50/50 dark:bg-primary-900/40 rounded-xl border border-primary-100 dark:border-primary-900/40">
                 <input 
                   type="checkbox" 
                   id="requiresApproval"
                   checked={requiresApproval}
                   onChange={(e) => setRequiresApproval(e.target.checked)}
-                  className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded cursor-pointer"
+                  className="h-4 w-4 text-primary-600 dark:text-primary-400 focus:ring-primary-500 border-gray-300 dark:border-gray-600 rounded cursor-pointer"
                 />
                 <label htmlFor="requiresApproval" className="text-xs font-bold text-gray-700 dark:text-gray-200 cursor-pointer flex flex-col">
                   Require manager approval
@@ -364,9 +364,9 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 <motion.div 
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
-                  className="space-y-2 p-3 bg-white dark:bg-gray-800 border border-primary-50 rounded-xl shadow-sm"
+                  className="space-y-2 p-3 bg-white dark:bg-gray-800 border border-primary-50 dark:border-primary-900/40 rounded-xl shadow-sm"
                 >
-                  <label className="block text-[11px] font-black text-primary-600 uppercase tracking-widest ml-1 italic">Selecting Authorization Authority *</label>
+                  <label className="block text-[11px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest ml-1 italic">Selecting Authorization Authority *</label>
                   <select
                     value={approverId}
                     onChange={(e) => setApproverId(e.target.value)}

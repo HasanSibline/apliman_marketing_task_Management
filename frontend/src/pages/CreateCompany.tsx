@@ -43,11 +43,11 @@ function CredentialsModal({
             </div>
           </div>
         </div>
-        <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2">
+        <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-xl flex items-start gap-2">
           <span className="text-amber-500 mt-0.5">
             <InformationCircleIcon className="h-5 w-5" />
           </span>
-          <p className="text-xs text-amber-700 font-medium">
+          <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
             This password is shown only once. Copy and share it securely with the company admin before closing.
           </p>
         </div>
@@ -61,7 +61,7 @@ function CredentialsModal({
               {copyable && (
                 <button onClick={() => copy(value, label)}
                   className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition
-                    ${copied === label ? 'bg-blue-600 text-white' : 'bg-blue-100 text-blue-700 hover:bg-blue-200'}`}>
+                    ${copied === label ? 'bg-blue-600 text-white' : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200'}`}>
                   {copied === label ? '✓ Copied' : 'Copy'}
                 </button>
               )}
@@ -75,7 +75,7 @@ function CredentialsModal({
               navigator.clipboard.writeText(all);
               toast.success('All credentials copied!');
             }}
-            className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition">
+            className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition">
             <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2 inline" /> Copy All
           </button>
           <button onClick={onClose}
@@ -125,7 +125,7 @@ function Field({
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">
-        {label}{required && <span className="text-blue-600 ml-1">*</span>}
+        {label}{required && <span className="text-blue-600 dark:text-blue-400 ml-1">*</span>}
       </label>
       {children ?? (
         <input
@@ -134,8 +134,8 @@ function Field({
           value={value ?? ''}
           onChange={onChange}
           placeholder={placeholder}
-          className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 border text-gray-900 dark:text-white placeholder-gray-400 text-sm
-            focus:outline-none focus:ring-2 focus:ring-blue-500 transition
+          className={`w-full px-4 py-2.5 rounded-xl bg-white dark:bg-gray-800 border text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm
+            focus:outline-none focus:ring-2 focus:ring-primary-500 transition
             ${error ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'}`}
         />
       )}
@@ -170,12 +170,12 @@ function PasswordStrength({ password }: { password: string }) {
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
   const levels = [
-    { label: 'Weak', color: 'bg-red-500', text: 'text-red-600' },
-    { label: 'Weak', color: 'bg-red-500', text: 'text-red-600' },
-    { label: 'Fair', color: 'bg-amber-400', text: 'text-amber-600' },
-    { label: 'Good', color: 'bg-blue-500', text: 'text-blue-600' },
-    { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-600' },
-    { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-600' },
+    { label: 'Weak', color: 'bg-red-500', text: 'text-red-600 dark:text-red-400' },
+    { label: 'Weak', color: 'bg-red-500', text: 'text-red-600 dark:text-red-400' },
+    { label: 'Fair', color: 'bg-amber-400', text: 'text-amber-600 dark:text-amber-400' },
+    { label: 'Good', color: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
+    { label: 'Strong', color: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400' },
   ];
   const level = levels[Math.min(score, 5)];
   const width = ['10%', '20%', '45%', '65%', '85%', '100%'][Math.min(score, 5)];
@@ -297,11 +297,8 @@ export default function CreateCompany() {
       if (!formData.subscriptionDays || formData.subscriptionDays < 1)
         errors.subscriptionDays = 'Must be at least 1 day';
     }
-    if (s === 4) {
-      if (!formData.aiApiKey?.trim()) {
-        errors.aiApiKey = 'AI API Key is required to enable AI features';
-      }
-    }
+    // Step 4 (AI) has no required fields: a company without its own key falls back
+    // to the platform key configured in Settings → AI Platform.
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -392,7 +389,7 @@ export default function CreateCompany() {
       <aside className="hidden lg:flex w-72 flex-col bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-8 shadow-sm">
         <button
           onClick={() => navigate('/admin/companies')}
-          className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white text-sm mb-10 transition font-medium"
+          className="flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white text-sm mb-10 transition font-medium"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -415,11 +412,11 @@ export default function CreateCompany() {
                 key={s.id}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition cursor-default
                   ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : ''}
-                  ${isCompleted ? 'text-blue-700 bg-blue-50/50' : ''}
+                  ${isCompleted ? 'text-blue-700 dark:text-blue-300 bg-blue-50/50 dark:bg-blue-900/40' : ''}
                   ${!isActive && !isCompleted ? 'text-gray-400' : ''}`}
               >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0
-                  ${isActive ? 'bg-white dark:bg-gray-800 text-blue-600' : ''}
+                  ${isActive ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400' : ''}
                   ${isCompleted ? 'bg-blue-600 text-white' : ''}
                   ${!isActive && !isCompleted ? 'bg-gray-100 dark:bg-gray-800 text-gray-400' : ''}`}>
                   {isCompleted ? '✓' : <s.icon className="h-4 w-4" />}
@@ -454,9 +451,9 @@ export default function CreateCompany() {
               </div>
               <div className="flex items-center justify-between">
                 <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
-                  ${formData.subscriptionPlan === 'FREE_TRIAL' ? 'bg-purple-100 text-purple-700' : ''}
-                  ${formData.subscriptionPlan === 'PRO' ? 'bg-blue-100 text-blue-700' : ''}
-                  ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 text-amber-700' : ''}`}>
+                  ${formData.subscriptionPlan === 'FREE_TRIAL' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : ''}
+                  ${formData.subscriptionPlan === 'PRO' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : ''}
+                  ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : ''}`}>
                   {formData.subscriptionPlan === 'FREE_TRIAL' ? 'TRIAL' : formData.subscriptionPlan}
                 </span>
                 <span className="text-xs font-medium text-gray-400">{formData.subscriptionDays}d</span>
@@ -492,7 +489,7 @@ export default function CreateCompany() {
                       {step > s.id ? '✓' : <s.icon className="h-5 w-5" />}
                     </div>
                     <span className={`absolute -bottom-7 whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-colors
-                      ${step === s.id ? 'text-blue-600' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'}`}>
+                      ${step === s.id ? 'text-blue-600 dark:text-blue-400' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'}`}>
                       {s.label}
                     </span>
                   </div>
@@ -549,7 +546,7 @@ export default function CreateCompany() {
                         type="text"
                         value={formData.primaryColor}
                         onChange={e => setFormData(prev => ({ ...prev, primaryColor: e.target.value }))}
-                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-700 transition"
+                        className="w-full px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white dark:focus:bg-gray-700 transition"
                         placeholder="#6366f1"
                       />
                     </div>
@@ -560,7 +557,7 @@ export default function CreateCompany() {
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Company Logo</label>
                   {logoPreview ? (
-                    <div className="flex items-center gap-5 p-5 bg-blue-50/50 rounded-2xl border border-blue-100">
+                    <div className="flex items-center gap-5 p-5 bg-blue-50/50 dark:bg-blue-900/40 rounded-2xl border border-blue-100 dark:border-blue-900/40">
                       <img src={logoPreview} alt="logo preview" className="w-16 h-16 object-contain rounded-xl bg-white dark:bg-gray-800 shadow-sm p-1.5 border border-white" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-900 dark:text-white font-bold truncate">{logoFile?.name}</p>
@@ -575,7 +572,7 @@ export default function CreateCompany() {
                     </div>
                   ) : (
                     <label htmlFor="logo-upload"
-                      className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 group transition">
+                      className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 group transition">
                       <div className="w-12 h-12 bg-gray-50 dark:bg-gray-900/40 rounded-full flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 shadow-sm">📁</div>
                       <div className="text-center">
                         <span className="text-sm text-gray-900 dark:text-white font-bold block">Click to upload brand logo</span>
@@ -604,7 +601,7 @@ export default function CreateCompany() {
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">
-                    Password <span className="text-blue-600">*</span>
+                    Password <span className="text-blue-600 dark:text-blue-400">*</span>
                   </label>
                   <input
                     type="password"
@@ -612,8 +609,8 @@ export default function CreateCompany() {
                     value={formData.adminPassword}
                     onChange={handleChange}
                     placeholder="Create a strong password"
-                    className={`w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-gray-900 dark:text-white placeholder-gray-400 text-sm
-                      focus:outline-none focus:ring-2 focus:ring-blue-500 transition
+                    className={`w-full px-4 py-3 rounded-xl bg-white dark:bg-gray-800 border text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-sm
+                      focus:outline-none focus:ring-2 focus:ring-primary-500 transition
                       ${fieldErrors.adminPassword ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'}`}
                   />
                   {fieldErrors.adminPassword && (
@@ -644,13 +641,13 @@ export default function CreateCompany() {
                         onClick={() => handleChange({ target: { name: 'subscriptionPlan', value: plan, type: 'select' } } as any)}
                         className={`group relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-300 text-left
                           ${selected
-                            ? 'border-blue-600 bg-blue-50/30'
-                            : 'border-gray-100 dark:border-gray-700 bg-gray-50/50 hover:border-gray-300 hover:bg-white dark:hover:bg-gray-700'}`}
+                            ? 'border-blue-600 bg-blue-50/30 dark:bg-blue-900/30'
+                            : 'border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-700'}`}
                       >
                         <div className={`text-[11px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
                           ${plan === 'FREE_TRIAL' ? 'bg-purple-600 text-white shadow-sm' :
                             plan === 'PRO' ? 'bg-blue-600 text-white shadow-sm' :
-                              'bg-amber-100 text-amber-700'}`}>
+                              'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
                           {plan === 'FREE_TRIAL' ? 'Free Trial' : plan}
                         </div>
                         <p className="text-gray-900 dark:text-white font-bold text-lg mb-1">{info.price}</p>
@@ -703,26 +700,30 @@ export default function CreateCompany() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 font-medium">Configure intelligence features and verify organization details.</p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100 shadow-sm relative overflow-hidden">
+                <div className="p-6 rounded-3xl bg-primary-50/50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-900/40 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-10 blur-[1px]">
                     <SparklesIcon className="h-12 w-12" />
                   </div>
-                  <h3 className="text-sm font-bold text-blue-800 flex items-center gap-2 mb-4 uppercase tracking-wider">
-                    AI Configuration (Required)
+                  <h3 className="text-sm font-bold text-primary-800 dark:text-primary-300 flex items-center gap-2 mb-4 uppercase tracking-wider">
+                    AI Configuration (Optional)
                   </h3>
                   <div className="space-y-5">
-                    <Field label="Company AI API Key" name="aiApiKey" placeholder="Enter API Key..." required
+                    <Field label="Company AI API Key" name="aiApiKey" placeholder="Leave empty to use the platform key"
                       value={formData.aiApiKey ?? ''} onChange={handleChange} error={fieldErrors.aiApiKey}
-                      hint="Paste the API key for the selected provider. Tip: paste multiple keys separated by commas for automatic failover if one hits its rate limit." />
+                      hint="Leave this empty and the company uses the platform key from Settings → AI Platform. Add a key here only to bill this company's AI usage separately. Multiple comma-separated keys fail over automatically." />
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Primary AI Provider</label>
                       <select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
                         className="select-field w-full text-sm">
-                        <option value="gemini">Google Gemini ✓ (Recommended — Full multimodal / image support)</option>
-                        <option value="groq">Groq — GPT-OSS 120B (Text only)</option>
-                        <option value="openai">OpenAI — GPT-4o mini (Text only)</option>
+                        <option value="anthropic">Claude (Anthropic) — recommended, reads images and PDFs</option>
+                        <option value="gemini">Google Gemini — reads images, low free-tier rate limit</option>
+                        <option value="groq">Groq — GPT-OSS 120B (text only)</option>
+                        <option value="openai">OpenAI — GPT-4o mini (text only)</option>
                       </select>
+                      <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                        Only used when this company has its own key above.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -749,7 +750,7 @@ export default function CreateCompany() {
 
                 {/* Full review summary */}
                 <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
-                  <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/80">
+                  <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40">
                     <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
                       <ClipboardDocumentCheckIcon className="h-4 w-4" /> Registration Summary
                     </h3>
@@ -762,7 +763,7 @@ export default function CreateCompany() {
                       { label: 'Admin Email', value: formData.adminEmail, required: true },
                       { label: 'Tier', value: formData.subscriptionPlan, weight: 'font-black text-blue-600 uppercase' },
                       { label: 'Status', value: 'Active', weight: 'text-emerald-500 font-bold' },
-                      { label: 'AI Status', value: formData.aiApiKey ? 'ENABLED' : 'DISABLED', color: formData.aiApiKey ? 'text-blue-600 font-bold' : 'text-gray-400' },
+                      { label: 'AI Key', value: formData.aiApiKey ? 'OWN KEY' : 'PLATFORM KEY', color: formData.aiApiKey ? 'text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-500 dark:text-gray-400' },
                       { label: 'Support', value: 'Standard', color: 'text-gray-400' },
                     ].map(({ label, value, required, color, weight }) => (
                       <div key={label} className="flex flex-col border-b border-gray-50 dark:border-gray-700 pb-2">
@@ -783,7 +784,7 @@ export default function CreateCompany() {
                 type="button"
                 onClick={prevStep}
                 className={`px-6 py-3 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400
-                  hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:text-white transition flex items-center gap-2
+                  hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white dark:text-white transition flex items-center gap-2
                   ${step === 1 ? 'invisible' : ''}`}
               >
                 <span>←</span> Back

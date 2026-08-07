@@ -7,13 +7,27 @@ import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 import { CompaniesService } from '../companies/companies.service';
 import { AIFeature } from '@prisma/client';
 
-/** How many minutes to wait before resetting quota for paid plans */
+/** How many minutes to wait before resetting quota after a rate-limit trip */
 const QUOTA_RESET_MINUTES = 60; // 1 hour for RPM limits; adjust if daily
+
+/**
+ * How many upstream rate-limit errors a company may hit inside QUOTA_RESET_MINUTES
+ * before AI is disabled for the rest of the window.
+ *
+ * A single 429 is normal on free provider tiers (Gemini free is ~15 requests/min and
+ * one chat message costs 2+ calls). Tripping the company-wide breaker on the first
+ * one is what made AI unusable after a single message. We only stop serving after
+ * repeated failures, and the window always expires.
+ */
+const QUOTA_STRIKES_BEFORE_LOCKOUT = 5;
 
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly aiServiceUrl: string;
+
+  /** Rolling per-company rate-limit strike counter (see recordQuotaStrike). */
+  private readonly quotaStrikes = new Map<string, { count: number; windowStart: number }>();
 
   constructor(
     private readonly httpService: HttpService,
@@ -51,14 +65,21 @@ export class AiService {
       select: { companyId: true },
     });
 
+    // The shared platform key keeps AI available even when a company has no key
+    // of its own, or has temporarily hit its own provider's rate limit.
+    const platform = await this.getPlatformAiCredential();
+
     if (!user?.companyId) {
-      return { aiEnabled: false, quotaExhausted: false, quotaResetAt: null, provider: 'none', myUsage: {} };
+      return platform
+        ? { aiEnabled: true, quotaExhausted: false, quotaResetAt: null, provider: platform.provider, myUsage: {} }
+        : { aiEnabled: false, quotaExhausted: false, quotaResetAt: null, provider: 'none', myUsage: {} };
     }
 
     const company = await this.prisma.company.findUnique({
       where: { id: user.companyId },
       select: {
         aiEnabled: true,
+        aiApiKey: true,
         aiProvider: true,
         aiQuotaExhausted: true,
         aiQuotaResetAt: true,
@@ -91,11 +112,16 @@ export class AiService {
       myUsage[row.feature] = row.count;
     }
 
+    const hasCompanyKey = company.aiEnabled && !!company.aiApiKey;
+    // With a platform key configured, the company is never locked out of AI —
+    // requests just fall through to the shared key while its own key recovers.
+    const servedByPlatform = !!platform && (!hasCompanyKey || quotaExhausted);
+
     return {
-      aiEnabled: company.aiEnabled,
-      quotaExhausted,
-      quotaResetAt: company.aiQuotaExhausted ? company.aiQuotaResetAt : null,
-      provider: company.aiProvider || 'gemini',
+      aiEnabled: hasCompanyKey || !!platform,
+      quotaExhausted: servedByPlatform ? false : quotaExhausted,
+      quotaResetAt: !servedByPlatform && quotaExhausted ? company.aiQuotaResetAt : null,
+      provider: servedByPlatform ? platform.provider : company.aiProvider || 'gemini',
       myUsage,
     };
   }
@@ -170,42 +196,110 @@ export class AiService {
   }
 
   /**
-   * Mark company quota as exhausted.
-   * Free-tier: permanent (no reset time).
-   * Paid plans: sets reset to +QUOTA_RESET_MINUTES minutes.
+   * Record an upstream rate-limit hit for a company.
+   *
+   * Only after QUOTA_STRIKES_BEFORE_LOCKOUT strikes inside one window do we flag the
+   * company, and the flag ALWAYS carries a reset time so it expires on its own. The
+   * previous behaviour — flag on the first 429, with a null reset for FREE_TRIAL —
+   * meant one rate-limited message permanently disabled AI for the whole company.
    */
-  private async markQuotaExhausted(companyId: string): Promise<void> {
+  private async recordQuotaStrike(companyId: string): Promise<void> {
     try {
+      const now = Date.now();
+      const windowMs = QUOTA_RESET_MINUTES * 60 * 1000;
+      const entry = this.quotaStrikes.get(companyId);
+
+      const strikes = entry && now - entry.windowStart < windowMs ? entry.count + 1 : 1;
+      const windowStart = entry && now - entry.windowStart < windowMs ? entry.windowStart : now;
+      this.quotaStrikes.set(companyId, { count: strikes, windowStart });
+
+      if (strikes < QUOTA_STRIKES_BEFORE_LOCKOUT) {
+        this.logger.warn(
+          `AI rate limit for company ${companyId} (strike ${strikes}/${QUOTA_STRIKES_BEFORE_LOCKOUT}). Still serving.`,
+        );
+        return;
+      }
+
       const company = await this.prisma.company.findUnique({
         where: { id: companyId },
-        select: { subscriptionPlan: true, aiQuotaExhausted: true },
+        select: { aiQuotaExhausted: true },
       });
       if (!company || company.aiQuotaExhausted) return; // already flagged
 
-      const isFreeTier = company.subscriptionPlan === 'FREE_TRIAL';
-      const resetAt = isFreeTier
-        ? null // no reset for free tier
-        : new Date(Date.now() + QUOTA_RESET_MINUTES * 60 * 1000);
+      const resetAt = new Date(windowStart + windowMs);
 
       await this.prisma.company.update({
         where: { id: companyId },
         data: { aiQuotaExhausted: true, aiQuotaResetAt: resetAt },
       });
 
-      this.logger.warn(`⚠️ AI quota marked exhausted for company ${companyId}. Reset at: ${resetAt?.toISOString() ?? 'NEVER (free tier)'}`);
+      this.logger.warn(
+        `⚠️ AI quota marked exhausted for company ${companyId} after ${strikes} strikes. Resets at ${resetAt.toISOString()}.`,
+      );
     } catch (e) {
-      this.logger.error(`Failed to mark quota exhausted: ${e.message}`);
+      this.logger.error(`Failed to record quota strike: ${e.message}`);
     }
   }
 
+  /** Clear the strike counter and any DB lockout after a successful AI call. */
+  private clearQuotaStrikes(companyId: string): void {
+    if (!this.quotaStrikes.has(companyId)) return;
+    this.quotaStrikes.delete(companyId);
+    this.prisma.company
+      .updateMany({
+        where: { id: companyId, aiQuotaExhausted: true },
+        data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
+      })
+      .catch((e) => this.logger.warn(`Failed to clear quota flag: ${e.message}`));
+  }
+
   /**
-   * Get company's AI info for a given user.
-   * AI is STRICTLY per-company: the only key ever used is the one a super admin
-   * added for that user's company via the admin panel. There are NO environment,
-   * platform, or hardcoded key fallbacks anywhere.
-   * Users without a company (e.g. super admins) do not get AI.
+   * The platform-wide AI credential a super admin configured in Settings → AI Platform.
+   * Returns null when none is set or it is disabled.
    */
-  private async getCompanyAiInfo(userId?: string): Promise<{ apiKey: string; companyName: string; provider: string; companyId: string } | null> {
+  private async getPlatformAiCredential(): Promise<{ apiKey: string; provider: string; model: string | null } | null> {
+    const settings = await this.prisma.systemSettings.findUnique({
+      where: { id: 'default' },
+      select: {
+        platformAiEnabled: true,
+        platformAiProvider: true,
+        platformAiApiKey: true,
+        platformAiModel: true,
+      },
+    });
+
+    if (!settings?.platformAiEnabled || !settings.platformAiApiKey) return null;
+
+    const apiKey = this.companiesService.decryptApiKey(settings.platformAiApiKey);
+    if (!apiKey || apiKey.includes('[DECRYPTION_FAILED]')) {
+      this.logger.error('❌ Failed to decrypt the platform AI key');
+      return null;
+    }
+
+    return {
+      apiKey,
+      provider: settings.platformAiProvider || 'anthropic',
+      model: settings.platformAiModel || null,
+    };
+  }
+
+  /**
+   * Resolve which AI credential to use for a request.
+   *
+   * Order:
+   *   1. The company's own key, when a super admin assigned one and AI is enabled.
+   *   2. The platform-wide key from Settings → AI Platform (shared by every company).
+   *   3. None — AI is unavailable.
+   *
+   * Users without a company (super admins) can still use the platform key.
+   */
+  async resolveAiCredential(userId?: string): Promise<{
+    apiKey: string;
+    companyName: string;
+    provider: string;
+    companyId: string;
+    model?: string | null;
+  } | null> {
     if (!userId) {
       this.logger.error('❌ No userId provided - AI disabled');
       throw new Error('User ID is required for AI features');
@@ -216,11 +310,21 @@ export class AiService {
       select: { companyId: true, role: true, name: true },
     });
 
-    // Users without a company (super admins) do NOT get AI.
-    // AI keys are assigned per-company through the admin panel only.
+    const platform = await this.getPlatformAiCredential();
+
+    // Users without a company (super admins) fall straight through to the platform key.
     if (!user?.companyId) {
-      this.logger.warn('AI requested by a user with no company (e.g. super admin) — AI is only available to companies with an assigned key');
-      return null;
+      if (!platform) {
+        this.logger.warn('AI requested by a user with no company and no platform key is configured');
+        return null;
+      }
+      return {
+        apiKey: platform.apiKey,
+        companyName: 'Platform',
+        provider: platform.provider,
+        companyId: 'platform',
+        model: platform.model,
+      };
     }
 
     const company = await this.prisma.company.findUnique({
@@ -236,44 +340,62 @@ export class AiService {
       },
     });
 
-    if (!company || !company.aiEnabled || !company.aiApiKey) {
-      return null;
-    }
+    if (!company) return null;
 
-    // Auto-reset if time has passed
+    // Auto-reset if the lockout window has passed.
     if (company.aiQuotaExhausted && company.aiQuotaResetAt && new Date() > company.aiQuotaResetAt) {
       await this.prisma.company.update({
         where: { id: user.companyId },
         data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
       });
+      this.quotaStrikes.delete(user.companyId);
       company.aiQuotaExhausted = false;
     }
 
-    // Reject immediately if quota is exhausted
+    const companyKey =
+      company.aiEnabled && company.aiApiKey ? this.companiesService.decryptApiKey(company.aiApiKey) : null;
+    const hasUsableCompanyKey = !!companyKey && !companyKey.includes('[DECRYPTION_FAILED]');
+
+    if (company.aiApiKey && company.aiEnabled && !hasUsableCompanyKey) {
+      this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
+    }
+
+    // The company's own key is only blocked by its own quota lockout. The shared
+    // platform key is not rate-limited per company, so it stays available.
+    if (hasUsableCompanyKey && !company.aiQuotaExhausted) {
+      return {
+        apiKey: companyKey,
+        companyName: company.name,
+        provider: company.aiProvider || 'gemini',
+        companyId: user.companyId,
+      };
+    }
+
+    if (platform) {
+      if (company.aiQuotaExhausted) {
+        this.logger.log(`Company ${company.name} is rate-limited — serving this request from the platform key.`);
+      }
+      return {
+        apiKey: platform.apiKey,
+        companyName: company.name,
+        provider: platform.provider,
+        companyId: user.companyId,
+        model: platform.model,
+      };
+    }
+
     if (company.aiQuotaExhausted) {
       const resetMsg = company.aiQuotaResetAt
         ? ` AI will be available again at ${company.aiQuotaResetAt.toISOString()}.`
-        : ' Your free plan quota is permanently exhausted. Please upgrade or contact your administrator.';
+        : '';
       throw new Error(`AI quota exceeded for your company.${resetMsg}`);
     }
 
-    const decryptedApiKey = this.companiesService.decryptApiKey(company.aiApiKey);
-
-    if (!decryptedApiKey || decryptedApiKey.includes('[DECRYPTION_FAILED]')) {
-      this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
-      return null;
-    }
-
-    return {
-      apiKey: decryptedApiKey,
-      companyName: company.name,
-      provider: company.aiProvider || 'gemini',
-      companyId: user.companyId,
-    };
+    return null;
   }
 
   private async getCompanyAiApiKey(userId?: string): Promise<string | null> {
-    const info = await this.getCompanyAiInfo(userId);
+    const info = await this.resolveAiCredential(userId);
     return info?.apiKey || null;
   }
 
@@ -290,7 +412,7 @@ export class AiService {
     try {
       if (!userId) throw new Error('User ID is required for AI content generation');
 
-      const companyInfo = await this.getCompanyAiInfo(userId);
+      const companyInfo = await this.resolveAiCredential(userId);
       if (!companyInfo) throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
 
       const knowledgeSources = await this.getActiveKnowledgeSources(userId);
@@ -303,6 +425,7 @@ export class AiService {
           api_key: companyInfo.apiKey,
           company_name: companyInfo.companyName,
           provider: companyInfo.provider,
+          model: companyInfo.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 60000,
@@ -310,6 +433,7 @@ export class AiService {
       );
 
       // Track usage after success (non-blocking)
+      this.clearQuotaStrikes(companyInfo.companyId);
       if (companyInfo.companyId !== 'platform') {
         this.trackUsage(userId, companyInfo.companyId, AIFeature.TASK_GENERATION);
       }
@@ -338,7 +462,7 @@ export class AiService {
       // Mark quota exhausted in DB so UI can gray out buttons
       if (isQuota) {
         const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.markQuotaExhausted(user.companyId);
+        if (user?.companyId) await this.recordQuotaStrike(user.companyId);
         throw new HttpException('AI quota exceeded. The API key has reached its usage limit. Please contact your administrator.', 429);
       }
 
@@ -370,7 +494,7 @@ export class AiService {
     userId?: string,
   ): Promise<{ subtasks: any[]; ai_provider: string }> {
     try {
-      const companyInfo = await this.getCompanyAiInfo(userId);
+      const companyInfo = await this.resolveAiCredential(userId);
       if (!companyInfo) throw new Error('AI is not enabled for your company.');
 
       const knowledgeSources = await this.getActiveKnowledgeSources(userId);
@@ -382,12 +506,14 @@ export class AiService {
           api_key: companyInfo.apiKey,
           company_name: companyInfo.companyName,
           provider: companyInfo.provider,
+          model: companyInfo.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000,
         }),
       );
 
+      this.clearQuotaStrikes(companyInfo.companyId);
       if (companyInfo.companyId !== 'platform') {
         this.trackUsage(userId, companyInfo.companyId, AIFeature.SUBTASK_GENERATION);
       }
@@ -398,7 +524,7 @@ export class AiService {
       const httpStatus = error.response?.status || 500;
       if (httpStatus === 429 || error.message?.includes('quota')) {
         const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.markQuotaExhausted(user.companyId);
+        if (user?.companyId) await this.recordQuotaStrike(user.companyId);
         throw new HttpException('AI quota exceeded.', 429);
       }
       return {
@@ -413,7 +539,7 @@ export class AiService {
 
   async summarizeText(text: string, maxLength: number = 150, userId?: string): Promise<string> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
 
       const response = await firstValueFrom(
@@ -422,12 +548,14 @@ export class AiService {
           max_length: maxLength,
           api_key: info.apiKey,
           provider: info.provider,
+          model: info.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000,
         }),
       );
 
+      this.clearQuotaStrikes(info.companyId);
       if (info.companyId !== 'platform') {
         this.trackUsage(userId, info.companyId, AIFeature.MEETING_SUMMARY);
       }
@@ -437,7 +565,7 @@ export class AiService {
       this.logger.error('Error summarizing text:', error.message);
       if (error.response?.status === 429 || error.message?.includes('quota')) {
         const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.markQuotaExhausted(user.companyId);
+        if (user?.companyId) await this.recordQuotaStrike(user.companyId);
       }
       return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
     }
@@ -448,7 +576,7 @@ export class AiService {
     reasoning: string;
   }> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) return { suggestedPriority: 3, reasoning: 'AI not available.' };
 
       const response = await firstValueFrom(
@@ -457,6 +585,7 @@ export class AiService {
           description: taskDescription,
           api_key: info.apiKey,
           provider: info.provider,
+          model: info.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000,
@@ -476,7 +605,7 @@ export class AiService {
     isComplete: boolean;
   }> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) return { completenessScore: 0.5, suggestions: ['AI is not enabled for your company.'], isComplete: false };
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/check-completeness`, {
@@ -485,6 +614,7 @@ export class AiService {
           phase: currentPhase,
           api_key: info?.apiKey,
           provider: info?.provider,
+          model: info?.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
         }),
@@ -505,13 +635,14 @@ export class AiService {
     trends: string[];
   }> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) return { insights: ['AI is not enabled for your company.'], recommendations: ['Ask your administrator to add an AI API key.'], trends: [] };
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/performance-insights`, {
           analytics: analyticsData,
           api_key: info?.apiKey,
           provider: info?.provider,
+          model: info?.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000,
@@ -525,13 +656,14 @@ export class AiService {
 
   async detectTaskType(title: string, userId?: string): Promise<{ task_type: string; ai_provider: string }> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) return { task_type: 'GENERAL', ai_provider: 'fallback' };
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
           title,
           api_key: info?.apiKey,
           provider: info?.provider,
+          model: info?.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 10000,
@@ -545,7 +677,7 @@ export class AiService {
 
   async extractTextFromFile(filePath: string, mimeType: string, userId?: string): Promise<string> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) return 'Unable to extract text from file.';
       const response = await firstValueFrom(
         this.httpService.post(`${this.aiServiceUrl}/extract-text`, {
@@ -553,6 +685,7 @@ export class AiService {
           mime_type: mimeType,
           api_key: info?.apiKey,
           provider: info?.provider,
+          model: info?.model ?? undefined,
         }, { headers: this.aiServiceHeaders }),
       );
       return response.data.extracted_text;
@@ -568,7 +701,7 @@ export class AiService {
     ai_provider: string;
   }> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) {
         return {
           description: `Create a comprehensive plan for: ${title}.`,
@@ -583,6 +716,7 @@ export class AiService {
           type: 'task',
           api_key: info.apiKey,
           provider: info.provider,
+          model: info.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
           timeout: 15000,
@@ -636,7 +770,7 @@ export class AiService {
     files?: any[],
   ): Promise<any> {
     try {
-      const info = await this.getCompanyAiInfo(userId);
+      const info = await this.resolveAiCredential(userId);
       if (!info) {
         throw new HttpException('AI is not enabled for your company. Please ask your administrator to add an AI API key.', 403);
       }
@@ -649,6 +783,7 @@ export class AiService {
           additionalContext,
           api_key: info.apiKey,
           provider: info.provider,
+          model: info.model ?? undefined,
           companyName: info.companyName,
           files,
         }, {
@@ -657,6 +792,7 @@ export class AiService {
         }),
       );
 
+      if (info?.companyId) this.clearQuotaStrikes(info.companyId);
       if (info?.companyId && info.companyId !== 'platform') {
         this.trackUsage(userId, info.companyId, AIFeature.CHAT);
       }

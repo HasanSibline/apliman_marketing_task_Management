@@ -125,7 +125,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Subtask</h2>
               <button
                 onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
               >
                 <XMarkIcon className="h-6 w-6" />
               </button>
@@ -142,7 +142,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter subtask title"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   autoFocus
                 />
               </div>
@@ -157,7 +157,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter subtask description"
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
                 />
               </div>
 
@@ -215,7 +215,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                               setShowUserDropdown(false)
                             }}
                             className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3 ${
-                              assignedToId === user.id ? 'bg-blue-50' : ''
+                              assignedToId === user.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                             }`}
                           >
                             <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
@@ -230,7 +230,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                               )}
                             </div>
                             {assignedToId === user.id && (
-                              <CheckIcon className="h-4 w-4 text-blue-600" />
+                              <CheckIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                             )}
                           </button>
                         ))}
@@ -283,7 +283,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                                 setShowPhaseDropdown(false)
                               }}
                               className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3 ${
-                                phaseId === phase.id ? 'bg-blue-50' : ''
+                                phaseId === phase.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                               }`}
                             >
                               <span
@@ -292,7 +292,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                               />
                               <span className="text-sm font-medium text-gray-900 dark:text-white">{phase.name}</span>
                               {phaseId === phase.id && (
-                                <CheckIcon className="h-4 w-4 text-blue-600 ml-auto" />
+                                <CheckIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 ml-auto" />
                               )}
                             </button>
                           ))}
@@ -316,7 +316,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   placeholder="e.g., 2.5"
                   step="0.5"
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
               </div>
             </div>

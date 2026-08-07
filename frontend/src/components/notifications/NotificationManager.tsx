@@ -231,7 +231,7 @@ const NotificationManager: React.FC = () => {
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     className={`p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                      !notification.read ? 'bg-blue-50' : ''
+                      !notification.read ? 'bg-blue-50 dark:bg-blue-900/30' : ''
                     }`}
                   >
                     <div className="flex items-start space-x-3">
@@ -280,7 +280,7 @@ const NotificationManager: React.FC = () => {
                                 }, 500)
                               }
                             }}
-                            className="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-block font-medium"
+                            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 mt-2 inline-block font-medium"
                           >
                             View Details →
                           </button>
@@ -288,7 +288,7 @@ const NotificationManager: React.FC = () => {
                       </div>
                       <button
                         onClick={() => clearNotification(notification.id)}
-                        className="text-gray-400 hover:text-gray-600 dark:text-gray-300"
+                        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"
                       >
                         <XMarkIcon className="h-5 w-5" />
                       </button>

@@ -48,8 +48,8 @@ interface QuarterDetail extends Quarter {
 
 // ─── Status config ────────────────────────────────────────────────────────────
 const STATUS_CONFIG = {
-    UPCOMING: { label: 'Upcoming', bg: 'bg-indigo-50 text-indigo-700', dot: 'bg-indigo-400' },
-    ACTIVE: { label: 'Active', bg: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+    UPCOMING: { label: 'Upcoming', bg: 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300', dot: 'bg-indigo-400' },
+    ACTIVE: { label: 'Active', bg: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300', dot: 'bg-green-500' },
     CLOSED: { label: 'Closed', bg: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200', dot: 'bg-gray-400' },
 }
 
@@ -85,7 +85,7 @@ function CreateQuarterModal({ onClose, onCreated }: { onClose: () => void; onCre
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white">New Strategy Cycle</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-300">
+                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
@@ -185,17 +185,17 @@ function CloseQuarterModal({
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Close {quarter.name} | Review Tasks</h2>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">Any tasks not selected will be moved to <span className="text-primary-600">Standby</span>.</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">Any tasks not selected will be moved to <span className="text-primary-600 dark:text-primary-400">Standby</span>.</p>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
+                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                     </div>
                 </div>
 
-                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
+                <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50 dark:bg-gray-900/40">
                     {incompleteTasks.length === 0 ? (
                         <div className="text-center py-12">
-                            <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-200">
-                                <CheckCircleIcon className="h-8 w-8 text-green-600" />
+                            <div className="h-16 w-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-200">
+                                <CheckCircleIcon className="h-8 w-8 text-green-600 dark:text-green-400" />
                             </div>
                             <p className="text-gray-900 dark:text-white font-bold text-lg">Clean Sweep!</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Every single task in this quarter is completed.</p>
@@ -205,15 +205,15 @@ function CloseQuarterModal({
                             <div className="flex items-center justify-between mb-2">
                                 <p className="text-sm font-bold text-gray-700 dark:text-gray-200 uppercase tracking-tight">{incompleteTasks.length} Incomplete tasks</p>
                                 <button onClick={() => setSelected(new Set(incompleteTasks.map(t => t.id)))}
-                                    className="text-xs text-primary-600 hover:text-primary-700 font-bold bg-primary-50 px-2 py-1 rounded">Select All Tasks</button>
+                                    className="text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-bold bg-primary-50 dark:bg-primary-900/30 px-2 py-1 rounded">Select All Tasks</button>
                             </div>
                             <div className="space-y-2">
                                 {incompleteTasks.map(task => (
                                     <label key={task.id}
                                         className={`flex items-start gap-3 p-3 rounded-xl border-2 cursor-pointer transition shadow-sm
-                      ${selected.has(task.id) ? 'border-primary-500 bg-primary-50' : 'border-white bg-white dark:bg-gray-800 hover:border-gray-200 dark:border-gray-700'}`}>
+                      ${selected.has(task.id) ? 'border-primary-500 bg-primary-50' : 'border-white bg-white dark:bg-gray-800 hover:border-gray-200 dark:hover:border-gray-700 dark:border-gray-700'}`}>
                                         <input type="checkbox" checked={selected.has(task.id)} onChange={() => toggle(task.id)}
-                                            className="mt-0.5 h-4 w-4 text-primary-600 focus:ring-primary-500 rounded border-gray-300 dark:border-gray-600" />
+                                            className="mt-0.5 h-4 w-4 text-primary-600 dark:text-primary-400 focus:ring-primary-500 rounded border-gray-300 dark:border-gray-600" />
                                         <div className="flex-1 min-w-0">
                                             <p className="text-sm font-bold text-gray-900 dark:text-white truncate">{task.title}</p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{task.assignedTo?.name ?? 'Unassigned'}</p>
@@ -403,19 +403,19 @@ const QuartersPage: React.FC = () => {
                                 <h3 className="text-lg font-black text-gray-900 dark:text-white leading-none">Move to Cycle</h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium truncate max-w-[200px]">{movingTask.title}</p>
                             </div>
-                            <button onClick={() => setMovingTask(null)} className="text-gray-400 hover:text-gray-600 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
+                            <button onClick={() => setMovingTask(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                         </div>
                         
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
                             {/* Active/Upcoming Roadmap */}
                             <div>
-                                <p className="text-[11px] font-black text-primary-600 uppercase tracking-widest mb-2 px-1">Active Roadmap</p>
+                                <p className="text-[11px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2 px-1">Active Roadmap</p>
                                 <div className="space-y-1.5">
                                     {quarters.filter(q => q.status !== 'CLOSED').map(q => (
                                         <button
                                             key={q.id}
                                             onClick={() => handleMoveTask(movingTask, q.id)}
-                                            className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 transition-all group"
+                                            className="w-full flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-gray-700 hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-all group"
                                         >
                                             <div className="text-left">
                                                 <div className="text-sm font-bold text-gray-900 dark:text-white">{q.name} {q.year}</div>
@@ -447,7 +447,7 @@ const QuartersPage: React.FC = () => {
                                                 <div className="text-xs font-bold text-gray-600 dark:text-gray-300">{q.name} {q.year}</div>
                                                 <div className="text-[11px] text-gray-400 font-black uppercase tracking-tighter leading-none mt-1">Archived History</div>
                                             </div>
-                                            <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-gray-600 dark:text-gray-300" />
+                                            <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-gray-600 dark:group-hover:text-gray-200 dark:text-gray-300" />
                                         </button>
                                     ))}
                                 </div>
@@ -492,7 +492,7 @@ const QuartersPage: React.FC = () => {
                             </button>
                         )}
                         {isAdmin && (
-                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-primary-700 rounded-lg font-bold text-sm hover:bg-primary-50 active:scale-95 transition-all shadow-sm">
+                            <button onClick={() => setShowCreate(true)} className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 rounded-lg font-bold text-sm hover:bg-primary-50 dark:hover:bg-primary-900/30 active:scale-95 transition-all shadow-sm">
                                 <PlusIcon className="h-5 w-5" />
                                 Start Year
                             </button>
@@ -599,7 +599,7 @@ const QuartersPage: React.FC = () => {
                                     
                                     <span className={`text-[11px] font-black transition-colors ${selectedYear === year ? 'text-primary-700 underline underline-offset-4 decoration-2' : 'text-gray-900 dark:text-white uppercase tracking-tight'}`}>{year}</span>
                                     {selectedYear === year && (
-                                        <div className="absolute -inset-2 bg-primary-50 rounded-lg -z-10" />
+                                        <div className="absolute -inset-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg -z-10" />
                                     )}
                                 </button>
                             ))}
@@ -619,7 +619,7 @@ const QuartersPage: React.FC = () => {
                         >
                             {/* Archive Filter: Logic to handle 'Shouldnt they stop appearing if closed' */}
                             {isYearCompleted(selectedYear) && (
-                                <div className="mb-8 p-4 bg-gray-50/80 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
+                                <div className="mb-8 p-4 bg-gray-50/80 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
                                             <ArchiveBoxIcon className="h-5 w-5 text-gray-400" />
@@ -637,7 +637,7 @@ const QuartersPage: React.FC = () => {
 
                             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 pb-6 border-b border-gray-100 dark:border-gray-700 gap-4">
                                 <div className="flex items-center gap-4">
-                                    <div className="p-3 bg-primary-50 text-primary-600 rounded-xl">
+                                    <div className="p-3 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl">
                                         <FolderIcon className="h-7 w-7" />
                                     </div>
                                     <div>
@@ -672,7 +672,7 @@ const QuartersPage: React.FC = () => {
                                                 <div>
                                                     <div className="flex items-center justify-between text-[11px] font-black text-gray-400 uppercase mb-2">
                                                         <span>Completion</span>
-                                                        <span className="text-primary-700">{progress}%</span>
+                                                        <span className="text-primary-700 dark:text-primary-300">{progress}%</span>
                                                     </div>
                                                     <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-50 dark:border-gray-700 shadow-inner">
                                                         <div className={`h-full rounded-full transition-all duration-1000 ${progress === 100 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }} />
@@ -712,7 +712,7 @@ const QuartersPage: React.FC = () => {
                                                             fetchQuarters();
                                                         } catch { toast.error('Failed to start cycle'); }
                                                     }}
-                                                    className="mt-6 w-full py-2.5 bg-primary-50 hover:bg-primary-600 text-primary-700 hover:text-white border border-primary-200 hover:border-primary-600 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                    className="mt-6 w-full py-2.5 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-600 text-primary-700 dark:text-primary-300 hover:text-white border border-primary-200 hover:border-primary-600 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <CheckCircleIcon className="h-4 w-4" /> Start Cycle
                                                 </button>
@@ -720,7 +720,7 @@ const QuartersPage: React.FC = () => {
                                             {isAdmin && q.status === 'ACTIVE' && (
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); openCloseModal(q); }}
-                                                    className="mt-6 w-full py-2.5 bg-white dark:bg-gray-800 hover:bg-red-50 text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                    className="mt-6 w-full py-2.5 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <LockClosedIcon className="h-4 w-4" /> Close Cycle
                                                 </button>
@@ -737,9 +737,9 @@ const QuartersPage: React.FC = () => {
             {/* Standby / Backlog Section (Aligned with Objectives Page) */}
             <div className="pt-8">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div className="p-6 bg-gray-50/50 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <div className="p-6 bg-gray-50/50 dark:bg-gray-900/40 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="h-10 w-10 bg-primary-50 text-primary-600 rounded-xl flex items-center justify-center">
+                            <div className="h-10 w-10 bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl flex items-center justify-center">
                                 <InboxIcon className="h-5 w-5 stroke-[2.5]" />
                             </div>
                             <div>
@@ -749,7 +749,7 @@ const QuartersPage: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2">
                             {isAdmin && (
-                                <button onClick={() => setShowQuickCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-700 border border-primary-100 rounded-lg text-xs font-bold hover:bg-primary-100 transition shadow-sm">
+                                <button onClick={() => setShowQuickCreate(true)} className="flex items-center gap-2 px-4 py-2 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 border border-primary-100 dark:border-primary-900/40 rounded-lg text-xs font-bold hover:bg-primary-100 dark:hover:bg-primary-900/30 transition shadow-sm">
                                     <SparklesIcon className="h-3.5 w-3.5" />
                                     New Idea
                                 </button>
@@ -800,7 +800,7 @@ const QuartersPage: React.FC = () => {
                                                 {isAdmin && (
                                                     <button 
                                                         onClick={() => setMovingTask(task)} 
-                                                        className="p-2 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors border border-transparent hover:border-primary-100 flex items-center gap-1"
+                                                        className="p-2 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors border border-transparent hover:border-primary-100 flex items-center gap-1"
                                                         title="Quick Assign to Strategy Cycle"
                                                     >
                                                         <PlusIcon className="h-4 w-4" />
@@ -820,7 +820,7 @@ const QuartersPage: React.FC = () => {
 
                     {/* Standby Pagination */}
                     {backlogTotal > 5 && (
-                        <div className="p-4 bg-gray-50/50 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                        <div className="p-4 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Page {backlogPage} of {Math.ceil(backlogTotal / 5)}</span>
                             <div className="flex gap-2">
                                 <button 

@@ -167,24 +167,24 @@ const TaskDetailPage: React.FC = () => {
       case 2:
         return {
           color: '#3B82F6',
-          bg: 'bg-blue-100',
-          text: 'text-blue-700',
+          bg: 'bg-blue-100 dark:bg-blue-900/30',
+          text: 'text-blue-700 dark:text-blue-300',
           icon: ChevronUpIcon,
           label: 'Medium Priority'
         }
       case 3:
         return {
           color: '#F59E0B',
-          bg: 'bg-amber-100',
-          text: 'text-amber-700',
+          bg: 'bg-amber-100 dark:bg-amber-900/30',
+          text: 'text-amber-700 dark:text-amber-300',
           icon: ArrowUpIcon,
           label: 'High Priority'
         }
       case 4:
         return {
           color: '#EF4444',
-          bg: 'bg-red-100',
-          text: 'text-red-700',
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          text: 'text-red-700 dark:text-red-300',
           icon: BoltIcon,
           label: 'Urgent'
         }
@@ -192,7 +192,7 @@ const TaskDetailPage: React.FC = () => {
         return {
           color: '#DC2626',
           bg: 'bg-red-200',
-          text: 'text-red-800',
+          text: 'text-red-800 dark:text-red-300',
           icon: FireIcon,
           label: 'Critical'
         }
@@ -334,7 +334,7 @@ const TaskDetailPage: React.FC = () => {
           {/* Back Button */}
           <button
             onClick={() => navigate('/tasks')}
-            className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:text-white transition-colors"
+            className="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeftIcon className="h-4 w-4" />
             <span className="font-medium">Back to Tasks</span>
@@ -371,13 +371,13 @@ const TaskDetailPage: React.FC = () => {
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-3">
                   {currentTask.taskNumber && (
-                    <span className="text-primary-600 font-mono text-2xl">{currentTask.taskNumber}</span>
+                    <span className="text-primary-600 dark:text-primary-400 font-mono text-2xl">{currentTask.taskNumber}</span>
                   )}
                   {currentTask.title}
                 </h1>
 
                 {/* Meta Info - Simplified */}
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-300 mb-6 py-3 border-y border-gray-50 dark:border-gray-700 bg-gray-50/30 px-4 rounded-xl">
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-300 mb-6 py-3 border-y border-gray-50 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/30 px-4 rounded-xl">
                   <div className="flex items-center gap-2 group">
                     <UserIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
                     <span>Assignee: <strong className="text-gray-900 dark:text-white">{currentTask.assignedTo?.name || 'Unassigned'}</strong></span>
@@ -414,14 +414,14 @@ const TaskDetailPage: React.FC = () => {
                       <>
                         <button
                           onClick={handlePauseTimer}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
                         >
                           <PauseIcon className="w-4 h-4" />
                           {formatTime(currentTime)}
                         </button>
                         <button
                           onClick={handleStopTimer}
-                          className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg text-sm hover:bg-gray-200 transition-colors"
+                          className="p-1.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                           title="Stop and reset"
                         >
                           <XMarkIcon className="w-4 h-4" />
@@ -430,7 +430,7 @@ const TaskDetailPage: React.FC = () => {
                     ) : (
                       <button
                         onClick={handleStartTimer}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
                       >
                         <PlayIcon className="w-4 h-4" />
                         {currentTime > 0 ? formatTime(currentTime) : 'Start Timer'}
@@ -476,7 +476,7 @@ const TaskDetailPage: React.FC = () => {
                 <div className="flex items-center gap-2 ml-4">
                   <button
                     onClick={() => setIsEditModalOpen(true)}
-                    className="p-2 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors"
+                    className="p-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition-colors"
                     title="Edit Task"
                   >
                     <PencilIcon className="h-5 w-5" />
@@ -484,7 +484,7 @@ const TaskDetailPage: React.FC = () => {
                   {isAdmin && (
                     <button
                       onClick={handleDeleteTask}
-                      className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+                      className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition-colors"
                       title="Delete Task"
                     >
                       <TrashIcon className="h-5 w-5" />
@@ -497,7 +497,7 @@ const TaskDetailPage: React.FC = () => {
             {/* Description */}
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                <FlagIcon className="h-5 w-5 text-blue-600" />
+                <FlagIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 Description
               </h2>
               <div className="prose max-w-none text-gray-700 dark:text-gray-200">
@@ -509,7 +509,7 @@ const TaskDetailPage: React.FC = () => {
             {currentTask.goals && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                  <CheckCircleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
                   Goals & Objectives
                 </h2>
                 <div className="prose max-w-none text-gray-700 dark:text-gray-200">
@@ -522,13 +522,13 @@ const TaskDetailPage: React.FC = () => {
             <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-                  <CogIcon className="h-5 w-5 text-purple-600" />
+                  <CogIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                   Dependencies
                 </h2>
                 {canEdit && (
                   <button
                     onClick={() => setIsAddDependencyModalOpen(true)}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 font-medium"
                   >
                     + Add Blocker
                   </button>
@@ -546,14 +546,14 @@ const TaskDetailPage: React.FC = () => {
                       {currentTask.blockedBy.map((dep) => (
                         <div
                           key={dep.id}
-                          className="flex items-center justify-between p-3 bg-red-50 border border-red-100 rounded-lg group"
+                          className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/40 rounded-lg group"
                         >
                           <div
                             className="flex items-center gap-3 cursor-pointer"
                             onClick={() => navigate(`/tasks/${dep.blocker.id}`)}
                           >
                             <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />
-                            <span className="text-sm font-medium text-red-700 hover:underline line-clamp-1">
+                            <span className="text-sm font-medium text-red-700 dark:text-red-300 hover:underline line-clamp-1">
                               {dep.blocker.title}
                             </span>
                           </div>
@@ -583,14 +583,14 @@ const TaskDetailPage: React.FC = () => {
                       {currentTask.blocking.map((dep) => (
                         <div
                           key={dep.id}
-                          className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg group"
+                          className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-900/40 rounded-lg group"
                         >
                           <div
                             className="flex items-center gap-3 cursor-pointer"
                             onClick={() => navigate(`/tasks/${dep.dependent.id}`)}
                           >
                             <CheckCircleIcon className="h-4 w-4 text-blue-500" />
-                            <span className="text-sm font-medium text-blue-700 hover:underline line-clamp-1">
+                            <span className="text-sm font-medium text-blue-700 dark:text-blue-300 hover:underline line-clamp-1">
                               {dep.dependent.title}
                             </span>
                           </div>
@@ -614,7 +614,7 @@ const TaskDetailPage: React.FC = () => {
             className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6"
           >
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-              <PaperClipIcon className="h-5 w-5 text-blue-600" />
+              <PaperClipIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Files ({(currentTask as any).files?.length || 0})
             </h2>
 
@@ -634,7 +634,7 @@ const TaskDetailPage: React.FC = () => {
             className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6"
           >
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-              <ChatBubbleLeftIcon className="h-5 w-5 text-blue-600" />
+              <ChatBubbleLeftIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               Comments ({(currentTask as any).comments?.length || 0})
             </h2>
 
@@ -694,7 +694,7 @@ const TaskDetailPage: React.FC = () => {
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">Add Task Blocker</h3>
                   <button onClick={() => setIsAddDependencyModalOpen(false)}>
-                    <XMarkIcon className="w-6 h-6 text-gray-400 hover:text-gray-600 dark:text-gray-300" />
+                    <XMarkIcon className="w-6 h-6 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300" />
                   </button>
                 </div>
 
@@ -705,7 +705,7 @@ const TaskDetailPage: React.FC = () => {
                       placeholder="Search tasks to add as blocker..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       autoFocus
                     />
                   </div>
@@ -718,7 +718,7 @@ const TaskDetailPage: React.FC = () => {
                           <button
                             key={task.id}
                             onClick={() => handleAddDependency(task.id)}
-                            className="w-full flex items-center justify-between p-3 hover:bg-blue-50 transition-colors text-left"
+                            className="w-full flex items-center justify-between p-3 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-left"
                           >
                             <div>
                               <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">{task.title}</p>

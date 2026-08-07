@@ -52,13 +52,13 @@ export default function DayTasksPage() {
             <div className="flex items-center gap-4">
                 <button 
                     onClick={() => navigate(-1)} 
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:text-white"
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
                 >
                     <ArrowLeftIcon className="h-5 w-5" />
                 </button>
                 <div>
                     <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-                        <CalendarDaysIcon className="h-8 w-8 text-primary-600" />
+                        <CalendarDaysIcon className="h-8 w-8 text-primary-600 dark:text-primary-400" />
                         {formattedDate}
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 uppercase tracking-widest text-sm">

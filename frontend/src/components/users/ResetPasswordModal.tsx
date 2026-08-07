@@ -107,8 +107,8 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <KeyIcon className="h-6 w-6 text-yellow-600" />
+                  <div className="h-10 w-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                    <KeyIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Reset Password</h2>
@@ -118,7 +118,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
                 <button
                   onClick={handleClose}
                   disabled={isLoading}
-                  className="text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors disabled:opacity-50"
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors disabled:opacity-50"
                 >
                   <XMarkIcon className="h-6 w-6" />
                 </button>
@@ -143,7 +143,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
                     disabled={isLoading}
                   />
                   {errors.newPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.newPassword}</p>
                   )}
                 </div>
 
@@ -164,7 +164,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
                     disabled={isLoading}
                   />
                   {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
                   )}
                 </div>
 

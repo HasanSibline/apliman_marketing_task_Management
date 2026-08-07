@@ -15,7 +15,7 @@ class ContentGeneratorError(Exception):
     pass
 
 class ContentGenerator:
-    def __init__(self, api_key: Optional[str] = None, provider: str = "gemini"):
+    def __init__(self, api_key: Optional[str] = None, provider: str = "gemini", model: Optional[str] = None):
         self.config = get_config()
         self.last_request_time = None
         self.request_interval = 1.0  # Minimum time between requests in seconds
@@ -23,13 +23,28 @@ class ContentGenerator:
         self.company_name = None  # Store company name for personalized responses
         self.provided_api_key = api_key  # Store the provided API key
         self.provider = provider.lower()
-        
-        if self.provider == "groq":
+        self.model_override = model  # Set by the platform key, if it pins a model
+
+        if self.provider == "anthropic":
+            self._initialize_anthropic()
+        elif self.provider == "groq":
             self._initialize_groq()
         elif self.provider == "openai":
             self._initialize_openai()
         else:
             self._initialize_gemini()
+
+    def _initialize_anthropic(self):
+        """Initialize Claude using the company or platform-provided API key."""
+        self.api_key = self.provided_api_key or None
+        if not self.api_key:
+            logger.warning("Anthropic initialized WITHOUT a key — AI calls will be rejected until one is provided")
+
+        self.base_url = "https://api.anthropic.com/v1"
+        self.model = self.model_override or self.config.ANTHROPIC_MODEL
+        self.api_type = "anthropic"
+        logger.info(f"✅ Anthropic initialized with model {self.model}")
+
         
     def _initialize_gemini(self):
         """Initialize Gemini using ONLY the company-provided API key (no env fallback)."""
@@ -229,9 +244,30 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
 
     async def _make_request(self, prompt: str) -> str:
         """Make a request to the appropriate AI API"""
+        if self.api_type == "anthropic":
+            return await self._make_anthropic_request(prompt)
         if self.api_type in ("groq", "openai"):
             return await self._make_openai_compatible_request(prompt)
         return await self._make_gemini_request(prompt)
+
+    async def _make_anthropic_request(self, prompt: str) -> str:
+        """Make a request to Claude with the same company-specific system prompt."""
+        from .anthropic_client import generate as anthropic_generate, AnthropicProviderError
+
+        social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
+        is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
+
+        try:
+            return await anthropic_generate(
+                api_key=self._get_current_api_key(),
+                prompt=prompt,
+                system_prompt=self._get_system_prompt(is_social_media),
+                model=self.model,
+            )
+        except AnthropicProviderError as e:
+            # Re-raise in the shape the rest of this service (and the NestJS layer)
+            # already knows how to classify.
+            raise ContentGeneratorError(str(e))
 
     async def _make_openai_compatible_request(self, prompt: str) -> str:
         """Make a request to an OpenAI-compatible chat API (Groq or OpenAI)."""

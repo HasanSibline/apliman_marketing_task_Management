@@ -231,7 +231,7 @@ const DashboardPage: React.FC = () => {
         >
           <div className="p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
              <div className="flex items-center gap-4">
-                <div className="h-10 w-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
+                <div className="h-10 w-10 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center border border-amber-100 dark:border-amber-900/40">
                    <TrophyIcon className="h-6 w-6" />
                 </div>
                 <div>
@@ -266,8 +266,8 @@ const DashboardPage: React.FC = () => {
                               className={isTopThree ? 'border-white/30 bg-white/10' : 'border-white bg-gray-200 dark:bg-gray-700'}
                            />
                            {isTopThree && (
-                              <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white flex items-center justify-center border-2 border-gray-900 shadow-none scale-110">
-                                 <span className={`text-[11px] font-black ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500' : 'text-orange-600'}`}>
+                              <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center border-2 border-gray-900 shadow-none scale-110">
+                                 <span className={`text-[11px] font-black ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500 dark:text-gray-400' : 'text-orange-600'}`}>
                                     {index + 1}
                                  </span>
                               </div>

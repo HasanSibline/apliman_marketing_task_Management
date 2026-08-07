@@ -69,7 +69,7 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
         className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
       >
         <div className="flex items-center space-x-2 mb-4">
-          <ChartBarIcon className="h-5 w-5 text-primary-600" />
+          <ChartBarIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">Priority Analysis</h3>
         </div>
         <div className="space-y-2">
@@ -97,7 +97,7 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
         className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
       >
         <div className="flex items-center space-x-2 mb-4">
-          <CheckCircleIcon className="h-5 w-5 text-primary-600" />
+          <CheckCircleIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">Completeness Check</h3>
         </div>
         <div className="space-y-4">
@@ -141,7 +141,7 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
         className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
       >
         <div className="flex items-center space-x-2 mb-4">
-          <DocumentTextIcon className="h-5 w-5 text-primary-600" />
+          <DocumentTextIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">AI Summary</h3>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-300">
@@ -157,7 +157,7 @@ const TaskAIAnalysis: React.FC<TaskAIAnalysisProps> = ({ task }) => {
         className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
       >
         <div className="flex items-center space-x-2 mb-4">
-          <ArrowTrendingUpIcon className="h-5 w-5 text-primary-600" />
+          <ArrowTrendingUpIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           <h3 className="text-sm font-medium text-gray-900 dark:text-white">Performance Insights</h3>
         </div>
         <div className="space-y-2">

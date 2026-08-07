@@ -82,8 +82,8 @@ const TeamsManagement: React.FC = () => {
           <div key={team.id} className="card p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-indigo-100 rounded-lg">
-                  <UserGroupIcon className="h-6 w-6 text-indigo-600" />
+                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+                  <UserGroupIcon className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div>
                   <h3 className="font-bold text-gray-900 dark:text-white">{team.name}</h3>
@@ -121,7 +121,7 @@ const TeamsManagement: React.FC = () => {
                   type="text" 
                   value={newTeamName}
                   onChange={(e) => setNewTeamName(e.target.value)}
-                  className="input mt-1" 
+                  className="input-field mt-1" 
                   placeholder="e.g. Design Hackathon, Q4 Task Force" 
                 />
               </div>
@@ -134,7 +134,7 @@ const TeamsManagement: React.FC = () => {
                         type="checkbox" 
                         checked={selectedUserIds.includes(u.id)}
                         onChange={() => toggleUser(u.id)}
-                        className="rounded border-gray-300 dark:border-gray-600 text-primary-600 shadow-sm"
+                        className="rounded border-gray-300 dark:border-gray-600 text-primary-600 dark:text-primary-400 shadow-sm"
                       />
                       <span className="text-sm text-gray-700 dark:text-gray-200">{u.name} ({u.department?.name || 'No Dept'})</span>
                     </label>

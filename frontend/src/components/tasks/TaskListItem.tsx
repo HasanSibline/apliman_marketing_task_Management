@@ -69,24 +69,24 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
       case 2: 
         return { 
           color: '#3B82F6',
-          bg: 'bg-blue-100',
-          text: 'text-blue-700',
+          bg: 'bg-blue-100 dark:bg-blue-900/30',
+          text: 'text-blue-700 dark:text-blue-300',
           icon: ChevronUpIcon,
           label: 'Medium'
         }
       case 3: 
         return { 
           color: '#F59E0B',
-          bg: 'bg-amber-100',
-          text: 'text-amber-700',
+          bg: 'bg-amber-100 dark:bg-amber-900/30',
+          text: 'text-amber-700 dark:text-amber-300',
           icon: ArrowUpIcon,
           label: 'High'
         }
       case 4: 
         return { 
           color: '#EF4444',
-          bg: 'bg-red-100',
-          text: 'text-red-700',
+          bg: 'bg-red-100 dark:bg-red-900/30',
+          text: 'text-red-700 dark:text-red-300',
           icon: BoltIcon,
           label: 'Urgent'
         }
@@ -94,7 +94,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
         return { 
           color: '#DC2626',
           bg: 'bg-red-200',
-          text: 'text-red-800',
+          text: 'text-red-800 dark:text-red-300',
           icon: FireIcon,
           label: 'Critical'
         }
@@ -121,15 +121,15 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
     if (task.taskType === 'COORDINATION') {
       return {
         label: 'Coordination',
-        bg: 'bg-indigo-100',
-        text: 'text-indigo-700'
+        bg: 'bg-indigo-100 dark:bg-indigo-900/30',
+        text: 'text-indigo-700 dark:text-indigo-300'
       }
     }
     if (task.taskType === 'SUBTASK') {
       return {
         label: 'Subtask',
-        bg: 'bg-purple-100',
-        text: 'text-purple-700'
+        bg: 'bg-purple-100 dark:bg-purple-900/30',
+        text: 'text-purple-700 dark:text-purple-300'
       }
     }
     return null
@@ -154,7 +154,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
           <div className="flex items-start justify-between mb-2">
             <h3 className="text-base font-semibold text-gray-900 dark:text-white line-clamp-2 group-hover:text-blue-600 transition-colors flex-1 flex items-center gap-2">
               {task.taskNumber && (
-                <span className="text-primary-600 font-mono text-xs border border-primary-200 px-1.5 rounded bg-primary-50 flex-shrink-0">
+                <span className="text-primary-600 dark:text-primary-400 font-mono text-xs border border-primary-200 px-1.5 rounded bg-primary-50 dark:bg-primary-900/30 flex-shrink-0">
                   {task.taskNumber}
                 </span>
               )}
@@ -208,7 +208,7 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
 
           {/* Subtask Progress */}
           {subtaskProgress && (
-            <div className="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+            <div className="inline-flex items-center gap-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded">
               <FlagIcon className="h-3 w-3" />
               <span className="text-xs font-semibold">{subtaskProgress}</span>
             </div>

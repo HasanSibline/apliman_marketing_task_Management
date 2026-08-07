@@ -35,13 +35,13 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
     >
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <FunnelIcon className="h-5 w-5 text-primary-600" />
+          <FunnelIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
           <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filters</h3>
         </div>
         {hasFilters && (
           <button
             onClick={onClearFilters}
-            className="text-sm text-error-600 hover:text-error-700 font-medium flex items-center gap-1"
+            className="text-sm text-error-600 dark:text-error-400 hover:text-error-700 font-medium flex items-center gap-1"
           >
             <XMarkIcon className="h-4 w-4" />
             Clear All

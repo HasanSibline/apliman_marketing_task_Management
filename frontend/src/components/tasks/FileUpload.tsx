@@ -130,7 +130,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
         aria-label="Upload files by clicking or dragging and dropping"
         className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 ${
           dragActive 
-            ? 'border-primary-500 bg-primary-50' 
+            ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/30' 
             : 'border-gray-300 dark:border-gray-600 hover:border-gray-400'
         }`}
         onDragEnter={handleDrag}
@@ -147,7 +147,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
         <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
         <div className="mt-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">
-            <span className="font-medium text-primary-600">Click to upload</span>
+            <span className="font-medium text-primary-600 dark:text-primary-400">Click to upload</span>
             {' '}or drag and drop
           </p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1" id="file-upload-description">
@@ -198,14 +198,14 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => filesApi.download(file.id)}
-                  className="text-primary-600 hover:text-primary-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded"
+                  className="text-primary-600 dark:text-primary-400 hover:text-primary-700 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded"
                   aria-label={`Download ${file.fileName}`}
                 >
                   Download
                 </button>
                 <button
                   onClick={() => handleDeleteFile(file.id, file.fileName)}
-                  className="text-red-600 hover:text-red-700 p-1 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                  className="text-red-600 dark:text-red-400 hover:text-red-700 p-1 rounded focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
                   aria-label={`Delete ${file.fileName}`}
                 >
                   <TrashIcon className="h-4 w-4" aria-hidden="true" />

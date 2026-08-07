@@ -133,7 +133,7 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
             {!isTracking ? (
               <button
                 onClick={handleStart}
-                className="p-2 text-green-600 hover:bg-green-50 rounded-full transition-colors"
+                className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-full transition-colors"
               >
                 <PlayIcon className="h-5 w-5" />
               </button>
@@ -141,13 +141,13 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
               <>
                 <button
                   onClick={handlePause}
-                  className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-full transition-colors"
+                  className="p-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-full transition-colors"
                 >
                   <PauseIcon className="h-5 w-5" />
                 </button>
                 <button
                   onClick={handleStop}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                  className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
                 >
                   <StopIcon className="h-5 w-5" />
                 </button>
@@ -186,7 +186,7 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
               )}
             </div>
             {!entry.endTime && (
-              <span className="px-2 py-1 text-xs font-medium text-green-800 bg-green-100 rounded-full">
+              <span className="px-2 py-1 text-xs font-medium text-green-800 dark:text-green-300 bg-green-100 dark:bg-green-900/30 rounded-full">
                 Active
               </span>
             )}

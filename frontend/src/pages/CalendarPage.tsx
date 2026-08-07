@@ -98,7 +98,7 @@ const CalendarPage: React.FC = () => {
             <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl">
                 <div className="flex flex-col items-center">
                     <div className="relative">
-                        <div className="h-16 w-16 border-4 border-primary-50 rounded-full" />
+                        <div className="h-16 w-16 border-4 border-primary-50 dark:border-primary-900/40 rounded-full" />
                         <div className="absolute top-0 h-16 w-16 border-4 border-primary-600 rounded-full border-t-transparent animate-spin" />
                     </div>
                     <h2 className="mt-6 text-xl font-black text-gray-900 dark:text-white tracking-tight">Syncing your Universe</h2>
