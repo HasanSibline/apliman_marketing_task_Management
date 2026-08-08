@@ -68,7 +68,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               exit={{ opacity: 0, scale: 0.95 }}
               className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
             >
-              <button
+              <button aria-label="Close"
                 onClick={onClose}
                 className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"
               >
@@ -310,7 +310,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                     )}
                   </div>
                 </div>
-                <button
+                <button aria-label="Close"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >

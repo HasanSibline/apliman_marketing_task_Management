@@ -81,7 +81,7 @@ export class MicrosoftNotificationWorker {
             this.meetingStatusCache.set(cacheKey, event.status);
 
             if (previousStatus !== undefined) {
-              // Status actually changed — push a live calendar refresh event via WS
+              // Status actually changed, push a live calendar refresh event via WS
               this.presenceGateway.sendNotificationToUser(user.id, {
                 type: 'MICROSOFT_STATUS_CHANGE',
                 eventId: event.id,
@@ -136,7 +136,7 @@ export class MicrosoftNotificationWorker {
       actionUrl: `/meetings/${event.id}`,
     });
 
-    // 🚀 Real-time push via WebSocket — no waiting for polling
+    // 🚀 Real-time push via WebSocket, no waiting for polling
     this.presenceGateway.sendNotificationToUser(userId, {
       ...notification,
       type: 'MICROSOFT_MEETING',

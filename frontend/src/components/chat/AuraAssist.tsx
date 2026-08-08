@@ -827,7 +827,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                       onChange={handleInputChange}
                       onKeyDown={handleKeyDown}
                       disabled={isTyping || isUploading || aiBlocked}
-                      placeholder={aiBlocked ? (quotaExhausted ? `AI is rate limited${resetCountdown ? ` — back in ${resetCountdown}` : ' — try again shortly'}` : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
+                      placeholder={aiBlocked ? (quotaExhausted ? `AI is rate limited${resetCountdown ? `, back in ${resetCountdown}` : ', try again shortly'}` : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
                       className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}`}
                     />
                     
@@ -869,40 +869,49 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
         )}
       </AnimatePresence>
 
-      {/* Confirm close modal - Professional */}
+      {/* Closing the panel: keep the conversation, or clear it. */}
       {showConfirmClose && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-fade-in">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-8 max-w-md mx-4 shadow-2xl border border-gray-200 dark:border-gray-700">
-            <div className="mb-6 text-center">
-              <div className="w-14 h-14 bg-error-100 dark:bg-error-900/30 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <XMarkIcon className="w-8 h-8 text-error-600 dark:text-error-400" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">End Chat Session?</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-[11px] font-medium leading-relaxed italic uppercase opacity-60">
-                Strategic Choice Required
-              </p>
-            </div>
-            <div className="flex flex-col gap-2.5">
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 animate-fade-in"
+          onClick={cancelClose}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="end-chat-title"
+            aria-describedby="end-chat-desc"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.key === 'Escape' && cancelClose()}
+            className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+          >
+            <h2 id="end-chat-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+              Close this conversation?
+            </h2>
+            <p id="end-chat-desc" className="mt-2 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+              Your messages are saved, so you can pick this conversation back up later. Clearing it
+              starts you fresh next time and cannot be undone.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-2">
+              {/* Safe action first: this is what the close button implied. */}
               <button
-                onClick={confirmClose}
-                className="w-full px-5 py-3.5 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-all font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-red-100"
-              >
-                End & Reset Session
-              </button>
-              <button
+                autoFocus
                 onClick={() => {
                   setShowConfirmClose(false)
                   onClose()
                 }}
-                className="w-full px-5 py-3.5 bg-gray-50 dark:bg-gray-900/40 text-gray-700 dark:text-gray-200 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all font-black uppercase tracking-[0.2em] text-[11px]"
+                className="btn-primary w-full justify-center py-2.5"
               >
-                Just Close Window
+                Close and keep history
+              </button>
+              <button onClick={confirmClose} className="btn-secondary w-full justify-center py-2.5">
+                Clear conversation and close
               </button>
               <button
                 onClick={cancelClose}
-                className="w-full py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 font-bold text-[11px] uppercase tracking-widest transition-colors mt-2"
+                className="w-full py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
               >
-                Return to Chat
+                Cancel
               </button>
             </div>
           </div>

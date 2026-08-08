@@ -58,7 +58,7 @@ export class SystemSettingsController {
       platformAiEnabled: settings.platformAiEnabled,
       platformAiProvider: settings.platformAiProvider,
       platformAiModel: settings.platformAiModel,
-      // The key itself never leaves the server — the UI only needs to know one exists.
+      // The key itself never leaves the server, the UI only needs to know one exists.
       platformAiKeySet: !!settings.platformAiApiKey,
       platformAiApiKey: settings.platformAiApiKey ? MASKED_KEY : '',
     };
@@ -90,7 +90,7 @@ export class SystemSettingsController {
 
     // Build the update from an explicit allowlist rather than spreading the request
     // body. The settings page round-trips the whole GET response back on save, which
-    // includes read-only fields like platformAiKeySet — spreading those into Prisma
+    // includes read-only fields like platformAiKeySet, spreading those into Prisma
     // fails the query with an unknown-argument error.
     const update: Record<string, unknown> = {};
 
@@ -195,7 +195,7 @@ export class SystemSettingsController {
         ok: true,
         provider: response.data?.ai_provider ?? settings.platformAiProvider,
         model: response.data?.model ?? settings.platformAiModel ?? undefined,
-        message: 'Key verified — the AI responded successfully.',
+        message: 'Key verified, the AI responded successfully.',
       };
     } catch (error: any) {
       const detail = error.response?.data?.detail;

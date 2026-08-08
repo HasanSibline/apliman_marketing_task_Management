@@ -216,7 +216,7 @@ export class FilesService {
     }
 
     // Tenant check first. Without it, any admin or manager could download a task
-    // file belonging to another company just by knowing its id — the role check
+    // file belonging to another company just by knowing its id, the role check
     // below only ever constrained employees. Super admins have no company of their
     // own and are allowed across tenants by design.
     if (userRole !== 'SUPER_ADMIN') {
@@ -277,7 +277,7 @@ export class FilesService {
       throw new NotFoundException('File not found');
     }
 
-    // Same tenant check as downloadFile — deleting another company's attachment is
+    // Same tenant check as downloadFile, deleting another company's attachment is
     // a cross-tenant write, so it matters more, not less.
     if (userRole !== 'SUPER_ADMIN') {
       const user = await this.prisma.user.findUnique({

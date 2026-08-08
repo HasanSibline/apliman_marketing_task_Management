@@ -37,7 +37,7 @@ export class MicrosoftController {
   }
 
   /**
-   * Diagnostic endpoint — call GET /api/microsoft/debug to see exactly what
+   * Diagnostic endpoint, call GET /api/microsoft/debug to see exactly what
    * Microsoft Graph is returning for the logged-in user. Useful for production
    * debugging without server log access.
    */

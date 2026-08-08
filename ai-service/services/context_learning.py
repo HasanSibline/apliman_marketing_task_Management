@@ -331,7 +331,7 @@ JSON Response:"""
 
         Background learning is a second AI call per chat message, so it uses the same
         provider as the conversation itself. Sending a Claude/Groq key to Google's
-        endpoint — which is what happened before this was provider-aware — burned a
+        endpoint, which is what happened before this was provider-aware, burned a
         request and always failed.
         """
         if self.provider == "anthropic":

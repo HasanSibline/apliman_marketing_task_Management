@@ -138,7 +138,7 @@ function CreateObjectiveModal({
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Objective</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
+                    <button aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>

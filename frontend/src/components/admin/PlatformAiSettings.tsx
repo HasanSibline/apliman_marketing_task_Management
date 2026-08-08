@@ -46,9 +46,9 @@ const PROVIDERS: Provider[] = [
     consoleUrl: 'https://console.anthropic.com/settings/keys',
     vision: true,
     models: [
-      { id: 'claude-opus-5', label: 'Claude Opus 5 — most capable' },
-      { id: 'claude-sonnet-5', label: 'Claude Sonnet 5 — balanced' },
-      { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5 — fastest and cheapest' },
+      { id: 'claude-opus-5', label: 'Claude Opus 5, most capable' },
+      { id: 'claude-sonnet-5', label: 'Claude Sonnet 5, balanced' },
+      { id: 'claude-haiku-4-5', label: 'Claude Haiku 4.5, fastest and cheapest' },
     ],
   },
   {
@@ -120,7 +120,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
           <div className="min-w-0">
             <h2 className="text-lg font-medium text-gray-900 dark:text-white">AI Platform Key</h2>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-              One key, shared by every company. Companies that have their own key keep using it — this
+              One key, shared by every company. Companies that have their own key keep using it, this
               one covers everyone else, and covers them too while their own key is rate limited.
             </p>
           </div>
@@ -128,7 +128,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
       </header>
 
       <div className="px-6 py-5 space-y-5">
-        {/* Status strip — the one thing a super admin checks at a glance. */}
+        {/* Status strip, the one thing a super admin checks at a glance. */}
         <div
           className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${
             config.platformAiEnabled && config.platformAiKeySet
@@ -250,7 +250,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
                 onChange({ ...config, platformAiApiKey: e.target.value });
                 setTestResult(null);
               }}
-              placeholder={config.platformAiKeySet ? 'Saved — type to replace' : provider.keyPrefix ?? 'Paste your key'}
+              placeholder={config.platformAiKeySet ? 'Saved, type to replace' : provider.keyPrefix ?? 'Paste your key'}
               autoComplete="off"
               spellCheck={false}
               className="input-field pl-9 pr-11 font-mono"

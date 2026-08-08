@@ -53,7 +53,7 @@ export function useAiStatus(): AiStatus {
       const response = await api.get('/ai/quota-status');
       setStatus(response.data);
     } catch {
-      // If the endpoint fails, don't block the UI — assume AI is enabled
+      // If the endpoint fails, don't block the UI, assume AI is enabled
     } finally {
       setIsLoading(false);
     }
@@ -68,7 +68,7 @@ export function useAiStatus(): AiStatus {
         const remaining = new Date(status.quotaResetAt!).getTime() - Date.now();
         if (remaining <= 0) {
           setResetCountdown(null);
-          // Re-fetch — quota should be cleared server-side by now
+          // Re-fetch, quota should be cleared server-side by now
           fetchStatus();
           clearInterval(countdownRef.current!);
         } else {

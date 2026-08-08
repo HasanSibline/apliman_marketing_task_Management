@@ -86,7 +86,7 @@ export class MicrosoftService {
     // Use 'common' endpoint so ANY Microsoft account type (personal MSA, work, school)
     // can authenticate. Using a specific tenantId would restrict auth to only accounts
     // in that Azure AD tenant and their calendarView would return empty for other accounts.
-    // prompt=select_account forces the Microsoft account picker every time — critical for
+    // prompt=select_account forces the Microsoft account picker every time, critical for
     // multi-tenant apps where users' app email != their Microsoft work email.
     return `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&response_mode=query&scope=${encodeURIComponent(scopes)}&prompt=select_account`;
   }
@@ -188,7 +188,7 @@ export class MicrosoftService {
 
       // 1. Parallel fetch from BOTH authoritative endpoints (Coverage Guard)
       // calendarView is the PRIMARY source for any Teams meeting in the date window.
-      // /me/events is a FALLBACK/SUPPLEMENT — used without $filter since Graph does not
+      // /me/events is a FALLBACK/SUPPLEMENT, used without $filter since Graph does not
       // reliably support OData filter on complex properties (start/dateTime) for this endpoint.
       const [viewRes, eventsRes] = await Promise.all([
         graphClient.api('/me/calendar/calendarView')
@@ -202,7 +202,7 @@ export class MicrosoftService {
           }),
         graphClient.api('/me/events')
           .header('Prefer', 'outlook.timezone="UTC"')
-          .top(200)  // Simple cap — date range handled by calendarView above
+          .top(200)  // Simple cap, date range handled by calendarView above
           .get()
           .catch((err) => {
             this.logger.error(`/me/events FAILED: ${err?.message || err}`);
@@ -210,7 +210,7 @@ export class MicrosoftService {
           })
       ]);
 
-      this.logger.log(`RAW results — calendarView: ${(viewRes.value || []).length}, /me/events: ${(eventsRes.value || []).length}`);
+      this.logger.log(`RAW results, calendarView: ${(viewRes.value || []).length}, /me/events: ${(eventsRes.value || []).length}`);
 
 
       const allEvents = [...(viewRes.value || []), ...(eventsRes.value || [])];
@@ -294,7 +294,7 @@ export class MicrosoftService {
             return { transcript: null, message: 'This event is not a Teams online meeting.' };
           }
 
-          // Strategy 1: OData filter by joinWebUrl — use axios directly (NOT Graph SDK)
+          // Strategy 1: OData filter by joinWebUrl, use axios directly (NOT Graph SDK)
           // because the SDK double-encodes already-encoded chars: %3a becomes %253a,
           // causing the exact-match filter to fail.
           const joinUrl = event.onlineMeeting.joinUrl;
@@ -313,7 +313,7 @@ export class MicrosoftService {
             }
           } catch (fe: any) { this.logger.warn(`JoinWebUrl filter error: ${fe.message}`); }
 
-          // Strategy 2: Match by start time (robust fallback — OData filter fails when URL
+          // Strategy 2: Match by start time (robust fallback: OData filter fails when URL
           // encoding differs between calendar event joinUrl and onlineMeeting joinWebUrl)
           if (!onlineMeetingId) {
             try {
@@ -352,7 +352,7 @@ export class MicrosoftService {
         return { transcript: null, message: 'Could not find the Teams meeting record. It may not have been organized via Teams.' };
       }
 
-      // 2. Fetch transcripts — try v1 then beta (beta often indexes faster)
+      // 2. Fetch transcripts, try v1 then beta (beta often indexes faster)
       const tryFetchTranscripts = async (version: string) => {
         const baseUrl = `https://graph.microsoft.com/${version}/me/onlineMeetings/${onlineMeetingId}/transcripts`;
         const token = await this.getAccessToken(userId);
@@ -390,7 +390,7 @@ export class MicrosoftService {
                 // Parse VTT format into readable text
                 const parsed = fmt === 'text/vtt' ? this.parseVTT(contentRes.data) : contentRes.data;
                 if (parsed) combinedTranscript += (combinedTranscript ? '\n\n' : '') + parsed;
-                break; // success — don't try next format
+                break; // success, don't try next format
               }
             } catch (ce: any) {
               this.logger.warn(`Content fetch (${fmt}) failed: ${ce.response?.status} ${ce.response?.data?.error?.message || ce.message}`);
@@ -419,7 +419,7 @@ export class MicrosoftService {
         this.logger.warn(`Chat fallback failed: ${chatErr.message}`);
       }
 
-      // 4. OneDrive VTT file fallback — Teams saves transcript as .vtt in OneDrive
+      // 4. OneDrive VTT file fallback: Teams saves transcript as .vtt in OneDrive
       //    This is often available much sooner than the Graph transcripts API
       try {
         const subject = event ? event.subject || '' : meetingId;

@@ -4,8 +4,8 @@ import { AuraLogo, AuraMark } from '@/components/brand/AuraMark';
 /**
  * Split sign-in layout: a showcase of the product on the left, the form on the right.
  *
- * The left panel is assembled from the same primitives the app uses — a task card,
- * phase pills, a stat row, an assistant reply — rather than a screenshot. It stays
+ * The left panel is assembled from the same primitives the app uses, a task card,
+ * phase pills, a stat row, an assistant reply, rather than a screenshot. It stays
  * sharp on any display, follows the company's brand colour, costs no image weight,
  * and cannot drift out of date the way a captured screenshot does.
  *
@@ -18,7 +18,7 @@ interface Props {
   /** Sits above the form, e.g. "Sign in to Apliman". */
   title: string;
   subtitle?: string;
-  /** Shown in the left panel's header — a company name, or the portal name. */
+  /** Shown in the left panel's header, a company name, or the portal name. */
   contextLabel?: string;
   /** Replaces the Aura mark in the form column, e.g. a company logo. */
   brandSlot?: React.ReactNode;
@@ -65,7 +65,7 @@ const ShowcasePanel: React.FC<{ contextLabel?: string; variant: 'default' | 'adm
       <p className="mt-4 max-w-sm text-sm leading-relaxed text-gray-400">
         {variant === 'admin'
           ? 'Provision companies, set plans and limits, and manage the shared AI key from one place.'
-          : 'Tasks, tickets, objectives and quarters in one place — with an assistant that already knows your workspace.'}
+          : 'Tasks, tickets, objectives and quarters in one place, with an assistant that already knows your workspace.'}
       </p>
     </div>
 
@@ -119,7 +119,7 @@ const ShowcasePanel: React.FC<{ contextLabel?: string; variant: 'default' | 'adm
         </span>
         <div className="rounded-xl rounded-tl-sm border border-white/10 bg-white/[0.07] px-3.5 py-2.5 backdrop-blur">
           <p className="text-xs leading-relaxed text-gray-300">
-            Six tasks are due this week. Two are unassigned — want me to list them?
+            Six tasks are due this week, and two of them are unassigned. Want me to list those?
           </p>
         </div>
       </div>

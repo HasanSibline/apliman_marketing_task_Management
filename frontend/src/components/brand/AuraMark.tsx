@@ -3,7 +3,7 @@ import React from 'react';
 /**
  * The Aura mark.
  *
- * Three arcs sweeping around a single point — work moving through workflow phases,
+ * Three arcs sweeping around a single point: work moving through workflow phases,
  * which is the one idea the whole product is built on. The arcs grow outward and
  * fade, which is where the name comes from. Drawn on a 32x32 grid with 2.5px
  * strokes so it still reads at favicon size, where a detailed mark would turn to
@@ -33,7 +33,7 @@ export const AuraMark: React.FC<MarkProps> = ({ className = 'h-8 w-8', monochrom
       aria-label="Aura"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Outermost sweep — widest phase, faintest */}
+      {/* Outermost sweep, widest phase, faintest */}
       <path
         d="M27.5 16a11.5 11.5 0 0 0-11.5-11.5"
         stroke={strokeFaint}

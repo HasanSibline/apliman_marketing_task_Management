@@ -264,7 +264,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                         <TrashIcon className="h-6 w-6" />
                       </button>
                     )}
-                    <button
+                    <button aria-label="Close"
                       onClick={onClose}
                       className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                     >

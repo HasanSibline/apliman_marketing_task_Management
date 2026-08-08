@@ -323,6 +323,7 @@ export default function EditCompany() {
                     <button
                       type="button"
                       onClick={removeLogo}
+                      aria-label="Remove logo"
                       className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
                     >
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -448,10 +449,10 @@ export default function EditCompany() {
                   onChange={handleChange}
                   className="select-field"
                 >
-                  <option value="anthropic">Claude (Anthropic) — recommended, reads images and PDFs</option>
-                  <option value="gemini">Google Gemini — reads images, low free-tier rate limit</option>
-                  <option value="groq">Groq — GPT-OSS 120B (text only)</option>
-                  <option value="openai">OpenAI — GPT-4o mini (text only)</option>
+                  <option value="anthropic">Claude (Anthropic), recommended, reads images and PDFs</option>
+                  <option value="gemini">Google Gemini, reads images, low free-tier rate limit</option>
+                  <option value="groq">Groq: GPT-OSS 120B (text only)</option>
+                  <option value="openai">OpenAI: GPT-4o mini (text only)</option>
                 </select>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Only used when this company has its own key above.

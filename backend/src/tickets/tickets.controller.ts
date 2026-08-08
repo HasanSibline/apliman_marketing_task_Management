@@ -3,7 +3,7 @@ import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 /**
- * Tickets are open to every authenticated role by design — anyone can raise one and
+ * Tickets are open to every authenticated role by design, anyone can raise one and
  * follow their own. Company scoping happens in the service via req.user.companyId,
  * not through role checks.
  *

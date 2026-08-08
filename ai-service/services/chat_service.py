@@ -223,7 +223,7 @@ class ChatService:
                 except Exception as rest_e:
                     # No cross-provider/platform-key failover: the company's own key is the
                     # only key used. If it hits a rate limit, surface the error so the client
-                    # sees a clear "quota exceeded — contact your administrator" message.
+                    # sees a clear "quota exceeded, contact your administrator" message.
                     raise rest_e
                 
             response_text = response_text.strip()
@@ -548,18 +548,18 @@ class ChatService:
             attempts += 1
 
             if got_429:
-                # Try rotating to next key first — fastest recovery
+                # Try rotating to next key first, fastest recovery
                 rotated = self._rotate_api_key()
                 if rotated:
                     logger.info(f"🔄 Rotated to key index {self.current_key_index} after 429")
                     continue  # Immediately retry with new key, no sleep
                 else:
-                    # No more keys to rotate — wait briefly then retry same key
+                    # No more keys to rotate, wait briefly then retry same key
                     logger.warning(f"⏳ No more keys to rotate. Sleeping 3s before retry (attempt {attempts}/{max_attempts})...")
                     await asyncio.sleep(3)
                     continue
             elif api_error and attempts < max_attempts:
-                # Non-429 API error — try rotating in case it's a key-specific issue
+                # Non-429 API error, try rotating in case it's a key-specific issue
                 self._rotate_api_key()
                 continue
 
@@ -599,7 +599,7 @@ class ChatService:
         else:
             attachment_note = "No files are attached to this message."
 
-        prompt = f"""You are Aura Assist, the AI assistant inside Aura Operations — the task and operations platform used by {company_name}.
+        prompt = f"""You are Aura Assist, the AI assistant inside Aura Operations, the task and operations platform used by {company_name}.
 
 You are speaking with {user.get('name', 'a colleague')}, whose role is {user.get('role', 'User')}{f" in {(user.get('department') or {}).get('name')}" if (user.get('department') or {}).get('name') else ""}.
 
@@ -607,7 +607,7 @@ You are speaking with {user.get('name', 'a colleague')}, whose role is {user.get
 
 HOW TO USE THIS PROMPT
 Everything below the line is reference material about this user's workspace. It is
-here so you can answer accurately when it is relevant — it is not the topic of
+here so you can answer accurately when it is relevant, it is not the topic of
 conversation. Answer the question the user actually asked. If their question has
 nothing to do with the reference material, ignore the material entirely and just
 answer them. Do not volunteer summaries of their tasks, tickets or objectives
@@ -769,18 +769,21 @@ question: a one-line question gets a one-line answer.
 
 Facts about {company_name} as a business come from the knowledge sources above. If
 they contain nothing relevant, say you don't have that information yet and suggest
-asking an administrator to add a knowledge source — don't fill the gap from general
+asking an administrator to add a knowledge source, don't fill the gap from general
 knowledge, and don't guess what the company does.
 
 Keep two things separate: {company_name} is the organisation, and Aura Operations is
 the platform they run on. A question about "how do I create a task" is about the
 platform; a question about "what does {company_name} do" is about the business.
 
-Everything else — general knowledge, explanations, writing help — answer normally
+Everything else, general knowledge, explanations, writing help, answer normally
 from what you know. You have no live internet access, so say so rather than
 implying you looked something up.
 
 When you don't know, say so.
+
+Write with plain punctuation. Do not use em dashes or en dashes anywhere in your
+replies; use a comma, a colon, or a full stop instead. Use "to" for ranges.
 """
 
         return prompt

@@ -114,7 +114,7 @@ export class AiService {
     }
 
     const hasCompanyKey = company.aiEnabled && !!company.aiApiKey;
-    // With a platform key configured, the company is never locked out of AI —
+    // With a platform key configured, the company is never locked out of AI , 
     // requests just fall through to the shared key while its own key recovers.
     const servedByPlatform = !!platform && (!hasCompanyKey || quotaExhausted);
 
@@ -201,7 +201,7 @@ export class AiService {
    *
    * Only after QUOTA_STRIKES_BEFORE_LOCKOUT strikes inside one window do we flag the
    * company, and the flag ALWAYS carries a reset time so it expires on its own. The
-   * previous behaviour — flag on the first 429, with a null reset for FREE_TRIAL —
+   * previous behaviour, flag on the first 429, with a null reset for FREE_TRIAL , 
    * meant one rate-limited message permanently disabled AI for the whole company.
    */
   private async recordQuotaStrike(companyId: string): Promise<void> {
@@ -290,7 +290,7 @@ export class AiService {
    * Order:
    *   1. The company's own key, when a super admin assigned one and AI is enabled.
    *   2. The platform-wide key from Settings → AI Platform (shared by every company).
-   *   3. None — AI is unavailable.
+   *   3. None: AI is unavailable.
    *
    * Users without a company (super admins) can still use the platform key.
    */
@@ -384,7 +384,7 @@ export class AiService {
 
     if (platform) {
       if (company.aiQuotaExhausted) {
-        this.logger.log(`Company ${company.name} is rate-limited — serving this request from the platform key.`);
+        this.logger.log(`Company ${company.name} is rate-limited, serving this request from the platform key.`);
       }
       return {
         apiKey: platform.apiKey,

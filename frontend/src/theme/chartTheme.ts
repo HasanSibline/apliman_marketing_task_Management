@@ -22,7 +22,7 @@ export function useIsDark(): boolean {
 
 /**
  * Recharts renders SVG with inline styles, so Tailwind's `dark:` variants can't
- * reach it — axis labels, grid lines and tooltips need explicit colors.
+ * reach it, axis labels, grid lines and tooltips need explicit colors.
  */
 export function useChartTheme() {
   const isDark = useIsDark()

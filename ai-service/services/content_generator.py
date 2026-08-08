@@ -38,7 +38,7 @@ class ContentGenerator:
         """Initialize Claude using the company or platform-provided API key."""
         self.api_key = self.provided_api_key or None
         if not self.api_key:
-            logger.warning("Anthropic initialized WITHOUT a key — AI calls will be rejected until one is provided")
+            logger.warning("Anthropic initialized WITHOUT a key: AI calls will be rejected until one is provided")
 
         self.base_url = "https://api.anthropic.com/v1"
         self.model = self.model_override or self.config.ANTHROPIC_MODEL
@@ -56,7 +56,7 @@ class ContentGenerator:
             else:
                 # No key at construction time (e.g. health check). Do not crash;
                 # request-time calls will raise a clear error instead.
-                logger.warning("Gemini initialized WITHOUT a company key — AI calls will be rejected until a key is provided")
+                logger.warning("Gemini initialized WITHOUT a company key: AI calls will be rejected until a key is provided")
 
             self.current_key_index = 0  # Track which key we're using
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
@@ -73,7 +73,7 @@ class ContentGenerator:
         try:
             self.api_key = self.provided_api_key or None
             if not self.api_key:
-                logger.warning("Groq initialized WITHOUT a company key — AI calls will be rejected until a key is provided")
+                logger.warning("Groq initialized WITHOUT a company key: AI calls will be rejected until a key is provided")
 
             self.base_url = "https://api.groq.com/openai/v1"
             self.model = self.config.GROQ_MODEL
@@ -88,7 +88,7 @@ class ContentGenerator:
         try:
             self.api_key = self.provided_api_key or None
             if not self.api_key:
-                logger.warning("OpenAI initialized WITHOUT a company key — AI calls will be rejected until a key is provided")
+                logger.warning("OpenAI initialized WITHOUT a company key: AI calls will be rejected until a key is provided")
 
             self.base_url = "https://api.openai.com/v1"
             self.model = self.config.OPENAI_MODEL
@@ -303,7 +303,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                     else:
                         error_text = await response.text()
                         logger.error(f"❌ {self.provider} API error ({response.status}): {error_text}")
-                        # No fallback to env/platform keys — the company's own key is
+                        # No fallback to env/platform keys, the company's own key is
                         # the only key used. Surface the error to the caller.
                         raise ContentGeneratorError(f"{self.provider} API failure ({response.status}): {error_text}")
         except Exception as e:

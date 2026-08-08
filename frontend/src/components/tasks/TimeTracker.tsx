@@ -131,7 +131,7 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
           </div>
           <div className="flex items-center space-x-2">
             {!isTracking ? (
-              <button
+              <button aria-label="Start"
                 onClick={handleStart}
                 className="p-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/30 rounded-full transition-colors"
               >
@@ -139,13 +139,13 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({ taskId, timeEntries, onTimeEn
               </button>
             ) : (
               <>
-                <button
+                <button aria-label="Pause"
                   onClick={handlePause}
                   className="p-2 text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/30 rounded-full transition-colors"
                 >
                   <PauseIcon className="h-5 w-5" />
                 </button>
-                <button
+                <button aria-label="Stop"
                   onClick={handleStop}
                   className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors"
                 >

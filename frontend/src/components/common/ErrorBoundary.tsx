@@ -26,7 +26,7 @@ class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
-    // Keep the component stack — the message alone rarely identifies the culprit.
+    // Keep the component stack, the message alone rarely identifies the culprit.
     console.error('Unhandled render error:', error, info.componentStack);
   }
 
@@ -46,7 +46,7 @@ class ErrorBoundary extends React.Component<Props, State> {
             This page stopped working
           </h1>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-            Something broke while rendering. Your work is not lost — reloading usually fixes it.
+            Something broke while rendering. Your work is not lost, reloading usually fixes it.
           </p>
 
           <div className="mt-5 flex justify-center gap-3">

@@ -99,8 +99,8 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                     </div>
                 </div>
                 <div className="flex gap-2 p-1.5 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
-                    <button onClick={prevMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
-                    <button onClick={nextMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
+                    <button aria-label="Previous month" onClick={prevMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
+                    <button aria-label="Next month" onClick={nextMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
                 </div>
             </div>
             <div className="p-8">

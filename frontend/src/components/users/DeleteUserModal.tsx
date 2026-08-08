@@ -58,7 +58,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
                   <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Delete User</h2>
                 </div>
-                <button
+                <button aria-label="Close"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >

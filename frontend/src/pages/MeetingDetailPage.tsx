@@ -18,7 +18,7 @@ import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
 
-// Color palette for speakers — cycles through if > 5 unique speakers
+// Color palette for speakers, cycles through if > 5 unique speakers
 const SPEAKER_PALETTES = [
     { avatar: 'from-indigo-500 to-indigo-600', bubble: 'bg-indigo-50 dark:bg-indigo-900/30 border-indigo-100 dark:border-indigo-900/40', text: 'text-indigo-900 dark:text-indigo-300', name: 'text-indigo-700 dark:text-indigo-300' },
     { avatar: 'from-violet-500 to-violet-600', bubble: 'bg-violet-50 dark:bg-violet-900/30 border-violet-100 dark:border-violet-900/40', text: 'text-violet-900 dark:text-violet-300', name: 'text-violet-700 dark:text-violet-300' },
@@ -74,7 +74,7 @@ const SpeakerTranscript: React.FC<{ transcript: string; isChatFallback: boolean 
                     </motion.div>
                 )
             })}
-            <p className="text-center text-[11px] font-black text-gray-200 uppercase tracking-[0.5em] py-4">— End of Transcript —</p>
+            <p className="text-center text-[11px] font-black text-gray-200 uppercase tracking-[0.5em] py-4">: End of Transcript , </p>
         </div>
     )
 }
@@ -95,7 +95,7 @@ const MeetingDetailPage: React.FC = () => {
     const loadMeetingData = useCallback(async () => {
         setLoading(true)
 
-        // ── Step 1: Load meeting details (critical — navigate away if this fails)
+        // ── Step 1: Load meeting details (critical, navigate away if this fails)
         try {
             const detailsRes = await api.get(`/microsoft/details/${id}`)
             setMeeting(detailsRes.data)
@@ -108,7 +108,7 @@ const MeetingDetailPage: React.FC = () => {
             setLoading(false)
         }
 
-        // ── Step 2: Load transcript (non-critical — show message if not available)
+        // ── Step 2: Load transcript (non-critical, show message if not available)
         await fetchTranscript()
     }, [id, navigate]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -186,7 +186,7 @@ const MeetingDetailPage: React.FC = () => {
                 </button>
 
                 <div className="flex items-center space-x-3">
-                    {/* Join Meeting Button — grayed out when meeting is over */}
+                    {/* Join Meeting Button, grayed out when meeting is over */}
                     {meeting?.joinUrl && (() => {
                         const isOver = meeting?.status === 'Completed' || 
                             (meeting?.end && new Date(meeting.end) < new Date())
@@ -208,7 +208,7 @@ const MeetingDetailPage: React.FC = () => {
                         )
                     })()}
 
-                    {/* AI Summary Button — always enabled if meeting loaded */}
+                    {/* AI Summary Button, always enabled if meeting loaded */}
                     <button
                         onClick={handleGenerateAI}
                         disabled={summarizing}
@@ -239,14 +239,14 @@ const MeetingDetailPage: React.FC = () => {
                                 <div className="flex items-center space-x-6 pt-4 text-xs font-bold text-gray-500 dark:text-gray-400">
                                     <div className="flex items-center space-x-2">
                                         <CalendarIcon className="h-4 w-4 text-gray-400" />
-                                        <span>{meeting?.start ? format(new Date(meeting.start), 'EEEE, MMMM do, yyyy') : '—'}</span>
+                                        <span>{meeting?.start ? format(new Date(meeting.start), 'EEEE, MMMM do, yyyy') : ', '}</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <ClockIcon className="h-4 w-4 text-gray-400" />
                                         <span>
-                                            {meeting?.start ? format(new Date(meeting.start), 'h:mm a') : '—'}
-                                            {' – '}
-                                            {meeting?.end ? format(new Date(meeting.end), 'h:mm a') : '—'}
+                                            {meeting?.start ? format(new Date(meeting.start), 'h:mm a') : ', '}
+                                            {' to '}
+                                            {meeting?.end ? format(new Date(meeting.end), 'h:mm a') : ', '}
                                         </span>
                                     </div>
                                 </div>

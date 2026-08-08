@@ -48,7 +48,7 @@ def require_service_token(
     """Validate the AI_SERVICE_SECRET bearer token on protected endpoints."""
     expected = os.getenv("AI_SERVICE_SECRET", "")
     if not expected:
-        # Secret not configured — allow in dev so the service still works locally
+        # Secret not configured, allow in dev so the service still works locally
         logger.warning("AI_SERVICE_SECRET is not set; endpoint is unauthenticated")
         return
     if credentials is None or credentials.credentials != expected:
@@ -63,7 +63,7 @@ def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
     """
     Multi-tenant key resolver.
     Uses ONLY the company-specific key passed per-request from NestJS.
-    There are NO environment/platform key fallbacks — a company that has not been
+    There are NO environment/platform key fallbacks, a company that has not been
     assigned a key via the admin panel cannot use AI.
     """
     if provided_key and provided_key.strip():
@@ -85,7 +85,7 @@ def resolve_api_key_pool(provided_key: str | None, endpoint_name: str, provider:
     """
     pool = []
 
-    # Company key(s) from the per-request payload — the only source of keys.
+    # Company key(s) from the per-request payload, the only source of keys.
     if provided_key and provided_key.strip():
         for k in provided_key.split(","):
             k = k.strip()

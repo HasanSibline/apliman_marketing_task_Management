@@ -235,7 +235,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
               {/* Strategic Header Strip */}
               <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
                 <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight font-outfit uppercase">Identify Modification</h2>
-                <button
+                <button aria-label="Close"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >

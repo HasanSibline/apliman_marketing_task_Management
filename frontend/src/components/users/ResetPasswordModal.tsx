@@ -115,7 +115,7 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
                     <p className="text-sm text-gray-500 dark:text-gray-400">Set a new password for {user?.name}</p>
                   </div>
                 </div>
-                <button
+                <button aria-label="Close"
                   onClick={handleClose}
                   disabled={isLoading}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors disabled:opacity-50"

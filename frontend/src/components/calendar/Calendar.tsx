@@ -205,7 +205,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
             <div className="w-64 flex-shrink-0 bg-gray-50/10 dark:bg-gray-900/10 border-r border-gray-200 dark:border-gray-700 flex flex-col pt-4">
                 <div className="px-6 flex items-center justify-between mb-2">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Calendar</h2>
-                    <button onClick={handleRefresh} className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors">
+                    <button aria-label="Refresh" onClick={handleRefresh} className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors">
                         <ArrowPathIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
@@ -281,16 +281,16 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 Today
                             </button>
                             <div className="flex items-center space-x-0.5">
-                                <button onClick={prevInterval} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400">
+                                <button aria-label="Previous" onClick={prevInterval} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400">
                                     <ChevronLeftIcon className="h-4 w-4" />
                                 </button>
-                                <button onClick={nextInterval} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400">
+                                <button aria-label="Next" onClick={nextInterval} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md text-gray-500 dark:text-gray-400">
                                     <ChevronRightIcon className="h-4 w-4" />
                                 </button>
                             </div>
                         </div>
                         <h3 className="text-base font-bold text-gray-900 dark:text-white border-l border-gray-200 dark:border-gray-700 pl-6">
-                            {format(displayDays[0], 'MMMM d')} – {format(displayDays[displayDays.length-1], isSameMonth(displayDays[0], displayDays[displayDays.length-1]) ? 'd, yyyy' : 'MMMM d, yyyy')}
+                            {format(displayDays[0], 'MMMM d')} to {format(displayDays[displayDays.length-1], isSameMonth(displayDays[0], displayDays[displayDays.length-1]) ? 'd, yyyy' : 'MMMM d, yyyy')}
                         </h3>
                     </div>
                     

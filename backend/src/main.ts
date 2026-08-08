@@ -77,7 +77,7 @@ async function bootstrap() {
     }),
   );
 
-  // API prefix — exclude health check endpoints for Render/monitoring
+  // API prefix, exclude health check endpoints for Render/monitoring
   app.setGlobalPrefix('api', { exclude: ['health', 'api/health', 'keepalive', 'api/keepalive', 'keepalive/ai', 'api/keepalive/ai', '/'] });
 
   // Swagger documentation (always available)

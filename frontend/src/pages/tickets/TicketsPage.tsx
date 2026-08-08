@@ -364,7 +364,7 @@ const TicketsPage: React.FC = () => {
                             <button onClick={(e) => promptAction(e, 'reject', ticket.id)} className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"><XCircleIcon className="h-4 w-4" /></button>
                           </>
                         )}
-                        <button className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-lg transition-colors"><ChatBubbleLeftRightIcon className="h-4 w-4" /></button>
+                        <button aria-label="View conversation" className="p-1.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:text-gray-400 dark:hover:bg-primary-900/30 rounded-lg transition-colors"><ChatBubbleLeftRightIcon className="h-4 w-4" /></button>
                       </div>
                     </td>
                   </tr>

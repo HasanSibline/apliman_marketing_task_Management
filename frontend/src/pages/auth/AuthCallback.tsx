@@ -6,7 +6,7 @@ import api from '@/services/api'
 import toast from 'react-hot-toast'
 
 /**
- * AuthCallback — handles Microsoft OAuth redirect.
+ * AuthCallback, handles Microsoft OAuth redirect.
  *
  * Lock strategy: sessionStorage keyed to the first 20 chars of the OAuth code.
  * - Survives component remounts caused by App.tsx checkAuth re-renders (unlike useRef)
@@ -14,7 +14,7 @@ import toast from 'react-hot-toast'
  * - Cleared automatically when the browser tab closes (unlike localStorage)
  *
  * If the code was already redeemed successfully (AADSTS54005), we treat that as
- * a success and navigate to the calendar — the first attempt worked.
+ * a success and navigate to the calendar, the first attempt worked.
  */
 const AuthCallback: React.FC = () => {
     const [searchParams] = useSearchParams()
@@ -47,10 +47,10 @@ const AuthCallback: React.FC = () => {
         }
         sessionStorage.setItem(lockKey, '1')
 
-        // Safety timeout — prevents stuck screen if Render is cold-starting
+        // Safety timeout, prevents stuck screen if Render is cold-starting
         const timeout = setTimeout(() => {
             setTimedOut(true)
-            toast.error('Microsoft sync timed out. Render may be cold-starting — please try again.')
+            toast.error('Microsoft sync timed out. Render may be cold-starting, please try again.')
             navigate('/calendar')
         }, 40000)
 

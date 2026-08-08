@@ -85,7 +85,7 @@ function CreateQuarterModal({ onClose, onCreated }: { onClose: () => void; onCre
                 className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white">New Strategy Cycle</h2>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
+                    <button aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
                         <XMarkIcon className="h-5 w-5" />
                     </button>
                 </div>
@@ -187,7 +187,7 @@ function CloseQuarterModal({
                             <h2 className="text-lg font-bold text-gray-900 dark:text-white">Close {quarter.name} | Review Tasks</h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 font-medium">Any tasks not selected will be moved to <span className="text-primary-600 dark:text-primary-400">Standby</span>.</p>
                         </div>
-                        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
+                        <button aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
                     </div>
                 </div>
 

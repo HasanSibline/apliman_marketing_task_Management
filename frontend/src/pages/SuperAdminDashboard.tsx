@@ -106,7 +106,7 @@ function CredentialsModal({
             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl">🔐</div>
             <div>
               <h2 className="text-lg font-bold text-white">{title}</h2>
-              <p className="text-sm text-indigo-200">Save these credentials — password won't be shown again</p>
+              <p className="text-sm text-indigo-200">Save these credentials, password won't be shown again</p>
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@ function CredentialsModal({
             onClick={onClose}
             className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition"
           >
-            I've saved it — Close
+            I've saved it: Close
           </button>
         </div>
       </div>
@@ -373,8 +373,8 @@ export default function SuperAdminDashboard() {
 
                       {/* Admin */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <p className="text-sm text-gray-800 dark:text-gray-100">{company.adminName ?? '—'}</p>
-                        <p className="text-xs text-gray-400 font-mono">{company.adminEmail ?? '—'}</p>
+                        <p className="text-sm text-gray-800 dark:text-gray-100">{company.adminName ?? ', '}</p>
+                        <p className="text-xs text-gray-400 font-mono">{company.adminEmail ?? ', '}</p>
                       </td>
 
                       {/* Plan */}

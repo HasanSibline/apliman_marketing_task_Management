@@ -516,7 +516,7 @@ export class TasksService {
         });
       }
 
-      // Notify admins — scoped to the same company only
+      // Notify admins, scoped to the same company only
       const admins = await this.prisma.user.findMany({
         where: {
           role: { in: ['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN'] },
@@ -640,7 +640,7 @@ export class TasksService {
         });
       }
 
-      // Notify all admins — scoped to the same company only
+      // Notify all admins, scoped to the same company only
       const admins = await this.prisma.user.findMany({
         where: {
           role: { in: ['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN'] },

@@ -4,7 +4,7 @@
  * The Tailwind `primary` palette is wired to CSS custom properties
  * (--color-primary-50 … --color-primary-950) that hold "R G B" channels.
  * This lets a company's `primaryColor` flow through the ENTIRE app shell
- * (buttons, links, active nav, rings, gradients) — not just the login page —
+ * (buttons, links, active nav, rings, gradients), not just the login page , 
  * without touching any component. If no company color is set, the defaults in
  * index.css keep the original blue, so behavior/appearance is unchanged.
  *
@@ -13,7 +13,7 @@
 
 const STEPS = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950] as const;
 
-// Target lightness per step (0–1). Preserves the company hue/saturation while
+// Target lightness per step (0 to 1). Preserves the company hue/saturation while
 // producing a coherent tint→shade ramp similar to Tailwind's default scale.
 const STEP_LIGHTNESS: Record<number, number> = {
   50: 0.975,

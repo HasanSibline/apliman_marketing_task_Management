@@ -314,7 +314,7 @@ export class ChatService {
         const platform = await this.aiService.getPlatformAiCredential();
         if (platform && platform.apiKey !== aiApiKey) {
           this.logger.warn(
-            `Company key for ${company.name} was rate limited — retrying this message on the platform key.`,
+            `Company key for ${company.name} was rate limited, retrying this message on the platform key.`,
           );
           aiResponse = await this.callAiChatService({
             ...chatPayload,
@@ -772,7 +772,7 @@ export class ChatService {
         error.message?.includes('connect');
 
       if (isConnectionError) {
-        // AI service is down — friendly fallback
+        // AI service is down, friendly fallback
         return {
           message: "I'm having trouble connecting to my AI brain right now. Please try again in a moment.",
           contextUsed: false,
@@ -780,7 +780,7 @@ export class ChatService {
         };
       }
 
-      // API-level error (bad key, quota, etc.) — surface it clearly
+      // API-level error (bad key, quota, etc.), surface it clearly
       const userFacingMessage = statusCode === 401 || statusCode === 403
         ? 'AI authentication failed. Please check the API key in your company settings.'
         : detailedError.includes('API_KEY_INVALID') || detailedError.includes('API key not valid')

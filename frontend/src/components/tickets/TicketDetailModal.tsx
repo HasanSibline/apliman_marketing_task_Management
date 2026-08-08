@@ -341,7 +341,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     </button>
                   )}
                   {isAdmin && (
-                    <button 
+                    <button aria-label="Delete" 
                       onClick={handleDeleteTicket}
                       className="p-2.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 dark:border-rose-900/40 shadow-sm"
                     >
@@ -349,7 +349,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                     </button>
                   )}
                   <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-2" />
-                  <button
+                  <button aria-label="Close"
                     onClick={onClose}
                     className="p-2.5 bg-gray-100/50 dark:bg-gray-900/40 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-xl text-gray-400 hover:text-gray-900 dark:hover:text-white dark:text-white transition-all"
                   >
@@ -683,7 +683,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           onChange={handleInputChange}
                           className="flex-1 px-8 py-5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-primary-500 transition-all resize-none text-xs font-black text-gray-800 dark:text-gray-100 font-outfit"
                         />
-                      <button
+                      <button aria-label="Send"
                         type="submit"
                         disabled={!newComment.trim() || isSubmittingComment}
                         className="h-[60px] w-[60px] bg-primary-600 text-white rounded-2xl flex items-center justify-center hover:bg-primary-700 transition-all disabled:opacity-30 border border-primary-500 group flex-shrink-0"

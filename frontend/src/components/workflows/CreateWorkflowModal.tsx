@@ -244,7 +244,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                   <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Workflow</h2>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Define phases and assign team members who can work on each phase</p>
                 </div>
-                <button
+                <button aria-label="Close"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >

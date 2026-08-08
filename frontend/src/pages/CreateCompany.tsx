@@ -39,7 +39,7 @@ function CredentialsModal({
             </div>
             <div>
               <h2 className="text-lg font-bold text-white">Company Created!</h2>
-              <p className="text-sm text-blue-100">Save these credentials — password won't be shown again</p>
+              <p className="text-sm text-blue-100">Save these credentials, password won't be shown again</p>
             </div>
           </div>
         </div>
@@ -80,7 +80,7 @@ function CredentialsModal({
           </button>
           <button onClick={onClose}
             className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
-            I've saved it — Close
+            I've saved it: Close
           </button>
         </div>
       </div>
@@ -106,7 +106,7 @@ interface CreateCompanyForm {
   billingEmail?: string;
 }
 
-// ── Field component — defined OUTSIDE the parent so React never remounts it ──
+// ── Field component, defined OUTSIDE the parent so React never remounts it ──
 function Field({
   label, name, type = 'text', placeholder, required, hint,
   value, onChange, error, children,
@@ -276,7 +276,7 @@ export default function CreateCompany() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Per-step validation — returns true if valid
+  // Per-step validation, returns true if valid
   const validateStep = (s: number): boolean => {
     const errors: Record<string, string> = {};
 
@@ -378,7 +378,7 @@ export default function CreateCompany() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 flex">
-      {/* Credentials modal — shown once after successful creation */}
+      {/* Credentials modal, shown once after successful creation */}
       {credentials && (
         <CredentialsModal
           data={credentials}
@@ -563,7 +563,7 @@ export default function CreateCompany() {
                         <p className="text-sm text-gray-900 dark:text-white font-bold truncate">{logoFile?.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{((logoFile?.size ?? 0) / 1024).toFixed(0)} KB</p>
                       </div>
-                      <button type="button" onClick={removeLogo}
+                      <button type="button" aria-label="Remove logo" onClick={removeLogo}
                         className="bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-red-100 transition">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -716,10 +716,10 @@ export default function CreateCompany() {
                       <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Primary AI Provider</label>
                       <select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
                         className="select-field w-full text-sm">
-                        <option value="anthropic">Claude (Anthropic) — recommended, reads images and PDFs</option>
-                        <option value="gemini">Google Gemini — reads images, low free-tier rate limit</option>
-                        <option value="groq">Groq — GPT-OSS 120B (text only)</option>
-                        <option value="openai">OpenAI — GPT-4o mini (text only)</option>
+                        <option value="anthropic">Claude (Anthropic), recommended, reads images and PDFs</option>
+                        <option value="gemini">Google Gemini, reads images, low free-tier rate limit</option>
+                        <option value="groq">Groq: GPT-OSS 120B (text only)</option>
+                        <option value="openai">OpenAI: GPT-4o mini (text only)</option>
                       </select>
                       <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                         Only used when this company has its own key above.
@@ -769,7 +769,7 @@ export default function CreateCompany() {
                       <div key={label} className="flex flex-col border-b border-gray-50 dark:border-gray-700 pb-2">
                         <span className="text-gray-400 text-[11px] font-bold uppercase tracking-tight">{label}</span>
                         <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800 dark:text-gray-100'} ${required && !value ? 'text-red-500' : ''}`}>
-                          {value || (required ? '⚠ REQUIRED' : '—')}
+                          {value || (required ? '⚠ REQUIRED' : ', ')}
                         </span>
                       </div>
                     ))}

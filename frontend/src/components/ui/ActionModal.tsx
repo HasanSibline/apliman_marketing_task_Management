@@ -103,7 +103,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                 <h3 className="text-lg font-black text-gray-900 dark:text-white uppercase tracking-tight font-outfit">{title}</h3>
                 <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1">{description}</p>
               </div>
-              <button onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
+              <button aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>

@@ -355,7 +355,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Task</h2>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fill in the details to create a new task in your workflow</p>
                 </div>
-                <button
+                <button aria-label="Close"
                   onClick={onClose}
                   className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-all duration-200"
                 >
@@ -898,7 +898,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     </span>
                   )}
                 </h2>
-                <button
+                <button aria-label="Close"
                   onClick={discardAiContent}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >

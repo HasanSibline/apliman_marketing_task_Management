@@ -187,7 +187,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
               {/* Strategic Header Strip */}
               <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
                 <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight font-outfit uppercase">Onboard Personnel</h2>
-                <button
+                <button aria-label="Close"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
                 >

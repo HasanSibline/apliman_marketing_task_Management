@@ -1,8 +1,8 @@
 """Anthropic (Claude) provider for the AI service.
 
 Every other provider in this service talks raw REST over aiohttp because that is all
-Gemini/Groq/OpenAI need here. Anthropic ships an official Python SDK, so we use it —
-it gives us retries, typed errors, and correct streaming for free.
+Gemini/Groq/OpenAI need here. Anthropic ships an official Python SDK, so we use that
+instead: it gives us retries, typed errors, and correct streaming for free.
 
 The key that reaches this module is either a company's own key or the platform-wide
 key a super admin saved in Settings → AI Platform. Nothing is read from the
@@ -23,7 +23,7 @@ DEFAULT_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-5")
 # Thinking + response share this budget, so leave headroom above the visible answer.
 DEFAULT_MAX_TOKENS = int(os.getenv("ANTHROPIC_MAX_TOKENS", "8192"))
 
-# low | medium | high | xhigh | max — controls how much the model deliberates.
+# low | medium | high | xhigh | max, controls how much the model deliberates.
 DEFAULT_EFFORT = os.getenv("ANTHROPIC_EFFORT", "medium")
 
 # Server-side refusal fallback: if Claude's safety classifiers decline a request,
@@ -79,7 +79,7 @@ def build_user_content(text: str, files: Optional[List[Dict[str, Any]]] = None) 
 
     Claude reads images and PDFs natively, so attachments become real content blocks
     rather than the "images need a Gemini key" error the other text-only providers
-    return. Files without base64 payloads are skipped — the caller has already
+    return. Files without base64 payloads are skipped, the caller has already
     appended any extracted text to `text`.
     """
     content: List[Dict[str, Any]] = []
@@ -110,7 +110,7 @@ def build_user_content(text: str, files: Optional[List[Dict[str, Any]]] = None) 
             logger.info(f"📄 Attached PDF to Claude request: {name}")
 
     # Documents read better when they precede the instruction, which is the order
-    # we've built here — the text block goes last.
+    # we've built here, the text block goes last.
     content.append({"type": "text", "text": text})
     return content
 
@@ -172,7 +172,7 @@ async def generate(
                 **request, betas=[FALLBACK_BETA], extra_body={"fallbacks": "default"}
             )
         except (anthropic.BadRequestError, TypeError) as beta_error:
-            # Older SDK or an account without the beta — fall back to a plain call
+            # Older SDK or an account without the beta, fall back to a plain call
             # rather than failing the user's request over an optional feature.
             logger.warning(f"Claude fallback beta unavailable ({beta_error}); retrying without it.")
             response = await client.messages.create(**request)
