@@ -258,7 +258,7 @@ export class AiService {
    * The platform-wide AI credential a super admin configured in Settings → AI Platform.
    * Returns null when none is set or it is disabled.
    */
-  private async getPlatformAiCredential(): Promise<{ apiKey: string; provider: string; model: string | null } | null> {
+  async getPlatformAiCredential(): Promise<{ apiKey: string; provider: string; model: string | null } | null> {
     const settings = await this.prisma.systemSettings.findUnique({
       where: { id: 'default' },
       select: {
@@ -520,7 +520,7 @@ export class AiService {
           model: companyInfo.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 15000,
+          timeout: 45000,
         }),
       );
 
@@ -562,7 +562,7 @@ export class AiService {
           model: info.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 10000,
+          timeout: 45000,
         }),
       );
 
@@ -599,7 +599,7 @@ export class AiService {
           model: info.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 10000,
+          timeout: 45000,
         }),
       );
 
@@ -656,7 +656,7 @@ export class AiService {
           model: info?.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 15000,
+          timeout: 45000,
         }),
       );
       return { insights: response.data.insights, recommendations: response.data.recommendations, trends: response.data.trends };
@@ -677,7 +677,7 @@ export class AiService {
           model: info?.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 10000,
+          timeout: 45000,
         }),
       );
       return response.data;
@@ -730,7 +730,7 @@ export class AiService {
           model: info.model ?? undefined,
         }, {
           headers: this.aiServiceHeaders,
-          timeout: 15000,
+          timeout: 45000,
         }),
       );
       return {
@@ -757,7 +757,7 @@ export class AiService {
   }> {
     try {
       const response = await firstValueFrom(
-        this.httpService.get(`${this.aiServiceUrl}/health`, { timeout: 5000 }),
+        this.httpService.get(`${this.aiServiceUrl}/health`, { timeout: 40000 }),
       );
       const data = response.data;
       return {

@@ -287,7 +287,7 @@ export class ChatService {
       this.logger.log(`📦 Normalized files to send to AI: ${normalizedFiles.length}`);
 
       // Call AI service with company name
-      const aiResponse = await this.callAiChatService({
+      const chatPayload = {
         message: dto.message,
         userContext: userContext.context,
         user,
@@ -301,7 +301,29 @@ export class ChatService {
         companyName: company.name, // CRITICAL: Pass actual company name
         files: normalizedFiles, // Pass absolute URL files for multimodal support
         userToken, // Pass user's access token for file fetching
-      });
+      };
+
+      let aiResponse = await this.callAiChatService(chatPayload);
+
+      // A company on a free provider tier hits per-minute limits routinely, and one
+      // chat message costs two upstream calls (this one plus context learning). The
+      // quota breaker only diverts to the platform key after several strikes, so
+      // without this retry the user sees "quota exceeded" while a working platform
+      // key sits unused. Retry once, immediately, on the platform credential.
+      if (this.isRateLimited(aiResponse) && aiCredential.companyId !== 'platform') {
+        const platform = await this.aiService.getPlatformAiCredential();
+        if (platform && platform.apiKey !== aiApiKey) {
+          this.logger.warn(
+            `Company key for ${company.name} was rate limited — retrying this message on the platform key.`,
+          );
+          aiResponse = await this.callAiChatService({
+            ...chatPayload,
+            api_key: platform.apiKey,
+            provider: platform.provider,
+            model: platform.model ?? undefined,
+          });
+        }
+      }
 
       // Save assistant message (Safety first: ensure content is a string)
       const assistantContent = typeof aiResponse === 'string'
@@ -709,6 +731,15 @@ export class ChatService {
   /**
    * Call AI chat service
    */
+  /**
+   * The AI service reports upstream rate limits inside a normal 200 response rather
+   * than as an HTTP error, so this inspects the assistant text the user would see.
+   */
+  private isRateLimited(aiResponse: any): boolean {
+    const text = String(aiResponse?.message ?? '');
+    return /quota exceeded|rate limit|429|quota exhausted/i.test(text);
+  }
+
   private async callAiChatService(data: any) {
     try {
       const response = await firstValueFrom(

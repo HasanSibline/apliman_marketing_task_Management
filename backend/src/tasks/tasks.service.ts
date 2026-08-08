@@ -230,18 +230,20 @@ export class TasksService {
           let suggestedAssignee = null;
           if (subtask.suggestedUserId) {
             // Use specific user ID if provided
-            suggestedAssignee = await this.prisma.user.findUnique({
+            suggestedAssignee = await this.prisma.user.findFirst({
               where: {
                 id: subtask.suggestedUserId,
                 status: 'ACTIVE',
+                companyId: creator.companyId,
               },
             });
           } else if (subtask.assignedToId) {
             // Use assignedToId if provided (from manual assignment in UI)
-            suggestedAssignee = await this.prisma.user.findUnique({
+            suggestedAssignee = await this.prisma.user.findFirst({
               where: {
                 id: subtask.assignedToId,
                 status: 'ACTIVE',
+                companyId: creator.companyId,
               },
             });
           } else if (createTaskDto.autoAssign && subtask.suggestedRole) {
@@ -250,6 +252,7 @@ export class TasksService {
               where: {
                 position: { contains: subtask.suggestedRole },
                 status: 'ACTIVE',
+                companyId: creator.companyId,
               },
             });
           }
@@ -413,6 +416,14 @@ export class TasksService {
     // Check if user has permission to move the task
     // Allow: admins, task creator, or assigned users
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
+    // Tenant check before any role check. `isAdmin` below is role-only, so without
+    // this a company admin of one company satisfied it for another company's task
+    // and could move it. Super admins have no company and are cross-tenant by design.
+    if (user?.role !== 'SUPER_ADMIN' && (!user?.companyId || user.companyId !== task.companyId)) {
+      throw new NotFoundException('Task not found');
+    }
+
     const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'COMPANY_ADMIN';
     const isCreator = task.createdById === userId;
     const isAssigned = task.assignedToId === userId;

@@ -51,7 +51,7 @@ export class KnowledgeController {
   }
 
   @Get()
-  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async getAllKnowledgeSources(@Request() req) {
     try {
       return await this.knowledgeService.findAll(req.user.id);
@@ -80,7 +80,7 @@ export class KnowledgeController {
   }
 
   @Get(':id')
-  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async getKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
       const source = await this.knowledgeService.findOne(id, req.user.id);
@@ -102,7 +102,7 @@ export class KnowledgeController {
   }
 
   @Post()
-  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async createKnowledgeSource(
     @Body() createDto: CreateKnowledgeSourceDto,
     @Request() req,
@@ -137,7 +137,7 @@ export class KnowledgeController {
   }
 
   @Put(':id')
-  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async updateKnowledgeSource(
     @Param('id') id: string,
     @Body() updateDto: UpdateKnowledgeSourceDto,
@@ -156,7 +156,7 @@ export class KnowledgeController {
   }
 
   @Delete(':id')
-  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async deleteKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
       await this.knowledgeService.delete(id, req.user.id);
@@ -172,7 +172,7 @@ export class KnowledgeController {
   }
 
   @Post(':id/scrape')
-  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async scrapeKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
       return await this.knowledgeService.scrapeSource(id, req.user.id);
@@ -187,7 +187,7 @@ export class KnowledgeController {
   }
 
   @Post('scrape-all')
-  @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async scrapeAllKnowledgeSources(@Request() req) {
     try {
       return await this.knowledgeService.scrapeAll(req.user.id);

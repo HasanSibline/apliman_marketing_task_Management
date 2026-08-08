@@ -24,7 +24,7 @@ import {
 import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { Response } from 'express';
 import { createReadStream, existsSync } from 'fs';
-import { join } from 'path';
+import { join, basename, resolve, sep } from 'path';
 import { FilesService } from './files.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
@@ -131,7 +131,7 @@ export class FilesController {
 
   @Get('stats')
   @UseGuards(RolesGuard)
-  @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   @ApiOperation({ summary: 'Get file statistics (Admin/Super Admin only)' })
   @ApiResponse({ status: 200, description: 'File statistics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
@@ -224,14 +224,34 @@ export class PublicFilesController {
     @Param('filename') filename: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    // Security: Only allow files from safe public folders
-    const safeFolders = ['temp', 'branding', 'avatars', 'tickets', 'tasks'];
+    // This endpoint is unauthenticated by design: logos render on the login page
+    // before anyone has a token, and avatars and inline chat images are loaded by
+    // <img> tags, which cannot send an Authorization header.
+    //
+    // Task and ticket attachments are deliberately NOT here. They are company data,
+    // and both already have authenticated download routes that check ownership
+    // (/files/download/:fileId and /files/ticket-download/:fileId). Serving them
+    // here as well made every attachment readable by anyone holding the URL.
+    const safeFolders = ['temp', 'branding', 'avatars'];
     if (!safeFolders.includes(folder)) {
       throw new NotFoundException('Invalid folder');
     }
 
+    // `filename` is attacker-controlled and Express URL-decodes route params, so a
+    // value like `..%2f..%2f.env` arrives here as `../../.env`. Reduce it to a bare
+    // name, then confirm the resolved path really is inside the folder we intended.
+    const safeName = basename(filename);
+    if (!safeName || safeName === '.' || safeName === '..') {
+      throw new NotFoundException('File not found');
+    }
+
     const uploadPath = process.env.UPLOAD_PATH || './uploads';
-    const filePath = join(uploadPath, folder, filename);
+    const folderRoot = resolve(uploadPath, folder);
+    const filePath = resolve(folderRoot, safeName);
+
+    if (filePath !== join(folderRoot, safeName) || !filePath.startsWith(folderRoot + sep)) {
+      throw new NotFoundException('File not found');
+    }
 
     if (!existsSync(filePath)) {
       throw new NotFoundException('File not found');
@@ -240,7 +260,7 @@ export class PublicFilesController {
     const file = createReadStream(filePath);
     
     // Determine content type from extension
-    const ext = filename.split('.').pop()?.toLowerCase();
+    const ext = safeName.split('.').pop()?.toLowerCase();
     const mimeTypes: Record<string, string> = {
       'webp': 'image/webp',
       'jpg': 'image/jpeg',

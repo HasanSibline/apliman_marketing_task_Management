@@ -205,6 +205,7 @@ export class FilesService {
             id: true,
             assignedToId: true,
             createdById: true,
+            companyId: true,
           },
         },
       },
@@ -212,6 +213,20 @@ export class FilesService {
 
     if (!file) {
       throw new NotFoundException('File not found');
+    }
+
+    // Tenant check first. Without it, any admin or manager could download a task
+    // file belonging to another company just by knowing its id — the role check
+    // below only ever constrained employees. Super admins have no company of their
+    // own and are allowed across tenants by design.
+    if (userRole !== 'SUPER_ADMIN') {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+      if (!user?.companyId || user.companyId !== file.task.companyId) {
+        throw new NotFoundException('File not found or access denied');
+      }
     }
 
     // Check access permissions
@@ -252,6 +267,7 @@ export class FilesService {
             id: true,
             assignedToId: true,
             createdById: true,
+            companyId: true,
           },
         },
       },
@@ -259,6 +275,18 @@ export class FilesService {
 
     if (!file) {
       throw new NotFoundException('File not found');
+    }
+
+    // Same tenant check as downloadFile — deleting another company's attachment is
+    // a cross-tenant write, so it matters more, not less.
+    if (userRole !== 'SUPER_ADMIN') {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { companyId: true },
+      });
+      if (!user?.companyId || user.companyId !== file.task.companyId) {
+        throw new NotFoundException('File not found or access denied');
+      }
     }
 
     // Check permissions - only task creator or admins can delete files
