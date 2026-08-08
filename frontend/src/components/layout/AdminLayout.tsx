@@ -3,6 +3,7 @@ import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { useAppDispatch } from '@/hooks/redux';
+import { AuraMark } from '@/components/brand/AuraMark';
 import { logout } from '../../store/slices/authSlice';
 import {
   BuildingOfficeIcon,
@@ -67,9 +68,9 @@ const AdminLayout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <ShieldCheckIcon className="h-8 w-8 text-white" />
-              <span className="ml-3 text-white text-xl font-bold">
-                {BRAND.name} · Platform Admin
+              <AuraMark className="h-8 w-8 text-white" monochrome />
+              <span className="ml-3 text-xl font-semibold tracking-tight text-white">
+                Aura <span className="font-normal text-white/70">Admin console</span>
               </span>
             </div>
 

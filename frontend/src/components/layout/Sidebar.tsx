@@ -16,8 +16,8 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 import Logo from './Logo'
+import { AuraLogo, AuraMark } from '@/components/brand/AuraMark'
 import Avatar from '../common/Avatar'
-import { BRAND } from '@/config/brand'
 
 const Sidebar: React.FC = () => {
   const { sidebarOpen } = useAppSelector((state) => state.ui)
@@ -66,15 +66,12 @@ const Sidebar: React.FC = () => {
               transition={{ delay: 0.1 }}
               className="flex flex-col items-center space-y-2 pt-1"
             >
-              <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white leading-none">{BRAND.name}</span>
+              <AuraLogo size="md" subtitle="Operations" />
               <Logo size="sm" />
             </motion.div>
           ) : (
             <div className="flex flex-col items-center space-y-3 pt-1">
-              <span className="text-lg font-bold text-gray-900 dark:text-white">{BRAND.name.slice(0, 2)}</span>
-              <div className="w-8 overflow-hidden flex items-center justify-center">
-                 <Logo size="sm" className="opacity-75 transform scale-75" />
-              </div>
+              <AuraMark className="h-7 w-7" />
             </div>
           )}
         </div>

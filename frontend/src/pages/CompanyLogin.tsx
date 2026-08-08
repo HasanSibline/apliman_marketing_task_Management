@@ -4,6 +4,9 @@ import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import api, { formatAssetUrl } from '../services/api';
 import { setAuth } from '../store/slices/authSlice';
+import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
+import { AuraLogo } from '@/components/brand/AuraMark';
+import { applyBrandColor } from '@/theme/brandTheme';
 
 interface CompanyBranding {
   id: string;
@@ -25,6 +28,11 @@ const CompanyLogin: React.FC = () => {
   const [company, setCompany] = useState<CompanyBranding | null>(null);
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Apply the company's brand colour to this page as soon as we know it.
+  useEffect(() => {
+    if (company?.primaryColor) applyBrandColor(company.primaryColor);
+  }, [company?.primaryColor]);
 
   // Fetch company branding on mount
   useEffect(() => {
@@ -180,119 +188,83 @@ const CompanyLogin: React.FC = () => {
     );
   }
 
-  // Dynamic background color based on company branding
-  const bgGradient = company?.primaryColor
-    ? `linear-gradient(to bottom right, ${company.primaryColor}22, ${company.primaryColor}44)`
-    : 'linear-gradient(to bottom right, #EFF6FF, #E0E7FF)';
-
-  const accentColor = company?.primaryColor || '#4F46E5';
-  
-  // Convert relative logo URL to absolute URL if needed
-  const logoUrl = company?.logo ? formatAssetUrl(company.logo) : null;
-
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center"
-      style={{ background: bgGradient }}
+    <AuthSplitLayout
+      title={`Sign in to ${company?.name ?? 'your workspace'}`}
+      subtitle="Use the email address your administrator set up for you."
+      contextLabel={company?.name ? `${company.name} · Aura Operations` : undefined}
+      brandSlot={
+        company?.logo ? (
+          <img
+            src={formatAssetUrl(company.logo)}
+            alt={company.name}
+            className="h-11 w-auto max-w-[200px] object-contain"
+          />
+        ) : (
+          <AuraLogo size="lg" subtitle={company?.name} />
+        )
+      }
     >
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-10 rounded-xl shadow-2xl">
+      <form className="space-y-5" onSubmit={handleSubmit}>
         <div>
-          {/* Company Logo */}
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt={`${company?.name || 'Company'} logo`}
-              className="mx-auto h-16 w-auto object-contain"
-              onError={(e) => {
-                const target = e.currentTarget;
-                const fallback = document.createElement('div');
-                fallback.className = 'mx-auto h-20 w-20 rounded-2xl flex items-center justify-center text-white text-3xl font-bold mb-4 shadow-lg';
-                fallback.style.backgroundColor = accentColor;
-                fallback.innerText = company?.name?.charAt(0).toUpperCase() || 'C';
-                target.replaceWith(fallback);
-              }}
-            />
-          ) : (
-            <div 
-              className="mx-auto h-16 w-16 rounded-full flex items-center justify-center text-white text-2xl font-bold"
-              style={{ backgroundColor: accentColor }}
-            >
-              {company?.name?.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            {company?.name}
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
-            Sign in to your account
-          </p>
+          <label
+            htmlFor="email-address"
+            className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200"
+          >
+            Email
+          </label>
+          <input
+            id="email-address"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            className="input-field"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
-                style={{ 
-                  borderColor: error ? '#EF4444' : undefined 
-                }}
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-2 focus:z-10 sm:text-sm"
-                style={{ 
-                  borderColor: error ? '#EF4444' : undefined 
-                }}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-          </div>
 
-          {error && (
-            <div className="text-red-600 dark:text-red-400 text-sm text-center bg-red-50 dark:bg-red-900/30 p-2 rounded">
-              {error}
-            </div>
-          )}
+        <div>
+          <label
+            htmlFor="password"
+            className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200"
+          >
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className="input-field"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors"
-              style={{ 
-                backgroundColor: accentColor,
-                opacity: loading ? 0.7 : 1
-              }}
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
+        {error && (
+          <div
+            role="alert"
+            className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-900/20 dark:text-red-300"
+          >
+            {error}
           </div>
-        </form>
-      </div>
-    </div>
+        )}
+
+        <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-2.5">
+          {loading ? 'Signing in…' : 'Sign in'}
+        </button>
+
+        <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+          Trouble signing in? Contact your administrator.
+        </p>
+      </form>
+    </AuthSplitLayout>
   );
 };
 
 export default CompanyLogin;
-

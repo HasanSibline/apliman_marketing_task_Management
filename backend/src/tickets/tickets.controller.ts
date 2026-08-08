@@ -1,10 +1,18 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
 
+/**
+ * Tickets are open to every authenticated role by design — anyone can raise one and
+ * follow their own. Company scoping happens in the service via req.user.companyId,
+ * not through role checks.
+ *
+ * RolesGuard is deliberately absent: it is a no-op without @Roles, and listing it
+ * here made the controller look role-restricted when it is not. Access decisions
+ * live in the service.
+ */
 @Controller('tickets')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 export class TicketsController {
   constructor(private readonly ticketsService: TicketsService) {}
 

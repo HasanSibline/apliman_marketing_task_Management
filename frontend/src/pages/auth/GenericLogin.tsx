@@ -4,6 +4,7 @@ import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import { setAuth } from '../../store/slices/authSlice';
+import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 
 const GenericLogin: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -87,151 +88,124 @@ const GenericLogin: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 dark:from-blue-900/20 to-indigo-100 dark:to-indigo-900/20">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-10 rounded-xl shadow-2xl">
-        <div>
-          {/* Generic Icon - No Logo */}
-          <div className="mx-auto h-16 w-16 rounded-full bg-indigo-600 flex items-center justify-center">
-            <svg
-              className="h-10 w-10 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+    <>
+      <AuthSplitLayout
+        title="Sign in"
+        subtitle="Use the email address your administrator set up for you."
+        contextLabel="Signing in to a specific company? Use the sign-in link they gave you."
+      >
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          <div>
+            <label
+              htmlFor="email-address"
+              className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-              />
-            </svg>
+              Email
+            </label>
+            <input
+              id="email-address"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              className="input-field"
+              placeholder="you@company.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900 dark:text-white">
-            Company Login
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">
-            Sign in to your account
-          </p>
-        </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-t-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                style={{
-                  borderColor: error ? '#EF4444' : undefined
-                }}
-                placeholder="Email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 placeholder-gray-500 dark:placeholder-gray-500 text-gray-900 dark:text-white rounded-b-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
-                style={{
-                  borderColor: error ? '#EF4444' : undefined
-                }}
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
+
+          <div>
+            <label
+              htmlFor="password"
+              className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200"
+            >
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              className="input-field"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
           {error && (
-            <div className="text-red-600 dark:text-red-400 text-sm text-center bg-red-50 dark:bg-red-900/30 p-2 rounded">
+            <div
+              role="alert"
+              className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-900/20 dark:text-red-300"
+            >
               {error}
             </div>
           )}
 
-          <div>
-            <button
-              type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-              style={{
-                opacity: loading ? 0.7 : 1
-              }}
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
-          </div>
+          <button type="submit" disabled={loading} className="btn-primary w-full justify-center py-2.5">
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
 
-          <div className="text-center">
+          <div className="flex items-center justify-between text-sm">
             <button
               type="button"
               onClick={() => { setShowForgotModal(true); setForgotResult(null); }}
-              className="text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 underline focus:outline-none"
+              className="font-medium text-primary-600 hover:underline dark:text-primary-400"
             >
               Forgot your password?
             </button>
+            <span className="text-gray-500 dark:text-gray-400">Need an account? Ask your admin.</span>
           </div>
         </form>
-
-        <div className="text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Don't have an account? Contact your administrator
-          </p>
-        </div>
-      </div>
+      </AuthSplitLayout>
 
       {/* Forgot Password Modal */}
       {showForgotModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-8 w-full max-w-sm">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Reset Password</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-title"
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-800"
+          >
+            <h2 id="reset-title" className="text-lg font-semibold text-gray-900 dark:text-white">
+              Reset password
+            </h2>
             {forgotResult ? (
               <>
-                <p className="text-sm text-gray-700 dark:text-gray-200 bg-indigo-50 dark:bg-indigo-900/30 p-3 rounded mb-4 break-all">{forgotResult}</p>
+                <p className="mt-3 break-all rounded-lg bg-primary-50 p-3 text-sm text-gray-700 dark:bg-primary-900/30 dark:text-gray-200">
+                  {forgotResult}
+                </p>
                 <button
                   onClick={() => { setShowForgotModal(false); setForgotResult(null); setForgotEmail(''); }}
-                  className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
+                  className="btn-primary mt-4 w-full justify-center"
                 >
                   Close
                 </button>
               </>
             ) : (
-              <form onSubmit={handleForgotPassword}>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Enter your email address and we\'ll generate a password reset token.</p>
+              <form onSubmit={handleForgotPassword} className="mt-3">
+                <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                  Enter your email address and we&rsquo;ll generate a password reset token.
+                </p>
+                <label htmlFor="forgot-email" className="sr-only">Email address</label>
                 <input
+                  id="forgot-email"
                   type="email"
                   required
-                  placeholder="Email address"
+                  placeholder="you@company.com"
                   value={forgotEmail}
-                  onChange={e => setForgotEmail(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md text-sm mb-4 focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="input-field"
                 />
-                <div className="flex gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowForgotModal(false)}
-                    className="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-md text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
-                  >
+                <div className="mt-4 flex gap-3">
+                  <button type="button" onClick={() => setShowForgotModal(false)} className="btn-secondary flex-1 justify-center">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={forgotLoading}
-                    className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-70"
-                  >
-                    {forgotLoading ? 'Sending...' : 'Send Reset'}
+                  <button type="submit" disabled={forgotLoading} className="btn-primary flex-1 justify-center">
+                    {forgotLoading ? 'Sending…' : 'Send reset'}
                   </button>
                 </div>
               </form>
@@ -239,7 +213,7 @@ const GenericLogin: React.FC = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
