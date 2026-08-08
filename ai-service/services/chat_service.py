@@ -161,10 +161,11 @@ class ChatService:
             logger.info(f"Processing chat message (Files: {len(files) if files else 0}, HasMedia: {has_media}, HasDocs: {has_docs})")
             
             # Construct dynamic history block
-            history_text = "CHAT HISTORY:\n"
-            for msg in reversed(conversation_history[-7:]): # Last 7 for better context
-                role_label = "ApliChat" if msg.get("role") == "assistant" else "User"
-                history_text += f"{role_label}: {msg.get('content', '')}\n"
+            # Oldest-first. reversed() fed the model the conversation backwards,
+            # which is a large part of why it lost the thread between turns.
+            history_text = "CHAT HISTORY (oldest first):\n"
+            for msg in conversation_history[-12:]:
+                role_label = "Aura Assist" if msg.get("role") == "assistant" else "User"
 
             # Create highly dynamic system prompt
             system_prompt = self._build_system_prompt(
@@ -184,7 +185,7 @@ class ChatService:
                 # OpenAI-compatible providers below.
                 from .anthropic_client import generate as anthropic_generate
 
-                user_prompt = f"{history_text}\n\nUser: {message}\nApliChat:"
+                user_prompt = f"{history_text}\n\nUser: {message}\nAura Assist:"
                 response_text = await anthropic_generate(
                     api_key=self.api_key,
                     prompt=user_prompt,
@@ -195,7 +196,7 @@ class ChatService:
             elif self.provider in ("groq", "openai") and not has_media:
                 # Groq and OpenAI share the OpenAI-compatible chat API. We flatten the
                 # prompt (it already includes any appended document text).
-                full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nApliChat:"
+                full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nAura Assist:"
                 response_text = await self._generate_via_openai_compatible(full_prompt)
             else:
                 # Only Gemini handles image attachments here. Groq/OpenAI text models used
@@ -586,29 +587,33 @@ class ChatService:
         response_style = "comprehensive" if is_deep_analysis else "conversational"
         company_name = company_name or "the company"
         
-        prompt = f"""You are ApliChat, a state-of-the-art MULTIMODAL AI assistant for {company_name}. 
+        # State capabilities truthfully. This used to claim "You are a VISION-CAPABLE
+        # model (Gemini 2.0 Flash)" on every request regardless of which provider was
+        # actually serving it, so on a text-only provider the model confidently
+        # described images it had never received.
+        can_see_files = self.provider in ("anthropic", "gemini")
+        if has_files and can_see_files:
+            attachment_note = "The user attached one or more files to this message. Read them and answer with reference to their contents."
+        elif has_files:
+            attachment_note = "The user attached files, but this provider is text only. Any text extracted from them appears in the user's message; say plainly that you cannot view images."
+        else:
+            attachment_note = "No files are attached to this message."
 
-IMPORTANT IDENTITY GUIDELINES:
-- You are a VISION-CAPABLE model (Gemini 2.0 Flash). 
-- If files or images are attached, you CAN see and analyze them perfectly using your multimodal capabilities.
-- NEVER say "I am a text-based model" or "I cannot see images/files". If a file is attached, analyze it deeply!
-- If a file is attached, it takes ABSOLUTE PRIORITY. Provide a helpful summary or description immediately.
-- You can read PDFs, images, and Word documents.
+        prompt = f"""You are Aura Assist, the AI assistant inside Aura Operations — the task and operations platform used by {company_name}.
 
-Your capabilities:
-- Multimodal analysis of images, PDFs, and documents
-- Answering questions about {company_name}'s business and operations
-- Task and lifecycle management assistance
-- Deep analytical reasoning
+You are speaking with {user.get('name', 'a colleague')}, whose role is {user.get('role', 'User')}{f" in {(user.get('department') or {}).get('name')}" if (user.get('department') or {}).get('name') else ""}.
 
-Current User Context:
-- Name: {user.get('name', 'Analyst')}
-- Role: {user.get('role', 'User')}
-- Department: {(user.get('department') or {}).get('name', 'N/A')}
+{attachment_note}
 
-=== ANALYST MODE ===
-{"[MODE: ACTIVE] Multiple files/images have been attached to this message. Review them immediately." if has_files else "[MODE: STANDARD] No new files attached."}
+HOW TO USE THIS PROMPT
+Everything below the line is reference material about this user's workspace. It is
+here so you can answer accurately when it is relevant — it is not the topic of
+conversation. Answer the question the user actually asked. If their question has
+nothing to do with the reference material, ignore the material entirely and just
+answer them. Do not volunteer summaries of their tasks, tickets or objectives
+unless they ask.
 
+----------------------------------------
 """
 
 
@@ -750,36 +755,32 @@ Position: {u.get('position', 'Not specified')}
 Active tasks: {task_count}
 """
 
+        # These rules are stated once, plainly. The previous version stacked CRITICAL /
+        # NEVER / ABSOLUTE PRIORITY / FOLLOW STRICTLY across five numbered sections;
+        # when everything is marked critical nothing is, and the emphasis pushed the
+        # model toward reciting workspace data instead of answering the question.
         prompt += f"""
+----------------------------------------
 
-CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
+HOW TO ANSWER
 
-1. KNOWLEDGE SOURCE PRIORITY:
-   - When asked about "{company_name}", ONLY use information from the knowledge sources above
-   - If knowledge sources have NO content about {company_name}, say: "I don't have detailed information about {company_name} yet. Please ask your administrator to add knowledge sources."
-   - NEVER make up or invent information about {company_name}
-   - NEVER guess what {company_name} does or what services they offer
+Answer the question that was asked, and nothing else. Match your length to the
+question: a one-line question gets a one-line answer.
 
-2. COMPANY VS PLATFORM:
-   - {company_name} is a BUSINESS/ORGANIZATION (use knowledge sources)
-   - The task management platform is just a TOOL they're using
-   - Don't confuse the two
+Facts about {company_name} as a business come from the knowledge sources above. If
+they contain nothing relevant, say you don't have that information yet and suggest
+asking an administrator to add a knowledge source — don't fill the gap from general
+knowledge, and don't guess what the company does.
 
-3. GENERAL KNOWLEDGE:
-   - For general questions (weather, facts, etc.), use your knowledge but be honest about limitations
-   - If you cannot access real-time information, say so clearly
-   - Don't pretend to search online if you can't
+Keep two things separate: {company_name} is the organisation, and Aura Operations is
+the platform they run on. A question about "how do I create a task" is about the
+platform; a question about "what does {company_name} do" is about the business.
 
-4. RESPONSE RULES:
-   - Keep responses short and friendly unless asked for details
-   - If you don't know something, say "I don't know" or "I don't have that information"
-   - Never hallucinate or make up plausible-sounding but false information
-   - When discussing competitors, only use information from competitor knowledge sources
+Everything else — general knowledge, explanations, writing help — answer normally
+from what you know. You have no live internet access, so say so rather than
+implying you looked something up.
 
-5. TASK MANAGEMENT HELP:
-   - For platform questions (e.g., "how do I create a task"), provide helpful guidance
-   - Use task references and user mentions when available
-
+When you don't know, say so.
 """
 
         return prompt
@@ -791,7 +792,7 @@ CRITICAL INSTRUCTIONS - FOLLOW STRICTLY:
 
         history_text = "\n=== Recent Conversation ===\n"
         for msg in history[-10:]:  # Last 10 messages
-            role = "You" if msg['role'] == 'user' else "ApliChat"
+            role = "You" if msg['role'] == 'user' else "Aura Assist"
             content = msg['content'][:200]  # Truncate long messages
             history_text += f"{role}: {content}\n"
 

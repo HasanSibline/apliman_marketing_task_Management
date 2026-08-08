@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ChatBubbleLeftRightIcon } from '@heroicons/react/24/solid'
-import ApliChat from './ApliChat'
+import AuraAssist from './AuraAssist'
 
 export default function FloatingChatButton() {
   const [isChatOpen, setIsChatOpen] = useState(false)
@@ -12,7 +12,7 @@ export default function FloatingChatButton() {
         <button
           onClick={() => setIsChatOpen(true)}
           className="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 text-white rounded-xl shadow-xl hover:shadow-2xl hover:bg-primary-700 transform hover:scale-105 transition-all duration-300 flex items-center justify-center z-40 group"
-          title="Open ApliChat AI"
+          title="Open Aura Assist"
         >
           <ChatBubbleLeftRightIcon className="w-7 h-7 relative z-10" />
           
@@ -24,7 +24,7 @@ export default function FloatingChatButton() {
             <div className="bg-gray-900 text-white text-sm rounded-lg py-2 px-4 whitespace-nowrap shadow-xl">
               <span className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
-                Chat with ApliChat AI
+                Ask Aura Assist
               </span>
               <div className="absolute top-full right-4 w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-transparent border-t-gray-900"></div>
             </div>
@@ -33,7 +33,7 @@ export default function FloatingChatButton() {
       )}
 
       {/* Chat window */}
-      <ApliChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <AuraAssist isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </>
   )
 }

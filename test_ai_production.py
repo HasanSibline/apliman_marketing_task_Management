@@ -44,10 +44,10 @@ def test_task_generation():
     except Exception as e:
         print(f" ❌ ERROR: {str(e)}")
 
-def test_aplichat():
-    print(f"\n--- Testing ApliChat AI ({AI_PROVIDER}) ---")
+def test_aura-assist():
+    print(f"\n--- Testing Aura Assist AI ({AI_PROVIDER}) ---")
     payload = {
-        "message": "Hello ApliChat! Tell me something about luxury marketing.",
+        "message": "Hello Aura Assist! Tell me something about luxury marketing.",
         "userContext": {"name": "Admin", "role": "COMPANY_ADMIN"},
         "user": {"name": "Test User", "id": "test-123"},
         "api_key": AI_API_KEY,
@@ -77,4 +77,4 @@ if __name__ == "__main__":
         print("You can set them as environment variables or edit the script locally (but DO NOT push keys to GitHub).")
     
     test_task_generation()
-    test_aplichat()
+    test_aura-assist()

@@ -48,7 +48,7 @@ const Layout: React.FC = () => {
         </main>
       </div>
 
-      {/* Floating ApliChat button */}
+      {/* Floating Aura Assist button */}
       <FloatingChatButton />
     </div>
   )

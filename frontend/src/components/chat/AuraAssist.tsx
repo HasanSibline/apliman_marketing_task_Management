@@ -21,12 +21,12 @@ interface Message {
   }
 }
 
-interface ApliChatProps {
+interface AuraAssistProps {
   isOpen: boolean
   onClose: () => void
 }
 
-export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
+export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
   const navigate = useNavigate()
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
@@ -520,7 +520,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
               <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full border-2 border-white"></div>
             </div>
             <div>
-              <h3 className="font-bold text-base">ApliChat</h3>
+              <h3 className="font-bold text-base">Aura Assist</h3>
               <p className="text-xs text-white/90 flex items-center gap-1">
                 <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
                 {messages.length} messages
@@ -578,8 +578,8 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">ApliChat</h2>
-                    <p className="text-[11px] font-bold text-gray-400 tracking-wider uppercase italic">Intelligence Hub</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Aura Assist</h2>
+                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 tracking-wider uppercase">Aura Operations</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -611,7 +611,7 @@ export default function ApliChat({ isOpen, onClose }: ApliChatProps) {
                     <div className="mb-6 inline-block p-5 bg-primary-50 dark:bg-primary-900/30 rounded-full">
                       <ChatBubbleLeftRightIcon className="w-12 h-12 mx-auto text-primary-600 dark:text-primary-400" />
                     </div>
-                    <h4 className="text-base font-black text-gray-900 dark:text-white mb-2">ApliChat Intelligence</h4>
+                    <h4 className="text-base font-black text-gray-900 dark:text-white mb-2">Aura Assist</h4>
                     <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-4">
                       Ready for multimodal analysis
                     </p>

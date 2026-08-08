@@ -18,7 +18,7 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   /**
-   * Send a message to ApliChat
+   * Send a message to AuraAssist
    */
   @Post('message')
   async sendMessage(@Request() req, @Body() dto: SendMessageDto) {

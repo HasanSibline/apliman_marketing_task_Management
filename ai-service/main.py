@@ -372,7 +372,7 @@ class ChatRequest(BaseModel):
 
 @app.post("/chat", dependencies=[Depends(require_service_token)])
 async def chat(request: ChatRequest):
-    """Process chat message with ApliChat"""
+    """Process chat message with Aura Assist"""
     try:
         api_key_pool = resolve_api_key_pool(request.api_key, "chat", provider=request.provider)
         temp_chat_service = ChatService(api_key_pool, provider=request.provider, model=request.model)
