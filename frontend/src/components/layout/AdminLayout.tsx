@@ -24,34 +24,49 @@ const AdminLayout: React.FC = () => {
 
   const adminNavigation = [
     {
-      name: 'Companies',
-      href: '/admin/companies',
-      icon: BuildingOfficeIcon,
-      description: 'Manage all companies'
+      group: 'Customers',
+      items: [
+        {
+          name: 'Companies',
+          href: '/admin/companies',
+          icon: BuildingOfficeIcon,
+          description: 'Create companies, set plans and limits',
+        },
+      ],
     },
     {
-      name: 'System Analytics',
-      href: '/admin/analytics',
-      icon: ChartBarIcon,
-      description: 'Platform-wide statistics'
+      group: 'Platform',
+      items: [
+        {
+          name: 'Settings',
+          href: '/admin/settings',
+          icon: Cog6ToothIcon,
+          description: 'AI key, uploads, sessions',
+        },
+        {
+          name: 'Plans',
+          href: '/admin/plans',
+          icon: CreditCardIcon,
+          description: 'Pricing and per-tier limits',
+        },
+        {
+          name: 'Analytics',
+          href: '/admin/analytics',
+          icon: ChartBarIcon,
+          description: 'Usage across every company',
+        },
+      ],
     },
     {
-      name: 'System Settings',
-      href: '/admin/settings',
-      icon: Cog6ToothIcon,
-      description: 'Global configurations'
-    },
-    {
-      name: 'Plan Settings',
-      href: '/admin/plans',
-      icon: CreditCardIcon,
-      description: 'Manage subscription plans & limits'
-    },
-    {
-      name: 'Profile',
-      href: '/admin/profile',
-      icon: UserCircleIcon,
-      description: 'Change password & settings'
+      group: 'You',
+      items: [
+        {
+          name: 'Profile',
+          href: '/admin/profile',
+          icon: UserCircleIcon,
+          description: 'Your password and preferences',
+        },
+      ],
     },
   ];
 
@@ -95,30 +110,43 @@ const AdminLayout: React.FC = () => {
         {/* Sidebar */}
         <aside className="w-64 bg-white dark:bg-gray-800 shadow-lg min-h-[calc(100vh-4rem)]">
           <nav className="mt-5 px-2">
-            <div className="space-y-1">
-              {adminNavigation.map((item) => {
-                const isActive = location.pathname === item.href || location.pathname.startsWith(item.href + '/');
-                return (
-                  <NavLink
-                    key={item.name}
-                    to={item.href}
-                    className={`${isActive
-                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-900 dark:text-primary-300 border-l-4 border-primary-600'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white'
-                      } group flex items-start px-3 py-3 text-sm font-medium rounded-md transition-colors`}
-                  >
-                    <item.icon
-                      className={`${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 group-hover:text-gray-500'
-                        } flex-shrink-0 h-6 w-6`}
-                      aria-hidden="true"
-                    />
-                    <div className="ml-3">
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{item.description}</p>
-                    </div>
-                  </NavLink>
-                );
-              })}
+            <div className="space-y-6">
+              {adminNavigation.map((section) => (
+                <div key={section.group}>
+                  <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                    {section.group}
+                  </p>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const isActive =
+                        location.pathname === item.href || location.pathname.startsWith(item.href + '/');
+                      return (
+                        <NavLink
+                          key={item.name}
+                          to={item.href}
+                          aria-current={isActive ? 'page' : undefined}
+                          className={`${isActive
+                              ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-900 dark:text-primary-200 border-l-4 border-primary-600'
+                              : 'border-l-4 border-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50 hover:text-gray-900 dark:hover:text-white'
+                            } group flex items-start rounded-md px-3 py-2.5 text-sm transition-colors`}
+                        >
+                          <item.icon
+                            className={`${isActive ? 'text-primary-600 dark:text-primary-400' : 'text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-200'
+                              } h-5 w-5 flex-shrink-0`}
+                            aria-hidden="true"
+                          />
+                          <span className="ml-3 min-w-0">
+                            <span className="block font-medium">{item.name}</span>
+                            <span className="block text-xs text-gray-500 dark:text-gray-400">
+                              {item.description}
+                            </span>
+                          </span>
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </nav>
 

@@ -48,8 +48,29 @@ export class MicrosoftService {
     };
   }
 
+  /** True when the Azure app registration env vars are present. */
+  get isConfigured(): boolean {
+    const { clientId, clientSecret, redirectUri } = this.config;
+    return !!(clientId && clientSecret && redirectUri);
+  }
+
   getAuthUrl() {
     const { clientId, redirectUri, tenantId } = this.config;
+
+    // Without these the URL below is built with client_id=undefined and Microsoft
+    // answers with an opaque error page, which looks like a broken Connect button
+    // rather than missing configuration. Say what is actually wrong.
+    if (!clientId || !redirectUri) {
+      const missing = [
+        !clientId && 'MS_CLIENT_ID',
+        !this.config.clientSecret && 'MS_CLIENT_SECRET',
+        !redirectUri && 'MS_REDIRECT_URI',
+      ].filter(Boolean);
+      throw new BadRequestException(
+        `Microsoft integration is not configured on this server. Missing: ${missing.join(', ')}. ` +
+          'Add the Azure app registration values to the backend environment.',
+      );
+    }
     const scopes = [
       'offline_access',
       'openid',
