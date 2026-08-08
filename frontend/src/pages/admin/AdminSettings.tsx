@@ -51,7 +51,18 @@ const AdminSettings: React.FC = () => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const { data } = await api.put('/system/settings', settings);
+      // Send only writable fields. platformAiKeySet is a read-only flag the GET
+      // returns so the UI knows a key exists; posting it back is not meaningful.
+      const { data } = await api.put('/system/settings', {
+        maxFileSize: settings.maxFileSize,
+        allowedFileTypes: settings.allowedFileTypes,
+        sessionTimeout: settings.sessionTimeout,
+        platformAiEnabled: settings.platformAiEnabled,
+        platformAiProvider: settings.platformAiProvider,
+        platformAiModel: settings.platformAiModel,
+        // An unchanged field still holds the mask, which the API treats as "keep".
+        platformAiApiKey: settings.platformAiApiKey,
+      });
       if (data) setSettings((current) => ({ ...current, ...data }));
       toast.success('Settings saved');
     } catch (error) {

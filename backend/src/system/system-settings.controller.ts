@@ -1,4 +1,4 @@
-import { Controller, Get, Put, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Post, Body, UseGuards, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
@@ -83,10 +83,26 @@ export class SystemSettingsController {
       platformAiProvider,
       platformAiEnabled,
       platformAiModel,
-      ...rest
+      maxFileSize,
+      allowedFileTypes,
+      sessionTimeout,
     } = data;
 
-    const update: Record<string, unknown> = { ...rest };
+    // Build the update from an explicit allowlist rather than spreading the request
+    // body. The settings page round-trips the whole GET response back on save, which
+    // includes read-only fields like platformAiKeySet — spreading those into Prisma
+    // fails the query with an unknown-argument error.
+    const update: Record<string, unknown> = {};
+
+    if (typeof maxFileSize === 'number' && Number.isFinite(maxFileSize)) {
+      update.maxFileSize = Math.round(maxFileSize);
+    }
+    if (typeof allowedFileTypes === 'string') {
+      update.allowedFileTypes = allowedFileTypes;
+    }
+    if (typeof sessionTimeout === 'number' && Number.isFinite(sessionTimeout)) {
+      update.sessionTimeout = Math.round(sessionTimeout);
+    }
 
     if (typeof platformAiEnabled === 'boolean') {
       update.platformAiEnabled = platformAiEnabled;
@@ -94,7 +110,9 @@ export class SystemSettingsController {
 
     if (platformAiProvider) {
       if (!SUPPORTED_PROVIDERS.includes(platformAiProvider as (typeof SUPPORTED_PROVIDERS)[number])) {
-        throw new Error(`Unsupported AI provider: ${platformAiProvider}`);
+        throw new BadRequestException(
+          `Unsupported AI provider "${platformAiProvider}". Choose one of: ${SUPPORTED_PROVIDERS.join(', ')}.`,
+        );
       }
       update.platformAiProvider = platformAiProvider;
     }
