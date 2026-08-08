@@ -5,7 +5,7 @@ import { BRAND } from '@/config/brand'
 const LoadingScreen: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-900/20 to-primary-100 dark:to-primary-900/20 flex items-center justify-center">
-      <div className="glass-card rounded-2xl p-8 max-w-md w-full mx-4">
+      <div className="glass-card rounded-xl p-8 max-w-md w-full mx-4">
         <div className="text-center">
           {/* Header */}
           <div className="mb-8">

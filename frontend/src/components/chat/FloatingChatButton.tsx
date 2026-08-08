@@ -11,7 +11,7 @@ export default function FloatingChatButton() {
       {!isChatOpen && (
         <button
           onClick={() => setIsChatOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 text-white rounded-xl shadow-xl hover:shadow-2xl hover:bg-primary-700 transform hover:scale-105 transition-all duration-300 flex items-center justify-center z-40 group"
+          className="fixed bottom-6 right-6 w-14 h-14 bg-primary-600 text-white rounded-xl shadow-md hover:shadow-lg hover:bg-primary-700 transform hover:scale-105 transition-all duration-300 flex items-center justify-center z-40 group"
           title="Open Aura Assist"
         >
           <ChatBubbleLeftRightIcon className="w-7 h-7 relative z-10" />
@@ -21,7 +21,7 @@ export default function FloatingChatButton() {
           
           {/* Tooltip - Professional */}
           <div className="absolute bottom-full right-0 mb-3 hidden group-hover:block animate-fade-in">
-            <div className="bg-gray-900 text-white text-sm rounded-lg py-2 px-4 whitespace-nowrap shadow-xl">
+            <div className="bg-gray-900 text-white text-sm rounded-lg py-2 px-4 whitespace-nowrap shadow-md">
               <span className="flex items-center gap-2">
                 <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
                 Ask Aura Assist

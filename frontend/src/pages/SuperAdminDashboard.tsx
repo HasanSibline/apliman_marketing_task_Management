@@ -41,7 +41,7 @@ function ResetPasswordModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md p-6">
         <div className="flex items-center gap-3 mb-4">
           <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 text-xl">🔑</div>
           <div>
@@ -99,7 +99,7 @@ function CredentialsModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-lg overflow-hidden">
         {/* Header */}
         <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-5">
           <div className="flex items-center gap-3">
@@ -338,13 +338,13 @@ export default function SuperAdminDashboard() {
         </div>
 
         {/* Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900/40">
                 <tr>
                   {['Company', 'Admin', 'Plan', 'Status', 'Users', 'Tasks', 'AI', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
                       {h}
                     </th>
                   ))}
@@ -366,7 +366,7 @@ export default function SuperAdminDashboard() {
                           />
                           <div>
                              <p className="text-sm font-semibold text-gray-900 dark:text-white">{company.name}</p>
-                             <p className="text-xs text-gray-400">/{company.slug}</p>
+                             <p className="text-xs text-gray-500 dark:text-gray-400">/{company.slug}</p>
                           </div>
                         </div>
                       </td>
@@ -374,7 +374,7 @@ export default function SuperAdminDashboard() {
                       {/* Admin */}
                       <td className="px-5 py-4 whitespace-nowrap">
                         <p className="text-sm text-gray-800 dark:text-gray-100">{company.adminName ?? ', '}</p>
-                        <p className="text-xs text-gray-400 font-mono">{company.adminEmail ?? ', '}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{company.adminEmail ?? ', '}</p>
                       </td>
 
                       {/* Plan */}

@@ -116,21 +116,21 @@ const ProfilePage: React.FC = () => {
                 size="lg"
                 rounded="2xl"
               />
-              <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-3xl">
-                <span className="text-[11px] font-black uppercase tracking-widest">Update</span>
+              <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-xl">
+                <span className="text-xs font-semibold tracking-wide">Update</span>
                 <input type="file" className="hidden" accept="image/*" onChange={onAvatarChange} />
               </label>
           </div>
 
           <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">{user?.name}</h1>
+            <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">{user?.name}</h1>
             <p className="text-gray-500 dark:text-gray-400 font-bold text-sm tracking-tight">{user?.email}</p>
             <div className="flex items-center gap-2 mt-2">
-              <span className="bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-primary-100 dark:border-primary-900/40">
+              <span className="bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-semibold tracking-wide px-3 py-1 rounded-full border border-primary-100 dark:border-primary-900/40">
                 {user?.role?.replace('_', ' ')}
               </span>
               {user?.position && (
-                <span className="bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 text-[11px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
+                <span className="bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 text-xs font-semibold tracking-wide px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
                   {user.position}
                 </span>
               )}
@@ -271,9 +271,9 @@ const ProfilePage: React.FC = () => {
                   onClick={() => togglePasswordVisibility('old')}
                 >
                   {showPasswords.old ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                    <EyeIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   )}
                 </button>
               </div>
@@ -301,9 +301,9 @@ const ProfilePage: React.FC = () => {
                   onClick={() => togglePasswordVisibility('new')}
                 >
                   {showPasswords.new ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                    <EyeIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   )}
                 </button>
               </div>
@@ -331,9 +331,9 @@ const ProfilePage: React.FC = () => {
                   onClick={() => togglePasswordVisibility('confirm')}
                 >
                   {showPasswords.confirm ? (
-                    <EyeSlashIcon className="h-5 w-5 text-gray-400" />
+                    <EyeSlashIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-gray-400" />
+                    <EyeIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   )}
                 </button>
               </div>

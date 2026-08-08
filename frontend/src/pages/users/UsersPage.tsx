@@ -178,8 +178,8 @@ const UsersPage: React.FC = () => {
       {/* Strategic Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight font-outfit">Identity & Logistics</h1>
-          <p className="text-[11px] font-black text-gray-400 mt-1 uppercase tracking-[0.2em] italic underline decoration-gray-100 italic">
+          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight font-outfit">Identity & Logistics</h1>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1 tracking-normal underline decoration-gray-100">
             Company Personnel Hub & Tactical Structure
           </p>
         </div>
@@ -190,7 +190,7 @@ const UsersPage: React.FC = () => {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-6 py-2.5 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all ${
+              className={`flex items-center px-6 py-2.5 text-xs font-semibold uppercase tracking-wide rounded-xl transition-all ${
                 activeTab === tab.id
                   ? 'bg-white dark:bg-gray-800 text-primary-600 border border-gray-100 dark:border-gray-700'
                   : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300'
@@ -208,7 +208,7 @@ const UsersPage: React.FC = () => {
           {(user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'ADMIN') && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-primary-600 text-white rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-primary-700 flex items-center transition-all"
+              className="px-6 py-3 bg-primary-600 text-white rounded-xl text-xs font-semibold tracking-wide hover:bg-primary-700 flex items-center transition-all"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               Onboard Personnel
@@ -234,7 +234,7 @@ const UsersPage: React.FC = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 p-6 flex flex-col justify-between hover:border-primary-100 transition-all font-outfit"
+                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 flex flex-col justify-between hover:border-primary-100 transition-all font-outfit"
               >
                 <div className="flex items-center space-x-4">
                   <Avatar
@@ -245,7 +245,7 @@ const UsersPage: React.FC = () => {
                     rounded="2xl"
                   />
                   <div className="flex-1">
-                    <h3 className="text-lg font-black text-gray-900 dark:text-white tracking-tight uppercase">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
                       {userItem.name}
                     </h3>
                     <p className="text-gray-600 dark:text-gray-300">{userItem.email}</p>

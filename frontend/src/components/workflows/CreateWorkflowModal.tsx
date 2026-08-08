@@ -236,7 +236,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[90vh] overflow-y-auto"
+              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-md max-h-[90vh] overflow-y-auto"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
@@ -431,7 +431,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                               >
                                 Select All
                               </button>
-                              <span className="text-gray-400">|</span>
+                              <span className="text-gray-500 dark:text-gray-400">|</span>
                               <button
                                 type="button"
                                 onClick={() => deselectAllUsers(index)}
@@ -460,7 +460,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                                         <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">• {user.position}</span>
                                       )}
                                     </span>
-                                    <span className="text-xs text-gray-400">{user.role}</span>
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">{user.role}</span>
                                   </label>
                                 ))}
                               </div>

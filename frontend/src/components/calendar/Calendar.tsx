@@ -167,7 +167,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                         </button>
                     </div>
                 </div>
-                <div className="grid grid-cols-7 gap-y-1 text-center font-bold text-gray-400 text-[11px] mb-2">
+                <div className="grid grid-cols-7 gap-y-1 text-center font-bold text-gray-500 dark:text-gray-400 text-xs mb-2">
                     {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(d => <div key={d}>{d}</div>)}
                 </div>
                 <div className="grid grid-cols-7 gap-y-1 text-center">
@@ -184,7 +184,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                     setCurrentDate(day)
                                 }}
                                 className={`
-                                    text-[11px] py-1.5 rounded-md cursor-pointer transition-all
+                                    text-xs py-1.5 rounded-md cursor-pointer transition-all
                                     ${isSelected ? 'bg-primary-600 text-white font-bold' : 'hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200'}
                                     ${!isInMonth ? 'opacity-30' : ''}
                                     ${isTodayDate && !isSelected ? 'text-primary-600 font-bold' : ''}
@@ -205,7 +205,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
             <div className="w-64 flex-shrink-0 bg-gray-50/10 dark:bg-gray-900/10 border-r border-gray-200 dark:border-gray-700 flex flex-col pt-4">
                 <div className="px-6 flex items-center justify-between mb-2">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Calendar</h2>
-                    <button aria-label="Refresh" onClick={handleRefresh} className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors">
+                    <button aria-label="Refresh" onClick={handleRefresh} className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-colors">
                         <ArrowPathIcon className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                     </button>
                 </div>
@@ -216,9 +216,9 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                     <div className="px-5 mt-4 space-y-6">
                         {/* Search & Filter */}
                         <div className="space-y-3">
-                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Search Tasks</p>
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide px-1">Search Tasks</p>
                             <div className="relative">
-                                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+                                <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
                                 <input 
                                     type="text" 
                                     placeholder="Keywords..."
@@ -231,7 +231,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
 
                         {/* Category Checklist */}
                         <div className="space-y-2">
-                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Calendars</p>
+                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide px-1">Calendars</p>
                             <div className="space-y-1">
                                 <button 
                                     onClick={() => setFilterType('all')}
@@ -333,7 +333,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                             }
                                         }
                                     }}
-                                    className="ml-2 pl-2 border-l border-blue-200 text-[11px] text-blue-400 hover:text-red-500 transition-colors uppercase tracking-tighter"
+                                    className="ml-2 pl-2 border-l border-blue-200 text-xs text-blue-400 hover:text-red-500 transition-colors uppercase tracking-tighter"
                                 >
                                     Unsync
                                 </button>
@@ -341,7 +341,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 <button 
                                     onClick={handleMicrosoftSync}
                                     disabled={isSyncing}
-                                    className="ml-2 text-[11px] text-primary-500 hover:underline uppercase tracking-tighter"
+                                    className="ml-2 text-xs text-primary-500 hover:underline uppercase tracking-tighter"
                                 >
                                     {isSyncing ? 'Connecting...' : 'Connect'}
                                 </button>
@@ -361,7 +361,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                 {/* Day Header Bar */}
                 <div className="grid grid-cols-[64px_1fr] bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 shrink-0">
                     <div className="flex items-end justify-center pb-2 border-r border-gray-50 dark:border-gray-700">
-                        <span className="text-[11px] font-black text-gray-300 mb-2">GMT</span>
+                        <span className="text-xs font-semibold text-gray-300 mb-2">GMT</span>
                     </div>
                     <div 
                         className="grid"
@@ -369,7 +369,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                     >
                         {displayDays.map((day: Date) => (
                             <div key={day.toString()} className="flex flex-col items-center py-4 border-r border-gray-50 dark:border-gray-700 last:border-r-0">
-                                <span className={`text-[11px] font-black uppercase tracking-widest mb-1 ${isToday(day) ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}>
+                                <span className={`text-xs font-semibold uppercase tracking-wide mb-1 ${isToday(day) ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400'}`}>
                                     {format(day, 'EEE')}
                                 </span>
                                 <div className={`flex items-center justify-center h-10 w-10 rounded-full text-2xl font-light ${
@@ -392,7 +392,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                         <div className="bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700">
                             {hours.map(h => (
                                 <div key={h} className="h-[60px] flex items-start justify-center pt-1 border-b border-gray-50 dark:border-gray-700 border-r-0">
-                                    <span className="text-[11px] font-bold text-gray-300">
+                                    <span className="text-xs font-bold text-gray-300">
                                         {format(setHours(new Date(), h), 'h a')}
                                     </span>
                                 </div>
@@ -465,34 +465,34 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                                     `}
                                                 >
                                                     <div className="flex items-start justify-between gap-1 overflow-hidden">
-                                                        <span className="text-[11px] font-black truncate leading-tight tracking-tight uppercase">
-                                                            {event.type === 'TICKET' && <span className="text-[11px] opacity-50 mr-1">{event.ticketNumber}</span>}
+                                                        <span className="text-xs font-semibold truncate leading-tight tracking-tight">
+                                                            {event.type === 'TICKET' && <span className="text-xs opacity-50 mr-1">{event.ticketNumber}</span>}
                                                             {event.title}
                                                         </span>
                                                         <ClockIcon className="h-3 w-3 opacity-30 shrink-0" />
                                                     </div>
 
                                                     <div className="flex flex-wrap items-center gap-1.5 mt-auto">
-                                                        <span className="text-[11px] font-black opacity-70 whitespace-nowrap">{format(date, 'h:mm a')}</span>
+                                                        <span className="text-xs font-semibold opacity-70 whitespace-nowrap">{format(date, 'h:mm a')}</span>
                                                         
                                                         {event.type === 'TICKET' && (
-                                                            <span className="text-[11px] font-black bg-white/20 px-1 py-0.5 rounded uppercase">TICKET</span>
+                                                            <span className="text-xs font-semibold bg-white/20 px-1 py-0.5 rounded">TICKET</span>
                                                         )}
                                                         
                                                         {event.type === 'MICROSOFT_EVENT' && (
                                                             <div className="flex flex-wrap items-center gap-1">
                                                                 <span className={`
-                                                                    text-[11px] font-black px-1 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm
+                                                                    text-xs font-semibold px-1 py-0.5 rounded uppercase flex items-center gap-1 shadow-sm
                                                                     ${event.status === 'Live' ? 'bg-indigo-600 text-white animate-pulse' : 'bg-[#6264A7] text-white opacity-80'}
                                                                 `}>
                                                                     <VideoCameraIcon className="h-2 w-2" />
                                                                     TEAMS
                                                                 </span>
                                                                 {event.status === 'Live' && (
-                                                                    <span className="text-[11px] font-black bg-green-500 text-white px-1 rounded-sm uppercase tracking-tighter shadow-sm animate-bounce">LIVE</span>
+                                                                    <span className="text-xs font-semibold bg-green-500 text-white px-1 rounded-sm tracking-tighter shadow-sm animate-bounce">LIVE</span>
                                                                 )}
                                                                 {event.status === 'Completed' && (
-                                                                    <span className="text-[11px] font-black bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1 rounded-sm uppercase tracking-tighter mt-1">DONE</span>
+                                                                    <span className="text-xs font-semibold bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1 rounded-sm tracking-tighter mt-1">DONE</span>
                                                                 )}
                                                             </div>
                                                         )}

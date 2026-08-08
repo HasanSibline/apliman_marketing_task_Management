@@ -66,7 +66,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
+              className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
             >
               <button aria-label="Close"
                 onClick={onClose}
@@ -280,7 +280,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-xl max-h-[85vh] overflow-hidden flex flex-col"
+              className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-lg shadow-md max-h-[85vh] overflow-hidden flex flex-col"
             >
               {/* Header */}
               <div className="flex items-start justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -398,7 +398,7 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
                                     <p className="text-xs text-gray-500 dark:text-gray-400">{user.position}</p>
                                   )}
                                 </div>
-                                <span className="text-xs text-gray-400">{user.role}</span>
+                                <span className="text-xs text-gray-500 dark:text-gray-400">{user.role}</span>
                               </label>
                             ))}
                           </motion.div>

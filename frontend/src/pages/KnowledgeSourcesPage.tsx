@@ -178,7 +178,7 @@ export default function KnowledgeSourcesPage() {
     if (source.content) {
       return <div title="Content available"><CheckCircle className="w-5 h-5 text-green-500" /></div>;
     }
-    return <div title="Not scraped yet"><Clock className="w-5 h-5 text-gray-400" /></div>;
+    return <div title="Not scraped yet"><Clock className="w-5 h-5 text-gray-500 dark:text-gray-400" /></div>;
   };
 
   const formatDate = (dateString?: string) => {
@@ -223,7 +223,7 @@ export default function KnowledgeSourcesPage() {
           </div>
         ) : sources.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
-            <Globe className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <Globe className="w-16 h-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Knowledge Sources</h3>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
               Add your first knowledge source to enhance AI content generation
@@ -333,7 +333,7 @@ export default function KnowledgeSourcesPage() {
         {/* Modal */}
         {showModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
                   {editingSource ? 'Edit Knowledge Source' : 'Add Knowledge Source'}

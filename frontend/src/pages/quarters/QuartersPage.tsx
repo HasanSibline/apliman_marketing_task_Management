@@ -82,7 +82,7 @@ function CreateQuarterModal({ onClose, onCreated }: { onClose: () => void; onCre
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md p-6 border border-gray-100 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-bold text-gray-900 dark:text-white">New Strategy Cycle</h2>
                     <button aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
@@ -180,7 +180,7 @@ function CloseQuarterModal({
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col border border-gray-100 dark:border-gray-700">
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] flex flex-col border border-gray-100 dark:border-gray-700">
                 <div className="p-6 border-b border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between">
                         <div>
@@ -219,7 +219,7 @@ function CloseQuarterModal({
                                             <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{task.assignedTo?.name ?? 'Unassigned'}</p>
                                         </div>
                                         {selected.has(task.id) && (
-                                            <span className="text-[11px] bg-primary-600 text-white px-2 py-0.5 rounded-full font-bold shadow-sm uppercase tracking-wider">
+                                            <span className="text-xs bg-primary-600 text-white px-2 py-0.5 rounded-full font-bold shadow-sm tracking-wider">
                                                 Roll Over
                                             </span>
                                         )}
@@ -397,10 +397,10 @@ const QuartersPage: React.FC = () => {
             {movingTask && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[60] p-4 text-left">
                     <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-sm p-6 border border-gray-100 dark:border-gray-700">
+                        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-sm p-6 border border-gray-100 dark:border-gray-700">
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h3 className="text-lg font-black text-gray-900 dark:text-white leading-none">Move to Cycle</h3>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white leading-none">Move to Cycle</h3>
                                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium truncate max-w-[200px]">{movingTask.title}</p>
                             </div>
                             <button onClick={() => setMovingTask(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
@@ -409,7 +409,7 @@ const QuartersPage: React.FC = () => {
                         <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 no-scrollbar">
                             {/* Active/Upcoming Roadmap */}
                             <div>
-                                <p className="text-[11px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-2 px-1">Active Roadmap</p>
+                                <p className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wide mb-2 px-1">Active Roadmap</p>
                                 <div className="space-y-1.5">
                                     {quarters.filter(q => q.status !== 'CLOSED').map(q => (
                                         <button
@@ -419,20 +419,20 @@ const QuartersPage: React.FC = () => {
                                         >
                                             <div className="text-left">
                                                 <div className="text-sm font-bold text-gray-900 dark:text-white">{q.name} {q.year}</div>
-                                                <div className="text-[11px] text-gray-400 font-bold uppercase tracking-widest leading-none mt-1">{q.status}</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400 font-bold tracking-wide leading-none mt-1">{q.status}</div>
                                             </div>
                                             <ChevronRightIcon className="h-4 w-4 text-gray-300 group-hover:text-primary-500" />
                                         </button>
                                     ))}
                                     {quarters.filter(q => q.status !== 'CLOSED').length === 0 && (
-                                        <p className="py-4 text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center italic bg-gray-50 dark:bg-gray-900/40 rounded-lg">No active cycles available</p>
+                                        <p className="py-4 text-xs font-bold text-gray-400 tracking-wide text-center bg-gray-50 dark:bg-gray-900/40 rounded-lg">No active cycles available</p>
                                     )}
                                 </div>
                             </div>
 
                             {/* Archive History */}
                             <div className="pt-2">
-                                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1 flex items-center gap-1.5">
+                                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2 px-1 flex items-center gap-1.5">
                                     <ArchiveBoxIcon className="h-3 w-3" />
                                     Strategic Archive
                                 </p>
@@ -445,7 +445,7 @@ const QuartersPage: React.FC = () => {
                                         >
                                             <div className="text-left">
                                                 <div className="text-xs font-bold text-gray-600 dark:text-gray-300">{q.name} {q.year}</div>
-                                                <div className="text-[11px] text-gray-400 font-black uppercase tracking-tighter leading-none mt-1">Archived History</div>
+                                                <div className="text-xs text-gray-500 dark:text-gray-400 font-semibold tracking-tighter leading-none mt-1">Archived History</div>
                                             </div>
                                             <ChevronRightIcon className="h-3 w-3 text-gray-300 group-hover:text-gray-600 dark:group-hover:text-gray-200 dark:text-gray-300" />
                                         </button>
@@ -477,11 +477,11 @@ const QuartersPage: React.FC = () => {
             <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-sm border border-primary-500/20 relative overflow-hidden">
                 <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div>
-                        <div className="flex items-center gap-2 mb-2 font-bold text-primary-100 uppercase tracking-widest text-xs">
+                        <div className="flex items-center gap-2 mb-2 font-bold text-primary-100 tracking-wide text-xs">
                             <FlagIcon className="h-4 w-4" />
                             Strategy Hub
                         </div>
-                        <h1 className="text-3xl font-black mb-1 leading-tight">Roadmap & Archives</h1>
+                        <h1 className="text-3xl font-semibold mb-1 leading-tight">Roadmap & Archives</h1>
                         <p className="text-primary-50 font-medium max-w-lg">Advanced strategic planning, yearly lifecycle management, and task standby vault.</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -506,8 +506,8 @@ const QuartersPage: React.FC = () => {
             {/* Strategy Vault Shelf (Horizontal Scroll) */}
             <div className="space-y-4">
                 <div className="flex items-center justify-between px-2">
-                    <h2 className="text-sm font-black text-gray-900 dark:text-white tracking-tight uppercase">Strategy Vaults</h2>
-                    <div className="flex items-center gap-4 text-[11px] font-bold text-gray-500 dark:text-gray-400">
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">Strategy Vaults</h2>
+                    <div className="flex items-center gap-4 text-xs font-bold text-gray-500 dark:text-gray-400">
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-green-500" /> Active</span>
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-indigo-500" /> Planned</span>
                         <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-gray-400" /> Archived</span>
@@ -525,13 +525,13 @@ const QuartersPage: React.FC = () => {
                             <>
                                 <button 
                                     onClick={() => scrollShelf('left')}
-                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white dark:bg-gray-800 shadow-xl rounded-full border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -ml-5"
+                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white dark:bg-gray-800 shadow-md rounded-full border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -ml-5"
                                 >
                                     <ChevronLeftIcon className="h-4 w-4 text-gray-600 dark:text-gray-300 stroke-[2]" />
                                 </button>
                                 <button 
                                     onClick={() => scrollShelf('right')}
-                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white dark:bg-gray-800 shadow-xl rounded-full border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -mr-5"
+                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-3 bg-white dark:bg-gray-800 shadow-md rounded-full border border-gray-100 dark:border-gray-700 opacity-0 group-hover:opacity-100 transition-all hover:scale-110 -mr-5"
                                 >
                                     <ChevronRightIcon className="h-4 w-4 text-gray-600 dark:text-gray-300 stroke-[2]" />
                                 </button>
@@ -597,7 +597,7 @@ const QuartersPage: React.FC = () => {
                                         </div>
                                     </div>
                                     
-                                    <span className={`text-[11px] font-black transition-colors ${selectedYear === year ? 'text-primary-700 underline underline-offset-4 decoration-2' : 'text-gray-900 dark:text-white uppercase tracking-tight'}`}>{year}</span>
+                                    <span className={`text-xs font-semibold transition-colors ${selectedYear === year ? 'text-primary-700 underline underline-offset-4 decoration-2' : 'text-gray-900 dark:text-white uppercase tracking-tight'}`}>{year}</span>
                                     {selectedYear === year && (
                                         <div className="absolute -inset-2 bg-primary-50 dark:bg-primary-900/30 rounded-lg -z-10" />
                                     )}
@@ -622,15 +622,15 @@ const QuartersPage: React.FC = () => {
                                 <div className="mb-8 p-4 bg-gray-50/80 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-xl flex items-center justify-between animate-in fade-in slide-in-from-top-2">
                                     <div className="flex items-center gap-3">
                                         <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                                            <ArchiveBoxIcon className="h-5 w-5 text-gray-400" />
+                                            <ArchiveBoxIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-black text-gray-900 dark:text-white leading-none">{selectedYear} Strategic Archive</p>
-                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">This roadmap is fully finalized and read-only</p>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white leading-none">{selectedYear} Strategic Archive</p>
+                                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">This roadmap is fully finalized and read-only</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <span className="text-[11px] font-black text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded border border-gray-100 dark:border-gray-700 uppercase tracking-tighter">Historical Record</span>
+                                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded border border-gray-100 dark:border-gray-700 tracking-tighter">Historical Record</span>
                                     </div>
                                 </div>
                             )}
@@ -641,8 +641,8 @@ const QuartersPage: React.FC = () => {
                                         <FolderIcon className="h-7 w-7" />
                                     </div>
                                     <div>
-                                        <h3 className="text-xl font-black text-gray-900 dark:text-white leading-none mb-1">{selectedYear} Strategic Hub</h3>
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest leading-none">
+                                        <h3 className="text-xl font-semibold text-gray-900 dark:text-white leading-none mb-1">{selectedYear} Strategic Hub</h3>
+                                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide leading-none">
                                             Inside this vault: {quartersByYear[selectedYear]?.length || 0} Cycles · Cycle Planning
                                         </p>
                                     </div>
@@ -661,8 +661,8 @@ const QuartersPage: React.FC = () => {
                                             className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer relative group transition-all hover:shadow-md"
                                         >
                                             <div className="flex items-center justify-between mb-5">
-                                                <div className="text-base font-black text-gray-900 dark:text-white uppercase tracking-tight">{q.name}</div>
-                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-black uppercase tracking-wider ${cfg.bg} border border-black/5`}>
+                                                <div className="text-base font-semibold text-gray-900 dark:text-white tracking-tight">{q.name}</div>
+                                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold uppercase tracking-wider ${cfg.bg} border border-black/5`}>
                                                     <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                                                     {cfg.label}
                                                 </span>
@@ -670,7 +670,7 @@ const QuartersPage: React.FC = () => {
                                             
                                             <div className="space-y-5">
                                                 <div>
-                                                    <div className="flex items-center justify-between text-[11px] font-black text-gray-400 uppercase mb-2">
+                                                    <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
                                                         <span>Completion</span>
                                                         <span className="text-primary-700 dark:text-primary-300">{progress}%</span>
                                                     </div>
@@ -681,12 +681,12 @@ const QuartersPage: React.FC = () => {
 
                                                 <div className="flex items-center justify-between pt-2 border-t border-gray-200/50">
                                                     <div className="flex flex-col">
-                                                        <span className="text-base font-black text-gray-900 dark:text-white leading-none">{q.totalTasks}</span>
-                                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Tasks</span>
+                                                        <span className="text-base font-semibold text-gray-900 dark:text-white leading-none">{q.totalTasks}</span>
+                                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Tasks</span>
                                                     </div>
                                                     <div className="flex flex-col text-right">
-                                                        <span className="text-base font-black text-gray-900 dark:text-white leading-none">{q.objectivesCount}</span>
-                                                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Goals</span>
+                                                        <span className="text-base font-semibold text-gray-900 dark:text-white leading-none">{q.objectivesCount}</span>
+                                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Goals</span>
                                                     </div>
                                                 </div>
                                             </div>
@@ -695,8 +695,8 @@ const QuartersPage: React.FC = () => {
                                             {q.status === 'UPCOMING' && !isAdmin && (
                                                 <div className="absolute inset-0 bg-white/80 backdrop-blur-[1px] rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                                     <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm flex flex-col items-center gap-1.5 border border-gray-100 dark:border-gray-700">
-                                                        <LockClosedIcon className="h-6 w-6 text-gray-400" />
-                                                        <span className="text-[11px] font-black text-gray-900 dark:text-white uppercase tracking-widest">Vault Locked</span>
+                                                        <LockClosedIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                                                        <span className="text-xs font-semibold text-gray-900 dark:text-white tracking-wide">Vault Locked</span>
                                                     </div>
                                                 </div>
                                             )}
@@ -712,7 +712,7 @@ const QuartersPage: React.FC = () => {
                                                             fetchQuarters();
                                                         } catch { toast.error('Failed to start cycle'); }
                                                     }}
-                                                    className="mt-6 w-full py-2.5 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-600 text-primary-700 dark:text-primary-300 hover:text-white border border-primary-200 hover:border-primary-600 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                    className="mt-6 w-full py-2.5 bg-primary-50 dark:bg-primary-900/30 hover:bg-primary-600 text-primary-700 dark:text-primary-300 hover:text-white border border-primary-200 hover:border-primary-600 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <CheckCircleIcon className="h-4 w-4" /> Start Cycle
                                                 </button>
@@ -720,7 +720,7 @@ const QuartersPage: React.FC = () => {
                                             {isAdmin && q.status === 'ACTIVE' && (
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); openCloseModal(q); }}
-                                                    className="mt-6 w-full py-2.5 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                                    className="mt-6 w-full py-2.5 bg-white dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-500 dark:text-gray-400 hover:text-red-600 border border-transparent hover:border-red-200 rounded-lg text-xs font-semibold tracking-wide transition-all flex items-center justify-center gap-2"
                                                 >
                                                     <LockClosedIcon className="h-4 w-4" /> Close Cycle
                                                 </button>
@@ -743,8 +743,8 @@ const QuartersPage: React.FC = () => {
                                 <InboxIcon className="h-5 w-5 stroke-[2.5]" />
                             </div>
                             <div>
-                                <h2 className="text-lg font-black text-gray-900 dark:text-white leading-none">Standby Vault</h2>
-                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-1">Unassigned Backlog · Total: {backlogTotal}</p>
+                                <h2 className="text-lg font-semibold text-gray-900 dark:text-white leading-none">Standby Vault</h2>
+                                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Unassigned Backlog · Total: {backlogTotal}</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -766,16 +766,16 @@ const QuartersPage: React.FC = () => {
                         <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
                             <thead className="bg-gray-50 dark:bg-gray-900/40">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Task Details</th>
-                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Phase</th>
-                                    <th className="px-6 py-3 text-left text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Assignee</th>
-                                    <th className="px-6 py-3 text-right text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Action</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">Task Details</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">Phase</th>
+                                    <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">Assignee</th>
+                                    <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">Action</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                                 {backlogTasks.length === 0 ? (
                                     <tr>
-                                        <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-400 italic">No tasks on standby. Your inbox is clear.</td>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-500 dark:text-gray-400 italic">No tasks on standby. Your inbox is clear.</td>
                                     </tr>
                                 ) : backlogTasks.map(task => (
                                     <tr key={task.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group">
@@ -788,7 +788,7 @@ const QuartersPage: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="inline-flex px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded text-[11px] font-bold uppercase tracking-tight">
+                                            <span className="inline-flex px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded text-xs font-bold uppercase tracking-tight">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         </td>
@@ -796,7 +796,7 @@ const QuartersPage: React.FC = () => {
                                             {task.assignedTo?.name ?? 'Unassigned'}
                                         </td>
                                         <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-2 text-gray-400">
+                                            <div className="flex items-center justify-end gap-2 text-gray-500 dark:text-gray-400">
                                                 {isAdmin && (
                                                     <button 
                                                         onClick={() => setMovingTask(task)} 
@@ -804,7 +804,7 @@ const QuartersPage: React.FC = () => {
                                                         title="Quick Assign to Strategy Cycle"
                                                     >
                                                         <PlusIcon className="h-4 w-4" />
-                                                        <span className="text-[11px] font-bold uppercase">Assign</span>
+                                                        <span className="text-xs font-bold uppercase">Assign</span>
                                                     </button>
                                                 )}
                                                 <button onClick={() => navigate(`/tasks/${task.id}`)} className="p-2 hover:text-primary-600 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
@@ -821,7 +821,7 @@ const QuartersPage: React.FC = () => {
                     {/* Standby Pagination */}
                     {backlogTotal > 5 && (
                         <div className="p-4 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Page {backlogPage} of {Math.ceil(backlogTotal / 5)}</span>
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Page {backlogPage} of {Math.ceil(backlogTotal / 5)}</span>
                             <div className="flex gap-2">
                                 <button 
                                     disabled={backlogPage === 1}

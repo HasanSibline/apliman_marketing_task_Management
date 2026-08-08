@@ -101,8 +101,8 @@ const Header: React.FC = () => {
                 rounded="xl"
               />
               <div className="hidden md:block text-left">
-                <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight leading-none">{user?.name}</p>
-                <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mt-1.5 opacity-80">{user?.position || user?.role?.replace('_', ' ')}</p>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight leading-none">{user?.name}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mt-1.5 opacity-80">{user?.position || user?.role?.replace('_', ' ')}</p>
               </div>
             </Menu.Button>
 
@@ -115,10 +115,10 @@ const Header: React.FC = () => {
               leaveFrom="transform opacity-100 scale-100"
               leaveTo="transform opacity-0 scale-95"
             >
-              <Menu.Items className="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 rounded-[2rem] shadow-2xl ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden border border-gray-100 dark:border-gray-700 p-2">
+              <Menu.Items className="absolute right-0 mt-3 w-64 bg-white dark:bg-gray-800 rounded-[2rem] shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50 overflow-hidden border border-gray-100 dark:border-gray-700 p-2">
                 <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-700 mb-1">
-                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">Signed in as</p>
-                   <p className="text-sm font-black text-gray-900 dark:text-white truncate">{user?.email}</p>
+                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Signed in as</p>
+                   <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">{user?.email}</p>
                 </div>
                 <Menu.Item>
                   {({ active }) => (
@@ -126,7 +126,7 @@ const Header: React.FC = () => {
                       to="/profile"
                       className={`${
                         active ? 'bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300' : 'text-gray-700 dark:text-gray-200'
-                      } flex items-center px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
+                      } flex items-center px-4 py-3 text-xs font-semibold uppercase tracking-wide rounded-xl transition-all`}
                     >
                       <UserCircleIcon className="h-5 w-5 mr-3 opacity-60" />
                       User Profile
@@ -139,7 +139,7 @@ const Header: React.FC = () => {
                       onClick={handleLogout}
                       className={`${
                         active ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'text-gray-700 dark:text-gray-200'
-                      } flex items-center w-full px-4 py-3 text-xs font-black uppercase tracking-widest rounded-2xl transition-all`}
+                      } flex items-center w-full px-4 py-3 text-xs font-semibold uppercase tracking-wide rounded-xl transition-all`}
                     >
                       <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3 opacity-60" />
                       Logout

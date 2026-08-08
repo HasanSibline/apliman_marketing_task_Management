@@ -94,6 +94,57 @@
     background-size: 1.5em 1.5em;
   }
 
+  /* ── Design language ──────────────────────────────────────────────────────
+     The sign-in pages set the tone for the product: sentence case, one weight
+     of emphasis, restrained shadows, a single corner radius, and colour saved
+     for things you can act on. These classes carry that language into the app
+     so screens stop drifting apart. Every one defines both themes, so nothing
+     here depends on which mode you are in. */
+
+  /* A panel is the default container: content sits on it, not in a box that
+     shouts. Prefer this over hand-rolled bg + border + shadow combinations. */
+  .surface {
+    @apply rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800;
+  }
+
+  .surface-muted {
+    @apply rounded-xl border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40;
+  }
+
+  /* Page title. One per screen. */
+  .page-title {
+    @apply text-2xl font-semibold tracking-tight text-gray-900 dark:text-white;
+  }
+
+  /* Sits under a page title, or under a section heading. */
+  .page-subtitle {
+    @apply mt-2 text-sm text-gray-600 dark:text-gray-400;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold tracking-tight text-gray-900 dark:text-white;
+  }
+
+  /* Small label above a group. Sentence case, normal tracking: the old
+     11px black-uppercase-wide-tracking treatment read as shouting and fell
+     below a legible size. */
+  .eyebrow {
+    @apply text-xs font-medium text-gray-500 dark:text-gray-400;
+  }
+
+  /* Secondary body copy. Meets contrast on white, which text-gray-400 does not. */
+  .text-muted {
+    @apply text-gray-600 dark:text-gray-400;
+  }
+
+  .form-label {
+    @apply mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-200;
+  }
+
+  .form-hint {
+    @apply mt-1.5 text-xs text-gray-500 dark:text-gray-400;
+  }
+
   /* Card Components */
   .card {
     @apply bg-white overflow-hidden shadow-sm rounded-lg border border-gray-200 p-6 dark:bg-gray-800 dark:border-gray-700;

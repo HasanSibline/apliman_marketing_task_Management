@@ -127,7 +127,7 @@ const DashboardPage: React.FC = () => {
         >
           {/* User Profile Identity */}
           <div className="flex items-center gap-6">
-             <div className="h-20 w-20 rounded-2xl bg-white/20 border-2 border-white/20 p-0.5 flex-shrink-0 relative">
+             <div className="h-20 w-20 rounded-xl bg-white/20 border-2 border-white/20 p-0.5 flex-shrink-0 relative">
                  <Avatar 
                     src={user?.avatar} 
                     name={user?.name} 
@@ -139,18 +139,18 @@ const DashboardPage: React.FC = () => {
              </div>
              
              <div className="space-y-1">
-               <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
+               <h1 className="text-3xl md:text-4xl font-semibold tracking-tight leading-tight">
                  {getGreeting()}, <span className="text-primary-100">{user?.name?.split(' ')[0]}</span>
                </h1>
                
                {/* Atmospheric Synchronisation (Weather) */}
                {weather && (
-                  <div className="flex items-center gap-3 text-primary-100/90 font-black text-[11px] tracking-[0.2em] uppercase italic opacity-80 mt-2">
+                  <div className="flex items-center gap-3 text-primary-100/90 font-semibold text-xs tracking-normal opacity-80 mt-2">
                      <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full border border-white/10">
                         {weather.temperature > 25 ? <SunIcon className="h-3 w-3 text-amber-300" /> : <CloudIcon className="h-3 w-3 text-sky-100" />}
                         <span>{Math.round(weather.temperature)}°C</span>
                      </div>
-                     <span className="opacity-50 tracking-widest">Atmosphere Synced</span>
+                     <span className="opacity-50 tracking-wide">Atmosphere Synced</span>
                   </div>
                )}
                
@@ -195,28 +195,28 @@ const DashboardPage: React.FC = () => {
                >
                   <div className="flex items-center justify-between mb-8">
                      <div className="flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-2xl bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300 flex items-center justify-center border border-primary-100 dark:border-primary-800">
+                        <div className="h-12 w-12 rounded-xl bg-primary-50 text-primary-600 dark:bg-primary-900/30 dark:text-primary-300 flex items-center justify-center border border-primary-100 dark:border-primary-800">
                            <FlagIcon className="h-6 w-6" />
                         </div>
                         <div>
                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Strategy Velocity Hub</h3>
-                           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">{activeQuarter.name} Planning Archive</p>
+                           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider">{activeQuarter.name} Planning Archive</p>
                         </div>
                      </div>
                      <div className="text-right">
-                        <p className="text-4xl font-black text-primary-600 dark:text-primary-400 tracking-tighter">{activeQuarter.avgProgress}%</p>
-                        <p className="text-[11px] font-black uppercase tracking-widest text-gray-300 dark:text-gray-500">Quarterly Momentum</p>
+                        <p className="text-4xl font-semibold text-primary-600 dark:text-primary-400 tracking-tighter">{activeQuarter.avgProgress}%</p>
+                        <p className="text-xs font-semibold tracking-wide text-gray-300 dark:text-gray-500">Quarterly Momentum</p>
                      </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="p-6 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Active Target Set</p>
-                        <p className="text-3xl font-black text-gray-900 dark:text-white leading-none">{activeQuarter.objectives?.length || 0}</p>
+                     <div className="p-6 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2">Active Target Set</p>
+                        <p className="text-3xl font-semibold text-gray-900 dark:text-white leading-none">{activeQuarter.objectives?.length || 0}</p>
                      </div>
-                     <div className="p-6 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
-                        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 italic">Operation Completion</p>
-                        <p className="text-3xl font-black text-gray-900 dark:text-white leading-none">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</p>
+                     <div className="p-6 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2">Operation Completion</p>
+                        <p className="text-3xl font-semibold text-gray-900 dark:text-white leading-none">{activeQuarter.completedTasksCount} / {activeQuarter.totalTasksCount}</p>
                      </div>
                   </div>
                </motion.div>
@@ -235,8 +235,8 @@ const DashboardPage: React.FC = () => {
                    <TrophyIcon className="h-6 w-6" />
                 </div>
                 <div>
-                   <h3 className="text-lg font-black text-gray-900 dark:text-white tracking-tight leading-none mb-1">Performance Elite</h3>
-                   <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">Global Competition</p>
+                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight leading-none mb-1">Performance Elite</h3>
+                   <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Global Competition</p>
                 </div>
              </div>
           </div>
@@ -253,7 +253,7 @@ const DashboardPage: React.FC = () => {
                 return (
                   <div 
                     key={index} 
-                    className={`flex items-center justify-between p-4 rounded-2xl transition-all group border
+                    className={`flex items-center justify-between p-4 rounded-xl transition-all group border
                       ${isTopThree ? `${rankGradients[index]} text-white border-white/20` : 'bg-gray-50 dark:bg-gray-900/40 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 hover:border-gray-200 dark:hover:border-gray-600 border-transparent transition-colors'}`}
                   >
                      <div className="flex items-center gap-4">
@@ -267,22 +267,22 @@ const DashboardPage: React.FC = () => {
                            />
                            {isTopThree && (
                               <div className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center border-2 border-gray-900 shadow-none scale-110">
-                                 <span className={`text-[11px] font-black ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500 dark:text-gray-400' : 'text-orange-600'}`}>
+                                 <span className={`text-xs font-semibold ${index === 0 ? 'text-amber-500' : index === 1 ? 'text-slate-500 dark:text-gray-400' : 'text-orange-600'}`}>
                                     {index + 1}
                                  </span>
                               </div>
                            )}
                         </div>
                         <div className="min-w-0">
-                           <p className={`text-[11px] font-black uppercase tracking-tight truncate ${isTopThree ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{performer.name}</p>
-                           <p className={`text-[11px] font-bold uppercase tracking-tight truncate ${isTopThree ? 'text-white/70' : 'text-gray-400'}`}>
+                           <p className={`text-xs font-semibold uppercase tracking-tight truncate ${isTopThree ? 'text-white' : 'text-gray-900 dark:text-gray-100'}`}>{performer.name}</p>
+                           <p className={`text-xs font-bold uppercase tracking-tight truncate ${isTopThree ? 'text-white/70' : 'text-gray-400'}`}>
                               {isTopThree ? rankLabels[index] : performer.position}
                            </p>
                         </div>
                      </div>
                      <div className="flex flex-col items-end">
-                        <span className={`text-sm font-black ${isTopThree ? 'text-white' : 'text-primary-600 dark:text-primary-400'}`}>{performer.tasksCompleted}</span>
-                        <span className={`text-[11px] font-black uppercase tracking-widest ${isTopThree ? 'text-white/40' : 'text-gray-300 dark:text-gray-500'}`}>Resolved</span>
+                        <span className={`text-sm font-semibold ${isTopThree ? 'text-white' : 'text-primary-600 dark:text-primary-400'}`}>{performer.tasksCompleted}</span>
+                        <span className={`text-xs font-semibold uppercase tracking-wide ${isTopThree ? 'text-white/40' : 'text-gray-300 dark:text-gray-500'}`}>Resolved</span>
                      </div>
                   </div>
                 )
@@ -292,7 +292,7 @@ const DashboardPage: React.FC = () => {
              {topPerformers.length === 0 && (
                 <div className="h-full flex flex-col items-center justify-center py-20 grayscale opacity-20">
                    <ChartBarIcon className="h-16 w-16 mb-4" />
-                   <p className="text-xs font-black uppercase tracking-widest">Waiting for data</p>
+                   <p className="text-xs font-semibold tracking-wide">Waiting for data</p>
                 </div>
              )}
           </div>

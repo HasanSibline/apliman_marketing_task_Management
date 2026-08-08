@@ -139,7 +139,7 @@ const CompanyLogin: React.FC = () => {
   if (error && !company) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 dark:from-red-900/20 to-pink-100 dark:to-pink-900/20">
-        <div className="max-w-md w-full bg-white dark:bg-gray-800 p-10 rounded-xl shadow-2xl">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 p-10 rounded-xl shadow-lg">
           <div className="text-center">
             <svg
               className="mx-auto h-12 w-12 text-red-500"

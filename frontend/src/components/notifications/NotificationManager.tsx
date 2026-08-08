@@ -243,7 +243,7 @@ const NotificationManager: React.FC = () => {
                         <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                           {notification.message}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {new Date(notification.timestamp).toLocaleString()}
                         </p>
                         {notification.type === 'task_approval' && notification.taskId ? (

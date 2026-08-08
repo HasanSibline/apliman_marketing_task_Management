@@ -95,14 +95,14 @@ const CalendarPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl">
+            <div className="h-[calc(100vh-140px)] flex items-center justify-center bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-md">
                 <div className="flex flex-col items-center">
                     <div className="relative">
                         <div className="h-16 w-16 border-4 border-primary-50 dark:border-primary-900/40 rounded-full" />
                         <div className="absolute top-0 h-16 w-16 border-4 border-primary-600 rounded-full border-t-transparent animate-spin" />
                     </div>
-                    <h2 className="mt-6 text-xl font-black text-gray-900 dark:text-white tracking-tight">Syncing your Universe</h2>
-                    <p className="mt-2 text-gray-400 text-sm font-bold uppercase tracking-widest animate-pulse">Connecting to Microsoft Graph...</p>
+                    <h2 className="mt-6 text-xl font-semibold text-gray-900 dark:text-white tracking-tight">Syncing your Universe</h2>
+                    <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm font-bold tracking-wide animate-pulse">Connecting to Microsoft Graph...</p>
                 </div>
             </div>
         )

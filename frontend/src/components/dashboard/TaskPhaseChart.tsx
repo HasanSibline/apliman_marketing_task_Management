@@ -51,7 +51,7 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
       animate={{ opacity: 1, scale: 1 }}
       className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-8"
     >
-      <h3 className="text-xl font-black text-gray-900 dark:text-white mb-6 tracking-tight uppercase">Tasks by Workflow</h3>
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-6 tracking-tight">Tasks by Workflow</h3>
       
       {/* Legend under title - VERTICAL layout */}
       {filteredData.length > 0 && (
@@ -102,7 +102,7 @@ const TaskPhaseChart: React.FC<TaskPhaseChartProps> = ({ data }) => {
           <div className="text-center">
             <div className="text-4xl mb-3">📊</div>
             <p className="text-gray-500 dark:text-gray-400 font-medium">No tasks yet</p>
-            <p className="text-gray-400 text-sm mt-1">Create tasks to see workflow distribution</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Create tasks to see workflow distribution</p>
           </div>
         </div>
       )}

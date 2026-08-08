@@ -253,7 +253,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">
               <button
                 onClick={() => handleDelete(subtask.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200"
+                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200"
                         title="Delete subtask"
               >
                 <TrashIcon className="h-4 w-4" />
@@ -269,7 +269,7 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
         {/* Empty State */}
         {subtasks.length === 0 && (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/40 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-600">
-            <FlagIcon className="mx-auto h-12 w-12 text-gray-400" />
+            <FlagIcon className="mx-auto h-12 w-12 text-gray-500 dark:text-gray-400" />
             <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">No subtasks yet</h3>
             <p className="mt-2 text-gray-500 dark:text-gray-400">Break down this task into smaller, manageable pieces.</p>
           </div>

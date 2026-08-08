@@ -381,7 +381,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                         className="h-3 w-3 rounded-full"
                         style={{ backgroundColor: phase.color === '#FFFFFF' ? '#6B7280' : '#FFFFFF' }}
                       />
-                      <h3 className="text-xs font-bold text-gray-800 dark:text-gray-100 uppercase tracking-wider">
+                      <h3 className="text-xs font-bold text-gray-800 dark:text-gray-100 tracking-wider">
                         {phase.name}
                       </h3>
                       {/* Approvals disabled globally */}
@@ -420,7 +420,7 @@ const TaskBoard: React.FC<TaskBoardProps> = ({ tasks, onTaskClick }) => {
                       {phaseTasks.length === 0 && (
                         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
                           <div className="flex justify-center mb-2">
-                            <ClipboardIcon className="h-8 w-8 text-gray-400 opacity-50" />
+                            <ClipboardIcon className="h-8 w-8 text-gray-500 dark:text-gray-400 opacity-50" />
                           </div>
                           <p className="text-sm">No tasks in {phase.name}</p>
                         </div>
@@ -499,9 +499,9 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
           ref={provided.innerRef}
           {...provided.draggableProps}
           {...provided.dragHandleProps}
-          className={`group relative bg-white dark:bg-gray-800 rounded-2xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${snapshot.isDragging
-              ? 'shadow-2xl scale-105 rotate-2 border-blue-300 ring-2 ring-blue-200'
-              : 'shadow-md hover:shadow-xl border-gray-200 dark:border-gray-700 hover:border-blue-300'
+          className={`group relative bg-white dark:bg-gray-800 rounded-xl border transition-all duration-300 cursor-pointer mb-4 overflow-hidden ${snapshot.isDragging
+              ? 'shadow-lg scale-105 rotate-2 border-blue-300 ring-2 ring-blue-200'
+              : 'shadow-md hover:shadow-md border-gray-200 dark:border-gray-700 hover:border-blue-300'
             }`}
           style={{
             ...provided.draggableProps.style,
@@ -561,7 +561,7 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                 <Menu.Button className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
                   <EllipsisVerticalIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                 </Menu.Button>
-                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 py-2 z-50 ring-1 ring-black ring-opacity-5">
+                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50 ring-1 ring-black ring-opacity-5">
                   <Menu.Item>
                     {({ active }) => (
                       <button

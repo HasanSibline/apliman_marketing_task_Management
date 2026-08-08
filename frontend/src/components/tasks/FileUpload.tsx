@@ -144,7 +144,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
           }
         }}
       >
-        <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-400" aria-hidden="true" />
+        <CloudArrowUpIcon className="mx-auto h-12 w-12 text-gray-500 dark:text-gray-400" aria-hidden="true" />
         <div className="mt-4">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             <span className="font-medium text-primary-600 dark:text-primary-400">Click to upload</span>

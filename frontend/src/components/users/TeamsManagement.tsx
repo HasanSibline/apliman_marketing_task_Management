@@ -94,7 +94,7 @@ const TeamsManagement: React.FC = () => {
               </div>
               <button 
                 onClick={() => handleDelete(team.id)}
-                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-1 text-gray-500 dark:text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <TrashIcon className="h-4 w-4" />
               </button>
@@ -112,7 +112,7 @@ const TeamsManagement: React.FC = () => {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
             <h3 className="text-xl font-bold mb-4">Create Team</h3>
             <div className="space-y-4">
               <div>

@@ -182,11 +182,11 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
               initial={{ opacity: 0, y: 50, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.98 }}
-              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
+              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
               {/* Strategic Header Strip */}
               <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
-                <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight font-outfit uppercase">Onboard Personnel</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight font-outfit">Onboard Personnel</h2>
                 <button aria-label="Close"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
@@ -241,7 +241,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                  {/* Organizational Authority Role */}
                 <div>
-                  <label htmlFor="role" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="role" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2 ml-1">
                     Logistical Tier *
                   </label>
                   <select
@@ -257,7 +257,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                         isTicketApprover: newRole === 'MANAGER' ? true : prev.isTicketApprover
                       }));
                     }}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-black text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
                     {canCreateRole('EMPLOYEE') && <option value="EMPLOYEE">Standard Employee</option>}
                     {canCreateRole('MANAGER') && <option value="MANAGER">Departmental Manager</option>}
@@ -273,7 +273,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Additional Permissions */}
                 <div className="space-y-3 p-4 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Permissions</h3>
+                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">Permissions</h3>
                   
                   {/* Ticket Approver */}
                   <div className="flex items-center gap-3">
@@ -287,7 +287,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     />
                     <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
                       <span className="text-sm font-semibold text-gray-900 dark:text-white leading-none">Ticket Approver</span>
-                      <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Can approve departmental requests</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">Can approve departmental requests</span>
                     </label>
                   </div>
 
@@ -305,7 +305,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                       <option value="READ">Read Only (View strategy)</option>
                       <option value="EDIT">Full Edit (Manage strategy)</option>
                     </select>
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400">Determines visibility and control over Quarters and Objectives</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Determines visibility and control over Quarters and Objectives</span>
                   </div>
                 </div>
 
@@ -332,7 +332,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Department */}
                 <div>
-                  <label htmlFor="departmentId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="departmentId" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2 ml-1">
                     Direct Department
                   </label>
                   <select
@@ -340,7 +340,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="departmentId"
                     value={formData.departmentId}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-black text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
                     <option value="">No Department Mapping</option>
                     {departments.map((dept) => (

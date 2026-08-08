@@ -127,7 +127,7 @@ const UserAnalytics: React.FC = () => {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <ChartBarIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <ChartBarIcon className="h-16 w-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Data Available</h3>
           <p className="text-gray-500 dark:text-gray-400">Your personal analytics will appear here.</p>
         </div>

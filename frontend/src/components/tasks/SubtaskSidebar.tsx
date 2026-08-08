@@ -108,7 +108,7 @@ const SubtaskSidebar: React.FC<SubtaskSidebarProps> = ({ task, onAddSubtask, onS
                           {subtask.isCompleted ? (
                             <CheckCircleIconSolid className="h-5 w-5 text-green-500 flex-shrink-0 mt-0.5" />
                           ) : (
-                            <ClockIcon className="h-5 w-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                            <ClockIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors line-clamp-2">

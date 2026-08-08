@@ -241,7 +241,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
             API key
           </label>
           <div className="relative">
-            <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500 dark:text-gray-400" />
             <input
               id="platform-ai-key"
               type={showKey ? 'text' : 'password'}
@@ -259,7 +259,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
               type="button"
               onClick={() => setShowKey((v) => !v)}
               aria-label={showKey ? 'Hide key' : 'Show key'}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
             >
               {showKey ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
             </button>

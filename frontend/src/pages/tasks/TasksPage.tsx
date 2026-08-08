@@ -150,7 +150,7 @@ const TasksPage: React.FC = () => {
       {/* Search Bar - Enhanced */}
       <div className="relative group">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+          <MagnifyingGlassIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors" />
         </div>
         <input
           type="text"
@@ -162,7 +162,7 @@ const TasksPage: React.FC = () => {
         {filters.search && (
           <button
             onClick={() => dispatch(setFilters({ search: undefined }))}
-            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
           >
             <XMarkIcon className="h-5 w-5" />
           </button>

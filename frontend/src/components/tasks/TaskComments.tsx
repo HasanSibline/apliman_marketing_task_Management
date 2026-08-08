@@ -368,23 +368,23 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                 {comment.user?.avatar ? (
                   <img src={comment.user.avatar} className="h-full w-full object-cover" alt={comment.user.name} />
                 ) : (
-                  <span className="text-sm font-black text-white">
+                  <span className="text-sm font-semibold text-white">
                     {comment.user?.name?.charAt(0).toUpperCase() || 'U'}
                   </span>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-2xl p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-100 dark:border-gray-700">
+                <div className="bg-gray-50 dark:bg-gray-900/40 rounded-xl p-4 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors border border-gray-100 dark:border-gray-700">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-black text-gray-900 dark:text-white tracking-tight">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white tracking-tight">
                         {comment.user?.name || 'Unknown User'}
                       </p>
                       {comment.user?.position && (
-                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">• {comment.user.position}</span>
+                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">• {comment.user.position}</span>
                       )}
                     </div>
-                    <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
                       {formatTimeAgo(comment.createdAt)}
                     </p>
                   </div>
@@ -411,10 +411,10 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
           ))
         ) : (
           <div className="text-center py-12">
-            <div className="h-12 w-12 bg-gray-50 dark:bg-gray-900/40 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gray-700">
+            <div className="h-12 w-12 bg-gray-50 dark:bg-gray-900/40 rounded-xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gray-700">
                <span className="text-xl">💬</span>
             </div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-widest">No strategic discussions yet</p>
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">No strategic discussions yet</p>
           </div>
         )}
       </div>
@@ -422,11 +422,11 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
       {/* Add Comment Form */}
       <form onSubmit={handleSubmitComment} className="border-t border-gray-100 dark:border-gray-700 pt-6">
         <div className="flex space-x-4">
-          <div className="h-10 w-10 rounded-2xl bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden border-2 border-white">
+          <div className="h-10 w-10 rounded-xl bg-primary-600 flex items-center justify-center flex-shrink-0 shadow-lg overflow-hidden border-2 border-white">
             {user?.avatar ? (
               <img src={user.avatar} className="h-full w-full object-cover" alt={user.name} />
             ) : (
-              <span className="text-sm font-black text-white">
+              <span className="text-sm font-semibold text-white">
                 {user?.name?.charAt(0).toUpperCase() || 'U'}
               </span>
             )}
@@ -473,7 +473,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto z-50"
+                    className="absolute bottom-full left-0 mb-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto z-50"
                   >
                     {filteredUsers.map((mentionUser, index) => (
                       <button
@@ -489,7 +489,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                           {mentionUser.avatar ? (
                             <img src={mentionUser.avatar} className="h-full w-full object-cover" alt={mentionUser.name} />
                           ) : (
-                            <span className="text-white font-black text-xs">
+                            <span className="text-white font-semibold text-xs">
                               {mentionUser.name.charAt(0).toUpperCase()}
                             </span>
                           )}
@@ -518,7 +518,7 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto z-50"
+                    className="absolute bottom-full left-0 mb-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 max-h-48 overflow-y-auto z-50"
                   >
                     <div className="px-3 py-2 bg-purple-50 dark:bg-purple-900/30 border-b border-purple-100 dark:border-purple-900/40">
                       <p className="text-xs font-medium text-purple-700 dark:text-purple-300">Reference a subtask</p>

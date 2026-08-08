@@ -117,7 +117,7 @@ const DepartmentsManagement: React.FC = () => {
               </div>
               <button 
                 onClick={() => handleDelete(dept.id)}
-                className="p-1 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="p-1 text-gray-500 dark:text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <TrashIcon className="h-4 w-4" />
               </button>
@@ -134,7 +134,7 @@ const DepartmentsManagement: React.FC = () => {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-md">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md">
             <h3 className="text-xl font-bold mb-4">Create Department</h3>
             <div className="space-y-4">
               <div>

@@ -161,7 +161,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
 
     if (objectives.length === 0) {
         return (
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 text-center border border-gray-200 dark:border-gray-700">
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
                 <p className="text-gray-500 dark:text-gray-400 font-medium">Not enough data to display analytics.</p>
             </div>
         )
@@ -170,10 +170,10 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex-wrap gap-4">
-                <h2 className="text-xl font-black text-gray-900 dark:text-white">Objectives Analytics</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Objectives Analytics</h2>
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-3 bg-gray-50/50 dark:bg-gray-900/40 px-2 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
-                        <FunnelIcon className="h-5 w-5 text-gray-400 ml-1" />
+                        <FunnelIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 ml-1" />
                         <div className="relative">
                             <select 
                                 value={selectedQuarter} 
@@ -202,7 +202,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Status Distribution */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Status Distribution</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -226,7 +226,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                 </motion.div>
 
                 {/* Progress by Quarter */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Average Progress by Quarter</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -246,7 +246,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                 </motion.div>
 
                 {/* Key Results Progress Overview */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-6">Key Results Performance</h3>
                     <div className="h-64">
                         <ResponsiveContainer width="100%" height="100%">
@@ -273,12 +273,12 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                 </motion.div>
 
                 {/* Top Objectives */}
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 lg:col-span-2">
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Top Performing Objectives</h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead>
-                                <tr className="text-xs text-gray-400 font-bold uppercase tracking-wider border-b border-gray-100 dark:border-gray-700">
+                                <tr className="text-xs text-gray-500 dark:text-gray-400 font-bold tracking-wider border-b border-gray-100 dark:border-gray-700">
                                     <th className="pb-3 w-1/2">Objective</th>
                                     <th className="pb-3 w-1/4">Quarter</th>
                                     <th className="pb-3 w-1/4 text-right">Progress</th>
@@ -294,7 +294,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                                                 <div className="w-24 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                                     <div className="h-full bg-success-500" style={{ width: `${obj.progress}%` }} />
                                                 </div>
-                                                <span className="text-sm font-black text-gray-900 dark:text-white">{obj.progress}%</span>
+                                                <span className="text-sm font-semibold text-gray-900 dark:text-white">{obj.progress}%</span>
                                             </div>
                                         </td>
                                     </tr>

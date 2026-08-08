@@ -224,7 +224,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-xl"
+              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-md"
             >
               {/* Header */}
               <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
@@ -607,7 +607,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                             <Menu.Button className="w-full px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent">
                               <span className="flex items-center justify-between">
                                 {task.phase.replace('_', ' ')}
-                                <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+                                <ChevronDownIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                               </span>
                             </Menu.Button>
                             <Menu.Items className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 focus:outline-none z-10">

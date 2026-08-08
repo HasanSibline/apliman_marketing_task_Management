@@ -56,25 +56,25 @@ const SpeakerTranscript: React.FC<{ transcript: string; isChatFallback: boolean 
                         className="flex space-x-4"
                     >
                         {/* Speaker avatar */}
-                        <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${palette.avatar} flex flex-shrink-0 items-center justify-center font-black text-white text-sm shadow-sm`}>
+                        <div className={`h-10 w-10 rounded-xl bg-gradient-to-br ${palette.avatar} flex flex-shrink-0 items-center justify-center font-semibold text-white text-sm shadow-sm`}>
                             {speaker[0]?.toUpperCase() || '?'}
                         </div>
                         <div className="flex-1 space-y-1.5">
                             <div className="flex items-center space-x-2">
-                                <span className={`text-xs font-black ${palette.name}`}>{speaker}</span>
-                                <span className="text-[11px] font-bold text-gray-300 uppercase tracking-tight">
+                                <span className={`text-xs font-semibold ${palette.name}`}>{speaker}</span>
+                                <span className="text-xs font-bold text-gray-300 uppercase tracking-tight">
                                     {isChatFallback ? 'chat' : 'transcript'}
                                 </span>
                             </div>
                             {/* Colored bubble */}
-                            <div className={`${palette.bubble} border rounded-2xl rounded-tl-none px-5 py-3.5 shadow-sm`}>
+                            <div className={`${palette.bubble} border rounded-xl rounded-tl-none px-5 py-3.5 shadow-sm`}>
                                 <p className={`${palette.text} text-sm leading-relaxed whitespace-pre-wrap`}>{content || block}</p>
                             </div>
                         </div>
                     </motion.div>
                 )
             })}
-            <p className="text-center text-[11px] font-black text-gray-200 uppercase tracking-[0.5em] py-4">: End of Transcript , </p>
+            <p className="text-center text-xs font-semibold text-gray-200 tracking-[0.5em] py-4">: End of Transcript , </p>
         </div>
     )
 }
@@ -167,8 +167,8 @@ const MeetingDetailPage: React.FC = () => {
                     <div className="h-20 w-20 border-8 border-indigo-50 dark:border-indigo-900/40 rounded-full" />
                     <div className="absolute top-0 h-20 w-20 border-8 border-indigo-600 rounded-full border-t-transparent animate-spin" />
                 </div>
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">Accessing Meeting Data</h3>
-                <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-2">Connecting to Microsoft Teams...</p>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">Accessing Meeting Data</h3>
+                <p className="text-gray-500 dark:text-gray-400 font-bold tracking-wide text-xs mt-2">Connecting to Microsoft Teams...</p>
             </div>
         )
     }
@@ -179,10 +179,10 @@ const MeetingDetailPage: React.FC = () => {
             <div className="flex items-center justify-between">
                 <button
                     onClick={() => navigate('/calendar')}
-                    className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 transition-all font-black"
+                    className="flex items-center space-x-2 text-gray-500 dark:text-gray-400 hover:text-indigo-600 transition-all font-semibold"
                 >
                     <ChevronLeftIcon className="h-5 w-5 stroke-[3px]" />
-                    <span className="uppercase text-xs tracking-widest">Back to Calendar</span>
+                    <span className="text-xs tracking-wide">Back to Calendar</span>
                 </button>
 
                 <div className="flex items-center space-x-3">
@@ -191,7 +191,7 @@ const MeetingDetailPage: React.FC = () => {
                         const isOver = meeting?.status === 'Completed' || 
                             (meeting?.end && new Date(meeting.end) < new Date())
                         return isOver ? (
-                            <div className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-gray-100 dark:bg-gray-800 text-gray-400 border border-gray-200 dark:border-gray-700 cursor-not-allowed select-none">
+                            <div className="flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 cursor-not-allowed select-none">
                                 <LinkIcon className="h-4 w-4" />
                                 <span>Meeting Ended</span>
                             </div>
@@ -200,7 +200,7 @@ const MeetingDetailPage: React.FC = () => {
                                 href={meeting.joinUrl}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-sm font-black bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-900/40 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all"
+                                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-900/40 hover:bg-green-100 dark:hover:bg-green-900/30 transition-all"
                             >
                                 <LinkIcon className="h-4 w-4" />
                                 <span>Join Meeting</span>
@@ -213,7 +213,7 @@ const MeetingDetailPage: React.FC = () => {
                         onClick={handleGenerateAI}
                         disabled={summarizing}
                         className={`
-                            flex items-center space-x-2 px-6 py-2.5 rounded-2xl text-sm font-black transition-all shadow-lg
+                            flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg
                             ${summarizing
                                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400'
                                 : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95 shadow-indigo-200'}
@@ -227,22 +227,22 @@ const MeetingDetailPage: React.FC = () => {
 
             <div className="flex-1 grid grid-cols-12 gap-8 overflow-hidden min-h-0">
                 {/* Transcript Panel */}
-                <div className="col-span-12 lg:col-span-8 flex flex-col bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-2xl shadow-gray-200/50 overflow-hidden">
+                <div className="col-span-12 lg:col-span-8 flex flex-col bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-200/50 overflow-hidden">
                     <div className="px-8 py-8 border-b border-gray-50 dark:border-gray-700 bg-gradient-to-br from-white dark:from-gray-800 to-gray-50/50">
                         <div className="flex items-start justify-between">
                             <div className="space-y-1">
                                 <div className="flex items-center space-x-2 text-indigo-600 dark:text-indigo-400 mb-2">
                                     <VideoCameraIcon className="h-4 w-4" />
-                                    <p className="text-[11px] font-black uppercase tracking-[0.2em]">Teams Online Meeting</p>
+                                    <p className="text-xs font-semibold tracking-normal">Teams Online Meeting</p>
                                 </div>
-                                <h1 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">{meeting?.title}</h1>
+                                <h1 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight leading-tight">{meeting?.title}</h1>
                                 <div className="flex items-center space-x-6 pt-4 text-xs font-bold text-gray-500 dark:text-gray-400">
                                     <div className="flex items-center space-x-2">
-                                        <CalendarIcon className="h-4 w-4 text-gray-400" />
+                                        <CalendarIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                         <span>{meeting?.start ? format(new Date(meeting.start), 'EEEE, MMMM do, yyyy') : ', '}</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
-                                        <ClockIcon className="h-4 w-4 text-gray-400" />
+                                        <ClockIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                         <span>
                                             {meeting?.start ? format(new Date(meeting.start), 'h:mm a') : ', '}
                                             {' to '}
@@ -253,11 +253,11 @@ const MeetingDetailPage: React.FC = () => {
                             </div>
 
                             <div className={`
-                                px-4 py-2 rounded-2xl border flex items-center space-x-2
+                                px-4 py-2 rounded-xl border flex items-center space-x-2
                                 ${isChatFallback ? 'bg-amber-50 border-amber-100 text-amber-700' : transcript ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400'}
                             `}>
                                 <div className={`h-2 w-2 rounded-full animate-pulse ${isChatFallback ? 'bg-amber-500' : transcript ? 'bg-green-500' : 'bg-gray-300'}`} />
-                                <span className="text-[11px] font-black uppercase tracking-widest leading-none mt-0.5">
+                                <span className="text-xs font-semibold tracking-wide leading-none mt-0.5">
                                     {isChatFallback ? 'Chat History' : transcript ? 'Live Transcription' : 'No Transcript'}
                                 </span>
                             </div>
@@ -269,11 +269,11 @@ const MeetingDetailPage: React.FC = () => {
                         {!transcript ? (
                             // ── Empty state: clean, minimal, not alarming
                             <div className="h-full flex flex-col items-center justify-center space-y-5">
-                                <div className="w-16 h-16 rounded-2xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
+                                <div className="w-16 h-16 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
                                     <DocumentTextIcon className="h-8 w-8 text-gray-300" />
                                 </div>
                                 <div className="text-center">
-                                    <p className="text-sm font-bold text-gray-400">No transcript yet</p>
+                                    <p className="text-sm font-bold text-gray-500 dark:text-gray-400">No transcript yet</p>
                                     <p className="text-xs text-gray-300 mt-1 max-w-xs leading-relaxed">
                                         {transcriptMsg || 'Transcripts appear here after the meeting ends and Microsoft processes them.'}
                                     </p>
@@ -302,11 +302,11 @@ const MeetingDetailPage: React.FC = () => {
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95, y: 10 }}
                                 animate={{ opacity: 1, scale: 1, y: 0 }}
-                                className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-2xl p-5 text-white shadow-xl shadow-indigo-300/30 relative overflow-hidden"
+                                className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-xl p-5 text-white shadow-md shadow-indigo-300/30 relative overflow-hidden"
                             >
                                 <SparklesIcon className="absolute -top-4 -right-4 h-20 w-20 opacity-10 rotate-12" />
                                 <div className="flex items-center justify-between mb-3">
-                                    <h2 className="text-sm font-black flex items-center space-x-2">
+                                    <h2 className="text-sm font-semibold flex items-center space-x-2">
                                         <div className="bg-white/20 p-1.5 rounded-lg">
                                             <FaceSmileIcon className="h-3.5 w-3.5 text-indigo-100" />
                                         </div>
@@ -314,27 +314,27 @@ const MeetingDetailPage: React.FC = () => {
                                     </h2>
                                     <button 
                                         onClick={() => setSummary(null)}
-                                        className="text-[11px] font-black uppercase tracking-widest bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/20 transition-all"
+                                        className="text-xs font-semibold tracking-wide bg-white/10 px-2.5 py-1 rounded-lg hover:bg-white/20 transition-all"
                                     >
                                         Clear
                                     </button>
                                 </div>
                                 <div className="text-xs font-medium leading-relaxed opacity-90 whitespace-pre-wrap max-h-36 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">{summary}</div>
-                                <p className="text-[11px] font-black uppercase tracking-widest text-indigo-300 mt-3">Powered by AI</p>
+                                <p className="text-xs font-semibold tracking-wide text-indigo-300 mt-3">Powered by AI</p>
                             </motion.div>
                         )}
                     </AnimatePresence>
 
                     {/* Attendees */}
-                    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-200/30 p-5">
-                        <h2 className="text-sm font-black text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-lg shadow-gray-200/30 p-5">
+                        <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-4 flex items-center space-x-2">
                             <UserGroupIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                             <span>Attendees</span>
-                            <span className="text-xs font-black text-gray-300 ml-auto">({meeting?.attendees?.length || 0})</span>
+                            <span className="text-xs font-semibold text-gray-300 ml-auto">({meeting?.attendees?.length || 0})</span>
                         </h2>
                         <div className="space-y-3">
                             {(meeting?.attendees || []).length === 0 ? (
-                                <p className="text-sm text-gray-400 text-center py-2">No attendees listed</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No attendees listed</p>
                             ) : meeting.attendees.map((person: any, idx: number) => (
                                 <div key={idx} className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
@@ -349,11 +349,11 @@ const MeetingDetailPage: React.FC = () => {
                                             )}
                                         </div>
                                         <div>
-                                            <p className="text-xs font-black text-gray-900 dark:text-white leading-tight">{person.name}</p>
-                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{person.type}</p>
+                                            <p className="text-xs font-semibold text-gray-900 dark:text-white leading-tight">{person.name}</p>
+                                            <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">{person.type}</p>
                                         </div>
                                     </div>
-                                    <div className={`text-[11px] font-black uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600 dark:text-green-400' : 'bg-gray-50 dark:bg-gray-900/40 text-gray-400'}`}>
+                                    <div className={`text-xs font-semibold uppercase px-2 py-0.5 rounded-lg ${person.status === 'accepted' ? 'bg-green-50 text-green-600 dark:text-green-400' : 'bg-gray-50 dark:bg-gray-900/40 text-gray-400'}`}>
                                         {person.status}
                                     </div>
                                 </div>
@@ -362,15 +362,15 @@ const MeetingDetailPage: React.FC = () => {
                     </div>
 
                     {/* Status Card */}
-                    <div className="bg-gray-900 rounded-2xl p-5 text-white relative overflow-hidden group">
+                    <div className="bg-gray-900 rounded-xl p-5 text-white relative overflow-hidden group">
                         <div className="relative z-10 flex items-center justify-between">
                             <div>
-                                <p className="text-[11px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Meeting Status</p>
-                                <h3 className={`text-lg font-black ${meeting?.status === 'Live' ? 'text-green-400' : meeting?.status === 'Completed' ? 'text-gray-300' : 'text-white'}`}>
+                                <p className="text-xs font-semibold text-indigo-400 tracking-[0.3em] mb-1">Meeting Status</p>
+                                <h3 className={`text-lg font-semibold ${meeting?.status === 'Live' ? 'text-green-400' : meeting?.status === 'Completed' ? 'text-gray-300' : 'text-white'}`}>
                                     {meeting?.status || 'Upcoming'}
                                 </h3>
                             </div>
-                            <p className="text-[11px] font-medium text-gray-500 dark:text-gray-400 text-right leading-relaxed max-w-[100px]">Synced via Microsoft Graph API</p>
+                            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 text-right leading-relaxed max-w-[100px]">Synced via Microsoft Graph API</p>
                         </div>
                         <div className="absolute inset-0 bg-indigo-600/10 group-hover:bg-indigo-600/20 transition-colors pointer-events-none" />
                     </div>

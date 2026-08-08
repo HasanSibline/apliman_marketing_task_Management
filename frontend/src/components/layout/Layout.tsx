@@ -31,7 +31,7 @@ const Layout: React.FC = () => {
         {/* Demo Ribbon for FREE_TRIAL */}
         {user?.subscriptionPlan === 'FREE_TRIAL' && (
           <div className="fixed top-0 right-0 z-[9999] overflow-hidden w-24 h-24 pointer-events-none">
-            <div className="absolute top-[26px] right-[-21px] w-[140%] py-1 bg-gradient-to-r from-orange-500 to-amber-600 text-white text-center text-xs font-bold uppercase tracking-widest shadow-md rotate-45 transform">
+            <div className="absolute top-[26px] right-[-21px] w-[140%] py-1 bg-gradient-to-r from-orange-500 to-amber-600 text-white text-center text-xs font-bold tracking-wide shadow-md rotate-45 transform">
               Demo
             </div>
           </div>

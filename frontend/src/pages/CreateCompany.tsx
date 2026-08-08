@@ -31,7 +31,7 @@ function CredentialsModal({
   };
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-lg overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl">
@@ -189,7 +189,7 @@ function PasswordStrength({ password }: { password: string }) {
       <div className="h-1.5 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div className={`h-full rounded-full transition-all duration-500 ${level.color}`} style={{ width }} />
       </div>
-      <p className="text-xs text-gray-400">Tip: mix uppercase, numbers & symbols</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">Tip: mix uppercase, numbers & symbols</p>
     </div>
   );
 }
@@ -434,7 +434,7 @@ export default function CreateCompany() {
         {/* Preview card */}
         {formData.name && (
           <div className="mt-auto pt-8">
-            <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-5 shadow-inner">
+            <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-5 shadow-inner">
               <div className="flex items-center gap-3 mb-4">
                 {logoPreview ? (
                   <img src={logoPreview} alt="logo" className="w-10 h-10 rounded-xl object-contain bg-white dark:bg-gray-800 shadow-sm p-1.5 border border-gray-100 dark:border-gray-700" />
@@ -450,13 +450,13 @@ export default function CreateCompany() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className={`text-[11px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
+                <span className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider
                   ${formData.subscriptionPlan === 'FREE_TRIAL' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300' : ''}
                   ${formData.subscriptionPlan === 'PRO' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : ''}
                   ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : ''}`}>
                   {formData.subscriptionPlan === 'FREE_TRIAL' ? 'TRIAL' : formData.subscriptionPlan}
                 </span>
-                <span className="text-xs font-medium text-gray-400">{formData.subscriptionDays}d</span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{formData.subscriptionDays}d</span>
               </div>
             </div>
           </div>
@@ -482,13 +482,13 @@ export default function CreateCompany() {
               {STEPS.map((s, i) => (
                 <div key={s.id} className="flex-1 flex items-center group">
                   <div className="flex flex-col items-center flex-1 relative">
-                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-bold transition-all duration-300 z-10
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300 z-10
                       ${step > s.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : ''}
-                      ${step === s.id ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/30 ring-4 ring-blue-600/10' : ''}
+                      ${step === s.id ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30 ring-4 ring-blue-600/10' : ''}
                       ${step < s.id ? 'bg-white dark:bg-gray-800 text-gray-300 border border-gray-100 dark:border-gray-700' : ''}`}>
                       {step > s.id ? '✓' : <s.icon className="h-5 w-5" />}
                     </div>
-                    <span className={`absolute -bottom-7 whitespace-nowrap text-[11px] font-black uppercase tracking-widest transition-colors
+                    <span className={`absolute -bottom-7 whitespace-nowrap text-xs font-semibold uppercase tracking-wide transition-colors
                       ${step === s.id ? 'text-blue-600 dark:text-blue-400' : step > s.id ? 'text-blue-600/60' : 'text-gray-400'}`}>
                       {s.label}
                     </span>
@@ -509,7 +509,7 @@ export default function CreateCompany() {
             onSubmit={handleSubmit}
             onKeyDown={handleKeyDown}
             autoComplete="off"
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-3xl p-8 lg:p-10 shadow-xl shadow-gray-200/50"
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-8 lg:p-10 shadow-md shadow-gray-200/50"
           >
             {/* ── STEP 1: Company Info ── */}
             {step === 1 && (
@@ -538,7 +538,7 @@ export default function CreateCompany() {
                         name="primaryColor"
                         value={formData.primaryColor}
                         onChange={handleChange}
-                        className="w-14 h-14 rounded-2xl border-2 border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer p-1 shadow-sm group-hover:border-blue-200 transition"
+                        className="w-14 h-14 rounded-xl border-2 border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 cursor-pointer p-1 shadow-sm group-hover:border-blue-200 transition"
                       />
                     </div>
                     <div className="flex-1 relative">
@@ -550,21 +550,21 @@ export default function CreateCompany() {
                         placeholder="#6366f1"
                       />
                     </div>
-                    <div className="w-14 h-14 rounded-2xl shadow-inner border border-gray-100 dark:border-gray-700" style={{ backgroundColor: formData.primaryColor }} />
+                    <div className="w-14 h-14 rounded-xl shadow-inner border border-gray-100 dark:border-gray-700" style={{ backgroundColor: formData.primaryColor }} />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Company Logo</label>
                   {logoPreview ? (
-                    <div className="flex items-center gap-5 p-5 bg-blue-50/50 dark:bg-blue-900/40 rounded-2xl border border-blue-100 dark:border-blue-900/40">
+                    <div className="flex items-center gap-5 p-5 bg-blue-50/50 dark:bg-blue-900/40 rounded-xl border border-blue-100 dark:border-blue-900/40">
                       <img src={logoPreview} alt="logo preview" className="w-16 h-16 object-contain rounded-xl bg-white dark:bg-gray-800 shadow-sm p-1.5 border border-white" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-900 dark:text-white font-bold truncate">{logoFile?.name}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">{((logoFile?.size ?? 0) / 1024).toFixed(0)} KB</p>
                       </div>
                       <button type="button" aria-label="Remove logo" onClick={removeLogo}
-                        className="bg-white dark:bg-gray-800 text-gray-400 hover:text-red-500 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-red-100 transition">
+                        className="bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:text-red-500 p-2.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-red-100 transition">
                         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -572,7 +572,7 @@ export default function CreateCompany() {
                     </div>
                   ) : (
                     <label htmlFor="logo-upload"
-                      className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 group transition">
+                      className="flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-xl cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 group transition">
                       <div className="w-12 h-12 bg-gray-50 dark:bg-gray-900/40 rounded-full flex items-center justify-center text-2xl group-hover:scale-110 transition duration-300 shadow-sm">📁</div>
                       <div className="text-center">
                         <span className="text-sm text-gray-900 dark:text-white font-bold block">Click to upload brand logo</span>
@@ -639,12 +639,12 @@ export default function CreateCompany() {
                         key={plan}
                         type="button"
                         onClick={() => handleChange({ target: { name: 'subscriptionPlan', value: plan, type: 'select' } } as any)}
-                        className={`group relative flex flex-col items-start p-5 rounded-2xl border-2 transition-all duration-300 text-left
+                        className={`group relative flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-300 text-left
                           ${selected
                             ? 'border-blue-600 bg-blue-50/30 dark:bg-blue-900/30'
                             : 'border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-white dark:hover:bg-gray-700'}`}
                       >
-                        <div className={`text-[11px] font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-widest
+                        <div className={`text-xs font-bold mb-3 px-2.5 py-1 rounded-full uppercase tracking-wide
                           ${plan === 'FREE_TRIAL' ? 'bg-purple-600 text-white shadow-sm' :
                             plan === 'PRO' ? 'bg-blue-600 text-white shadow-sm' :
                               'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
@@ -677,8 +677,8 @@ export default function CreateCompany() {
                   value={formData.subscriptionDays} onChange={handleChange} error={fieldErrors.subscriptionDays}
                   hint="Account will be active for this period after creation." />
 
-                <div className="p-5 rounded-2xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 font-medium flex items-center gap-2">
-                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 font-medium flex items-center gap-2">
+                  <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   Renewal Date: <span className="font-bold text-gray-900 dark:text-white">
                     {new Date(Date.now() + formData.subscriptionDays * 86400000).toLocaleDateString('en-US', {
                       year: 'numeric', month: 'long', day: 'numeric'
@@ -700,11 +700,11 @@ export default function CreateCompany() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 font-medium">Configure intelligence features and verify organization details.</p>
                 </div>
 
-                <div className="p-6 rounded-3xl bg-primary-50/50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-900/40 shadow-sm relative overflow-hidden">
+                <div className="p-6 rounded-xl bg-primary-50/50 dark:bg-primary-900/30 border border-primary-100 dark:border-primary-900/40 shadow-sm relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4 opacity-10 blur-[1px]">
                     <SparklesIcon className="h-12 w-12" />
                   </div>
-                  <h3 className="text-sm font-bold text-primary-800 dark:text-primary-300 flex items-center gap-2 mb-4 uppercase tracking-wider">
+                  <h3 className="text-sm font-bold text-primary-800 dark:text-primary-300 flex items-center gap-2 mb-4 tracking-wider">
                     AI Configuration (Optional)
                   </h3>
                   <div className="space-y-5">
@@ -729,8 +729,8 @@ export default function CreateCompany() {
                 </div>
 
                 {/* Resource Limits List (Style Match) */}
-                <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-6">
-                  <p className="text-[11px] font-bold text-gray-400 mb-5 uppercase tracking-widest">
+                <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-6">
+                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-5 tracking-wide">
                     Plan Resources: {formData.subscriptionPlan}
                   </p>
                   <div className="grid grid-cols-3 gap-4">
@@ -739,19 +739,19 @@ export default function CreateCompany() {
                       { label: 'Max Tasks', value: fmt(formData.maxTasks), icon: <ClipboardDocumentCheckIcon className="h-6 w-6 text-emerald-500" /> },
                       { label: 'Storage', value: `${fmt(formData.maxStorage)} GB`, icon: <CloudArrowUpIcon className="h-6 w-6 text-purple-500" /> },
                     ].map(({ label, value, icon }) => (
-                      <div key={label} className="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-blue-200 transition-colors">
+                      <div key={label} className="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-blue-200 transition-colors">
                         <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-900/40 rounded-xl">{icon}</div>
-                        <span className="text-lg font-black text-gray-900 dark:text-white tracking-tight">{value}</span>
-                        <span className="text-[11px] font-bold text-gray-400 uppercase">{label}</span>
+                        <span className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">{value}</span>
+                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">{label}</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Full review summary */}
-                <div className="rounded-2xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
+                <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden shadow-sm">
                   <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50/80 dark:bg-gray-900/40">
-                    <h3 className="text-xs font-bold text-gray-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                    <h3 className="text-xs font-bold text-gray-900 dark:text-white tracking-wide flex items-center gap-2">
                       <ClipboardDocumentCheckIcon className="h-4 w-4" /> Registration Summary
                     </h3>
                   </div>
@@ -761,13 +761,13 @@ export default function CreateCompany() {
                       { label: 'Portal Path', value: `/${formData.slug}`, required: true },
                       { label: 'Administrator', value: formData.adminName, required: true },
                       { label: 'Admin Email', value: formData.adminEmail, required: true },
-                      { label: 'Tier', value: formData.subscriptionPlan, weight: 'font-black text-blue-600 uppercase' },
+                      { label: 'Tier', value: formData.subscriptionPlan, weight: 'font-semibold text-blue-600 uppercase' },
                       { label: 'Status', value: 'Active', weight: 'text-emerald-500 font-bold' },
                       { label: 'AI Key', value: formData.aiApiKey ? 'OWN KEY' : 'PLATFORM KEY', color: formData.aiApiKey ? 'text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-500 dark:text-gray-400' },
                       { label: 'Support', value: 'Standard', color: 'text-gray-400' },
                     ].map(({ label, value, required, color, weight }) => (
                       <div key={label} className="flex flex-col border-b border-gray-50 dark:border-gray-700 pb-2">
-                        <span className="text-gray-400 text-[11px] font-bold uppercase tracking-tight">{label}</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-tight">{label}</span>
                         <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800 dark:text-gray-100'} ${required && !value ? 'text-red-500' : ''}`}>
                           {value || (required ? '⚠ REQUIRED' : ', ')}
                         </span>
@@ -809,9 +809,7 @@ export default function CreateCompany() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-8 py-3 text-sm font-black rounded-xl bg-blue-600 hover:bg-blue-700
-                    text-white transition shadow-xl shadow-blue-200 disabled:opacity-60 disabled:cursor-not-allowed
-                    flex items-center gap-2 hover:-translate-y-0.5 uppercase tracking-widest"
+                  className="px-8 py-3 text-sm font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition shadow-md shadow-blue-200 disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2 hover:-translate-y-0.5 tracking-wide"
                 >
                   {loading ? (
                     <>

@@ -119,7 +119,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
+            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Subtask</h2>
@@ -180,7 +180,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                         </>
                       ) : (
                         <>
-                          <UserIcon className="h-4 w-4 text-gray-400" />
+                          <UserIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                           <span className="text-gray-500 dark:text-gray-400">Select user (optional)</span>
                         </>
                       )}

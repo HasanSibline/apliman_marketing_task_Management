@@ -509,7 +509,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
   // Minimized view - Professional
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl z-50 border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="fixed bottom-6 right-6 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-md z-50 border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div 
           className="bg-primary-600 text-white p-4 flex items-center justify-between cursor-pointer hover:bg-primary-700 transition-all duration-300"
           onClick={() => setIsMinimized(false)}
@@ -564,7 +564,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-6 right-6 w-[340px] h-[540px] bg-white dark:bg-gray-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col z-50 border border-gray-100 dark:border-gray-700 overflow-hidden"
+            className="fixed bottom-6 right-6 w-[340px] h-[540px] bg-white dark:bg-gray-800 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col z-50 border border-gray-100 dark:border-gray-700 overflow-hidden"
           >
             {/* Combined Header, Body and Input - Full Height Layout */}
             <div className="flex flex-col h-full bg-white dark:bg-gray-800 relative">
@@ -579,20 +579,20 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Aura Assist</h2>
-                    <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 tracking-wider uppercase">Aura Operations</p>
+                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Aura Operations</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
                   <button 
                      onClick={() => setIsMinimized(true)}
-                     className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-400"
+                     className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-500 dark:text-gray-400"
                      aria-label="Minimize Chat"
                   >
                      <MinusIcon className="w-5 h-5" />
                   </button>
                   <button 
                      onClick={handleClose}
-                     className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 rounded-lg transition-colors"
+                     className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg transition-colors"
                      aria-label="Close Chat"
                   >
                      <XMarkIcon className="w-5 h-5" />
@@ -611,21 +611,21 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                     <div className="mb-6 inline-block p-5 bg-primary-50 dark:bg-primary-900/30 rounded-full">
                       <ChatBubbleLeftRightIcon className="w-12 h-12 mx-auto text-primary-600 dark:text-primary-400" />
                     </div>
-                    <h4 className="text-base font-black text-gray-900 dark:text-white mb-2">Aura Assist</h4>
-                    <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider mb-4">
+                    <h4 className="text-base font-semibold text-gray-900 dark:text-white mb-2">Aura Assist</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-medium tracking-wider mb-4">
                       Ready for multimodal analysis
                     </p>
                     
                     {/* Compact Mention Hints */}
                     <div className="flex items-center justify-center gap-3 text-[12px] text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
-                        <span className="font-black text-primary-600 dark:text-primary-400">@</span> members
+                        <span className="font-semibold text-primary-600 dark:text-primary-400">@</span> members
                       </span>
                       <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
-                        <span className="font-black text-primary-600 dark:text-primary-400">/</span> tasks
+                        <span className="font-semibold text-primary-600 dark:text-primary-400">/</span> tasks
                       </span>
                       <span className="flex items-center gap-1 bg-gray-50 dark:bg-gray-900/40 px-2 py-1 rounded-md border border-gray-100 dark:border-gray-700">
-                        <span className="font-black text-primary-600 dark:text-primary-400">#</span> tickets
+                        <span className="font-semibold text-primary-600 dark:text-primary-400">#</span> tickets
                       </span>
                     </div>
                   </motion.div>
@@ -642,11 +642,11 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                     <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border ${
                       message.role === 'user' ? 'bg-primary-600 text-white border-primary-500' : 'bg-white dark:bg-gray-800 text-secondary-600 dark:text-secondary-400 border-gray-100 dark:border-gray-700'
                     }`}>
-                      {message.role === 'user' ? <span className="text-[11px] font-black">{getInitials(user?.name)}</span> : <CpuChipIcon className="w-5 h-5" />}
+                      {message.role === 'user' ? <span className="text-xs font-semibold">{getInitials(user?.name)}</span> : <CpuChipIcon className="w-5 h-5" />}
                     </div>
                     
                     <div className={`flex flex-col max-w-[82%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
-                      <div className={`rounded-2xl px-4 py-2.5 shadow-sm relative group transition-all ${
+                      <div className={`rounded-xl px-4 py-2.5 shadow-sm relative group transition-all ${
                         message.role === 'user' ? 'bg-primary-600 text-white rounded-tr-none' : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-tl-none'
                       }`}>
                         <div className="text-[13px] leading-relaxed relative z-10 font-medium whitespace-pre-wrap">
@@ -656,7 +656,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                               // Highlight Mentions (@user)
                               if (part.startsWith('@')) {
                                 return (
-                                  <span key={i} className={`font-black underline decoration-2 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-primary-600 dark:text-primary-400 decoration-primary-200'}`}>
+                                  <span key={i} className={`font-semibold underline decoration-2 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-primary-600 dark:text-primary-400 decoration-primary-200'}`}>
                                     {part}
                                   </span>
                                 );
@@ -668,7 +668,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                                   <button 
                                     key={i} 
                                     onClick={() => navigate(`/tickets/code/${code}`)}
-                                    className={`font-black italic underline decoration-2 transition-all hover:scale-105 active:scale-95 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-indigo-600 dark:text-indigo-400 decoration-indigo-200'}`}
+                                    className={`font-semibold italic underline decoration-2 transition-all hover:scale-105 active:scale-95 ${message.role === 'user' ? 'text-white decoration-white/30' : 'text-indigo-600 dark:text-indigo-400 decoration-indigo-200'}`}
                                   >
                                     {part}
                                   </button>
@@ -687,7 +687,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                                 key={i} 
                                 title={file.name}
                                 onClick={() => window.open(file.url, '_blank')}
-                                className={`flex items-center gap-1.5 p-1 pr-2.5 rounded-lg text-[11px] cursor-pointer transition-all border ${
+                                className={`flex items-center gap-1.5 p-1 pr-2.5 rounded-lg text-xs cursor-pointer transition-all border ${
                                   message.role === 'user' 
                                     ? 'bg-primary-700/60 border-primary-500/50 hover:bg-primary-700' 
                                     : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-700 dark:border-gray-700'
@@ -700,13 +700,13 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                                     <PaperClipIcon className={`w-3 h-3 ${message.role === 'user' ? 'text-primary-100' : 'text-primary-600 dark:text-primary-400'}`} />
                                   )}
                                 </div>
-                                <span className="truncate max-w-[80px] font-black">{file.name}</span>
+                                <span className="truncate max-w-[80px] font-semibold">{file.name}</span>
                               </div>
                             ))}
                           </div>
                         )}
                       </div>
-                      <span className={`text-[11px] mt-1 font-black uppercase tracking-widest opacity-60 ${message.role === 'user' ? 'mr-1' : 'ml-1'}`}>
+                      <span className={`text-xs mt-1 font-semibold uppercase tracking-wide opacity-60 ${message.role === 'user' ? 'mr-1' : 'ml-1'}`}>
                         {formatTime(message.createdAt)}
                       </span>
                     </div>
@@ -718,7 +718,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                     <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 dark:text-secondary-400 flex items-center justify-center flex-shrink-0 shadow-sm">
                       <CpuChipIcon className="w-5 h-5" />
                     </div>
-                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-2xl rounded-tl-none px-4 py-2.5 max-w-[82%] shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl rounded-tl-none px-4 py-2.5 max-w-[82%] shadow-sm">
                       <p className="text-[13px] leading-relaxed font-medium">{humanizeText(streamingMessage)}</p>
                     </div>
                   </div>
@@ -748,10 +748,10 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute left-4 right-4 bottom-full mb-3 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden z-20 max-h-40"
+                      className="absolute left-4 right-4 bottom-full mb-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-20 max-h-40"
                     >
                       <div className="p-2 border-b border-gray-50 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/40">
-                        <span className="text-[11px] font-black text-gray-400 tracking-widest uppercase">
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">
                           Select {suggestionType === 'user' ? 'a Team Member' : suggestionType === 'task' ? 'a Task' : 'a Ticket'}
                         </span>
                       </div>
@@ -765,7 +765,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                             <span className="text-gray-700 dark:text-gray-200 font-medium group-hover:text-primary-700 truncate max-w-[200px]">
                               {suggestionType === 'user' ? item.name : suggestionType === 'task' ? item.title : item.title}
                             </span>
-                            <span className="text-[11px] font-black text-gray-300 group-hover:text-primary-300">
+                            <span className="text-xs font-semibold text-gray-300 group-hover:text-primary-300">
                               {suggestionType === 'user' ? item.email : suggestionType === 'task' ? (item.taskNumber || 'TSK') : item.ticketNumber}
                             </span>
                           </button>
@@ -803,8 +803,8 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                             )}
                           </div>
                           <div className="flex flex-col">
-                            <span className="text-[11px] font-black text-gray-700 dark:text-gray-200 truncate max-w-[90px]">{file.name}</span>
-                            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter">Ready to analyze</span>
+                            <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 truncate max-w-[90px]">{file.name}</span>
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tighter">Ready to analyze</span>
                           </div>
                           <button 
                             onClick={() => removeAttachment(idx)}
@@ -828,14 +828,14 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                       onKeyDown={handleKeyDown}
                       disabled={isTyping || isUploading || aiBlocked}
                       placeholder={aiBlocked ? (quotaExhausted ? `AI is rate limited${resetCountdown ? `, back in ${resetCountdown}` : ', try again shortly'}` : 'AI is not enabled') : isUploading ? 'Uploading assets...' : 'Leave a message'}
-                      className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 rounded-2xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}`}
+                      className={`w-full bg-gray-50/50 border border-transparent focus:border-primary-500 focus:bg-white dark:focus:bg-gray-700 rounded-xl pl-4 pr-12 py-3 text-[13px] outline-none transition-all shadow-inner font-medium ${aiBlocked ? 'opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-800' : ''}`}
                     />
                     
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={isTyping || isUploading}
                       title="Attach Files"
-                      className="absolute right-2 top-1.5 p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-all"
+                      className="absolute right-2 top-1.5 p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-all"
                     >
                       <PaperClipIcon className={`w-5 h-5 ${attachments.length > 0 ? 'text-primary-600 dark:text-primary-400' : ''}`} />
                     </button>
@@ -845,7 +845,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                     onClick={sendMessage}
                     disabled={(!inputValue.trim() && attachments.length === 0) || isTyping || isUploading || aiBlocked}
                     title={aiBlocked ? (quotaExhausted ? `The AI provider rate limited this company's key${resetCountdown ? `. Back in ${resetCountdown}` : '. Try again shortly'}` : 'AI is not enabled for your company') : ''}
-                    className={`p-3 rounded-2xl transition-all shadow-md ${
+                    className={`p-3 rounded-xl transition-all shadow-md ${
                       (inputValue.trim() || attachments.length > 0) && !isTyping && !isUploading && !aiBlocked
                         ? 'bg-primary-600 text-white hover:bg-primary-700 hover:scale-105 active:scale-95'
                         : 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
@@ -882,7 +882,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
             aria-describedby="end-chat-desc"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.key === 'Escape' && cancelClose()}
-            className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-800"
+            className="w-full max-w-sm rounded-xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800"
           >
             <h2 id="end-chat-title" className="text-lg font-semibold text-gray-900 dark:text-white">
               Close this conversation?

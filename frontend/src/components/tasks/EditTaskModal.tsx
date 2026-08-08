@@ -108,7 +108,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
+            className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
@@ -128,7 +128,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 </div>
                 <div>
                     <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300 leading-none">Strategic Lock Active</p>
-                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 uppercase tracking-wider font-bold">This task is part of a future cycle ({task?.quarter?.name}) and is restricted to Admin review.</p>
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 tracking-wider font-bold">This task is part of a future cycle ({task?.quarter?.name}) and is restricted to Admin review.</p>
                 </div>
               </div>
             )}

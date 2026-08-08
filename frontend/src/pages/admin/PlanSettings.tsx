@@ -128,15 +128,15 @@ const PlanSettings: React.FC = () => {
 
                             <ul className="space-y-3 mb-6">
                                 <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                                    <UsersIcon className="h-5 w-5 mr-2 text-gray-400" />
+                                    <UsersIcon className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
                                     Max Users: <span className="ml-1 font-semibold">{plan.maxUsers === -1 ? 'Unlimited' : plan.maxUsers}</span>
                                 </li>
                                 <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                                    <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2 text-gray-400" />
+                                    <ClipboardDocumentCheckIcon className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
                                     Max Tasks: <span className="ml-1 font-semibold">{plan.maxTasks === -1 ? 'Unlimited' : plan.maxTasks}</span>
                                 </li>
                                 <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                                    <CircleStackIcon className="h-5 w-5 mr-2 text-gray-400" />
+                                    <CircleStackIcon className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
                                     Storage: <span className="ml-1 font-semibold">{plan.maxStorage === -1 ? 'Unlimited' : `${plan.maxStorage} GB`}</span>
                                 </li>
                                 <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
@@ -174,7 +174,7 @@ const PlanSettings: React.FC = () => {
                             <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
                         </div>
                         <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-                        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
+                        <div className="inline-block align-bottom bg-white dark:bg-gray-800 rounded-lg px-4 pt-5 pb-4 text-left overflow-hidden shadow-md transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full sm:p-6">
                             <div>
                                 <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
                                     {currentPlan.id ? `Edit ${currentPlan.name} Plan` : 'Create New Plan'}

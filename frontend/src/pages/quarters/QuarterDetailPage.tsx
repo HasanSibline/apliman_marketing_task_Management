@@ -84,29 +84,29 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
     }
 
     return (
-        <div className="bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-2xl shadow-gray-200/50">
+        <div className="bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-lg shadow-gray-200/50">
             <div className="p-8 border-b border-gray-50 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <div className="h-12 w-12 bg-primary-50 dark:bg-primary-900/30 rounded-2xl flex items-center justify-center text-primary-600 dark:text-primary-400">
+                    <div className="h-12 w-12 bg-primary-50 dark:bg-primary-900/30 rounded-xl flex items-center justify-center text-primary-600 dark:text-primary-400">
                         <CalendarDaysIcon className="h-6 w-6" />
                     </div>
                     <div>
-                        <h3 className="text-2xl font-black text-gray-900 dark:text-white tracking-tight">
+                        <h3 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">
                             {viewDate.toLocaleDateString('en-US', { month: 'long' })}
                             <span className="text-primary-600 dark:text-primary-400 ml-2">{viewDate.getFullYear()}</span>
                         </h3>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Quarterly Schedule</p>
+                        <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-0.5">Quarterly Schedule</p>
                     </div>
                 </div>
-                <div className="flex gap-2 p-1.5 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-gray-100 dark:border-gray-700">
-                    <button aria-label="Previous month" onClick={prevMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
-                    <button aria-label="Next month" onClick={nextMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
+                <div className="flex gap-2 p-1.5 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
+                    <button aria-label="Previous month" onClick={prevMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-500 dark:text-gray-400 hover:text-primary-600 active:scale-95"><ChevronLeftIconSolid className="h-5 w-5" /></button>
+                    <button aria-label="Next month" onClick={nextMonth} className="p-2.5 hover:bg-white dark:hover:bg-gray-700 hover:shadow-sm rounded-xl transition-all text-gray-500 dark:text-gray-400 hover:text-primary-600 active:scale-95"><ChevronRightIcon className="h-5 w-5" /></button>
                 </div>
             </div>
             <div className="p-8">
                 <div className="grid grid-cols-7 gap-4 mb-6">
                     {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-                        <div key={d} className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] text-center">{d}</div>
+                        <div key={d} className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-normal text-center">{d}</div>
                     ))}
                 </div>
                 <div className="grid grid-cols-7 gap-4">
@@ -126,7 +126,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                                 : 'bg-white dark:bg-gray-800 border-gray-50 dark:border-gray-700 hover:border-primary-200 hover:shadow-lg hover:shadow-primary-100/20'
                             }`}>
                                 <div className="flex items-center justify-between mb-3">
-                                    <span className={`text-sm font-black ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 group-hover:text-primary-600'}`}>
+                                    <span className={`text-sm font-semibold ${isToday ? 'text-primary-600 dark:text-primary-400' : 'text-gray-400 group-hover:text-primary-600'}`}>
                                         {day.toString().padStart(2, '0')}
                                     </span>
                                     {dayTasks.length > 0 && (
@@ -138,7 +138,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                                         <motion.div 
                                             key={t.id}
                                             whileHover={{ x: 2 }}
-                                            className="text-[11px] font-bold leading-tight p-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-primary-200 hover:text-primary-700 transition"
+                                            className="text-xs font-bold leading-tight p-2.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-primary-200 hover:text-primary-700 transition"
                                             title={t.title}
                                         >
                                             <div className="flex items-center gap-1.5">
@@ -148,7 +148,7 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
                                         </motion.div>
                                     ))}
                                 </div>
-                                {isToday && <div className="absolute top-0 right-0 p-1 bg-primary-500 text-[11px] font-black text-white rounded-bl-xl uppercase tracking-tighter">Today</div>}
+                                {isToday && <div className="absolute top-0 right-0 p-1 bg-primary-500 text-xs font-semibold text-white rounded-bl-xl tracking-tighter">Today</div>}
                             </div>
                         )
                     })}
@@ -207,26 +207,26 @@ const QuarterDetailPage: React.FC = () => {
                 </button>
                 {quarter.status === 'CLOSED' && (
                     <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-full">
-                        <ArchiveBoxIcon className="h-4 w-4 text-gray-400" />
-                        <span className="text-[11px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-widest">Historical Record &middot; Read Only</span>
+                        <ArchiveBoxIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Historical Record &middot; Read Only</span>
                     </div>
                 )}
             </div>
 
             {/* Header Section */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 <div className="p-8">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div className="space-y-3">
                             <div className="flex items-center gap-3">
-                                <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">{quarter.name} {quarter.year}</h1>
+                                <h1 className="text-4xl font-semibold text-gray-900 dark:text-white tracking-tight">{quarter.name} {quarter.year}</h1>
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${cfg.bg}`}>
                                     <span className={`h-2 w-2 rounded-full ${cfg.dot}`} />
                                     {cfg.label}
                                 </span>
                             </div>
                             <p className="text-gray-500 dark:text-gray-400 font-medium flex items-center gap-2">
-                                <CalendarDaysIcon className="h-5 w-5 text-gray-400" />
+                                <CalendarDaysIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                                 {new Date(quarter.startDate).toLocaleDateString()} &mdash; {new Date(quarter.endDate).toLocaleDateString()}
                             </p>
                         </div>
@@ -234,16 +234,16 @@ const QuarterDetailPage: React.FC = () => {
                         {/* Stats Summary */}
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div className="bg-primary-50 dark:bg-primary-900/30 p-4 rounded-xl border border-primary-100 dark:border-primary-900/40 flex flex-col items-center justify-center min-w-[120px]">
-                                <span className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mb-1">Completion</span>
-                                <span className="text-2xl font-black text-primary-900 dark:text-primary-300">{completionPct}%</span>
+                                <span className="text-xs font-bold text-primary-600 dark:text-primary-400 tracking-wide mb-1">Completion</span>
+                                <span className="text-2xl font-semibold text-primary-900 dark:text-primary-300">{completionPct}%</span>
                             </div>
                             <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl border border-blue-100 dark:border-blue-900/40 flex flex-col items-center justify-center min-w-[120px]">
-                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mb-1">Objectives</span>
-                                <span className="text-2xl font-black text-blue-900 dark:text-blue-300">{quarter.objectivesCount}</span>
+                                <span className="text-xs font-bold text-blue-600 dark:text-blue-400 tracking-wide mb-1">Objectives</span>
+                                <span className="text-2xl font-semibold text-blue-900 dark:text-blue-300">{quarter.objectivesCount}</span>
                             </div>
                             <div className="bg-green-50 dark:bg-green-900/30 p-4 rounded-xl border border-green-100 dark:border-green-900/40 flex flex-col items-center justify-center min-w-[120px] md:col-span-1 col-span-2">
-                                <span className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest mb-1">Total Tasks</span>
-                                <span className="text-2xl font-black text-green-900 dark:text-green-300">{quarter.totalTasks}</span>
+                                <span className="text-xs font-bold text-green-600 dark:text-green-400 tracking-wide mb-1">Total Tasks</span>
+                                <span className="text-2xl font-semibold text-green-900 dark:text-green-300">{quarter.totalTasks}</span>
                             </div>
                         </div>
                     </div>
@@ -276,7 +276,7 @@ const QuarterDetailPage: React.FC = () => {
                 {activeTab === 'overview' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Objectives Highlight */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <FlagIcon className="h-5 w-5 text-primary-500" />
                                 Key Objectives
@@ -302,7 +302,7 @@ const QuarterDetailPage: React.FC = () => {
                         </div>
 
                         {/* Recent Tasks */}
-                        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+                        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                                 <ClipboardDocumentListIcon className="h-5 w-5 text-blue-500" />
                                 Recent Tasks
@@ -313,13 +313,13 @@ const QuarterDetailPage: React.FC = () => {
                                         <span className="text-sm font-bold text-gray-800 dark:text-gray-100 group-hover:text-primary-600 truncate">{task.title}</span>
                                         {task.currentPhase ? (
                                             <span 
-                                                className="text-[11px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter"
+                                                className="text-xs font-semibold px-1.5 py-0.5 rounded tracking-tighter"
                                                 style={{ backgroundColor: `${task.currentPhase.color}20`, color: task.currentPhase.color }}
                                             >
                                                 {task.currentPhase.name}
                                             </span>
                                         ) : (
-                                            <span className="text-[11px] font-black text-gray-400 uppercase tracking-tighter ml-2 bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-700">
+                                            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-tighter ml-2 bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-700">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         )}
@@ -333,10 +333,10 @@ const QuarterDetailPage: React.FC = () => {
                 {activeTab === 'objectives' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {quarter.objectives.map(obj => (
-                            <Link key={obj.id} to={`/objectives/${obj.id}`} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm hover:border-primary-300 transition-all group">
+                            <Link key={obj.id} to={`/objectives/${obj.id}`} className="bg-white dark:bg-gray-800 p-5 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm hover:border-primary-300 transition-all group">
                                 <div className="flex items-start justify-between mb-3">
                                     <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-primary-600">{obj.title}</h4>
-                                    <span className={`text-[11px] font-black px-2 py-0.5 rounded-full ${obj.status === 'ON_TRACK' ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${obj.status === 'ON_TRACK' ? 'bg-green-100 text-green-700' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                                         {obj.status}
                                     </span>
                                 </div>
@@ -344,7 +344,7 @@ const QuarterDetailPage: React.FC = () => {
                                     <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                                         <div className="h-full bg-primary-600 transition-all" style={{ width: `${obj.progress}%` }} />
                                     </div>
-                                    <span className="text-xs font-black text-primary-600 dark:text-primary-400">{obj.progress}%</span>
+                                    <span className="text-xs font-semibold text-primary-600 dark:text-primary-400">{obj.progress}%</span>
                                 </div>
                             </Link>
                         ))}
@@ -352,9 +352,9 @@ const QuarterDetailPage: React.FC = () => {
                 )}
 
             {activeTab === 'tasks' && (
-                <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden overflow-x-auto">
+                <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden overflow-x-auto">
                     <table className="min-w-full w-full text-left table-fixed">
-                        <thead className="bg-gray-50 dark:bg-gray-900/40 text-[11px] font-black uppercase text-gray-400 border-b border-gray-100 dark:border-gray-700 tracking-widest">
+                        <thead className="bg-gray-50 dark:bg-gray-900/40 text-xs font-semibold text-gray-400 border-b border-gray-100 dark:border-gray-700 tracking-wide">
                             <tr>
                                 <th className="px-6 py-4 w-[40%]">Task Name</th>
                                 <th className="px-6 py-4 w-[20%]">Phase</th>
@@ -370,13 +370,13 @@ const QuarterDetailPage: React.FC = () => {
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         {task.currentPhase ? (
                                             <span 
-                                                className="text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider block w-max"
+                                                className="text-xs font-bold px-2.5 py-1 rounded-full tracking-wider block w-max"
                                                 style={{ backgroundColor: `${task.currentPhase.color}15`, color: task.currentPhase.color, border: `1px solid ${task.currentPhase.color}30` }}
                                             >
                                                 {task.currentPhase.name}
                                             </span>
                                         ) : (
-                                            <span className="text-[11px] font-bold px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full uppercase tracking-wider block w-max">
+                                            <span className="text-xs font-bold px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full tracking-wider block w-max">
                                                 {task.phase.replace(/_/g, ' ')}
                                             </span>
                                         )}
@@ -390,10 +390,10 @@ const QuarterDetailPage: React.FC = () => {
                                                 <span className="text-xs text-gray-700 dark:text-gray-200 font-bold truncate">{task.assignedTo.name}</span>
                                             </div>
                                         ) : (
-                                            <span className="text-xs text-gray-400">-</span>
+                                            <span className="text-xs text-gray-500 dark:text-gray-400">-</span>
                                         )}
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-black">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 dark:text-gray-400 font-semibold">{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : '-'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right">
                                         <Link to={`/tasks/${task.id}`} className="p-2 text-gray-300 hover:text-primary-600 transition inline-block">
                                             <ChevronRightIcon className="h-4 w-4" />

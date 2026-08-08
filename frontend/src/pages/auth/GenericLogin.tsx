@@ -168,7 +168,7 @@ const GenericLogin: React.FC = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="reset-title"
-            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-800"
+            className="w-full max-w-sm rounded-xl bg-white p-6 shadow-lg dark:bg-gray-800"
           >
             <h2 id="reset-title" className="text-lg font-semibold text-gray-900 dark:text-white">
               Reset password

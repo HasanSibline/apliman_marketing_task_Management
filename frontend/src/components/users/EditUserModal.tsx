@@ -230,11 +230,11 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
               initial={{ opacity: 0, y: 50, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 50, scale: 0.98 }}
-              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
+              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
             >
               {/* Strategic Header Strip */}
               <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
-                <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight font-outfit uppercase">Identify Modification</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight font-outfit">Identify Modification</h2>
                 <button aria-label="Close"
                   onClick={onClose}
                   className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
@@ -305,7 +305,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                           isTicketApprover: newRole === 'MANAGER' ? true : prev.isTicketApprover
                         }));
                       }}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-black text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none font-outfit"
+                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none font-outfit"
                     >
                       {roleOptions().map((roleOption) => (
                         <option key={roleOption} value={roleOption}>
@@ -339,7 +339,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Department Mapping */}
                 <div>
-                  <label htmlFor="departmentId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="departmentId" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2 ml-1">
                     Organizational Department
                   </label>
                   <select
@@ -347,7 +347,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="departmentId"
                     value={formData.departmentId}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-black text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
                     <option value="">No Department Mapping</option>
                     {departments.map((dept) => (
@@ -358,7 +358,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Direct Manager Selector */}
                 <div>
-                  <label htmlFor="managerId" className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                  <label htmlFor="managerId" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2 ml-1">
                     Direct Reporting Manager
                   </label>
                   <select
@@ -366,7 +366,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="managerId"
                     value={formData.managerId}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-black text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
                   >
                     <option value="">No Direct Manager Mapping</option>
                     {potentialManagers.filter(m => m.id !== user.id).map((m) => (
@@ -377,7 +377,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Additional Permissions */}
                 <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-200 dark:border-gray-700">
-                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest">Permissions</h3>
+                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide">Permissions</h3>
                   
                   {/* Ticket Approver */}
                   <div className="flex items-center gap-3">
@@ -391,7 +391,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     />
                     <label htmlFor="isTicketApprover" className="flex flex-col cursor-pointer">
                       <span className="text-sm font-semibold text-gray-900 dark:text-white leading-none">Ticket Approver / Manager Role</span>
-                      <span className="text-[11px] text-gray-500 dark:text-gray-400 mt-1">Allow this user to approve departmental tickets</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">Allow this user to approve departmental tickets</span>
                     </label>
                   </div>
 
@@ -409,7 +409,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       <option value="READ">Read Only (View strategy)</option>
                       <option value="EDIT">Full Edit (Manage strategy)</option>
                     </select>
-                    <span className="text-[11px] text-gray-500 dark:text-gray-400">Determines visibility and control over Quarters and Objectives</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Determines visibility and control over Quarters and Objectives</span>
                   </div>
                 </div>
 

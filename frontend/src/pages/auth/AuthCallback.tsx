@@ -105,8 +105,8 @@ const AuthCallback: React.FC = () => {
                 </div>
             </div>
             <div className="text-center">
-                <h2 className="text-3xl font-black text-gray-900 dark:text-white tracking-tight">{status}</h2>
-                <p className="mt-3 text-gray-400 font-bold uppercase tracking-[0.3em] text-[11px] animate-pulse">
+                <h2 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight">{status}</h2>
+                <p className="mt-3 text-gray-500 dark:text-gray-400 font-bold uppercase tracking-[0.3em] text-xs animate-pulse">
                     {timedOut ? 'Redirecting...' : 'Azure Active Directory Handshake'}
                 </p>
             </div>

@@ -11,6 +11,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/hooks/redux'
 import toast from 'react-hot-toast'
+import EmptyState from '@/components/common/EmptyState'
 
 interface Activity {
   id: string
@@ -188,11 +189,12 @@ const ActivityPage: React.FC = () => {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <ClockIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Activities</h3>
-            <p className="text-gray-500 dark:text-gray-400">There are no recent activities to display.</p>
-          </div>
+          <EmptyState
+            bare
+            icon={ClockIcon}
+            title="No activity yet"
+            description="Activity appears here as your team creates tasks, moves them between phases, and comments."
+          />
         )}
       </motion.div>
     </div>

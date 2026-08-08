@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/hooks/redux'
 import TaskListItem from '@/components/tasks/TaskListItem'
 import { ArrowLeftIcon, CalendarDaysIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import EmptyState from '@/components/common/EmptyState'
 
 export default function DayTasksPage() {
     const { date } = useParams<{ date: string }>()
@@ -57,11 +58,11 @@ export default function DayTasksPage() {
                     <ArrowLeftIcon className="h-5 w-5" />
                 </button>
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
+                    <h1 className="text-3xl font-semibold text-gray-900 dark:text-white flex items-center gap-3">
                         <CalendarDaysIcon className="h-8 w-8 text-primary-600 dark:text-primary-400" />
                         {formattedDate}
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 uppercase tracking-widest text-sm">
+                    <p className="text-gray-500 dark:text-gray-400 font-medium mt-1 tracking-wide text-sm">
                         {dayTasks.length} Task{dayTasks.length !== 1 ? 's' : ''} Due Today
                     </p>
                 </div>
@@ -70,7 +71,7 @@ export default function DayTasksPage() {
             {/* Filters Bar */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
-                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <MagnifyingGlassIcon className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400" />
                     <input
                         type="text"
                         placeholder="Search tasks for this day..."
@@ -81,7 +82,7 @@ export default function DayTasksPage() {
                 </div>
                 <div className="relative min-w-[200px] shrink-0">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                        <FunnelIcon className="h-5 w-5 text-gray-400" />
+                        <FunnelIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     </div>
                     <select
                         value={selectedPhase}
@@ -97,9 +98,9 @@ export default function DayTasksPage() {
             </div>
 
             {/* List */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {isLoading ? (
-                    <div className="p-12 text-center text-gray-400 font-medium animate-pulse">
+                    <div className="p-12 text-center text-gray-500 dark:text-gray-400 font-medium animate-pulse">
                         Loading tasks...
                     </div>
                 ) : dayTasks.length > 0 ? (
@@ -111,13 +112,12 @@ export default function DayTasksPage() {
                         ))}
                     </div>
                 ) : (
-                    <div className="p-16 text-center">
-                        <div className="w-16 h-16 bg-gray-50 dark:bg-gray-900/40 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-gray-700">
-                            <CalendarDaysIcon className="h-8 w-8 text-gray-300" />
-                        </div>
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1">No tasks scheduled</h3>
-                        <p className="text-gray-500 dark:text-gray-400">You have no tasks due on this particular day. Take a break!</p>
-                    </div>
+                    <EmptyState
+                        bare
+                        icon={CalendarDaysIcon}
+                        title="Nothing due this day"
+                        description="No tasks are scheduled for this date. Pick another day from the calendar to see what is coming up."
+                    />
                 )}
             </div>
         </div>

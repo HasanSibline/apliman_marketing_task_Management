@@ -352,7 +352,7 @@ const TaskDetailPage: React.FC = () => {
                    <LockClosedIcon className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-black text-lg uppercase tracking-tight">Strategic Focus Lock Active</h3>
+                  <h3 className="font-semibold text-lg tracking-tight">Strategic Focus Lock Active</h3>
                   <p className="text-sm text-indigo-100 font-medium">This task is part of our future planning cycle (<span className="text-white underline decoration-indigo-300 underline-offset-2">{currentTask.quarter?.name}</span>). Access is restricted to Admin review until the cycle begins.</p>
                 </div>
               </div>
@@ -379,13 +379,13 @@ const TaskDetailPage: React.FC = () => {
                 {/* Meta Info - Simplified */}
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-gray-600 dark:text-gray-300 mb-6 py-3 border-y border-gray-50 dark:border-gray-700 bg-gray-50/30 dark:bg-gray-900/30 px-4 rounded-xl">
                   <div className="flex items-center gap-2 group">
-                    <UserIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <UserIcon className="h-4 w-4 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors" />
                     <span>Assignee: <strong className="text-gray-900 dark:text-white">{currentTask.assignedTo?.name || 'Unassigned'}</strong></span>
                   </div>
                   
                   {currentTask.dueDate && (
                     <div className="flex items-center gap-2 group">
-                      <CalendarIcon className="h-4 w-4 text-gray-400 group-hover:text-amber-500 transition-colors" />
+                      <CalendarIcon className="h-4 w-4 text-gray-500 dark:text-gray-400 group-hover:text-amber-500 transition-colors" />
                       <span>Due: <strong className="text-gray-900 dark:text-white">{new Date(currentTask.dueDate).toLocaleDateString('en-US', {
                         month: 'short',
                         day: 'numeric',
@@ -395,7 +395,7 @@ const TaskDetailPage: React.FC = () => {
                   )}
 
                   <div className="flex items-center gap-2 group">
-                    <UserIcon className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                    <UserIcon className="h-4 w-4 text-gray-500 dark:text-gray-400 group-hover:text-blue-500 transition-colors" />
                     <span>Owner: <strong className="text-gray-700 dark:text-gray-200 font-medium">{currentTask.createdBy?.name || 'Unknown'}</strong></span>
                   </div>
                 </div>
@@ -538,7 +538,7 @@ const TaskDetailPage: React.FC = () => {
               <div className="space-y-4">
                 {/* Blocked By */}
                 <div>
-                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-2">
                     Blocked By
                   </h3>
                   {currentTask.blockedBy && currentTask.blockedBy.length > 0 ? (
@@ -569,13 +569,13 @@ const TaskDetailPage: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 italic">No blockers</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">No blockers</p>
                   )}
                 </div>
 
                 {/* Blocking */}
                 <div>
-                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-2">
                     Blocking
                   </h3>
                   {currentTask.blocking && currentTask.blocking.length > 0 ? (
@@ -598,7 +598,7 @@ const TaskDetailPage: React.FC = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 italic">Not blocking any tasks</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">Not blocking any tasks</p>
                   )}
                 </div>
               </div>
@@ -689,7 +689,7 @@ const TaskDetailPage: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6"
+                className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
               >
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white">Add Task Blocker</h3>

@@ -292,7 +292,7 @@ const NotificationBell: React.FC = () => {
                               Task: {notification.task.title}
                             </p>
                           )}
-                          <p className="text-xs text-gray-400 mt-1">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                             {new Date(notification.createdAt).toLocaleString()}
                           </p>
                         </div>
@@ -301,7 +301,7 @@ const NotificationBell: React.FC = () => {
                             e.stopPropagation()
                             deleteNotification(notification.id)
                           }}
-                          className="text-gray-400 hover:text-red-500 text-sm"
+                          className="text-gray-500 dark:text-gray-400 hover:text-red-500 text-sm"
                         >
                           ×
                         </button>

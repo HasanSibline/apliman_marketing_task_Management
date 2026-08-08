@@ -98,7 +98,7 @@ function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string
                             <span className="text-xs text-gray-500 dark:text-gray-400">{kr.currentValue} / {kr.targetValue} {kr.unit}</span>
                             <span className={`text-xs font-bold ${pct >= 100 ? 'text-green-700' : pct >= 50 ? 'text-primary-700' : 'text-gray-700 dark:text-gray-200'}`}>{pct}%</span>
                             {canEdit && (
-                                <button onClick={() => setEditing(true)} className="text-gray-400 hover:text-primary-600 transition">
+                                <button onClick={() => setEditing(true)} className="text-gray-500 dark:text-gray-400 hover:text-primary-600 transition">
                                     <PencilIcon className="h-3.5 w-3.5" />
                                 </button>
                             )}
@@ -135,7 +135,7 @@ function CreateObjectiveModal({
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-md p-6">
+                className="bg-white dark:bg-gray-800 rounded-xl shadow-md w-full max-w-md p-6">
                 <div className="flex items-center justify-between mb-5">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white">New Objective</h2>
                     <button aria-label="Close" onClick={onClose} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300"><XMarkIcon className="h-5 w-5" /></button>
@@ -271,7 +271,7 @@ const ObjectivesPage: React.FC = () => {
                             <div className="relative shrink-0 w-10">
                                 <ProgressRing pct={obj.progress} size={40} stroke={4} />
                                 <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-[11px] font-bold text-gray-700 dark:text-gray-200">{obj.progress}%</span>
+                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{obj.progress}%</span>
                                 </div>
                             </div>
                             <div className="min-w-0">
@@ -284,7 +284,7 @@ const ObjectivesPage: React.FC = () => {
                         {obj.quarter ? (
                             <span className="font-medium">{obj.quarter.name} {obj.quarter.year}</span>
                         ) : (
-                            <span className="text-gray-400 italic">No Quarter</span>
+                            <span className="text-gray-500 dark:text-gray-400 italic">No Quarter</span>
                         )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -302,11 +302,11 @@ const ObjectivesPage: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                         <div className="flex items-center justify-end gap-3">
                             {canEdit && (
-                                <button onClick={() => deleteObjective(obj.id)} className="text-gray-400 hover:text-red-600 transition-colors" title="Delete Objective">
+                                <button onClick={() => deleteObjective(obj.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-600 transition-colors" title="Delete Objective">
                                     <TrashIcon className="h-4 w-4" />
                                 </button>
                             )}
-                            <button onClick={() => navigate(`/objectives/${obj.id}`)} className="text-gray-400 hover:text-primary-600 transition-colors">
+                            <button onClick={() => navigate(`/objectives/${obj.id}`)} className="text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-colors">
                                 <ChevronRightIcon className="h-5 w-5" />
                             </button>
                         </div>
@@ -316,7 +316,7 @@ const ObjectivesPage: React.FC = () => {
                     <tr className="bg-gray-50/50 dark:bg-gray-900/40">
                         <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100 dark:border-gray-700">
                             <div className="pl-14 pr-8 space-y-3">
-                                {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Key Results</h4>}
+                                {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-2">Key Results</h4>}
                                 {obj.keyResults.map(kr => (
                                     <KRBar key={kr.id} kr={kr} canEdit={canEdit} onUpdate={updateKR} />
                                 ))}
@@ -403,8 +403,8 @@ const ObjectivesPage: React.FC = () => {
                             { label: 'Avg Progress', value: `${stats.avgProgress}%`, color: 'text-primary-700 dark:text-primary-300' },
                         ].map(s => (
                             <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 text-center">
-                                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold uppercase tracking-widest mb-1">{s.label}</p>
-                                <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 font-bold tracking-wide mb-1">{s.label}</p>
+                                <p className={`text-2xl font-semibold ${s.color}`}>{s.value}</p>
                             </div>
                         ))}
                     </div>
@@ -430,7 +430,7 @@ const ObjectivesPage: React.FC = () => {
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
                             <FlagIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
                             <p className="text-gray-500 dark:text-gray-400 font-medium">No objectives yet</p>
-                            <p className="text-sm text-gray-400 mb-4">Create your first objective to track company goals</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Create your first objective to track company goals</p>
                             {canEdit && (
                                 <button onClick={() => setShowCreate(true)} className="btn-primary">Create First Objective</button>
                             )}
@@ -441,11 +441,11 @@ const ObjectivesPage: React.FC = () => {
                                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                                     <thead className="bg-gray-50 dark:bg-gray-900/40">
                                         <tr>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider w-1/3">Objective & Progress</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quarter</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Status</th>
-                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Key Results</th>
-                                            <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider w-1/3">Objective & Progress</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Quarter</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Status</th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Key Results</th>
+                                            <th scope="col" className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">

@@ -74,10 +74,10 @@ const ShowcasePanel: React.FC<{ contextLabel?: string; variant: 'default' | 'adm
       <div className="max-w-md rounded-xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-medium uppercase tracking-widest text-gray-400">TSK-2481</p>
+            <p className="text-xs font-medium tracking-wide text-gray-400">TSK-2481</p>
             <p className="mt-1 truncate text-sm font-medium text-white">Q3 campaign launch assets</p>
           </div>
-          <span className="shrink-0 rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-medium text-amber-300">
+          <span className="shrink-0 rounded-full bg-amber-400/15 px-2 py-0.5 text-xs font-medium text-amber-300">
             High
           </span>
         </div>
@@ -91,7 +91,7 @@ const ShowcasePanel: React.FC<{ contextLabel?: string; variant: 'default' | 'adm
                   background: phase.done ? 'rgb(var(--color-primary-500))' : 'rgba(255,255,255,0.14)',
                 }}
               />
-              <p className="mt-1.5 truncate text-[9px] text-gray-500">{phase.name}</p>
+              <p className="mt-1.5 truncate text-xs text-gray-500">{phase.name}</p>
             </div>
           ))}
         </div>
@@ -108,7 +108,7 @@ const ShowcasePanel: React.FC<{ contextLabel?: string; variant: 'default' | 'adm
             className="flex-1 rounded-xl border border-white/10 bg-white/[0.07] p-3 backdrop-blur"
           >
             <p className="text-lg font-semibold text-white">{stat.value}</p>
-            <p className="mt-0.5 text-[10px] text-gray-400">{stat.label}</p>
+            <p className="mt-0.5 text-xs text-gray-400">{stat.label}</p>
           </div>
         ))}
       </div>
@@ -126,7 +126,7 @@ const ShowcasePanel: React.FC<{ contextLabel?: string; variant: 'default' | 'adm
     </div>
 
     {contextLabel && (
-      <p className="relative z-10 border-t border-white/10 px-10 py-4 text-[11px] text-gray-500 xl:px-14">
+      <p className="relative z-10 border-t border-white/10 px-10 py-4 text-xs text-gray-500 xl:px-14">
         {contextLabel}
       </p>
     )}

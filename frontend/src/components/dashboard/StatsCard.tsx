@@ -28,8 +28,8 @@ const StatsCard: React.FC<StatsCardProps> = ({
       className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 flex items-start justify-between group hover:border-primary-100 dark:hover:border-primary-800 transition-all h-full"
     >
       <div className="flex-1">
-        <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1">{title}</p>
-        <p className="text-3xl font-black text-gray-900 dark:text-white tracking-tighter">{value}</p>
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1">{title}</p>
+        <p className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tighter">{value}</p>
           {subtitle && (
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{subtitle}</p>
           )}

@@ -113,7 +113,7 @@ const AdminLayout: React.FC = () => {
             <div className="space-y-6">
               {adminNavigation.map((section) => (
                 <div key={section.group}>
-                  <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+                  <p className="px-3 pb-2 text-xs font-semibold tracking-wider text-gray-500 dark:text-gray-400">
                     {section.group}
                   </p>
                   <div className="space-y-1">
@@ -152,7 +152,7 @@ const AdminLayout: React.FC = () => {
 
           {/* System Info */}
           <div className="mt-8 px-4 py-4 bg-primary-50 dark:bg-primary-900/30 mx-2 rounded-lg">
-            <h4 className="text-xs font-semibold text-primary-900 dark:text-primary-300 uppercase tracking-wider">
+            <h4 className="text-xs font-semibold text-primary-900 dark:text-primary-300 tracking-wider">
               System Status
             </h4>
             <div className="mt-2 space-y-1">

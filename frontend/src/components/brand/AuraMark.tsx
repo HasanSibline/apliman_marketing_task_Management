@@ -73,8 +73,8 @@ interface LogoProps {
 }
 
 const SIZES = {
-  sm: { mark: 'h-6 w-6', word: 'text-base', sub: 'text-[10px]' },
-  md: { mark: 'h-8 w-8', word: 'text-xl', sub: 'text-[11px]' },
+  sm: { mark: 'h-6 w-6', word: 'text-base', sub: 'text-xs' },
+  md: { mark: 'h-8 w-8', word: 'text-xl', sub: 'text-xs' },
   lg: { mark: 'h-11 w-11', word: 'text-3xl', sub: 'text-xs' },
 };
 

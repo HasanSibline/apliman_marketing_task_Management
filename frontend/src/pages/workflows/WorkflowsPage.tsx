@@ -126,7 +126,7 @@ const WorkflowsPage: React.FC = () => {
                   </p>
 
                   <div className="mb-4">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wide">
                       Task Type
                     </span>
                     <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
@@ -135,7 +135,7 @@ const WorkflowsPage: React.FC = () => {
                   </div>
 
                   <div className="mb-4">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wide">
                       Phases ({workflow.phases.length})
                     </span>
                     <div className="flex flex-wrap gap-2 mt-2">
@@ -163,7 +163,7 @@ const WorkflowsPage: React.FC = () => {
 
             {workflows.length === 0 && (
               <div className="col-span-full text-center py-12">
-                <CogIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <CogIcon className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No workflows yet</h3>
                 <p className="text-gray-600 dark:text-gray-300 mb-4">
                   Create your first workflow to get started with dynamic task management.
