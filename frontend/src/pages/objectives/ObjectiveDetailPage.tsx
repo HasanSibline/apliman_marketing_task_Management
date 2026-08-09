@@ -66,7 +66,6 @@ const ObjectiveDetailPage: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const [addingKR, setAddingKR] = useState(false)
     const [updatingKR, setUpdatingKR] = useState<{ id: string, title: string, current: number, target: number, unit: string } | null>(null)
-    const [updatingValue, setUpdatingValue] = useState<string>('')
     const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 })
     const [showLinkTask, setShowLinkTask] = useState(false)
     const [availableTasks, setAvailableTasks] = useState<Task[]>([])
@@ -98,14 +97,6 @@ const ObjectiveDetailPage: React.FC = () => {
         } catch {
             toast.error('Failed to load tasks')
         }
-    }
-
-    const updateKR = async (krId: string, currentValue: number) => {
-        try {
-            await api.patch(`/objectives/key-results/${krId}`, { currentValue })
-            fetchDetail()
-            toast.success('Updated progress')
-        } catch { toast.error('Failed to update Key Result') }
     }
 
     const addKR = async () => {
@@ -249,7 +240,6 @@ const ObjectiveDetailPage: React.FC = () => {
                                                         <button
                                                             onClick={() => {
                                                                 setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit })
-                                                                setUpdatingValue(kr.currentValue.toString())
                                                             }}
                                                             className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-all"
                                                         >
@@ -471,43 +461,50 @@ const ObjectiveDetailPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Update KR Modal */}
+            {/* Key result detail. Progress is derived from linked work, so there is
+                nothing to type here: the modal explains where the number comes from. */}
             {updatingKR && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                        className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-sm p-6 border border-gray-100 dark:border-gray-700">
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight">Update Value</h3>
-                            <button onClick={() => setUpdatingKR(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">
-                                <XMarkIcon className="h-6 w-6" />
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                     onClick={() => setUpdatingKR(null)}>
+                    <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }}
+                        onClick={(e) => e.stopPropagation()}
+                        role="dialog" aria-modal="true" aria-labelledby="kr-title"
+                        className="surface w-full max-w-sm p-6 shadow-lg">
+                        <div className="flex items-start justify-between gap-3">
+                            <h3 id="kr-title" className="section-title">{updatingKR.title}</h3>
+                            <button aria-label="Close" onClick={() => setUpdatingKR(null)}
+                                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                                <XMarkIcon className="h-5 w-5" />
                             </button>
                         </div>
-                        <div className="mb-4 bg-gray-50 dark:bg-gray-900/40 p-3 rounded-xl border border-gray-100 dark:border-gray-700">
-                            <p className="text-sm font-bold text-gray-700 dark:text-gray-200">{updatingKR.title}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium mt-0.5">Target: {updatingKR.target} {updatingKR.unit}</p>
+
+                        <div className="surface-muted mt-4 p-4">
+                            <div className="flex items-baseline justify-between">
+                                <span className="text-2xl font-semibold text-gray-900 dark:text-white">
+                                    {Math.round(updatingKR.current ?? 0)}
+                                </span>
+                                <span className="text-sm text-gray-600 dark:text-gray-400">
+                                    of {updatingKR.target} {updatingKR.unit}
+                                </span>
+                            </div>
+                            <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                                <div className="h-full rounded-full bg-primary-600"
+                                     style={{ width: `${Math.min(100, Math.round(((updatingKR.current ?? 0) / (updatingKR.target || 1)) * 100))}%` }} />
+                            </div>
                         </div>
-                        <form onSubmit={(e) => { 
-                            e.preventDefault(); 
-                            if (!isNaN(+updatingValue)) {
-                                updateKR(updatingKR.id, +updatingValue);
-                                setUpdatingKR(null);
-                            }
-                        }} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Current Value</label>
-                                <input 
-                                    type="number" 
-                                    value={updatingValue} 
-                                    onChange={e => setUpdatingValue(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm font-medium"
-                                    required autoFocus 
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setUpdatingKR(null)} className="flex-1 px-4 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold hover:bg-gray-200 dark:hover:bg-gray-600 transition">Cancel</button>
-                                <button type="submit" className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition shadow-lg shadow-primary-200">Save</button>
-                            </div>
-                        </form>
+
+                        <p className="mt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                            This number is calculated from the tasks linked to this key result. A task
+                            with subtasks counts in proportion to the subtasks completed, so progress
+                            moves as work happens rather than only when a task finishes.
+                        </p>
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            To move it, complete the linked work, or link more tasks below.
+                        </p>
+
+                        <button onClick={() => setUpdatingKR(null)} className="btn-primary mt-6 w-full justify-center">
+                            Close
+                        </button>
                     </motion.div>
                 </div>
             )}

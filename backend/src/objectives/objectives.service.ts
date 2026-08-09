@@ -125,7 +125,25 @@ export class ObjectivesService {
             include: { objective: { select: { companyId: true } } },
         });
         if (!kr || kr.objective.companyId !== companyId) throw new NotFoundException('Key result not found');
-        return this.prisma.keyResult.update({ where: { id: krId }, data: dto as any });
+
+        // currentValue is derived from the linked tasks and their subtasks, never set
+        // by hand. Accepting it here let a typed-in number survive until the next task
+        // change silently overwrote it, which is why progress appeared to move on its
+        // own. You define what the key result measures; the work decides where it is.
+        const { currentValue, ...editable } = dto as any;
+
+        const updated = await this.prisma.keyResult.update({
+            where: { id: krId },
+            data: editable,
+        });
+
+        // Changing the start or target rescales progress, so recompute against them.
+        if ('startValue' in editable || 'targetValue' in editable) {
+            await this.tasksService.recalculateKeyResult(krId);
+            return this.prisma.keyResult.findUnique({ where: { id: krId } });
+        }
+
+        return updated;
     }
 
     async removeKeyResult(krId: string, companyId: string) {
@@ -147,17 +165,26 @@ export class ObjectivesService {
             if (!kr) throw new NotFoundException('Key result not found in this objective');
         }
 
+        // Note the previous key result before overwriting it: moving a task between
+        // key results has to recompute both, or the one it left keeps counting it.
+        const previous = await this.prisma.task.findUnique({
+            where: { id: taskId },
+            select: { keyResultId: true },
+        });
+
         const task = await this.prisma.task.update({
             where: { id: taskId },
-            data: { 
+            data: {
                 objectiveId,
                 keyResultId: keyResultId || null
             },
         });
 
-        // Trigger calculation in case the task is already completed
-        if (keyResultId) {
-            await this.tasksService.calculateKeyResultProgress(taskId).catch(console.error);
+        const affected = new Set<string>();
+        if (previous?.keyResultId) affected.add(previous.keyResultId);
+        if (keyResultId) affected.add(keyResultId);
+        for (const krId of affected) {
+            await this.tasksService.recalculateKeyResult(krId);
         }
 
         return task;
@@ -174,40 +201,12 @@ export class ObjectivesService {
             data: { objectiveId: null, keyResultId: null },
         });
 
-        // If it was linked to a key result, we must recalculate since it's unlinked
+        // The key result it left has one fewer task counting toward it.
         if (existingTask?.keyResultId) {
-            // Because it no longer has keyResultId, we pass in a mock object with keyResultId or fake calculation logic.
-            // Wait, calculateKeyResultProgress expects the task to STILL have keyResultId so it can find the KR.
-            // Instead, we recalculate manually for the old krId here.
-            this.recalculateKrDirect(existingTask.keyResultId).catch(console.error);
+            await this.tasksService.recalculateKeyResult(existingTask.keyResultId);
         }
         
         return task;
     }
 
-    private async recalculateKrDirect(krId: string) {
-        const totalTasks = await this.prisma.task.count({ where: { keyResultId: krId } });
-        const completedTasks = await this.prisma.task.count({
-            where: {
-                keyResultId: krId,
-                OR: [
-                    { completedAt: { not: null } },
-                    { phase: { in: ['COMPLETED', 'ARCHIVED'] } },
-                    { currentPhase: { isEndPhase: true } }
-                ]
-            }
-        });
-        
-        const kr = await this.prisma.keyResult.findUnique({ where: { id: krId } });
-        if (kr) {
-            const rawProgress = totalTasks > 0 ? (completedTasks / totalTasks) : 0;
-            const range = kr.targetValue - kr.startValue;
-            const newCurrentValue = kr.startValue + (range * rawProgress);
-            
-            await this.prisma.keyResult.update({
-                where: { id: krId },
-                data: { currentValue: newCurrentValue }
-            });
-        }
-    }
 }

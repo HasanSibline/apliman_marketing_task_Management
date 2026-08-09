@@ -1,5 +1,6 @@
 import {
   Controller,
+  Query,
   Get,
   Post,
   Body,
@@ -40,8 +41,8 @@ export class CompaniesController {
   @Get('platform-stats')
   @ApiOperation({ summary: 'Get platform-wide statistics' })
   @Roles(UserRole.SUPER_ADMIN)
-  getPlatformStats() {
-    return this.companiesService.getPlatformStats();
+  getPlatformStats(@Query('companyId') companyId?: string) {
+    return this.companiesService.getPlatformStats(companyId || undefined);
   }
 
   @Get('my-company')

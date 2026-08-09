@@ -44,21 +44,73 @@ function adminExists() {
   }
 }
 
-// ─── Step 1: Sync schema ────────────────────────────────────────────────
+// ─── Step 1: Apply schema ───────────────────────────────────────────────
+//
+// This used to run `prisma db push --accept-data-loss` on every boot. That flag
+// performs destructive changes without asking, so a column removed from
+// schema.prisma was silently dropped from production along with its data. It also
+// meant migration SQL never ran, so any data fix written inside a migration was a
+// no-op in production.
+//
+// The database was built with db push and has no migration history, so a plain
+// `migrate deploy` fails with P3005. On the first run we baseline instead: the
+// schema is already in sync from previous pushes, so every migration in the folder
+// has effectively been applied and is recorded as such. After that, every deploy is
+// an ordinary `migrate deploy`.
+
 const forceReset = process.env.FORCE_DB_RESET === 'true';
 
+function migrationNames() {
+  const dir = path.join(ROOT, 'prisma', 'migrations');
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .filter((e) => e.isDirectory() && fs.existsSync(path.join(dir, e.name, 'migration.sql')))
+    .map((e) => e.name)
+    .sort();
+}
+
+function hasMigrationHistory() {
+  try {
+    const script =
+      "const{PrismaClient}=require('@prisma/client');" +
+      'const p=new PrismaClient();' +
+      "p.$queryRawUnsafe('SELECT count(*)::int AS n FROM _prisma_migrations WHERE finished_at IS NOT NULL')" +
+      ".then(r=>{console.log('COUNT:'+r[0].n);return p.$disconnect()})" +
+      ".catch(()=>{console.log('COUNT:-1');return p.$disconnect()});";
+    const out = execSync(`node -e ${JSON.stringify(script)}`, { cwd: ROOT, timeout: 30_000 }).toString();
+    const m = out.match(/COUNT:(-?\d+)/);
+    return m ? parseInt(m[1], 10) > 0 : false;
+  } catch {
+    return false;
+  }
+}
+
 if (forceReset) {
-  console.log('⚠️  FORCE_DB_RESET=true — this will WIPE the database!\n');
+  console.log('⚠️  FORCE_DB_RESET=true — this will WIPE the database!');
   run(
     'npx prisma db push --force-reset --skip-generate --accept-data-loss',
     '🗄️  Resetting + applying schema'
   );
 } else {
-  console.log('🔄 Step 1: Syncing database schema (preserving existing data)...\n');
-  run(
-    'npx prisma db push --skip-generate --accept-data-loss',
-    '🗄️  Applying schema to database'
-  );
+  console.log('🔄 Step 1: Applying database migrations...');
+
+  if (!hasMigrationHistory()) {
+    console.log('   No migration history found. Baselining this database once.');
+
+    // No --accept-data-loss here on purpose: this REFUSES a destructive change
+    // rather than performing it, so a deploy that would drop a column now fails
+    // loudly instead of losing data quietly.
+    run('npx prisma db push --skip-generate', '🗄️  Syncing schema before baseline');
+
+    for (const name of migrationNames()) {
+      // Already-recorded migrations answer P3008, which is expected, so this step
+      // is not allowed to abort the boot.
+      run(`npx prisma migrate resolve --applied ${name}`, `   Baselining ${name}`, false);
+    }
+  }
+
+  run('npx prisma migrate deploy', '🗄️  Applying migrations');
 }
 
 // ─── Step 2: Seed only when needed ──────────────────────────────────────

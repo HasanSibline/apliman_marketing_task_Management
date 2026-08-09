@@ -501,7 +501,12 @@ export class CompaniesService {
    * Get platform-wide statistics
    * Used for System Admin analytics dashboard
    */
-  async getPlatformStats() {
+  async getPlatformStats(companyId?: string) {
+    // Scoped to one company when a companyId is given, so a super admin can look at
+    // a single customer rather than only platform-wide totals, which say nothing
+    // about whether any individual company is healthy.
+    if (companyId) return this.getCompanyStats(companyId);
+
     const [
       totalCompanies,
       activeCompanies,
@@ -531,6 +536,49 @@ export class CompaniesService {
       totalAIMessages,
       companiesOnTrial,
       companiesExpired,
+      scope: 'platform' as const,
+    };
+  }
+
+  /**
+   * The same shape as getPlatformStats, measured inside one company. Keeping the
+   * shape identical means the dashboard can switch scope without branching.
+   */
+  private async getCompanyStats(companyId: string) {
+    const company = await this.prisma.company.findUnique({
+      where: { id: companyId },
+      select: { id: true, name: true, isActive: true, subscriptionStatus: true, subscriptionPlan: true },
+    });
+    if (!company) throw new NotFoundException('Company not found');
+
+    const [totalUsers, activeUsers, totalTasks, completedTasks, overdueTasks, totalAIMessages, openTickets] =
+      await Promise.all([
+        this.prisma.user.count({ where: { companyId } }),
+        this.prisma.user.count({ where: { companyId, status: 'ACTIVE' } }),
+        this.prisma.task.count({ where: { companyId } }),
+        this.prisma.task.count({ where: { companyId, phase: { in: ['COMPLETED', 'ARCHIVED'] } } }),
+        this.prisma.task.count({
+          where: {
+            companyId,
+            dueDate: { lt: new Date() },
+            phase: { notIn: ['COMPLETED', 'ARCHIVED'] },
+          },
+        }),
+        this.prisma.chatMessage.count({ where: { session: { companyId } } }),
+        this.prisma.ticket.count({ where: { companyId, status: { notIn: ['RESOLVED', 'CANCELLED'] } } }),
+      ]);
+
+    return {
+      scope: 'company' as const,
+      company,
+      totalUsers,
+      activeUsers,
+      totalTasks,
+      completedTasks,
+      overdueTasks,
+      openTickets,
+      totalAIMessages,
+      completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0,
     };
   }
 

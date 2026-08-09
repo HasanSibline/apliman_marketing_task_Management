@@ -390,6 +390,10 @@ export class TasksService {
 
       // Return complete task data
       console.log(`Task created successfully: ${task.id}, workflow: ${workflow.id}, taskType: ${taskType}`);
+      // A task created already linked to a key result changes its denominator
+      // immediately, so recompute rather than waiting for the first phase move.
+      if (task.keyResultId) await this.recalculateKeyResult(task.keyResultId);
+
       return this.findOne(task.id, creatorId, UserRole.SUPER_ADMIN);
     } catch (error) {
       console.error('Error creating task:', error);
@@ -608,6 +612,10 @@ export class TasksService {
     });
 
     // Send notifications when subtask is completed
+    // Subtask completion is what gives a task partial credit, so the key result
+    // moves the moment a subtask is ticked rather than only when the whole task ends.
+    await this.recalculateKeyResultForSubtask(subtaskId);
+
     if (!wasCompleted && updated.isCompleted) {
       const completedBy = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -785,6 +793,10 @@ export class TasksService {
         });
       }
     }
+
+    // Adding a subtask changes how much of this task counts as done, so the key
+    // result behind it is no longer accurate until recomputed.
+    await this.calculateKeyResultProgress(taskId);
 
     // Refresh and return the task with updated subtasks
     return this.findOne(taskId, userId, UserRole.SUPER_ADMIN);
@@ -1381,9 +1393,17 @@ export class TasksService {
     }
 
     try {
+      // Capture the link before deletion so the key result can be recomputed once
+      // the task no longer counts toward it.
+      const deletedKeyResultId = (
+        await this.prisma.task.findUnique({ where: { id }, select: { keyResultId: true } })
+      )?.keyResultId ?? null;
+
       await this.prisma.task.delete({
         where: { id },
       });
+
+      if (deletedKeyResultId) await this.recalculateKeyResult(deletedKeyResultId);
 
       return { message: 'Task deleted successfully' };
     } catch (error) {
@@ -1820,45 +1840,86 @@ export class TasksService {
     }
   }
 
-  async calculateKeyResultProgress(taskId: string) {
+  /**
+   * Recompute a key result's value from the work linked to it.
+   *
+   * A key result is fully derived: a human defines what it measures (title, start,
+   * target) and the number then follows the work. Nothing writes currentValue by
+   * hand, so the figure can never disagree with the tasks underneath it.
+   *
+   * Each task contributes a fraction between 0 and 1:
+   *   - a task with subtasks contributes completed subtasks over total, so work in
+   *     flight earns partial credit instead of counting as zero until the last
+   *     moment;
+   *   - a task without subtasks contributes 1 when complete, otherwise 0.
+   *
+   * currentValue = startValue + (targetValue - startValue) x mean(task fractions)
+   */
+  async recalculateKeyResult(keyResultId: string): Promise<void> {
+    if (!keyResultId) return;
+
     try {
-      const task = await this.prisma.task.findUnique({
-        where: { id: taskId },
-        select: { keyResultId: true }
+      const kr = await this.prisma.keyResult.findUnique({ where: { id: keyResultId } });
+      if (!kr) return;
+
+      const tasks = await this.prisma.task.findMany({
+        where: { keyResultId },
+        select: {
+          completedAt: true,
+          phase: true,
+          currentPhase: { select: { isEndPhase: true } },
+          subtasks: { select: { isCompleted: true } },
+        },
       });
 
-      if (!task?.keyResultId) return;
-
-      const krId = task.keyResultId;
-
-      const totalTasks = await this.prisma.task.count({ where: { keyResultId: krId } });
-      const completedTasks = await this.prisma.task.count({
-        where: {
-          keyResultId: krId,
-          OR: [
-            { completedAt: { not: null } },
-            { phase: { in: ['COMPLETED', 'ARCHIVED'] } },
-            { currentPhase: { isEndPhase: true } }
-          ]
+      // No linked work means no evidence of progress, so the key result sits at its
+      // starting value rather than holding a stale number from tasks since removed.
+      const fractions = tasks.map((t) => {
+        if (t.subtasks.length > 0) {
+          const done = t.subtasks.filter((st) => st.isCompleted).length;
+          return done / t.subtasks.length;
         }
+        const complete =
+          t.completedAt !== null ||
+          t.phase === 'COMPLETED' ||
+          t.phase === 'ARCHIVED' ||
+          t.currentPhase?.isEndPhase === true;
+        return complete ? 1 : 0;
       });
 
-      if (totalTasks > 0) {
-        const kr = await this.prisma.keyResult.findUnique({ where: { id: krId } });
-        if (kr) {
-          const rawProgress = completedTasks / totalTasks;
-          const range = kr.targetValue - kr.startValue;
-          const newCurrentValue = kr.startValue + (range * rawProgress);
+      const ratio = fractions.length > 0 ? fractions.reduce((a, b) => a + b, 0) / fractions.length : 0;
+      const currentValue = kr.startValue + (kr.targetValue - kr.startValue) * ratio;
 
-          await this.prisma.keyResult.update({
-            where: { id: krId },
-            data: { currentValue: newCurrentValue }
-          });
-        }
-      }
+      // Skip the write when nothing moved, so we do not churn updatedAt on every
+      // unrelated task edit.
+      if (Math.abs(currentValue - kr.currentValue) < 0.0001) return;
+
+      await this.prisma.keyResult.update({
+        where: { id: keyResultId },
+        data: { currentValue },
+      });
     } catch (error) {
-      console.error('Error auto-calculating key result progress:', error);
+      this.logger.warn(`Key result recalculation failed for ${keyResultId}: ${error.message}`);
     }
+  }
+
+  /** Recalculate whatever key result a task belongs to. Safe when it belongs to none. */
+  async calculateKeyResultProgress(taskId: string): Promise<void> {
+    const task = await this.prisma.task.findUnique({
+      where: { id: taskId },
+      select: { keyResultId: true },
+    });
+    if (task?.keyResultId) await this.recalculateKeyResult(task.keyResultId);
+  }
+
+  /** Recalculate the key result behind a subtask's parent task. */
+  async recalculateKeyResultForSubtask(subtaskId: string): Promise<void> {
+    const subtask = await this.prisma.subtask.findUnique({
+      where: { id: subtaskId },
+      select: { task: { select: { keyResultId: true } } },
+    });
+    const krId = subtask?.task?.keyResultId;
+    if (krId) await this.recalculateKeyResult(krId);
   }
 
   private async notifyPhaseChange(task: any, oldPhase: any, updatedBy: string) {
