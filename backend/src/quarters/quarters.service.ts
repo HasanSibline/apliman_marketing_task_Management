@@ -11,14 +11,26 @@ export class QuartersService {
         private readonly notifications: NotificationsService,
     ) { }
 
-    async findAll(companyId: string, userRole?: string) {
+    /**
+     * @param selectable when true, returns only quarters you can still schedule work
+     *   into: the active one and anything upcoming. Closed quarters are history, and
+     *   offering them in a picker invites filing new work into a finished cycle.
+     */
+    async findAll(companyId: string, userRole?: string, selectable = false) {
         const where: any = { companyId };
         if (userRole === 'EMPLOYEE') {
             where.status = { not: 'UPCOMING' };
         }
+        if (selectable) {
+            where.status = userRole === 'EMPLOYEE' ? 'ACTIVE' : { in: ['ACTIVE', 'UPCOMING'] };
+        }
         return this.prisma.quarter.findMany({
             where,
-            orderBy: [{ year: 'desc' }, { name: 'desc' }],
+            // Selectable lists read forwards, since the next quarter is what you want
+            // near the top. History reads backwards, newest first.
+            orderBy: selectable
+                ? [{ year: 'asc' }, { startDate: 'asc' }]
+                : [{ year: 'desc' }, { name: 'desc' }],
         });
     }
 
@@ -238,13 +250,64 @@ export class QuartersService {
         // did not land, and complete the ones that did.
         await this.settleObjectivesForClosedQuarter(id);
 
+        // Closing a quarter left the company with no active quarter at all: the daily
+        // job only promotes an UPCOMING quarter once its start date has arrived, so
+        // closing Q1 early meant a gap until Q2's start date, and closing it late
+        // meant waiting until the next 1am run.
+        //
+        // Choosing a next quarter in the close dialog is an explicit instruction to
+        // move on, so that quarter starts immediately, even ahead of its start date.
+        let started: { name: string; year: number } | null = null;
+        {
+            // An explicitly chosen next quarter wins. Otherwise take the earliest one
+            // still upcoming: closing a quarter means the cycle moves on, and leaving
+            // the company with no active quarter is never the intent. Without this,
+            // closing Q1 simply left nothing running until the next 1am job, or until
+            // Q2's start date, whichever came later.
+            const next = dto.nextQuarterId
+                ? await this.prisma.quarter.findFirst({
+                      where: { id: dto.nextQuarterId, companyId },
+                      select: { id: true, name: true, year: true, status: true },
+                  })
+                : await this.prisma.quarter.findFirst({
+                      where: { companyId, status: 'UPCOMING' },
+                      orderBy: [{ year: 'asc' }, { startDate: 'asc' }],
+                      select: { id: true, name: true, year: true, status: true },
+                  });
+
+            if (next && next.status !== 'CLOSED') {
+                // Any other active quarter closes first: only one runs at a time.
+                await this.prisma.quarter.updateMany({
+                    where: { companyId, status: 'ACTIVE', id: { not: next.id } },
+                    data: { status: 'CLOSED' },
+                });
+                await this.prisma.quarter.update({
+                    where: { id: next.id },
+                    data: { status: 'ACTIVE' },
+                });
+                started = { name: next.name, year: next.year };
+            }
+        }
+
         await this.notifyAffectedAssignees(rollingOver, beingReleased, quarter, nextQuarter);
+
+        if (started) {
+            await this.notifyCompanyMembers(
+                companyId,
+                'QUARTER_STARTED',
+                `${started.name} ${started.year} has started`,
+                `${quarter.name} ${quarter.year} is closed. Work now belongs to ${started.name} ${started.year}.`,
+            );
+        }
 
         return {
             success: true,
-            message: 'Quarter closed successfully',
+            message: started
+                ? `Quarter closed. ${started.name} ${started.year} is now active.`
+                : 'Quarter closed. No quarter is active until the next one starts.',
             rolledOver: rollingOver.length,
             released: beingReleased.length,
+            startedQuarter: started,
         };
     }
 
@@ -406,6 +469,18 @@ export class QuartersService {
                 data: { status: met ? 'COMPLETED' : 'OFF_TRACK' },
             });
         }
+    }
+
+    /** A quarter starting affects everyone's work, not just admins. */
+    private async notifyCompanyMembers(companyId: string, type: string, title: string, message: string) {
+        const members = await this.prisma.user.findMany({
+            where: { companyId, status: 'ACTIVE' },
+            select: { id: true },
+        });
+        if (members.length === 0) return;
+        await this.notifications.createBulkNotifications(
+            members.map((m) => ({ userId: m.id, type, title, message, actionUrl: '/quarters' })),
+        );
     }
 
 }

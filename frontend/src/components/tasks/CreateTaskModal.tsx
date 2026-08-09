@@ -76,7 +76,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const loadMetadata = async () => {
     try {
       const [quartersData, objectivesData] = await Promise.all([
-        quartersApi.getAll(),
+        quartersApi.getSelectable(),
         objectivesApi.getAll(),
       ])
       setQuarters(quartersData)

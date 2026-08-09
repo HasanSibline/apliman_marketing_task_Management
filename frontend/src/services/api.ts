@@ -667,6 +667,11 @@ export const quartersApi = {
     const response = await api.get('/quarters')
     return response.data
   },
+  /** Only quarters that can still receive work: the active one and anything upcoming. */
+  getSelectable: async (): Promise<any[]> => {
+    const response = await api.get('/quarters', { params: { selectable: 'true' } })
+    return response.data
+  },
   getById: async (id: string): Promise<any> => {
     const response = await api.get(`/quarters/${id}`)
     return response.data

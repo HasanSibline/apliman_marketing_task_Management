@@ -27,8 +27,9 @@ export class QuartersController {
 
     @Get()
     @ApiOperation({ summary: 'Get all quarters for company' })
-    findAll(@Request() req) {
-        return this.quartersService.findAll(req.user.companyId, req.user.role);
+    @ApiQuery({ name: 'selectable', required: false, type: Boolean, description: 'Only quarters that can still receive work' })
+    findAll(@Request() req, @Query('selectable') selectable?: string) {
+        return this.quartersService.findAll(req.user.companyId, req.user.role, selectable === 'true');
     }
 
     @Get('yearly')

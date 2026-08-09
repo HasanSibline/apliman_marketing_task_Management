@@ -57,7 +57,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
       try {
         const [usersData, quartersData, objectivesData] = await Promise.all([
           usersApi.getAll(),
-          quartersApi.getAll(),
+          quartersApi.getSelectable(),
           objectivesApi.getAll(),
         ])
         setUsers(Array.isArray(usersData) ? usersData : (usersData as any).users || [])

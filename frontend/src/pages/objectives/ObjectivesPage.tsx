@@ -185,6 +185,7 @@ const ObjectivesPage: React.FC = () => {
     const canEdit = isAdmin || user?.strategyAccess === 'EDIT'
     const [objectives, setObjectives] = useState<Objective[]>([])
     const [quarters, setQuarters] = useState<Quarter[]>([])
+    const [selectableQuarters, setSelectableQuarters] = useState<Quarter[]>([])
     const [loading, setLoading] = useState(true)
     const [showCreate, setShowCreate] = useState(false)
     const [filterQuarter, setFilterQuarter] = useState('')
@@ -196,12 +197,17 @@ const ObjectivesPage: React.FC = () => {
     const fetchAll = async () => {
         setLoading(true)
         try {
-            const [{ data: objs }, { data: qs }] = await Promise.all([
+            // Two lists on purpose: the filter must still reach closed quarters so
+            // history is browsable, while the create form must not offer them, since
+            // filing a new objective into a finished cycle is never intended.
+            const [{ data: objs }, { data: qs }, { data: selectable }] = await Promise.all([
                 api.get('/objectives'),
                 api.get('/quarters'),
+                api.get('/quarters', { params: { selectable: 'true' } }),
             ])
             setObjectives(objs)
             setQuarters(qs)
+            setSelectableQuarters(selectable)
         } catch { toast.error('Failed to load') }
         finally { setLoading(false) }
     }
@@ -355,7 +361,7 @@ const ObjectivesPage: React.FC = () => {
         <div className="space-y-6">
             {showCreate && (
                 <CreateObjectiveModal
-                    quarters={quarters}
+                    quarters={selectableQuarters}
                     onClose={() => setShowCreate(false)}
                     onCreated={() => { setShowCreate(false); fetchAll() }}
                 />
