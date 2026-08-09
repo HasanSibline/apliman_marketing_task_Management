@@ -116,9 +116,14 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Strategic Command Strip */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
+      {/* The arrival moment: the one place the sign-in treatment belongs in full.
+          Deep navy base, brand glow and grid, rather than a flat brand gradient. */}
+      <div className="textured-grid relative overflow-hidden rounded-xl border border-white/5 bg-gray-900 p-6 text-white dark:bg-gray-800">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full blur-3xl"
+          style={{ background: 'rgb(var(--color-primary-600))', opacity: 0.35 }}
+        />
         
         <motion.div
            initial={{ opacity: 0, y: 20 }}

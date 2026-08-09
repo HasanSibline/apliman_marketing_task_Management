@@ -25,8 +25,8 @@ const EmptyState: React.FC<Props> = ({ icon: Icon, title, description, action, b
   <div
     className={
       bare
-        ? 'flex flex-col items-center justify-center px-6 py-12 text-center'
-        : 'surface flex flex-col items-center justify-center px-6 py-16 text-center'
+        ? 'textured flex flex-col items-center justify-center px-6 py-12 text-center'
+        : 'surface textured flex flex-col items-center justify-center px-6 py-16 text-center'
     }
   >
     {Icon && (

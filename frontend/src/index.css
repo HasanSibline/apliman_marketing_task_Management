@@ -19,6 +19,22 @@
     --color-primary-950: 23 37 84;
   }
 
+  :root {
+    /* Neutrals as channels so dark mode can be retuned in one place. Light mode
+       keeps Tailwind's slate values, so nothing changes for light users. */
+    --color-gray-50: 248 250 252;
+    --color-gray-100: 241 245 249;
+    --color-gray-200: 226 232 240;
+    --color-gray-300: 203 213 225;
+    --color-gray-400: 148 163 184;
+    --color-gray-500: 100 116 139;
+    --color-gray-600: 71 85 105;
+    --color-gray-700: 51 65 85;
+    --color-gray-800: 30 41 59;
+    --color-gray-900: 15 23 42;
+    --color-gray-950: 2 6 23;
+  }
+
   html {
     font-family: 'Inter', system-ui, sans-serif;
   }
@@ -26,6 +42,17 @@
   /* Dark-mode page surface (opt-in via a `dark` class on <html>). */
   html.dark {
     color-scheme: dark; /* native <select> option lists, date pickers, checkboxes, scrollbars */
+
+    /* The dark theme was generic slate while the sign-in panel was a designed navy.
+       Redefining the surface end of the ramp here retunes every dark:bg-gray-*
+       and dark:border-gray-* in the app at once, without touching a class name.
+       The light end (50 to 400) is deliberately untouched: those carry text on
+       dark backgrounds and already read well. */
+    --color-gray-600: 42 56 85;
+    --color-gray-700: 28 39 64;
+    --color-gray-800: 17 26 46;
+    --color-gray-900: 11 18 32;   /* #0B1220, the sign-in base */
+    --color-gray-950: 6 10 18;
   }
 
   html.dark body {
@@ -143,6 +170,98 @@
 
   .form-hint {
     @apply mt-1.5 text-xs text-gray-500 dark:text-gray-400;
+  }
+
+  /* ── Texture ──────────────────────────────────────────────────────────────
+     The grid and brand glow from the sign-in panel, carried into the app.
+     Applied to page headers, empty states and the dashboard: places you arrive
+     at and look at briefly. Deliberately NOT on tables, forms or modals, where
+     dense content has to be read through it.
+
+     Both themes are defined. Light mode uses the same geometry at much lower
+     contrast, so the structure is shared and only the temperature changes. */
+
+  .textured {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  /* The grid. Two hairline gradients, sized to a 44px cell like the sign-in panel. */
+  .textured::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-image:
+      linear-gradient(to right, currentColor 1px, transparent 1px),
+      linear-gradient(to bottom, currentColor 1px, transparent 1px);
+    background-size: 44px 44px;
+    color: theme('colors.gray.900');
+    opacity: 0.035;
+    pointer-events: none;
+  }
+
+  html.dark .textured::before {
+    color: #fff;
+    opacity: 0.04;
+  }
+
+  /* The glow. One soft wash of the company's brand colour, anchored top-left so
+     it reads as light entering the panel rather than a decorative blob. */
+  .textured::after {
+    content: '';
+    position: absolute;
+    top: -8rem;
+    left: -8rem;
+    width: 28rem;
+    height: 28rem;
+    z-index: -1;
+    border-radius: 9999px;
+    background: rgb(var(--color-primary-500));
+    filter: blur(80px);
+    opacity: 0.07;
+    pointer-events: none;
+  }
+
+  html.dark .textured::after {
+    background: rgb(var(--color-primary-600));
+    opacity: 0.22;
+  }
+
+  /* Same treatment without the glow, for narrower strips like page headers. */
+  .textured-grid {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+  }
+
+  .textured-grid::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    background-image:
+      linear-gradient(to right, currentColor 1px, transparent 1px),
+      linear-gradient(to bottom, currentColor 1px, transparent 1px);
+    background-size: 44px 44px;
+    color: theme('colors.gray.900');
+    opacity: 0.03;
+    pointer-events: none;
+  }
+
+  html.dark .textured-grid::before {
+    color: #fff;
+    opacity: 0.035;
+  }
+
+  /* Texture is decoration, so it goes when motion or contrast preferences ask. */
+  @media (prefers-contrast: more) {
+    .textured::before,
+    .textured::after,
+    .textured-grid::before {
+      display: none;
+    }
   }
 
   /* Card Components */
