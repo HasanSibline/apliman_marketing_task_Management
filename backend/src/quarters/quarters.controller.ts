@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { QuartersService } from './quarters.service';
+import { OkrAutomationService } from './okr-automation.service';
 import { CreateQuarterDto } from './dto/create-quarter.dto';
 import { CloseQuarterDto } from './dto/close-quarter.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -13,7 +14,10 @@ import { UserRole } from '../types/prisma';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @ApiBearerAuth()
 export class QuartersController {
-    constructor(private readonly quartersService: QuartersService) { }
+    constructor(
+        private readonly quartersService: QuartersService,
+        private readonly okrAutomation: OkrAutomationService,
+    ) { }
 
     @Get('active')
     @ApiOperation({ summary: 'Get current active quarter' })
@@ -67,4 +71,44 @@ export class QuartersController {
     close(@Param('id') id: string, @Body() dto: CloseQuarterDto, @Request() req) {
         return this.quartersService.close(id, req.user.companyId, dto);
     }
+    /**
+     * Run the nightly maintenance now.
+     *
+     * Without this the automation is unverifiable until 1am, and a mistake in it
+     * would fail silently overnight. Every step is idempotent, so running it on
+     * demand is safe and repeatable.
+     */
+    @Post('automation/run')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Run quarter and objective maintenance immediately' })
+    async runAutomation() {
+        const activated = await this.okrAutomation.activateDueQuarters();
+        const overdue = await this.okrAutomation.flagOverdueQuarters();
+        const statusChanges = await this.okrAutomation.refreshObjectiveStatuses();
+        return {
+            quartersActivated: activated,
+            overdueQuartersFlagged: overdue,
+            objectiveStatusesChanged: statusChanges,
+        };
+    }
+
+    /**
+     * Close a year: shut any quarter still open in it, complete the objectives that
+     * landed, and carry the rest into the next year keeping the progress already
+     * made. Safe to run twice, since an objective that already carried is skipped.
+     */
+    @Post('year/:year/close')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
+    @ApiOperation({ summary: 'Close a year and carry unmet objectives forward' })
+    @ApiQuery({ name: 'createNextYearQuarters', required: false, type: Boolean })
+    async closeYear(
+        @Param('year', ParseIntPipe) year: number,
+        @Request() req,
+        @Query('createNextYearQuarters') createNext?: string,
+    ) {
+        return this.okrAutomation.closeYear(req.user.companyId, year, {
+            createNextYearQuarters: createNext === 'true',
+        });
+    }
+
 }

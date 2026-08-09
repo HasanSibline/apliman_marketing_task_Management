@@ -661,6 +661,13 @@ model Objective {
   status      ObjectiveStatus @default(ON_TRACK)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  // Set when a year close carries an unmet objective into the next year. The
+  // original is kept so the previous year's record stays honest about what was
+  // missed, rather than the objective appearing to have simply moved.
+  carriedFromId String?
+  carriedFrom   Objective?      @relation("ObjectiveCarryOver", fields: [carriedFromId], references: [id])
+  carriedTo     Objective[]     @relation("ObjectiveCarryOver")
+
   keyResults  KeyResult[]
   company     Company         @relation(fields: [companyId], references: [id], onDelete: Cascade)
   quarter     Quarter?        @relation(fields: [quarterId], references: [id])

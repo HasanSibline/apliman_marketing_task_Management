@@ -245,4 +245,166 @@ export class OkrAutomationService {
       admins.map((a) => ({ userId: a.id, type, title, message, actionUrl })),
     );
   }
+  // ─────────────────────────────────────────────────────────────────────────
+  // Year rollover
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Close out a year for one company.
+   *
+   * Closes any quarter still open in that year, then carries unmet objectives into
+   * the following year rather than letting them evaporate when their quarter shuts.
+   *
+   * A carried objective is a NEW objective linked back to the original through
+   * carriedFromId. Moving the original would rewrite history and make last year look
+   * like it finished work it did not; copying keeps the miss on the record and gives
+   * the new year a fresh target. Key results are recreated at their current values,
+   * so a KR that reached 60% starts the new year from 60% rather than from zero.
+   *
+   * Idempotent: an objective that already has a carry-forward is skipped, so running
+   * this twice cannot duplicate anything.
+   */
+  async closeYear(
+    companyId: string,
+    year: number,
+    options: { createNextYearQuarters?: boolean } = {},
+  ): Promise<{
+    year: number;
+    quartersClosed: number;
+    objectivesCompleted: number;
+    objectivesCarried: number;
+    nextYearQuartersCreated: number;
+    targetQuarter: string | null;
+  }> {
+    const quarters = await this.prisma.quarter.findMany({
+      where: { companyId, year },
+      orderBy: { startDate: 'asc' },
+      select: { id: true, name: true, status: true },
+    });
+
+    let quartersClosed = 0;
+    for (const q of quarters.filter((q) => q.status !== 'CLOSED')) {
+      await this.prisma.quarter.update({ where: { id: q.id }, data: { status: 'CLOSED' } });
+      quartersClosed++;
+    }
+
+    // Where carried objectives land: the earliest quarter of the following year.
+    let nextYearQuartersCreated = 0;
+    let target = await this.prisma.quarter.findFirst({
+      where: { companyId, year: year + 1 },
+      orderBy: { startDate: 'asc' },
+      select: { id: true, name: true },
+    });
+
+    if (!target && options.createNextYearQuarters) {
+      // Calendar quarters for the new year, all UPCOMING. The daily job activates
+      // each one on its start date, so nobody has to remember.
+      for (let i = 0; i < 4; i++) {
+        const created = await this.prisma.quarter.create({
+          data: {
+            companyId,
+            name: `Q${i + 1}`,
+            year: year + 1,
+            startDate: new Date(Date.UTC(year + 1, i * 3, 1)),
+            // Last day of the quarter: day 0 of the next month rolls back one day.
+            endDate: new Date(Date.UTC(year + 1, i * 3 + 3, 0, 23, 59, 59)),
+            status: 'UPCOMING',
+          },
+          select: { id: true, name: true },
+        });
+        if (i === 0) target = created;
+        nextYearQuartersCreated++;
+      }
+    }
+
+    const objectives = await this.prisma.objective.findMany({
+      where: {
+        companyId,
+        quarter: { year },
+        status: { notIn: ['CANCELLED'] },
+        carriedTo: { none: {} }, // never carry the same objective twice
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        ownerId: true,
+        keyResults: {
+          select: { title: true, unit: true, startValue: true, targetValue: true, currentValue: true },
+        },
+      },
+    });
+
+    let objectivesCompleted = 0;
+    let objectivesCarried = 0;
+
+    for (const obj of objectives) {
+      const met =
+        obj.keyResults.length > 0 &&
+        obj.keyResults.every((kr) => {
+          const range = kr.targetValue - kr.startValue;
+          return range === 0
+            ? kr.currentValue >= kr.targetValue
+            : (kr.currentValue - kr.startValue) / range >= 0.999;
+        });
+
+      if (met) {
+        await this.prisma.objective.update({ where: { id: obj.id }, data: { status: 'COMPLETED' } });
+        objectivesCompleted++;
+        continue;
+      }
+
+      await this.prisma.objective.update({ where: { id: obj.id }, data: { status: 'OFF_TRACK' } });
+
+      if (!target) continue; // nowhere to carry it to
+
+      await this.prisma.objective.create({
+        data: {
+          companyId,
+          quarterId: target.id,
+          title: obj.title,
+          description: obj.description,
+          ownerId: obj.ownerId,
+          status: 'ON_TRACK',
+          carriedFromId: obj.id,
+          keyResults: {
+            create: obj.keyResults.map((kr) => ({
+              title: kr.title,
+              unit: kr.unit,
+              // Resume from where the work actually got to, not from zero.
+              startValue: kr.currentValue,
+              currentValue: kr.currentValue,
+              targetValue: kr.targetValue,
+            })),
+          },
+        },
+      });
+      objectivesCarried++;
+
+      if (obj.ownerId) {
+        await this.notifications.createNotification({
+          userId: obj.ownerId,
+          type: 'OBJECTIVE_CARRIED_FORWARD',
+          title: 'Objective carried into the new year',
+          message: `"${obj.title}" did not complete in ${year} and continues in ${target.name} ${year + 1}, starting from the progress already made.`,
+          actionUrl: '/objectives',
+        });
+      }
+    }
+
+    this.logger.log(
+      `Year ${year} closed for company ${companyId}: ${quartersClosed} quarter(s), ` +
+        `${objectivesCompleted} completed, ${objectivesCarried} carried`,
+    );
+
+    return {
+      year,
+      quartersClosed,
+      objectivesCompleted,
+      objectivesCarried,
+      nextYearQuartersCreated,
+      targetQuarter: target?.name ?? null,
+    };
+  }
+
 }
