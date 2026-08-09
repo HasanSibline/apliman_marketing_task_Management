@@ -450,7 +450,7 @@ const TaskDetailPage: React.FC = () => {
                           }
                         }}
                         disabled={!canEdit}
-                        className="appearance-none px-3 py-1.5 pr-8 rounded-lg text-sm font-medium border-2 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="appearance-none bg-none px-3 py-1.5 pr-8 rounded-lg text-sm font-medium border-2 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{
                           backgroundColor: `${currentTask.currentPhase?.color}20`,
                           color: currentTask.currentPhase?.color,

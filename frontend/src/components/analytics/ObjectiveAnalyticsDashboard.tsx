@@ -178,7 +178,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                             <select 
                                 value={selectedQuarter} 
                                 onChange={e => setSelectedQuarter(e.target.value)}
-                                className="appearance-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-bold text-sm py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm min-w-[140px]"
+                                className="appearance-none bg-none bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold text-sm py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 cursor-pointer shadow-sm min-w-[140px]"
                             >
                                 <option value="ALL">All Quarters</option>
                                 {availableQuarters.map(q => (

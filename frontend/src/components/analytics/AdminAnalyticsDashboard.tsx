@@ -372,8 +372,16 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                 {dashboardData.completedTasks || 0}
               </h3>
               <div className="flex items-center gap-1 mt-2">
-                <ArrowTrendingUpIcon className="h-4 w-4 text-success-600 dark:text-success-400" />
-                <span className="text-xs text-success-600 dark:text-success-400 font-medium">
+                {(dashboardData.tasksCompletedThisWeek || 0) > 0 && (
+                  <ArrowTrendingUpIcon className="h-4 w-4 text-success-600 dark:text-success-400" />
+                )}
+                <span
+                  className={`text-xs font-medium ${
+                    (dashboardData.tasksCompletedThisWeek || 0) > 0
+                      ? 'text-success-600 dark:text-success-400'
+                      : 'text-gray-500 dark:text-gray-400'
+                  }`}
+                >
                   {dashboardData.tasksCompletedThisWeek || 0} this week
                 </span>
               </div>

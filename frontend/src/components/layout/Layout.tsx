@@ -41,7 +41,7 @@ const Layout: React.FC = () => {
         <Header />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="app-backdrop flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6">
             <Outlet />
           </div>

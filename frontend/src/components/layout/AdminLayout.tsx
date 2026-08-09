@@ -77,7 +77,7 @@ const AdminLayout: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-700">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900">
       {/* Top Navigation Bar */}
       <nav className="bg-gradient-to-r from-primary-800 to-primary-950 shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -185,7 +185,7 @@ const AdminLayout: React.FC = () => {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-8">
+        <main className="app-backdrop flex-1 p-8">
           <Outlet />
         </main>
       </div>

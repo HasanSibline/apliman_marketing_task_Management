@@ -229,6 +229,62 @@
     opacity: 0.22;
   }
 
+  /* App backdrop: the sign-in grid behind every screen.
+     Attached to the viewport rather than the scrolling element, so it stays put as
+     content moves over it. Sits at the very back and never intercepts a click.
+     Both themes are tuned separately: white lines lifted off a navy ground read at a
+     different strength than dark lines dropped onto near-white. */
+  .app-backdrop::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(to right, currentColor 1px, transparent 1px),
+      linear-gradient(to bottom, currentColor 1px, transparent 1px);
+    background-size: 44px 44px;
+    color: theme('colors.gray.900');
+    opacity: 0.028;
+  }
+
+  html.dark .app-backdrop::before {
+    color: #fff;
+    opacity: 0.045;
+  }
+
+  /* One soft brand wash anchored top-left, the same gesture as the sign-in panel. */
+  .app-backdrop::after {
+    content: '';
+    position: fixed;
+    top: -14rem;
+    left: -10rem;
+    width: 46rem;
+    height: 46rem;
+    z-index: 0;
+    pointer-events: none;
+    border-radius: 9999px;
+    background: rgb(var(--color-primary-500));
+    filter: blur(120px);
+    opacity: 0.05;
+  }
+
+  html.dark .app-backdrop::after {
+    background: rgb(var(--color-primary-600));
+    opacity: 0.16;
+  }
+
+  /* Content rides above the backdrop. */
+  .app-backdrop > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  @media (prefers-contrast: more) {
+    .app-backdrop::before,
+    .app-backdrop::after { display: none; }
+  }
+
   /* Same treatment without the glow, for narrower strips like page headers. */
   .textured-grid {
     position: relative;

@@ -399,7 +399,9 @@ export class AnalyticsService {
     const tasksByStatus = [
       { name: 'Completed', value: completedTasks },
       { name: 'In Progress', value: inProgressTasks },
-      { name: 'Pending', value: totalAssignedTasks - completedTasks - inProgressTasks },
+      // Clamped: a negative remainder means the three counts disagree, and rendering
+      // that as a missing slice hides the disagreement rather than surfacing it.
+      { name: 'Pending', value: Math.max(0, totalAssignedTasks - completedTasks - inProgressTasks) },
     ].filter(item => item.value > 0);
 
     const recentTasks = await this.prisma.task.findMany({
