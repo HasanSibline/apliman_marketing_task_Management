@@ -98,6 +98,12 @@ export class QuartersController {
      * landed, and carry the rest into the next year keeping the progress already
      * made. Safe to run twice, since an objective that already carried is skipped.
      */
+    @Get('year/:year/report')
+    @ApiOperation({ summary: 'Full year report: outcomes, shortfalls and chart data' })
+    async yearReport(@Param('year', ParseIntPipe) year: number, @Request() req) {
+        return this.okrAutomation.getYearReport(req.user.companyId, year);
+    }
+
     @Post('year/:year/close')
     @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
     @ApiOperation({ summary: 'Close a year and carry unmet objectives forward' })

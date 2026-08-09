@@ -28,8 +28,11 @@ const Sidebar: React.FC = () => {
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
     { name: 'Calendar', href: '/calendar', icon: CalendarDaysIcon },
-    { name: 'Quarters', href: '/quarters', icon: CalendarDaysIcon, strategyOnly: true },
-    { name: 'Objectives', href: '/objectives', icon: FlagIcon, strategyOnly: true },
+    // Quarters and objectives were two entries for one hierarchy: a quarter holds
+    // objectives, an objective holds key results, and neither can be judged without
+    // the other. They now share one destination. The old routes still resolve, so
+    // existing links and bookmarks keep working.
+    { name: 'Strategy', href: '/strategy', icon: FlagIcon, strategyOnly: true },
     { name: 'Tickets', href: '/tickets', icon: TicketIcon },
     { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },

@@ -161,6 +161,12 @@ export class TasksService {
       const taskNumber = await this.generateTaskNumber(creator.companyId);
 
       // Create task
+      await this.assertStrategyLinksAgree(creator.companyId, {
+        quarterId: createTaskDto.quarterId,
+        objectiveId: createTaskDto.objectiveId,
+        keyResultId: createTaskDto.keyResultId,
+      });
+
       const task = await this.prisma.task.create({
         data: {
           title: createTaskDto.title,
@@ -1300,6 +1306,21 @@ export class TasksService {
   async update(id: string, updateTaskDto: UpdateTaskDto, userId: string, userRole: UserRole) {
     const existingTask = await this.findOne(id, userId, userRole);
 
+    // Edits can change the strategy links too, so validate the result of the edit,
+    // not just the fields that arrived: a request that only changes keyResultId must
+    // still agree with the objectiveId already on the row.
+    if (
+      updateTaskDto.quarterId !== undefined ||
+      updateTaskDto.objectiveId !== undefined ||
+      updateTaskDto.keyResultId !== undefined
+    ) {
+      await this.assertStrategyLinksAgree(existingTask.companyId, {
+        quarterId: updateTaskDto.quarterId !== undefined ? updateTaskDto.quarterId : existingTask.quarterId,
+        objectiveId: updateTaskDto.objectiveId !== undefined ? updateTaskDto.objectiveId : existingTask.objectiveId,
+        keyResultId: updateTaskDto.keyResultId !== undefined ? updateTaskDto.keyResultId : existingTask.keyResultId,
+      });
+    }
+
     // Only assigned users, creator, or admins can edit tasks
     if (userRole === UserRole.EMPLOYEE) {
       const isAssigned = existingTask.assignedToId === userId;
@@ -1856,6 +1877,71 @@ export class TasksService {
       });
     } catch (error) {
       console.error('Failed to update user lastActiveAt:', error);
+    }
+  }
+
+  /**
+   * Reject a task whose strategy links contradict each other.
+   *
+   * A task carries three independent optional links, and nothing in the database
+   * stops them disagreeing: you could point keyResultId at a key result belonging
+   * to one objective while objectiveId names another. Progress would then roll up
+   * into an objective the task is not filed under, and no screen would show the
+   * contradiction. Everything checked here is also scoped to the company, so a link
+   * cannot reach across tenants.
+   */
+  private async assertStrategyLinksAgree(
+    companyId: string,
+    links: { quarterId?: string | null; objectiveId?: string | null; keyResultId?: string | null },
+  ): Promise<void> {
+    const { quarterId, objectiveId, keyResultId } = links;
+
+    if (quarterId) {
+      const quarter = await this.prisma.quarter.findFirst({
+        where: { id: quarterId, companyId },
+        select: { id: true },
+      });
+      if (!quarter) throw new BadRequestException('That quarter does not belong to your company.');
+    }
+
+    let objective: { id: string; quarterId: string | null } | null = null;
+    if (objectiveId) {
+      objective = await this.prisma.objective.findFirst({
+        where: { id: objectiveId, companyId },
+        select: { id: true, quarterId: true },
+      });
+      if (!objective) throw new BadRequestException('That objective does not belong to your company.');
+
+      // A task may sit outside any quarter, but if both name one they must match,
+      // otherwise the task counts toward an objective in a different period.
+      if (quarterId && objective.quarterId && objective.quarterId !== quarterId) {
+        throw new BadRequestException(
+          "This objective belongs to a different quarter. Pick the objective's own quarter, or leave the quarter empty.",
+        );
+      }
+    }
+
+    if (keyResultId) {
+      const kr = await this.prisma.keyResult.findFirst({
+        where: { id: keyResultId, objective: { companyId } },
+        select: { id: true, objectiveId: true },
+      });
+      if (!kr) throw new BadRequestException('That key result does not belong to your company.');
+
+      // The rule that actually protects the numbers: a key result only measures work
+      // filed under its own objective.
+      if (objectiveId && kr.objectiveId !== objectiveId) {
+        throw new BadRequestException(
+          'That key result belongs to a different objective. Choose one from the objective you selected.',
+        );
+      }
+
+      // A key result with no objective named is ambiguous, so adopt its own.
+      if (!objectiveId) {
+        throw new BadRequestException(
+          'Choose the objective this key result belongs to as well, so the task is filed consistently.',
+        );
+      }
     }
   }
 

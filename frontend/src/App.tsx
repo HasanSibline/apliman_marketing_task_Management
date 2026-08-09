@@ -29,6 +29,7 @@ import CalendarPage from '@/pages/CalendarPage'
 import QuartersPage from '@/pages/quarters/QuartersPage'
 import QuarterDetailPage from '@/pages/quarters/QuarterDetailPage'
 import ObjectivesPage from '@/pages/objectives/ObjectivesPage'
+import StrategyPage from '@/pages/strategy/StrategyPage'
 import ObjectiveDetailPage from '@/pages/objectives/ObjectiveDetailPage'
 import TicketsPage from '@/pages/tickets/TicketsPage'
 import TicketDetailPage from '@/pages/tickets/TicketDetailPage'
@@ -176,6 +177,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="strategy" element={<StrategyPage />} />
         <Route path="analytics" element={<AnalyticsPage />} />
         <Route
           path="quarters"

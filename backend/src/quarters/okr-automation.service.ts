@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { deriveObjectiveStatus, elapsedFraction, objectiveProgress, didObjectiveLand } from '../okr/okr-math';
+import { deriveObjectiveStatus, elapsedFraction, objectiveProgress, didObjectiveLand, keyResultProgress, isKeyResultMet } from '../okr/okr-math';
 
 /**
  * Keeps quarters and objectives honest about time.
@@ -371,6 +371,150 @@ export class OkrAutomationService {
       objectivesCarried,
       nextYearQuartersCreated,
       targetQuarter: target?.name ?? null,
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Year report
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Everything needed to answer one question: did the company hit its goals this
+   * year, and where did it fall short?
+   *
+   * Read-only. Closing a year changes data; reading a year must not, so this can be
+   * run mid-year to see how things stand without committing to anything.
+   */
+  async getYearReport(companyId: string, year: number) {
+    const quarters = await this.prisma.quarter.findMany({
+      where: { companyId, year },
+      orderBy: { startDate: 'asc' },
+      select: {
+        id: true, name: true, status: true, startDate: true, endDate: true,
+        objectives: {
+          select: {
+            id: true, title: true, status: true, ownerId: true,
+            keyResults: { select: { title: true, unit: true, startValue: true, targetValue: true, currentValue: true } },
+          },
+        },
+      },
+    });
+
+    const quarterIds = quarters.map((q) => q.id);
+
+    // Objective has an ownerId but no relation to User, so names are resolved in one
+    // extra query rather than a join.
+    const ownerIds = [...new Set(
+      quarters.flatMap((q) => q.objectives.map((o) => o.ownerId).filter((id): id is string => !!id)),
+    )];
+    const owners = ownerIds.length
+      ? await this.prisma.user.findMany({ where: { id: { in: ownerIds } }, select: { id: true, name: true } })
+      : [];
+    const ownerName = new Map(owners.map((u) => [u.id, u.name]));
+
+    // Task counts per quarter, in two queries rather than one per quarter.
+    const [taskTotals, taskDone] = await Promise.all([
+      quarterIds.length
+        ? this.prisma.task.groupBy({ by: ['quarterId'], where: { quarterId: { in: quarterIds } }, _count: true })
+        : Promise.resolve([] as any[]),
+      quarterIds.length
+        ? this.prisma.task.groupBy({
+            by: ['quarterId'],
+            where: { quarterId: { in: quarterIds }, phase: { in: ['COMPLETED', 'ARCHIVED'] } },
+            _count: true,
+          })
+        : Promise.resolve([] as any[]),
+    ]);
+
+    const totalBy = new Map(taskTotals.map((r: any) => [r.quarterId, r._count]));
+    const doneBy = new Map(taskDone.map((r: any) => [r.quarterId, r._count]));
+
+    const quarterRows = quarters.map((q) => {
+      const objectives = q.objectives.map((o) => ({
+        id: o.id,
+        title: o.title,
+        owner: o.ownerId ? ownerName.get(o.ownerId) ?? null : null,
+        status: o.status,
+        progress: Math.round(objectiveProgress(o.keyResults) * 100),
+        landed: didObjectiveLand(o.keyResults),
+        keyResults: o.keyResults.map((kr) => ({
+          title: kr.title,
+          unit: kr.unit,
+          start: kr.startValue,
+          target: kr.targetValue,
+          current: Math.round(kr.currentValue * 100) / 100,
+          progress: Math.round(keyResultProgress(kr) * 100),
+          met: isKeyResultMet(kr),
+        })),
+      }));
+
+      const tasksTotal = totalBy.get(q.id) ?? 0;
+      const tasksCompleted = doneBy.get(q.id) ?? 0;
+
+      return {
+        id: q.id,
+        name: q.name,
+        status: q.status,
+        startDate: q.startDate,
+        endDate: q.endDate,
+        objectives,
+        objectivesTotal: objectives.length,
+        objectivesLanded: objectives.filter((o) => o.landed).length,
+        // Mean objective progress, so a quarter with one objective at 100% and one at
+        // 0% reads 50 rather than looking finished.
+        progress: objectives.length
+          ? Math.round(objectives.reduce((s, o) => s + o.progress, 0) / objectives.length)
+          : 0,
+        tasksTotal,
+        tasksCompleted,
+        taskCompletionRate: tasksTotal > 0 ? Math.round((tasksCompleted / tasksTotal) * 100) : 0,
+      };
+    });
+
+    const allObjectives = quarterRows.flatMap((q) => q.objectives);
+    const landed = allObjectives.filter((o) => o.landed);
+    const allKeyResults = allObjectives.flatMap((o) => o.keyResults);
+
+    const tasksTotal = quarterRows.reduce((s, q) => s + q.tasksTotal, 0);
+    const tasksCompleted = quarterRows.reduce((s, q) => s + q.tasksCompleted, 0);
+
+    const objectiveRate = allObjectives.length
+      ? Math.round((landed.length / allObjectives.length) * 100)
+      : 0;
+
+    // The headline verdict. Thresholds are a judgement call, stated here rather than
+    // hidden in the UI so they can be argued with and changed in one place.
+    const verdict =
+      allObjectives.length === 0 ? 'no-goals'
+      : objectiveRate >= 80 ? 'achieved'
+      : objectiveRate >= 50 ? 'partial'
+      : 'missed';
+
+    return {
+      year,
+      verdict,
+      objectiveRate,
+      summary: {
+        quarters: quarterRows.length,
+        quartersClosed: quarterRows.filter((q) => q.status === 'CLOSED').length,
+        objectivesTotal: allObjectives.length,
+        objectivesLanded: landed.length,
+        objectivesMissed: allObjectives.length - landed.length,
+        keyResultsTotal: allKeyResults.length,
+        keyResultsMet: allKeyResults.filter((kr) => kr.met).length,
+        averageObjectiveProgress: allObjectives.length
+          ? Math.round(allObjectives.reduce((s, o) => s + o.progress, 0) / allObjectives.length)
+          : 0,
+        tasksTotal,
+        tasksCompleted,
+        taskCompletionRate: tasksTotal > 0 ? Math.round((tasksCompleted / tasksTotal) * 100) : 0,
+      },
+      quarters: quarterRows,
+      // Ranked worst first: a report is read to find what needs attention.
+      shortfalls: allObjectives
+        .filter((o) => !o.landed)
+        .sort((a, b) => a.progress - b.progress)
+        .map((o) => ({ id: o.id, title: o.title, owner: o.owner, progress: o.progress, status: o.status })),
     };
   }
 
