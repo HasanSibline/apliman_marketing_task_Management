@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuarterDto } from './dto/create-quarter.dto';
 import { CloseQuarterDto } from './dto/close-quarter.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { didObjectiveLand } from '../okr/okr-math';
 
 @Injectable()
 export class QuartersService {
@@ -250,64 +251,37 @@ export class QuartersService {
         // did not land, and complete the ones that did.
         await this.settleObjectivesForClosedQuarter(id);
 
-        // Closing a quarter left the company with no active quarter at all: the daily
-        // job only promotes an UPCOMING quarter once its start date has arrived, so
-        // closing Q1 early meant a gap until Q2's start date, and closing it late
-        // meant waiting until the next 1am run.
-        //
-        // Choosing a next quarter in the close dialog is an explicit instruction to
-        // move on, so that quarter starts immediately, even ahead of its start date.
-        let started: { name: string; year: number } | null = null;
-        {
-            // An explicitly chosen next quarter wins. Otherwise take the earliest one
-            // still upcoming: closing a quarter means the cycle moves on, and leaving
-            // the company with no active quarter is never the intent. Without this,
-            // closing Q1 simply left nothing running until the next 1am job, or until
-            // Q2's start date, whichever came later.
-            const next = dto.nextQuarterId
-                ? await this.prisma.quarter.findFirst({
-                      where: { id: dto.nextQuarterId, companyId },
-                      select: { id: true, name: true, year: true, status: true },
-                  })
-                : await this.prisma.quarter.findFirst({
-                      where: { companyId, status: 'UPCOMING' },
-                      orderBy: [{ year: 'asc' }, { startDate: 'asc' }],
-                      select: { id: true, name: true, year: true, status: true },
-                  });
-
-            if (next && next.status !== 'CLOSED') {
-                // Any other active quarter closes first: only one runs at a time.
-                await this.prisma.quarter.updateMany({
-                    where: { companyId, status: 'ACTIVE', id: { not: next.id } },
-                    data: { status: 'CLOSED' },
-                });
-                await this.prisma.quarter.update({
-                    where: { id: next.id },
-                    data: { status: 'ACTIVE' },
-                });
-                started = { name: next.name, year: next.year };
-            }
-        }
+        // Deliberately does NOT start the next quarter. Closing and starting are two
+        // decisions, and an admin presses Start Cycle when the team is ready, which
+        // may not be the moment the previous quarter's books are closed. What matters
+        // is that the next quarter is visible and startable as soon as this one shuts.
+        const nextUp = await this.prisma.quarter.findFirst({
+            where: { companyId, status: 'UPCOMING' },
+            orderBy: [{ year: 'asc' }, { startDate: 'asc' }],
+            select: { id: true, name: true, year: true },
+        });
 
         await this.notifyAffectedAssignees(rollingOver, beingReleased, quarter, nextQuarter);
 
-        if (started) {
-            await this.notifyCompanyMembers(
+        // Tell the people who can start the next one that it is waiting, so closing
+        // does not simply leave silence.
+        if (nextUp) {
+            await this.notifyCompanyAdmins(
                 companyId,
-                'QUARTER_STARTED',
-                `${started.name} ${started.year} has started`,
-                `${quarter.name} ${quarter.year} is closed. Work now belongs to ${started.name} ${started.year}.`,
+                'QUARTER_READY_TO_START',
+                `${nextUp.name} ${nextUp.year} is ready to start`,
+                `${quarter.name} ${quarter.year} is closed. Open Quarters and press Start Cycle when the team is ready.`,
             );
         }
 
         return {
             success: true,
-            message: started
-                ? `Quarter closed. ${started.name} ${started.year} is now active.`
-                : 'Quarter closed. No quarter is active until the next one starts.',
+            message: nextUp
+                ? `Quarter closed. ${nextUp.name} ${nextUp.year} is ready, start it when you are.`
+                : 'Quarter closed. Create the next quarter when you are ready to plan it.',
             rolledOver: rollingOver.length,
             released: beingReleased.length,
-            startedQuarter: started,
+            nextQuarter: nextUp ? { id: nextUp.id, name: nextUp.name, year: nextUp.year } : null,
         };
     }
 
@@ -457,12 +431,7 @@ export class QuartersService {
         });
 
         for (const obj of objectives) {
-            const met =
-                obj.keyResults.length > 0 &&
-                obj.keyResults.every((kr) => {
-                    const range = kr.targetValue - kr.startValue;
-                    return range === 0 ? kr.currentValue >= kr.targetValue : (kr.currentValue - kr.startValue) / range >= 0.999;
-                });
+            const met = didObjectiveLand(obj.keyResults);
 
             await this.prisma.objective.update({
                 where: { id: obj.id },
@@ -471,15 +440,15 @@ export class QuartersService {
         }
     }
 
-    /** A quarter starting affects everyone's work, not just admins. */
-    private async notifyCompanyMembers(companyId: string, type: string, title: string, message: string) {
-        const members = await this.prisma.user.findMany({
-            where: { companyId, status: 'ACTIVE' },
+    /** The people who can actually start a quarter. */
+    private async notifyCompanyAdmins(companyId: string, type: string, title: string, message: string) {
+        const admins = await this.prisma.user.findMany({
+            where: { companyId, status: 'ACTIVE', role: { in: ['COMPANY_ADMIN', 'ADMIN'] } },
             select: { id: true },
         });
-        if (members.length === 0) return;
+        if (admins.length === 0) return;
         await this.notifications.createBulkNotifications(
-            members.map((m) => ({ userId: m.id, type, title, message, actionUrl: '/quarters' })),
+            admins.map((a) => ({ userId: a.id, type, title, message, actionUrl: '/quarters' })),
         );
     }
 

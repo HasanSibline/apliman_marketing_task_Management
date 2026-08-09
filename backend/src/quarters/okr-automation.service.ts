@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { deriveObjectiveStatus, elapsedFraction, objectiveProgress, didObjectiveLand } from '../okr/okr-math';
 
 /**
  * Keeps quarters and objectives honest about time.
@@ -150,33 +151,17 @@ export class OkrAutomationService {
       },
     });
 
-    const now = Date.now();
+    const now = new Date();
     let changed = 0;
 
     for (const obj of objectives) {
       if (!obj.quarter || obj.keyResults.length === 0) continue;
 
-      const progress = this.meanProgress(obj.keyResults);
+      const progress = objectiveProgress(obj.keyResults);
 
-      const start = obj.quarter.startDate.getTime();
-      const end = obj.quarter.endDate.getTime();
-      const span = Math.max(end - start, 1);
-      const elapsed = Math.min(Math.max((now - start) / span, 0), 1);
+      const elapsed = elapsedFraction(obj.quarter.startDate, obj.quarter.endDate, now);
 
-      let next: 'ON_TRACK' | 'AT_RISK' | 'OFF_TRACK' | 'COMPLETED';
-
-      if (progress >= 0.999) {
-        next = 'COMPLETED';
-      } else if (obj.quarter.status === 'CLOSED') {
-        // The quarter is over and the objective did not land.
-        next = 'OFF_TRACK';
-      } else if (elapsed <= 0.1) {
-        // Too early to judge: nothing is behind in the first week.
-        next = 'ON_TRACK';
-      } else {
-        const pace = progress / elapsed;
-        next = pace >= 0.8 ? 'ON_TRACK' : pace >= 0.5 ? 'AT_RISK' : 'OFF_TRACK';
-      }
+      const next = deriveObjectiveStatus(progress, elapsed, obj.quarter.status === 'CLOSED');
 
       if (next === obj.status) continue;
 
@@ -193,17 +178,6 @@ export class OkrAutomationService {
     return changed;
   }
 
-  /** Mean completion across key results, each clamped to its own 0..1 range. */
-  private meanProgress(keyResults: { startValue: number; targetValue: number; currentValue: number }[]): number {
-    if (keyResults.length === 0) return 0;
-    const total = keyResults.reduce((sum, kr) => {
-      const range = kr.targetValue - kr.startValue;
-      if (range === 0) return sum + (kr.currentValue >= kr.targetValue ? 1 : 0);
-      const ratio = (kr.currentValue - kr.startValue) / range;
-      return sum + Math.min(Math.max(ratio, 0), 1);
-    }, 0);
-    return total / keyResults.length;
-  }
 
   private async notifyObjectiveOwner(
     objectiveId: string,
@@ -339,14 +313,7 @@ export class OkrAutomationService {
     let objectivesCarried = 0;
 
     for (const obj of objectives) {
-      const met =
-        obj.keyResults.length > 0 &&
-        obj.keyResults.every((kr) => {
-          const range = kr.targetValue - kr.startValue;
-          return range === 0
-            ? kr.currentValue >= kr.targetValue
-            : (kr.currentValue - kr.startValue) / range >= 0.999;
-        });
+      const met = didObjectiveLand(obj.keyResults);
 
       if (met) {
         await this.prisma.objective.update({ where: { id: obj.id }, data: { status: 'COMPLETED' } });

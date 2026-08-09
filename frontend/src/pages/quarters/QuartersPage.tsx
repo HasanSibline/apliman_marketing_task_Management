@@ -162,11 +162,19 @@ function CloseQuarterModal({
     const handleClose = async () => {
         setLoading(true)
         try {
-            await api.post(`/quarters/${quarter.id}/close`, {
+            const { data } = await api.post(`/quarters/${quarter.id}/close`, {
                 rolloverTaskIds: Array.from(selected),
                 nextQuarterId: nextQuarterId || undefined,
             })
-            toast.success('Strategy cycle closed!')
+            // Say what happens next rather than just confirming the close. Closing
+            // does not start the following quarter: an admin does that with Start
+            // Cycle when the team is ready.
+            toast.success(
+                data?.nextQuarter
+                    ? `Quarter closed. ${data.nextQuarter.name} ${data.nextQuarter.year} is ready to start.`
+                    : 'Quarter closed. Create the next quarter when you are ready.',
+                { duration: 6000 },
+            )
             onClosed()
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to close quarter')

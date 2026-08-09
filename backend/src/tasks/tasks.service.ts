@@ -8,6 +8,7 @@ import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UserRole } from '../types/prisma';
+import { keyResultValue } from '../okr/okr-math';
 
 @Injectable()
 export class TasksService {
@@ -1892,27 +1893,14 @@ export class TasksService {
 
       // No linked work means no evidence of progress, so the key result sits at its
       // starting value rather than holding a stale number from tasks since removed.
-      const fractions = tasks.map((t) => {
-        const complete =
+      const currentValue = keyResultValue(kr, tasks.map((t) => ({
+        isComplete:
           t.completedAt !== null ||
           t.phase === 'COMPLETED' ||
           t.phase === 'ARCHIVED' ||
-          t.currentPhase?.isEndPhase === true;
-
-        // A finished task counts in full even if some subtask was never ticked.
-        // Checking subtasks first meant a key result could never reach its target
-        // while any task carried a stray unchecked subtask.
-        if (complete) return 1;
-
-        if (t.subtasks.length > 0) {
-          const done = t.subtasks.filter((st) => st.isCompleted).length;
-          return done / t.subtasks.length;
-        }
-        return 0;
-      });
-
-      const ratio = fractions.length > 0 ? fractions.reduce((a, b) => a + b, 0) / fractions.length : 0;
-      const currentValue = kr.startValue + (kr.targetValue - kr.startValue) * ratio;
+          t.currentPhase?.isEndPhase === true,
+        subtasks: t.subtasks,
+      })));
 
       // Skip the write when nothing moved, so we do not churn updatedAt on every
       // unrelated task edit.
