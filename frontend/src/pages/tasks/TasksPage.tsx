@@ -33,11 +33,17 @@ const TasksPage: React.FC = () => {
   const [phases, setPhases] = useState<any[]>([])
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
 
+  // Work that belongs to nobody's quarter is the easiest to lose: it does not appear
+  // on a quarter page, and nothing surfaces it. The API already supports
+  // quarterId=null as a backlog filter; this exposes it.
+  const [scope, setScope] = useState<'all' | 'active' | 'backlog'>('all')
+
   useEffect(() => {
-    // Fetch all tasks without pagination limit
-    dispatch(fetchTasks({ ...filters, limit: 10000 }))
+    const scoped =
+      scope === 'backlog' ? { quarterId: 'null' } : scope === 'active' ? { quarterId: 'active' } : {}
+    dispatch(fetchTasks({ ...filters, ...scoped, limit: 10000 }))
     loadWorkflows()
-  }, [dispatch, filters])
+  }, [dispatch, filters, scope])
 
   const loadWorkflows = async () => {
     try {
@@ -116,12 +122,38 @@ const TasksPage: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Tasks</h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Manage and track your tasks by workflow type
+          <h1 className="page-title">Tasks</h1>
+          <p className="page-subtitle">
+            {scope === 'backlog'
+              ? 'Work that is not scheduled into any quarter.'
+              : scope === 'active'
+                ? 'Work scheduled into the quarter currently running.'
+                : 'Everything assigned across your workspace.'}
           </p>
         </div>
         <div className="flex items-center flex-wrap gap-3">
+          {/* Scope. Backlog is the one that matters: without it, work that belongs to
+              no quarter appears on no quarter page and is effectively invisible. */}
+          <div role="group" aria-label="Task scope" className="surface-muted inline-flex p-1">
+            {([
+              { key: 'all', label: 'All' },
+              { key: 'active', label: 'This quarter' },
+              { key: 'backlog', label: 'Not scheduled' },
+            ] as const).map((option) => (
+              <button
+                key={option.key}
+                onClick={() => setScope(option.key)}
+                aria-pressed={scope === option.key}
+                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                  scope === option.key
+                    ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
             className="relative btn-secondary"

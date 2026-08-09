@@ -954,7 +954,22 @@ export class TasksService {
     }
 
     if (quarterId) {
-      where.quarterId = quarterId === 'null' ? null : quarterId;
+      if (quarterId === 'null') {
+        // Backlog: assigned work that sits in no quarter at all, which is otherwise
+        // invisible because it appears on no quarter page.
+        where.quarterId = null;
+      } else if (quarterId === 'active') {
+        // Whatever quarter this company is currently running, without the caller
+        // needing to look up its id first.
+        const active = await this.prisma.quarter.findFirst({
+          where: { companyId: where.companyId, status: 'ACTIVE' },
+          select: { id: true },
+        });
+        // No active quarter means nothing can match, rather than matching everything.
+        where.quarterId = active?.id ?? '__no_active_quarter__';
+      } else {
+        where.quarterId = quarterId;
+      }
     }
 
     const [tasks, total] = await Promise.all([

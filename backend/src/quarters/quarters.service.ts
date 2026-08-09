@@ -2,10 +2,14 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuarterDto } from './dto/create-quarter.dto';
 import { CloseQuarterDto } from './dto/close-quarter.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class QuartersService {
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly notifications: NotificationsService,
+    ) { }
 
     async findAll(companyId: string, userRole?: string) {
         const where: any = { companyId };
@@ -176,11 +180,40 @@ export class QuartersService {
             data: { status: 'CLOSED' },
         });
 
+        const rolloverIds = dto.rolloverTaskIds ?? [];
+
+        // Capture who is affected BEFORE the updates, while the links still exist.
+        // Closing a quarter used to move and orphan people's work in silence: the
+        // assignee found out by noticing their task had left the quarter.
+        const [rollingOver, beingReleased, nextQuarter] = await Promise.all([
+            rolloverIds.length > 0
+                ? this.prisma.task.findMany({
+                      where: { id: { in: rolloverIds }, companyId },
+                      select: { id: true, title: true, assignedToId: true },
+                  })
+                : Promise.resolve([]),
+            this.prisma.task.findMany({
+                where: {
+                    quarterId: id,
+                    companyId,
+                    id: { notIn: rolloverIds },
+                    phase: { notIn: ['COMPLETED', 'ARCHIVED'] },
+                },
+                select: { id: true, title: true, assignedToId: true },
+            }),
+            dto.nextQuarterId
+                ? this.prisma.quarter.findUnique({
+                      where: { id: dto.nextQuarterId },
+                      select: { name: true, year: true },
+                  })
+                : Promise.resolve(null),
+        ]);
+
         // Roll over selected tasks
-        if (dto.rolloverTaskIds?.length > 0) {
+        if (rolloverIds.length > 0) {
             const targetQuarterId = dto.nextQuarterId ?? null;
             await this.prisma.task.updateMany({
-                where: { id: { in: dto.rolloverTaskIds }, companyId },
+                where: { id: { in: rolloverIds }, companyId },
                 data: {
                     quarterId: targetQuarterId,
                     isRolledOver: true,
@@ -194,13 +227,25 @@ export class QuartersService {
             where: {
                 quarterId: id,
                 companyId,
-                id: { notIn: dto.rolloverTaskIds ?? [] },
+                id: { notIn: rolloverIds },
                 phase: { notIn: ['COMPLETED', 'ARCHIVED'] },
             },
             data: { quarterId: null },
         });
 
-        return { success: true, message: 'Quarter closed successfully' };
+        // Objectives kept pointing at a closed quarter with no status change, so an
+        // unfinished objective simply stopped meaning anything. Mark the ones that
+        // did not land, and complete the ones that did.
+        await this.settleObjectivesForClosedQuarter(id);
+
+        await this.notifyAffectedAssignees(rollingOver, beingReleased, quarter, nextQuarter);
+
+        return {
+            success: true,
+            message: 'Quarter closed successfully',
+            rolledOver: rollingOver.length,
+            released: beingReleased.length,
+        };
     }
 
     async getAnalytics(id: string, companyId: string) {
@@ -297,4 +342,70 @@ export class QuartersService {
 
         return { year, quarters: data, summary: { totalTasks: totalYear, completedTasks: completedYear, overallCompletionRate } };
     }
+
+    /**
+     * A task the assignee still owns should never quietly change context. Tells each
+     * affected person once, whether their work moved forward or came off the quarter.
+     */
+    private async notifyAffectedAssignees(
+        rolledOver: { id: string; title: string; assignedToId: string | null }[],
+        released: { id: string; title: string; assignedToId: string | null }[],
+        quarter: { name: string; year: number },
+        nextQuarter: { name: string; year: number } | null,
+    ) {
+        const payloads: any[] = [];
+
+        for (const task of rolledOver) {
+            if (!task.assignedToId) continue;
+            payloads.push({
+                userId: task.assignedToId,
+                taskId: task.id,
+                type: 'TASK_ROLLED_OVER',
+                title: 'Your task moved to the next quarter',
+                message: nextQuarter
+                    ? `"${task.title}" carried over from ${quarter.name} ${quarter.year} into ${nextQuarter.name} ${nextQuarter.year}.`
+                    : `"${task.title}" carried over from ${quarter.name} ${quarter.year} and is not in a quarter yet.`,
+                actionUrl: `/tasks/${task.id}`,
+            });
+        }
+
+        for (const task of released) {
+            if (!task.assignedToId) continue;
+            payloads.push({
+                userId: task.assignedToId,
+                taskId: task.id,
+                type: 'TASK_RELEASED_FROM_QUARTER',
+                title: 'Your task is no longer in a quarter',
+                message: `${quarter.name} ${quarter.year} closed and "${task.title}" was not carried over. It is still assigned to you and is now unscheduled.`,
+                actionUrl: `/tasks/${task.id}`,
+            });
+        }
+
+        if (payloads.length > 0) {
+            await this.notifications.createBulkNotifications(payloads);
+        }
+    }
+
+    /** Objectives in a closed quarter are completed if they landed, otherwise off track. */
+    private async settleObjectivesForClosedQuarter(quarterId: string) {
+        const objectives = await this.prisma.objective.findMany({
+            where: { quarterId, status: { notIn: ['CANCELLED', 'COMPLETED'] } },
+            select: { id: true, keyResults: { select: { startValue: true, targetValue: true, currentValue: true } } },
+        });
+
+        for (const obj of objectives) {
+            const met =
+                obj.keyResults.length > 0 &&
+                obj.keyResults.every((kr) => {
+                    const range = kr.targetValue - kr.startValue;
+                    return range === 0 ? kr.currentValue >= kr.targetValue : (kr.currentValue - kr.startValue) / range >= 0.999;
+                });
+
+            await this.prisma.objective.update({
+                where: { id: obj.id },
+                data: { status: met ? 'COMPLETED' : 'OFF_TRACK' },
+            });
+        }
+    }
+
 }
