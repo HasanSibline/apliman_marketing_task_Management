@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   CalendarDaysIcon,
@@ -94,6 +95,8 @@ const StrategyPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [view, setView] = useState<'plan' | 'report'>('plan')
+  const [creating, setCreating] = useState(false)
+  const [draft, setDraft] = useState({ title: '', description: '' })
   const [reportYear, setReportYear] = useState<number>(new Date().getFullYear())
 
   const selected = useMemo(() => quarters.find((q) => q.id === selectedId) ?? null, [quarters, selectedId])
@@ -141,6 +144,27 @@ const StrategyPage: React.FC = () => {
       await loadQuarters()
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Could not start this quarter')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const createObjective = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selected || !draft.title.trim()) return
+    setBusy(true)
+    try {
+      await api.post('/objectives', {
+        title: draft.title.trim(),
+        description: draft.description.trim() || undefined,
+        quarterId: selected.id,
+      })
+      toast.success('Objective added')
+      setDraft({ title: '', description: '' })
+      setCreating(false)
+      await loadObjectives(selected.id)
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message ?? 'Could not add the objective')
     } finally {
       setBusy(false)
     }
@@ -206,15 +230,15 @@ const StrategyPage: React.FC = () => {
       ) : (
         <>
           {/* Quarter rail: the context everything below is scoped to. */}
-          <div className="flex gap-3 overflow-x-auto pb-1" role="tablist" aria-label="Quarters">
+          <div className="flex gap-3 overflow-x-auto pb-1" role="group" aria-label="Select a quarter">
             {quarters.map((q) => {
               const active = q.id === selectedId
               const s = QUARTER_STATUS[q.status]
               return (
                 <button
                   key={q.id}
-                  role="tab"
-                  aria-selected={active}
+                  aria-pressed={active}
+                  aria-label={`${q.name} ${q.year}, ${QUARTER_STATUS[q.status].label}`}
                   onClick={() => setSelectedId(q.id)}
                   className={`surface min-w-[13rem] shrink-0 p-4 text-left transition-colors ${
                     active ? 'ring-2 ring-primary-500' : 'hover:border-gray-300 dark:hover:border-gray-600'
@@ -262,10 +286,10 @@ const StrategyPage: React.FC = () => {
                   </button>
                 )}
                 {isAdmin && selected.status === 'ACTIVE' && (
-                  <a href="/quarters" className="btn-secondary">
+                  <Link to="/quarters" className="btn-secondary">
                     <LockClosedIcon className="mr-2 h-4 w-4" />
                     Close cycle
-                  </a>
+                  </Link>
                 )}
               </div>
 
@@ -274,13 +298,55 @@ const StrategyPage: React.FC = () => {
                   <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
                     Objectives in this quarter
                   </h3>
-                  {isAdmin && (
-                    <a href="/objectives" className="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+                  {isAdmin && selected.status !== 'CLOSED' && (
+                    <button
+                      onClick={() => setCreating((v) => !v)}
+                      className="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400"
+                    >
                       <PlusIcon className="mr-1 inline h-4 w-4" />
-                      Add an objective
-                    </a>
+                      {creating ? 'Cancel' : 'Add an objective'}
+                    </button>
                   )}
                 </div>
+
+                {creating && (
+                  <form onSubmit={createObjective} className="surface-muted mb-4 space-y-3 p-4">
+                    <div>
+                      <label htmlFor="obj-title" className="form-label">What are you trying to achieve?</label>
+                      <input
+                        id="obj-title"
+                        autoFocus
+                        required
+                        value={draft.title}
+                        onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))}
+                        placeholder="Grow retention in enterprise accounts"
+                        className="input-field"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="obj-desc" className="form-label">Context (optional)</label>
+                      <input
+                        id="obj-desc"
+                        value={draft.description}
+                        onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+                        placeholder="Why this matters this quarter"
+                        className="input-field"
+                      />
+                    </div>
+                    <p className="form-hint">
+                      Added to {selected.name} {selected.year}. Open it afterwards to add the key results that
+                      measure it, since an objective with none can never show progress.
+                    </p>
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={busy || !draft.title.trim()} className="btn-primary">
+                        {busy ? 'Adding…' : 'Add objective'}
+                      </button>
+                      <button type="button" onClick={() => setCreating(false)} className="btn-secondary">
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 {objectives.length === 0 ? (
                   <EmptyState
@@ -298,12 +364,12 @@ const StrategyPage: React.FC = () => {
                         <li key={o.id} className="surface-muted p-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
                             <div className="min-w-0">
-                              <a
-                                href={`/objectives/${o.id}`}
+                              <Link
+                                to={`/objectives/${o.id}`}
                                 className="font-medium text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400"
                               >
                                 {o.title}
-                              </a>
+                              </Link>
                               {o.description && (
                                 <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{o.description}</p>
                               )}
@@ -318,9 +384,25 @@ const StrategyPage: React.FC = () => {
                             </div>
                           </div>
 
-                          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                          <div
+                            role="progressbar"
+                            aria-valuenow={progress}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-label={`${o.title} progress`}
+                            className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+                          >
                             <div className="h-full rounded-full bg-primary-600" style={{ width: `${progress}%` }} />
                           </div>
+
+                          {(!o.keyResults || o.keyResults.length === 0) && (
+                            <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">
+                              No key results yet, so this objective cannot show progress.{' '}
+                              <Link to={`/objectives/${o.id}`} className="font-medium underline">
+                                Add one
+                              </Link>
+                            </p>
+                          )}
 
                           {o.keyResults?.length > 0 && (
                             <ul className="mt-3 space-y-2">

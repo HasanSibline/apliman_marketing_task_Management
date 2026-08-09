@@ -11,6 +11,7 @@ import {
   ArrowDownTrayIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline'
+import { Link } from 'react-router-dom'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
@@ -297,9 +298,9 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
                     {report.shortfalls.map((s) => (
                       <tr key={s.id} className="border-b border-gray-100 last:border-0 dark:border-gray-700/60">
                         <td className="px-5 py-3">
-                          <a href={`/objectives/${s.id}`} className="font-medium text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400">
+                          <Link to={`/objectives/${s.id}`} className="font-medium text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400">
                             {s.title}
-                          </a>
+                          </Link>
                         </td>
                         <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{s.owner ?? 'Unassigned'}</td>
                         <td className="px-5 py-3 text-right">
