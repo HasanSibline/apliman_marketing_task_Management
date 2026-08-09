@@ -960,12 +960,15 @@ export class TasksService {
         where.quarterId = null;
       } else if (quarterId === 'active') {
         // Whatever quarter this company is currently running, without the caller
-        // needing to look up its id first.
-        const active = await this.prisma.quarter.findFirst({
-          where: { companyId: where.companyId, status: 'ACTIVE' },
-          select: { id: true },
-        });
-        // No active quarter means nothing can match, rather than matching everything.
+        // needing to look up its id first. Requires a company: a super admin has
+        // none, and an unscoped lookup would pick an arbitrary company's quarter.
+        const active = where.companyId
+          ? await this.prisma.quarter.findFirst({
+              where: { companyId: where.companyId, status: 'ACTIVE' },
+              select: { id: true },
+            })
+          : null;
+        // No active quarter means nothing matches, rather than everything.
         where.quarterId = active?.id ?? '__no_active_quarter__';
       } else {
         where.quarterId = quarterId;
@@ -1890,16 +1893,22 @@ export class TasksService {
       // No linked work means no evidence of progress, so the key result sits at its
       // starting value rather than holding a stale number from tasks since removed.
       const fractions = tasks.map((t) => {
-        if (t.subtasks.length > 0) {
-          const done = t.subtasks.filter((st) => st.isCompleted).length;
-          return done / t.subtasks.length;
-        }
         const complete =
           t.completedAt !== null ||
           t.phase === 'COMPLETED' ||
           t.phase === 'ARCHIVED' ||
           t.currentPhase?.isEndPhase === true;
-        return complete ? 1 : 0;
+
+        // A finished task counts in full even if some subtask was never ticked.
+        // Checking subtasks first meant a key result could never reach its target
+        // while any task carried a stray unchecked subtask.
+        if (complete) return 1;
+
+        if (t.subtasks.length > 0) {
+          const done = t.subtasks.filter((st) => st.isCompleted).length;
+          return done / t.subtasks.length;
+        }
+        return 0;
       });
 
       const ratio = fractions.length > 0 ? fractions.reduce((a, b) => a + b, 0) / fractions.length : 0;

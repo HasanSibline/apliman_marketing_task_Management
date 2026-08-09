@@ -185,7 +185,7 @@ const AdminAnalytics: React.FC = () => {
             { name: 'Overdue', value: companyStats.overdueTasks, sub: 'past their due date' },
             { name: 'Open tickets', value: companyStats.openTickets, sub: 'not yet resolved' },
             { name: 'AI messages', value: companyStats.totalAIMessages, sub: 'sent to Aura Assist' },
-            { name: 'Plan', value: companyStats.company?.subscriptionPlan ?? '—', sub: companyStats.company?.subscriptionStatus ?? '' },
+            { name: 'Plan', value: companyStats.company?.subscriptionPlan ?? 'Not set', sub: companyStats.company?.subscriptionStatus ?? '' },
             { name: 'Status', value: companyStats.company?.isActive ? 'Active' : 'Inactive', sub: 'account state' },
           ].map((stat) => (
             <div key={stat.name} className="surface p-5">
