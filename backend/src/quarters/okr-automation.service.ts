@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { deriveObjectiveStatus, elapsedFraction, objectiveProgress, didObjectiveLand, keyResultProgress, isKeyResultMet } from '../okr/okr-math';
+import { deriveObjectiveStatus, elapsedFraction, objectiveProgress, didObjectiveLand, keyResultProgress, isKeyResultMet, yearVerdict } from '../okr/okr-math';
 
 /**
  * Keeps quarters and objectives honest about time.
@@ -484,11 +484,7 @@ export class OkrAutomationService {
 
     // The headline verdict. Thresholds are a judgement call, stated here rather than
     // hidden in the UI so they can be argued with and changed in one place.
-    const verdict =
-      allObjectives.length === 0 ? 'no-goals'
-      : objectiveRate >= 80 ? 'achieved'
-      : objectiveRate >= 50 ? 'partial'
-      : 'missed';
+    const verdict = yearVerdict(allObjectives.length, landed.length);
 
     return {
       year,

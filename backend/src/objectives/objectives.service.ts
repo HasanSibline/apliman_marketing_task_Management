@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TasksService } from '../tasks/tasks.service';
 import { CreateObjectiveDto } from './dto/create-objective.dto';
 import { CreateKeyResultDto, UpdateKeyResultDto } from './dto/key-result.dto';
+import { taskFraction } from '../okr/okr-math';
 
 function calcProgress(keyResults: any[]): number {
     if (!keyResults?.length) return 0;
@@ -207,6 +208,63 @@ export class ObjectivesService {
         }
         
         return task;
+    }
+
+    /**
+     * The tasks a key result is calculated from, with the contribution each one makes.
+     *
+     * A key result reads 62 of 100 and, until now, there was no way to ask why. This
+     * returns the same fractions the rollup uses, so the page can show the arithmetic
+     * rather than asking anyone to trust it.
+     */
+    async getKeyResultTasks(keyResultId: string, companyId: string) {
+        const kr = await this.prisma.keyResult.findFirst({
+            where: { id: keyResultId, objective: { companyId } },
+            select: { id: true, title: true, startValue: true, targetValue: true, currentValue: true },
+        });
+        if (!kr) throw new NotFoundException('Key result not found');
+
+        const tasks = await this.prisma.task.findMany({
+            where: { keyResultId, companyId },
+            orderBy: { createdAt: 'desc' },
+            select: {
+                id: true,
+                title: true,
+                taskNumber: true,
+                phase: true,
+                completedAt: true,
+                dueDate: true,
+                assignedTo: { select: { id: true, name: true, avatar: true } },
+                currentPhase: { select: { name: true, color: true, isEndPhase: true } },
+                subtasks: { select: { isCompleted: true } },
+            },
+        });
+
+        return {
+            keyResult: kr,
+            tasks: tasks.map((t) => {
+                const isComplete =
+                    t.completedAt !== null ||
+                    t.phase === 'COMPLETED' ||
+                    t.phase === 'ARCHIVED' ||
+                    t.currentPhase?.isEndPhase === true;
+                const fraction = taskFraction({ isComplete, subtasks: t.subtasks });
+                return {
+                    id: t.id,
+                    title: t.title,
+                    taskNumber: t.taskNumber,
+                    phaseName: t.currentPhase?.name ?? t.phase,
+                    phaseColor: t.currentPhase?.color ?? null,
+                    assignee: t.assignedTo?.name ?? null,
+                    dueDate: t.dueDate,
+                    isComplete,
+                    subtasksTotal: t.subtasks.length,
+                    subtasksDone: t.subtasks.filter((st) => st.isCompleted).length,
+                    // What this task adds to the key result, as a percentage of one task.
+                    contribution: Math.round(fraction * 100),
+                };
+            }),
+        };
     }
 
 }

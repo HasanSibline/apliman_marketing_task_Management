@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   CalendarDaysIcon,
@@ -8,7 +7,6 @@ import {
   LockClosedIcon,
   PlusIcon,
   ChartBarSquareIcon,
-  CheckCircleIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
@@ -16,38 +14,10 @@ import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 import EmptyState from '@/components/common/EmptyState'
 import YearReport from './YearReport'
-
-/**
- * One place for the whole strategy hierarchy.
- *
- * Quarters and objectives were separate top-level pages, which split a single
- * mental model across two destinations: a quarter holds objectives, an objective
- * holds key results, and you cannot judge one without the other. Here the quarter
- * is the context at the top and everything below is scoped to it.
- *
- * Key results have never had a page of their own; they belong inside their
- * objective and are shown inline.
- */
+import CloseCycleModal from './CloseCycleModal'
+import ObjectiveCard, { Objective as ObjectiveShape } from './ObjectiveCard'
 
 type QuarterStatus = 'UPCOMING' | 'ACTIVE' | 'CLOSED'
-
-interface KeyResult {
-  id: string
-  title: string
-  unit?: string | null
-  startValue: number
-  targetValue: number
-  currentValue: number
-}
-
-interface Objective {
-  id: string
-  title: string
-  description?: string | null
-  status: string
-  progress?: number
-  keyResults: KeyResult[]
-}
 
 interface Quarter {
   id: string
@@ -58,31 +28,12 @@ interface Quarter {
   endDate: string
 }
 
-const STATUS_STYLES: Record<string, { label: string; className: string }> = {
-  ON_TRACK: { label: 'On track', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
-  AT_RISK: { label: 'At risk', className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' },
-  OFF_TRACK: { label: 'Off track', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
-  COMPLETED: { label: 'Completed', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' },
-  CANCELLED: { label: 'Cancelled', className: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' },
-}
+type Objective = ObjectiveShape
 
 const QUARTER_STATUS: Record<QuarterStatus, { label: string; className: string }> = {
   UPCOMING: { label: 'Upcoming', className: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' },
   ACTIVE: { label: 'Running now', className: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' },
   CLOSED: { label: 'Closed', className: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400' },
-}
-
-/** Percentage a key result has travelled from its start toward its target. */
-function krProgress(kr: KeyResult): number {
-  const range = kr.targetValue - kr.startValue
-  if (range === 0) return kr.currentValue >= kr.targetValue ? 100 : 0
-  return Math.min(100, Math.max(0, Math.round(((kr.currentValue - kr.startValue) / range) * 100)))
-}
-
-function objProgress(o: Objective): number {
-  if (typeof o.progress === 'number') return o.progress
-  if (!o.keyResults?.length) return 0
-  return Math.round(o.keyResults.reduce((s, kr) => s + krProgress(kr), 0) / o.keyResults.length)
 }
 
 const StrategyPage: React.FC = () => {
@@ -95,6 +46,8 @@ const StrategyPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [view, setView] = useState<'plan' | 'report'>('plan')
+  const [year, setYear] = useState<number | null>(null)
+  const [closing, setClosing] = useState(false)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ title: '', description: '' })
   const [reportYear, setReportYear] = useState<number>(new Date().getFullYear())
@@ -105,10 +58,12 @@ const StrategyPage: React.FC = () => {
     const { data } = await api.get('/quarters')
     const list: Quarter[] = data ?? []
     setQuarters(list)
+    // Open on the year that is actually running, so the common case needs no clicks.
+    const running = list.find((q) => q.status === 'ACTIVE')
+    setYear((y) => y ?? running?.year ?? list[0]?.year ?? new Date().getFullYear())
     setSelectedId((current) => {
       if (current && list.some((q) => q.id === current)) return current
-      // Land on whatever is running, since that is where work is happening.
-      return (list.find((q) => q.status === 'ACTIVE') ?? list[0])?.id ?? ''
+      return (running ?? list[0])?.id ?? ''
     })
     return list
   }, [])
@@ -170,6 +125,11 @@ const StrategyPage: React.FC = () => {
     }
   }
 
+  const quartersInYear = useMemo(
+    () => quarters.filter((q) => q.year === year),
+    [quarters, year],
+  )
+
   const years = useMemo(
     () => [...new Set(quarters.map((q) => q.year))].sort((a, b) => b - a),
     [quarters],
@@ -229,26 +189,50 @@ const StrategyPage: React.FC = () => {
         />
       ) : (
         <>
-          {/* Quarter rail: the context everything below is scoped to. */}
+          {/* Years first, then that year's quarters: a flat list mixed every year
+              together and made the running quarter hard to find. */}
+          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Select a year">
+            {years.map((y) => (
+              <button
+                key={y}
+                onClick={() => {
+                  setYear(y)
+                  const first = quarters.find((q) => q.year === y && q.status === 'ACTIVE')
+                    ?? quarters.find((q) => q.year === y)
+                  if (first) setSelectedId(first.id)
+                }}
+                aria-pressed={year === y}
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+                  year === y
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'surface text-gray-700 hover:border-gray-300 dark:text-gray-300 dark:hover:border-gray-600'
+                }`}
+              >
+                {y}
+                <span className={`ml-2 text-xs ${year === y ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
+                  {quarters.filter((q) => q.year === y).length}
+                </span>
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-3 overflow-x-auto pb-1" role="group" aria-label="Select a quarter">
-            {quarters.map((q) => {
+            {quartersInYear.map((q) => {
               const active = q.id === selectedId
-              const s = QUARTER_STATUS[q.status]
+              const st = QUARTER_STATUS[q.status]
               return (
                 <button
                   key={q.id}
                   aria-pressed={active}
-                  aria-label={`${q.name} ${q.year}, ${QUARTER_STATUS[q.status].label}`}
+                  aria-label={`${q.name} ${q.year}, ${st.label}`}
                   onClick={() => setSelectedId(q.id)}
                   className={`surface min-w-[13rem] shrink-0 p-4 text-left transition-colors ${
                     active ? 'ring-2 ring-primary-500' : 'hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-gray-900 dark:text-white">
-                      {q.name} {q.year}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${s.className}`}>{s.label}</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">{q.name}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.className}`}>{st.label}</span>
                   </div>
                   <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                     {new Date(q.startDate).toLocaleDateString()} to {new Date(q.endDate).toLocaleDateString()}
@@ -286,10 +270,10 @@ const StrategyPage: React.FC = () => {
                   </button>
                 )}
                 {isAdmin && selected.status === 'ACTIVE' && (
-                  <Link to="/quarters" className="btn-secondary">
+                  <button onClick={() => setClosing(true)} className="btn-secondary">
                     <LockClosedIcon className="mr-2 h-4 w-4" />
                     Close cycle
-                  </Link>
+                  </button>
                 )}
               </div>
 
@@ -357,83 +341,31 @@ const StrategyPage: React.FC = () => {
                   />
                 ) : (
                   <ul className="space-y-3">
-                    {objectives.map((o) => {
-                      const progress = objProgress(o)
-                      const st = STATUS_STYLES[o.status] ?? STATUS_STYLES.ON_TRACK
-                      return (
-                        <li key={o.id} className="surface-muted p-4">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <Link
-                                to={`/objectives/${o.id}`}
-                                className="font-medium text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400"
-                              >
-                                {o.title}
-                              </Link>
-                              {o.description && (
-                                <p className="mt-0.5 text-sm text-gray-600 dark:text-gray-400">{o.description}</p>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.className}`}>
-                                {st.label}
-                              </span>
-                              <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
-                                {progress}%
-                              </span>
-                            </div>
-                          </div>
-
-                          <div
-                            role="progressbar"
-                            aria-valuenow={progress}
-                            aria-valuemin={0}
-                            aria-valuemax={100}
-                            aria-label={`${o.title} progress`}
-                            className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
-                          >
-                            <div className="h-full rounded-full bg-primary-600" style={{ width: `${progress}%` }} />
-                          </div>
-
-                          {(!o.keyResults || o.keyResults.length === 0) && (
-                            <p className="mt-3 text-sm text-amber-700 dark:text-amber-400">
-                              No key results yet, so this objective cannot show progress.{' '}
-                              <Link to={`/objectives/${o.id}`} className="font-medium underline">
-                                Add one
-                              </Link>
-                            </p>
-                          )}
-
-                          {o.keyResults?.length > 0 && (
-                            <ul className="mt-3 space-y-2">
-                              {o.keyResults.map((kr) => {
-                                const p = krProgress(kr)
-                                return (
-                                  <li key={kr.id} className="flex items-center gap-3 text-sm">
-                                    {p >= 100 ? (
-                                      <CheckCircleIcon className="h-4 w-4 shrink-0 text-green-600 dark:text-green-400" />
-                                    ) : (
-                                      <span className="h-4 w-4 shrink-0 rounded-full border border-gray-300 dark:border-gray-600" />
-                                    )}
-                                    <span className="min-w-0 flex-1 truncate text-gray-700 dark:text-gray-300">
-                                      {kr.title}
-                                    </span>
-                                    <span className="shrink-0 tabular-nums text-gray-600 dark:text-gray-400">
-                                      {Math.round(kr.currentValue)} of {kr.targetValue}
-                                      {kr.unit ? ` ${kr.unit}` : ''}
-                                    </span>
-                                  </li>
-                                )
-                              })}
-                            </ul>
-                          )}
-                        </li>
-                      )
-                    })}
+                    {objectives.map((o) => (
+                      <ObjectiveCard
+                        key={o.id}
+                        objective={o as ObjectiveShape}
+                        canEdit={isAdmin && selected.status !== 'CLOSED'}
+                        onChanged={() => loadObjectives(selected.id)}
+                      />
+                    ))}
                   </ul>
                 )}
               </div>
             </motion.section>
+          )}
+
+          {closing && selected && (
+            <CloseCycleModal
+              quarter={selected}
+              quarters={quarters}
+              onCancel={() => setClosing(false)}
+              onClosed={async () => {
+                setClosing(false)
+                await loadQuarters()
+                await loadObjectives(selected.id)
+              }}
+            />
           )}
 
           <div className="surface flex items-start gap-3 p-4">

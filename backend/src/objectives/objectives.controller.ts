@@ -21,6 +21,12 @@ export class ObjectivesController {
         return this.objectivesService.findAll(req.user.companyId, req.user.role, quarterId);
     }
 
+    @Get('key-results/:krId/tasks')
+    @ApiOperation({ summary: 'The tasks a key result is calculated from' })
+    keyResultTasks(@Param('krId') krId: string, @Request() req) {
+        return this.objectivesService.getKeyResultTasks(krId, req.user.companyId);
+    }
+
     @Get(':id')
     findOne(@Param('id') id: string, @Request() req) {
         return this.objectivesService.findOne(id, req.user.companyId, req.user.role);

@@ -495,14 +495,52 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   }
 }
 
-/* Print styles */
+/* Print styles.
+   Exporting a report means printing to PDF, because a CSV cannot carry a chart.
+   Chrome only paints backgrounds and chart fills when print-color-adjust asks it
+   to, so without this a report prints as outlines on white. */
 @media print {
-  .no-print {
+  .no-print,
+  nav,
+  aside,
+  .app-backdrop::before,
+  .app-backdrop::after {
     display: none !important;
   }
-  
+
   .print-break {
     page-break-after: always;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Print on white regardless of the reader's theme, and drop the elevation that
+     turns into grey smudges on paper. */
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .surface,
+  .surface-muted {
+    box-shadow: none !important;
+    border-color: #d4d4d8 !important;
+    background: #fff !important;
+  }
+
+  /* Keep a figure and its heading together rather than splitting across a page. */
+  section,
+  figure,
+  table {
+    break-inside: avoid;
+  }
+
+  @page {
+    margin: 14mm;
   }
 }
 

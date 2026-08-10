@@ -9,6 +9,7 @@ import {
   ExclamationTriangleIcon,
   XCircleIcon,
   ArrowDownTrayIcon,
+  PrinterIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
@@ -27,6 +28,16 @@ interface Props {
   years: number[]
   year: number
   onYearChange: (year: number) => void
+}
+
+/** Years are fetched in parallel; one failing must not blank the others. */
+async function fetchYear(y: number): Promise<Report | null> {
+  try {
+    const { data } = await api.get(`/quarters/year/${y}/report`)
+    return data
+  } catch {
+    return null
+  }
 }
 
 interface Report {
@@ -91,19 +102,42 @@ const MISSED = '#dc2626'
 const ACCENT = '#2563eb'
 
 const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
-  const [report, setReport] = useState<Report | null>(null)
+  const [selectedYears, setSelectedYears] = useState<number[]>([year])
+  const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     let cancelled = false
     setLoading(true)
-    api
-      .get(`/quarters/year/${year}/report`)
-      .then(({ data }) => { if (!cancelled) setReport(data) })
-      .catch(() => { if (!cancelled) { setReport(null); toast.error('Could not load the year report') } })
+    Promise.all(selectedYears.slice().sort((a, b) => a - b).map(fetchYear))
+      .then((rows) => {
+        if (cancelled) return
+        const ok = rows.filter((r): r is Report => !!r)
+        setReports(ok)
+        if (ok.length < selectedYears.length) toast.error('Some years could not be loaded')
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [year])
+  }, [selectedYears])
+
+  const toggleYear = (y: number) => {
+    setSelectedYears((prev) => {
+      // Never end up with nothing selected: an empty report is not a useful state.
+      if (prev.includes(y)) return prev.length === 1 ? prev : prev.filter((x) => x !== y)
+      return [...prev, y]
+    })
+    onYearChange(y)
+  }
+
+  // The single-year view is the common case, so it stays the default shape.
+  const report = reports.length === 1 ? reports[0] : null
+  const multi = reports.length > 1
+
+  const printReport = () => {
+    // A CSV cannot carry a chart. Printing renders what is on screen, so the PDF
+    // contains the same charts and figures the reader just looked at.
+    window.print()
+  }
 
   const exportCsv = () => {
     if (!report) return
@@ -143,32 +177,113 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
     )
   }
 
-  if (!report) {
-    return <EmptyState icon={DocumentTextIcon} title="No report available" description="Nothing could be loaded for this year." />
+  if (reports.length === 0) {
+    return <EmptyState icon={DocumentTextIcon} title="No report available" description="Nothing could be loaded for the selected years." />
   }
 
-  const v = VERDICT[report.verdict]
-  const outcomeData = [
+  const v = report ? VERDICT[report.verdict] : null
+  const outcomeData = !report ? [] : [
     { name: 'Landed', value: report.summary.objectivesLanded },
     { name: 'Missed', value: report.summary.objectivesMissed },
   ].filter((d) => d.value > 0)
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="no-print flex flex-wrap items-end justify-between gap-3">
         <div>
-          <label htmlFor="report-year" className="form-label">Year</label>
-          <select id="report-year" value={year} onChange={(e) => onYearChange(Number(e.target.value))} className="select-field w-40">
-            {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <span className="form-label">Years</span>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Years to include">
+            {years.map((y) => {
+              const on = selectedYears.includes(y)
+              return (
+                <button
+                  key={y}
+                  onClick={() => toggleYear(y)}
+                  aria-pressed={on}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    on
+                      ? 'bg-primary-600 text-white shadow-sm'
+                      : 'surface text-gray-700 hover:border-gray-300 dark:text-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  {y}
+                </button>
+              )
+            })}
+          </div>
+          <p className="form-hint">Pick more than one to compare years side by side.</p>
         </div>
-        <button onClick={exportCsv} className="btn-secondary">
-          <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
-          Export as CSV
-        </button>
+
+        <div className="flex gap-2">
+          <button onClick={printReport} className="btn-primary">
+            <PrinterIcon className="mr-2 h-4 w-4" />
+            Export with charts
+          </button>
+          {report && (
+            <button onClick={exportCsv} className="btn-secondary">
+              <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+              CSV
+            </button>
+          )}
+        </div>
       </div>
 
+      {multi && (
+        <section className="surface p-5">
+          <h2 className="section-title mb-1">
+            {reports.map((r) => r.year).join(', ')} compared
+          </h2>
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            Objectives landed against objectives set, year by year.
+          </p>
+          <div className="h-72">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={reports.map((r) => ({
+                year: String(r.year),
+                Landed: r.summary.objectivesLanded,
+                Missed: r.summary.objectivesMissed,
+                'Task completion %': r.summary.taskCompletionRate,
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.12} />
+                <XAxis dataKey="year" stroke="currentColor" opacity={0.6} fontSize={12} />
+                <YAxis allowDecimals={false} stroke="currentColor" opacity={0.6} fontSize={12} />
+                <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid rgba(128,128,128,0.3)' }} />
+                <Legend />
+                <Bar dataKey="Landed" fill={LANDED} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Missed" fill={MISSED} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-200 dark:border-gray-700">
+                  {['Year', 'Verdict', 'Objectives', 'Landed', 'Key results met', 'Avg progress', 'Tasks done'].map((h) => (
+                    <th key={h} className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {reports.map((r) => (
+                  <tr key={r.year} className="border-b border-gray-100 last:border-0 dark:border-gray-700/60">
+                    <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{r.year}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{VERDICT[r.verdict].label}</td>
+                    <td className="px-3 py-2 tabular-nums">{r.summary.objectivesTotal}</td>
+                    <td className="px-3 py-2 tabular-nums">{r.summary.objectivesLanded}</td>
+                    <td className="px-3 py-2 tabular-nums">{r.summary.keyResultsMet}/{r.summary.keyResultsTotal}</td>
+                    <td className="px-3 py-2 tabular-nums">{r.summary.averageObjectiveProgress}%</td>
+                    <td className="px-3 py-2 tabular-nums">{r.summary.taskCompletionRate}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {/* The verdict, stated plainly before any chart. */}
+      {report && v && (
       <div className={`flex items-start gap-4 rounded-xl border p-5 ${v.className}`}>
         <v.Icon className={`h-8 w-8 shrink-0 ${v.iconClass}`} />
         <div>
@@ -182,7 +297,9 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
           )}
         </div>
       </div>
+      )}
 
+      {report && (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: 'Objectives landed', value: `${report.summary.objectivesLanded}/${report.summary.objectivesTotal}` },
@@ -196,8 +313,9 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
           </div>
         ))}
       </div>
+      )}
 
-      {report.summary.objectivesTotal === 0 ? (
+      {!report ? null : report.summary.objectivesTotal === 0 ? (
         <EmptyState
           icon={DocumentTextIcon}
           title={`No objectives were set for ${report.year}`}

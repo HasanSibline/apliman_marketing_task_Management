@@ -122,3 +122,20 @@ function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0;
   return Math.min(Math.max(n, 0), 1);
 }
+
+export type YearVerdict = 'achieved' | 'partial' | 'missed' | 'no-goals';
+
+/**
+ * How a year is reported.
+ *
+ * A company with no objectives has not missed anything; it never set a target, and
+ * reporting that as a failure would be wrong. Above that the split is by the share
+ * of objectives that landed.
+ */
+export function yearVerdict(objectivesTotal: number, objectivesLanded: number): YearVerdict {
+  if (objectivesTotal === 0) return 'no-goals';
+  const rate = (objectivesLanded / objectivesTotal) * 100;
+  if (rate >= 80) return 'achieved';
+  if (rate >= 50) return 'partial';
+  return 'missed';
+}

@@ -7,6 +7,7 @@ import {
   objectiveProgress,
   deriveObjectiveStatus,
   elapsedFraction,
+  yearVerdict,
 } from './okr-math';
 
 const done = { isCompleted: true };
@@ -245,5 +246,32 @@ describe('end to end: a quarter of real work', () => {
   it('removing the last linked task returns the key result to its start', () => {
     const kr = { startValue: 10, targetValue: 50, currentValue: 50 };
     expect(keyResultValue(kr, [])).toBe(10);
+  });
+});
+
+describe('yearVerdict', () => {
+  it('does not call a year with no objectives a failure', () => {
+    // Setting no target is not the same as missing one.
+    expect(yearVerdict(0, 0)).toBe('no-goals');
+  });
+
+  it('splits on the share of objectives that landed', () => {
+    expect(yearVerdict(10, 10)).toBe('achieved');
+    expect(yearVerdict(10, 8)).toBe('achieved');
+    expect(yearVerdict(10, 7)).toBe('partial');
+    expect(yearVerdict(10, 5)).toBe('partial');
+    expect(yearVerdict(10, 4)).toBe('missed');
+    expect(yearVerdict(10, 0)).toBe('missed');
+  });
+
+  it('handles a single objective without rounding into the wrong bucket', () => {
+    expect(yearVerdict(1, 1)).toBe('achieved');
+    expect(yearVerdict(1, 0)).toBe('missed');
+  });
+
+  it('lands exactly on the thresholds', () => {
+    expect(yearVerdict(5, 4)).toBe('achieved'); // 80%
+    expect(yearVerdict(4, 2)).toBe('partial');  // 50%
+    expect(yearVerdict(3, 1)).toBe('missed');   // 33%
   });
 });
