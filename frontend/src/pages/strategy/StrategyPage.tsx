@@ -42,6 +42,11 @@ interface Quarter {
  * What a quarter still needs before the company can see it, in the words of the
  * thing that is missing rather than a status code.
  */
+/** Short enough to sit on one line inside a card. */
+function formatSpan(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+}
+
 function readinessMessage(r: Readiness): string {
   if (r.reason === 'no-objectives') {
     return 'It has no objectives yet. Add what this quarter is trying to achieve.'
@@ -179,6 +184,7 @@ const StrategyPage: React.FC = () => {
           </p>
         </div>
 
+        {isAdmin && (
         <div role="group" aria-label="View" className="surface-muted inline-flex p-1">
           {([
             { key: 'plan', label: 'Plan' },
@@ -198,9 +204,10 @@ const StrategyPage: React.FC = () => {
             </button>
           ))}
         </div>
+        )}
       </header>
 
-      {view === 'report' ? (
+      {view === 'report' && isAdmin ? (
         <YearReport
           years={years.length ? years : [reportYear]}
           year={reportYear}
@@ -250,29 +257,47 @@ const StrategyPage: React.FC = () => {
             )}
           </div>
 
-          <div className="flex gap-3 overflow-x-auto pb-1" role="group" aria-label="Select a quarter">
+          {/* A year holds four quarters, so they lay out as a grid rather than a
+              horizontal scroller. The scroller clipped the selected card's ring
+              against its own overflow, and made four items feel like a list that
+              continued past the edge. Grid cells stretch to a shared height, so a
+              card carrying the hidden notice no longer makes the row ragged. */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4" role="group" aria-label="Select a quarter">
             {quartersInYear.map((q) => {
               const active = q.id === selectedId
               const st = QUARTER_STATUS[q.status]
+              const hidden = q.status === 'ACTIVE' && q.readiness && !q.readiness.ready
               return (
                 <button
                   key={q.id}
                   aria-pressed={active}
                   aria-label={`${q.name} ${q.year}, ${st.label}`}
                   onClick={() => setSelectedId(q.id)}
-                  className={`surface min-w-[13rem] shrink-0 p-4 text-left transition-colors ${
-                    active ? 'ring-2 ring-primary-500' : 'hover:border-gray-300 dark:hover:border-gray-600'
+                  className={`surface flex w-full flex-col gap-2 p-4 text-left transition-colors ${
+                    active
+                      // Border and ground rather than a ring: a ring paints outside
+                      // the box and is the first thing any container clips.
+                      ? 'border-primary-500 bg-primary-50/70 dark:border-primary-500 dark:bg-primary-900/20'
+                      : 'hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold text-gray-900 dark:text-white">{q.name}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${st.className}`}>{st.label}</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="truncate text-base font-semibold text-gray-900 dark:text-white">
+                      {q.name}
+                    </span>
+                    <span
+                      className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${st.className}`}
+                    >
+                      {st.label}
+                    </span>
                   </div>
-                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(q.startDate).toLocaleDateString()} to {new Date(q.endDate).toLocaleDateString()}
+
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {formatSpan(q.startDate)} to {formatSpan(q.endDate)}
                   </p>
-                  {q.status === 'ACTIVE' && q.readiness && !q.readiness.ready && (
-                    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+
+                  {hidden && (
+                    <p className="mt-auto flex items-center gap-1 pt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
                       <EyeSlashIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                       Hidden from the team
                     </p>

@@ -33,6 +33,7 @@ export class QuartersController {
     }
 
     @Get('yearly')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Yearly analytics across all quarters' })
     @ApiQuery({ name: 'year', required: false, type: Number })
     yearly(@Request() req, @Query('year') year?: string) {
@@ -54,6 +55,7 @@ export class QuartersController {
     }
 
     @Get(':id/analytics')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Get analytics for a specific quarter' })
     analytics(@Param('id') id: string, @Request() req) {
         return this.quartersService.getAnalytics(id, req.user.companyId);
@@ -99,6 +101,7 @@ export class QuartersController {
      * made. Safe to run twice, since an objective that already carried is skipped.
      */
     @Get('year/:year/report')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Full year report: outcomes, shortfalls and chart data' })
     async yearReport(@Param('year', ParseIntPipe) year: number, @Request() req) {
         return this.okrAutomation.getYearReport(req.user.companyId, year);
