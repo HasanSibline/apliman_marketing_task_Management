@@ -140,8 +140,13 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
+# Anchored to the Python service on purpose. These come from the stock Python
+# template, where they mean a virtualenv's lib directory, but unanchored they match
+# any folder named lib anywhere, including frontend source. That silently kept
+# frontend/src/lib out of a commit: the build passed locally, where the file existed,
+# and failed on CI, where it had never arrived.
+ai-service/lib/
+ai-service/lib64/
 parts/
 sdist/
 var/
