@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { TaskStage, STAGE_TO_PHASE } from './task-stage';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WorkflowsService } from '../workflows/workflows.service';
@@ -2066,6 +2067,104 @@ export class TasksService {
   }
 
   // ── Quarter assignment ───────────────────────────────────────────────────
+
+  /**
+   * Put a task in one of the three stages.
+   *
+   * Completion is stored in more than one place, and those places have disagreed
+   * before: a phase that moved while the date stayed, or a workflow end phase left
+   * behind. So moving a task out of Completed clears every trace of it, including an
+   * end phase that would otherwise pull the card straight back to where it was
+   * dragged from. A control that undoes itself is worse than one that is missing.
+   */
+  async setStage(taskId: string, stage: TaskStage, companyId: string) {
+    const task = await this.prisma.task.findFirst({
+      where: { id: taskId, companyId },
+      select: {
+        id: true,
+        workflowId: true,
+        currentPhase: { select: { id: true, isEndPhase: true } },
+      },
+    });
+    if (!task) throw new NotFoundException('Task not found');
+
+    const data: any = { phase: STAGE_TO_PHASE[stage] };
+
+    if (stage === 'COMPLETED') {
+      data.completedAt = new Date();
+    } else {
+      data.completedAt = null;
+
+      if (task.currentPhase?.isEndPhase && task.workflowId) {
+        const openPhase = await this.prisma.phase.findFirst({
+          where: { workflowId: task.workflowId, isEndPhase: false },
+          orderBy: { order: 'asc' },
+          select: { id: true },
+        });
+        data.currentPhaseId = openPhase?.id ?? null;
+      }
+    }
+
+    return this.prisma.task.update({ where: { id: taskId }, data });
+  }
+
+  /**
+   * Schedule several tasks into a quarter at once, or clear their quarter.
+   *
+   * A task can also be linked to an objective and a key result, and those belong to a
+   * quarter of their own. Moving such a task somewhere else would leave it counting
+   * toward a target in a different period, which is exactly the disagreement
+   * assertStrategyLinksAgree exists to prevent. Rather than break the link quietly or
+   * refuse the whole batch, the tasks that would conflict are left alone and named in
+   * the reply, so the rest of the selection still moves and nothing is a surprise.
+   */
+  async bulkAssignQuarter(taskIds: string[], quarterId: string | null, companyId: string) {
+    if (taskIds.length === 0) return { moved: 0, skipped: [] as { title: string; reason: string }[] };
+
+    if (quarterId) {
+      const quarter = await this.prisma.quarter.findFirst({
+        where: { id: quarterId, companyId },
+        select: { id: true, status: true },
+      });
+      if (!quarter) throw new BadRequestException('That quarter does not belong to your company.');
+      if (quarter.status === 'CLOSED') {
+        throw new BadRequestException('That quarter is closed. Work scheduled into it would be hidden immediately.');
+      }
+    }
+
+    const tasks = await this.prisma.task.findMany({
+      where: { id: { in: taskIds }, companyId },
+      select: {
+        id: true,
+        title: true,
+        objective: { select: { quarterId: true, title: true } },
+      },
+    });
+
+    const movable: string[] = [];
+    const skipped: { title: string; reason: string }[] = [];
+
+    for (const task of tasks) {
+      const owner = task.objective?.quarterId;
+      if (quarterId && owner && owner !== quarterId) {
+        skipped.push({
+          title: task.title,
+          reason: `linked to "${task.objective!.title}", which belongs to another quarter`,
+        });
+        continue;
+      }
+      movable.push(task.id);
+    }
+
+    if (movable.length > 0) {
+      await this.prisma.task.updateMany({
+        where: { id: { in: movable }, companyId },
+        data: { quarterId },
+      });
+    }
+
+    return { moved: movable.length, skipped };
+  }
 
   async assignQuarter(taskId: string, quarterId: string | null, companyId: string) {
     const task = await this.prisma.task.findFirst({ where: { id: taskId, companyId } });

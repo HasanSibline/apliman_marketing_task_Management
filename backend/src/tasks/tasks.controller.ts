@@ -1,19 +1,6 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  UseGuards,
-  Request,
-  Query,
-  ParseIntPipe,
-  UseInterceptors,
-  UploadedFiles,
-} from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query, ParseIntPipe, UseInterceptors, UploadedFiles, BadRequestException } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { isTaskStage } from './task-stage';
 import {
   ApiTags,
   ApiOperation,
@@ -322,6 +309,19 @@ export class TasksController {
 
   // ── Quarter assignment ─────────────────────────────────────────────────────
 
+  @Patch('bulk/quarter')
+  @ApiOperation({ summary: 'Schedule several tasks into a quarter, or clear it' })
+  bulkAssignQuarter(
+    @Body() body: { taskIds?: string[]; quarterId?: string | null },
+    @Request() req,
+  ) {
+    return this.tasksService.bulkAssignQuarter(
+      body?.taskIds ?? [],
+      body?.quarterId ?? null,
+      req.user.companyId,
+    );
+  }
+
   @Patch(':id/quarter')
   @ApiOperation({ summary: 'Assign or unassign task to a quarter' })
   assignQuarter(
@@ -330,5 +330,16 @@ export class TasksController {
     @Request() req,
   ) {
     return this.tasksService.assignQuarter(id, dto.quarterId ?? null, req.user.companyId);
+  }
+
+  // ── Stage ──────────────────────────────────────────────────────────────────
+
+  @Patch(':id/stage')
+  @ApiOperation({ summary: 'Move a task to To do, In progress or Completed' })
+  setStage(@Param('id') id: string, @Body() body: { stage?: string }, @Request() req) {
+    if (!isTaskStage(body?.stage)) {
+      throw new BadRequestException('Stage must be TODO, IN_PROGRESS or COMPLETED.');
+    }
+    return this.tasksService.setStage(id, body.stage, req.user.companyId);
   }
 }

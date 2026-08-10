@@ -1,566 +1,360 @@
-import React, { useEffect, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  PlusIcon, 
-  FunnelIcon, 
+import React, { useEffect, useMemo, useState } from 'react'
+import {
+  PlusIcon,
   MagnifyingGlassIcon,
   XMarkIcon,
-  AdjustmentsHorizontalIcon,
-  ChevronDownIcon,
-  ChevronRightIcon
+  CalendarDaysIcon,
+  ClipboardDocumentListIcon,
 } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchTasks, setFilters } from '@/store/slices/tasksSlice'
 import CreateTaskModal from '@/components/tasks/CreateTaskModal'
 import TaskListItem from '@/components/tasks/TaskListItem'
 import ExportButton from '@/components/tasks/ExportButton'
-import { workflowsApi } from '@/services/api'
+import EmptyState from '@/components/common/EmptyState'
+import api, { workflowsApi, usersApi } from '@/services/api'
+import toast from 'react-hot-toast'
 import { Task } from '@/types/task'
+import { taskStage, TaskStage, STAGES } from '@/lib/taskStage'
+import TaskScheduleBar from './TaskScheduleBar'
+
+/**
+ * Work, arranged the way it is worked.
+ *
+ * It used to be grouped by workflow, every workflow expanded at once, each holding a
+ * three-column grid of cards. That answers "what kind of work is this", which is a
+ * question about categories, and never "what is in flight", which is the question
+ * someone actually opens this page with. It also grew without bound: ten workflows
+ * meant ten stacked sections to scroll past.
+ *
+ * So one workflow at a time, chosen from a rail across the top, and inside it three
+ * columns. Nothing stacks, nothing nests, and the amount on screen does not change
+ * with how many workflows the company has.
+ */
 
 const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { tasks: apiTasks, isLoading, filters } = useAppSelector((state) => state.tasks)
-  // Backend now filters to MAIN tasks only, so no need to filter here
-  const tasks = apiTasks.map(task => ({
-    ...task,
-    createdById: task.createdBy?.id || ''
-  })) as Task[]
-  
   const { user } = useAppSelector((state) => state.auth)
-  const [showFilters, setShowFilters] = useState(false)
+
+  const tasks = useMemo(
+    () => apiTasks.map((t) => ({ ...t, createdById: t.createdBy?.id || '' })) as Task[],
+    [apiTasks],
+  )
+
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [workflows, setWorkflows] = useState<any[]>([])
-  const [phases, setPhases] = useState<any[]>([])
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set())
+  const [people, setPeople] = useState<{ id: string; name: string }[]>([])
+  const [quarters, setQuarters] = useState<any[]>([])
 
-  // Work that belongs to nobody's quarter is the easiest to lose: it does not appear
-  // on a quarter page, and nothing surfaces it. The API already supports
-  // quarterId=null as a backlog filter; this exposes it.
+  /** '' is every workflow at once, which is still three columns and not a stack. */
+  const [workflowId, setWorkflowId] = useState('')
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  // Work in nobody's quarter is the easiest to lose: it appears on no quarter page
+  // and nothing else surfaces it. The API supports quarterId=null; this exposes it.
   const [scope, setScope] = useState<'all' | 'active' | 'backlog'>('all')
 
   useEffect(() => {
     const scoped =
       scope === 'backlog' ? { quarterId: 'null' } : scope === 'active' ? { quarterId: 'active' } : {}
     dispatch(fetchTasks({ ...filters, ...scoped, limit: 10000 }))
-    loadWorkflows()
   }, [dispatch, filters, scope])
 
-  const loadWorkflows = async () => {
-    try {
-      const workflowsData = await workflowsApi.getAll()
-      setWorkflows(workflowsData)
-      
-      // Extract all unique phases from all workflows
-      const allPhases: any[] = []
-      workflowsData.forEach((workflow: any) => {
-        if (workflow.phases) {
-          workflow.phases.forEach((phase: any) => {
-            // Avoid duplicates by checking if phase with same ID already exists
-            if (!allPhases.find(p => p.id === phase.id)) {
-              allPhases.push({
-                id: phase.id,
-                name: phase.name,
-                workflowName: workflow.name,
-                color: phase.color
-              })
-            }
-          })
-        }
-      })
-      setPhases(allPhases)
-    } catch (error) {
-      console.error('Failed to load workflows:', error)
-    }
+  useEffect(() => {
+    workflowsApi.getAll().then((w) => setWorkflows(w ?? [])).catch(() => setWorkflows([]))
+    // Only quarters that can still receive work: scheduling into a closed one would
+    // hide the task the moment it landed.
+    api.get('/quarters', { params: { selectable: 'true' } })
+      .then(({ data }) => setQuarters(data ?? []))
+      .catch(() => setQuarters([]))
+    usersApi.getAll()
+      .then((u: any) => setPeople((u?.users ?? u ?? []).map((p: any) => ({ id: p.id, name: p.name }))))
+      .catch(() => setPeople([]))
+  }, [])
+
+  const reload = () => {
+    const scoped =
+      scope === 'backlog' ? { quarterId: 'null' } : scope === 'active' ? { quarterId: 'active' } : {}
+    dispatch(fetchTasks({ ...filters, ...scoped, limit: 10000 }))
   }
 
-  const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
+  const visible = useMemo(
+    () => (workflowId ? tasks.filter((t) => t.workflow?.id === workflowId) : tasks),
+    [tasks, workflowId],
+  )
 
-  const activeFiltersCount = [
-    filters.search,
-    filters.phase,
-    filters.assignedToId,
-    filters.workflowId,
-    filters.priority
-  ].filter(Boolean).length
+  const byStage = useMemo(() => {
+    const groups: Record<TaskStage, Task[]> = { TODO: [], IN_PROGRESS: [], COMPLETED: [] }
+    for (const task of visible) groups[taskStage(task)].push(task)
+    return groups
+  }, [visible])
 
-  const clearAllFilters = () => {
-    dispatch(setFilters({}))
-  }
+  const countFor = (id: string) =>
+    id ? tasks.filter((t) => t.workflow?.id === id).length : tasks.length
 
-  // Separate completed and active tasks accurately based on various completion conditions
-  const isTaskComplete = (t: Task) => Boolean(t.completedAt || t.phase === 'COMPLETED' || t.phase === 'ARCHIVED' || t.currentPhase?.isEndPhase);
-  const completedTasks = tasks.filter(isTaskComplete)
-  const activeTasks = tasks.filter(t => !isTaskComplete(t))
+  // Selection follows what is on screen. Acting on a task the filters have hidden
+  // would be acting on something the person cannot see.
+  const visibleIds = useMemo(() => new Set(visible.map((t) => t.id)), [visible])
+  const selectedVisible = useMemo(
+    () => [...selected].filter((id) => visibleIds.has(id)),
+    [selected, visibleIds],
+  )
 
-  // Group active tasks by workflow type
-  const groupedTasks = activeTasks.reduce((acc, task) => {
-    const workflowName = task.workflow?.name || 'Uncategorized'
-    if (!acc[workflowName]) {
-      acc[workflowName] = {
-        workflow: task.workflow,
-        tasks: []
-      }
-    }
-    acc[workflowName].tasks.push(task)
-    return acc
-  }, {} as Record<string, { workflow: any; tasks: Task[] }>)
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
 
-  const toggleSection = (sectionName: string) => {
-    setCollapsedSections(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(sectionName)) {
-        newSet.delete(sectionName)
-      } else {
-        newSet.add(sectionName)
-      }
-      return newSet
+  const toggleStage = (stage: TaskStage) => {
+    const ids = byStage[stage].map((t) => t.id)
+    const allOn = ids.length > 0 && ids.every((id) => selected.has(id))
+    setSelected((prev) => {
+      const next = new Set(prev)
+      for (const id of ids) allOn ? next.delete(id) : next.add(id)
+      return next
     })
   }
 
+  const activeFilters = [filters.search, filters.assignedToId, filters.priority].filter(Boolean).length
+
+  const clearFilters = () =>
+    dispatch(setFilters({ search: undefined, assignedToId: undefined, priority: undefined }))
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="page-title">Tasks</h1>
           <p className="page-subtitle">
             {scope === 'backlog'
-              ? 'Work that is not scheduled into any quarter.'
+              ? 'Work that belongs to no quarter yet. Tick what you want to schedule.'
               : scope === 'active'
-                ? 'Work scheduled into the quarter currently running.'
-                : 'Everything assigned across your workspace.'}
+                ? 'Work in the quarter running now.'
+                : 'Everything on the board, by workflow and by where it has got to.'}
           </p>
         </div>
-        <div className="flex items-center flex-wrap gap-3">
-          {/* Scope. Backlog is the one that matters: without it, work that belongs to
-              no quarter appears on no quarter page and is effectively invisible. */}
-          <div role="group" aria-label="Task scope" className="surface-muted inline-flex p-1">
-            {([
-              { key: 'all', label: 'All' },
-              { key: 'active', label: 'This quarter' },
-              { key: 'backlog', label: 'Not scheduled' },
-            ] as const).map((option) => (
-              <button
-                key={option.key}
-                onClick={() => setScope(option.key)}
-                aria-pressed={scope === option.key}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                  scope === option.key
-                    ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
-                    : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="relative btn-secondary"
-          >
-            <AdjustmentsHorizontalIcon className="h-4 w-4 mr-2" />
-            Filters
-            {activeFiltersCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                {activeFiltersCount}
-              </span>
-            )}
-          </button>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create Task
-          </button>
-          {isAdmin && (
-            <ExportButton filters={filters} />
-          )}
-        </div>
-      </div>
 
-      {/* Search Bar - Enhanced */}
-      <div className="relative group">
-        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+        <div className="flex flex-wrap items-center gap-2">
+          <ExportButton filters={filters} />
+          <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+            <PlusIcon className="mr-2 h-4 w-4" />
+            New task
+          </button>
         </div>
-        <input
-          type="text"
-          placeholder="Search tasks by title, description, assignee, or goals..."
-          value={filters.search || ''}
-          onChange={(e) => dispatch(setFilters({ search: e.target.value || undefined }))}
-          className="pl-11 pr-4 py-3.5 w-full border-2 border-gray-200 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 shadow-sm hover:border-gray-300 dark:hover:border-gray-600 placeholder:text-gray-400"
-        />
-        {filters.search && (
-          <button
-            onClick={() => dispatch(setFilters({ search: undefined }))}
-            className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >
-            <XMarkIcon className="h-5 w-5" />
+      </header>
+
+      {/* ── Controls ──────────────────────────────────────────────────────── */}
+      <div className="surface flex flex-wrap items-center gap-3 p-3">
+        <div className="relative min-w-[14rem] flex-1">
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            aria-label="Search tasks"
+            placeholder="Search tasks"
+            value={filters.search || ''}
+            onChange={(e) => dispatch(setFilters({ search: e.target.value || undefined }))}
+            className="input-field pl-9"
+          />
+        </div>
+
+        <div role="group" aria-label="Which tasks" className="surface-muted inline-flex p-1">
+          {([
+            { key: 'all', label: 'All' },
+            { key: 'active', label: 'This quarter' },
+            { key: 'backlog', label: 'Not scheduled' },
+          ] as const).map((option) => (
+            <button
+              key={option.key}
+              onClick={() => setScope(option.key)}
+              aria-pressed={scope === option.key}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                scope === option.key
+                  ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
+              }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        <select
+          aria-label="Assigned to"
+          value={filters.assignedToId || ''}
+          onChange={(e) => dispatch(setFilters({ assignedToId: e.target.value || undefined }))}
+          className="select-field w-auto"
+        >
+          <option value="">Anyone</option>
+          {user && <option value={user.id}>Assigned to me</option>}
+          {people.filter((p) => p.id !== user?.id).map((p) => (
+            <option key={p.id} value={p.id}>{p.name}</option>
+          ))}
+        </select>
+
+        <select
+          aria-label="Priority"
+          value={filters.priority || ''}
+          onChange={(e) =>
+            dispatch(setFilters({ priority: e.target.value ? parseInt(e.target.value) : undefined }))
+          }
+          className="select-field w-auto"
+        >
+          <option value="">Any priority</option>
+          <option value="5">Critical</option>
+          <option value="4">Urgent</option>
+          <option value="3">High</option>
+          <option value="2">Medium</option>
+          <option value="1">Low</option>
+        </select>
+
+        {activeFilters > 0 && (
+          <button onClick={clearFilters} className="btn-secondary">
+            <XMarkIcon className="mr-2 h-4 w-4" />
+            Clear
           </button>
         )}
       </div>
 
-      {/* Filters Panel - Professional */}
-      {showFilters && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          transition={{ duration: 0.2 }}
-          className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-md p-6"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary-100 dark:bg-primary-900/30 rounded-lg">
-                <FunnelIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-              </div>
-            <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Filter Tasks</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">Refine your search criteria</p>
-              </div>
-            </div>
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={clearAllFilters}
-                className="px-4 py-2 text-sm text-white bg-error-600 hover:bg-error-700 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
-              >
-                <XMarkIcon className="h-4 w-4" />
-                Clear All ({activeFiltersCount})
-              </button>
-            )}
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {/* Workflow Filter */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                <div className="h-2 w-2 rounded-full bg-primary-500"></div>
-                Workflow
-              </label>
-              <select
-                value={filters.workflowId || ''}
-                onChange={(e) => dispatch(setFilters({ workflowId: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all bg-white dark:bg-gray-800 hover:border-primary-400"
-              >
-                <option value="">All Workflows</option>
-                {workflows.map(workflow => (
-                  <option key={workflow.id} value={workflow.id}>
-                    {workflow.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Priority Filter */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                <div className="h-2 w-2 rounded-full bg-warning-500"></div>
-                Priority
-              </label>
-              <select
-                value={filters.priority || ''}
-                onChange={(e) => dispatch(setFilters({ priority: e.target.value ? parseInt(e.target.value) : undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-warning-500 focus:border-warning-500 transition-all bg-white dark:bg-gray-800 hover:border-warning-400"
-              >
-                <option value="">All Priorities</option>
-                <option value="1">Low</option>
-                <option value="2">Medium</option>
-                <option value="3">High</option>
-                <option value="4">Urgent</option>
-                <option value="5">Critical</option>
-              </select>
-            </div>
-
-            {/* Phase Filter */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                <div className="h-2 w-2 rounded-full bg-secondary-500"></div>
-                Phase
-              </label>
-              <select
-                value={filters.phase || ''}
-                onChange={(e) => dispatch(setFilters({ phase: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-secondary-500 focus:border-secondary-500 transition-all bg-white dark:bg-gray-800 hover:border-secondary-400"
-              >
-                <option value="">All Phases</option>
-                {phases.map(phase => (
-                  <option key={phase.id} value={phase.id}>
-                    {phase.name} ({phase.workflowName})
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Assigned To Filter */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200">
-                <div className="h-2 w-2 rounded-full bg-success-500"></div>
-                Assigned To
-              </label>
-              <select
-                value={filters.assignedToId || ''}
-                onChange={(e) => dispatch(setFilters({ assignedToId: e.target.value || undefined }))}
-                className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-success-500 focus:border-success-500 transition-all bg-white dark:bg-gray-800 hover:border-success-400"
-              >
-                <option value="">All Users</option>
-                <option value={user?.id}>My Tasks</option>
-              </select>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Active Filters Display - Professional */}
-      {activeFiltersCount > 0 && (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex items-center gap-3 flex-wrap p-4 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-200"
-        >
-          <div className="flex items-center gap-2">
-            <FunnelIcon className="h-4 w-4 text-primary-600 dark:text-primary-400" />
-            <span className="text-sm font-bold text-gray-900 dark:text-white">Active Filters:</span>
-          </div>
-          {filters.search && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-primary-300 text-primary-700 dark:text-primary-300 rounded-lg text-sm font-medium shadow-sm"
+      {/* ── Workflow rail. One at a time, so nothing stacks. ──────────────── */}
+      <div className="flex flex-wrap gap-2" role="group" aria-label="Workflow">
+        {[{ id: '', name: 'All work', color: null as string | null }, ...workflows].map((w) => {
+          const on = workflowId === w.id
+          const count = countFor(w.id)
+          return (
+            <button
+              key={w.id || 'all'}
+              onClick={() => setWorkflowId(w.id)}
+              aria-pressed={on}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
+                on
+                  ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/25 dark:text-primary-300'
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-600'
+              }`}
             >
-              <MagnifyingGlassIcon className="h-4 w-4" />
-              "{filters.search}"
-              <button
-                onClick={() => dispatch(setFilters({ search: undefined }))}
-                className="hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-full p-0.5 transition-colors"
-              >
-                <XMarkIcon className="h-3.5 w-3.5" />
-              </button>
-            </motion.span>
-          )}
-          {filters.workflowId && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-primary-300 text-primary-700 dark:text-primary-300 rounded-lg text-sm font-medium shadow-sm"
-            >
-              <div className="h-2 w-2 rounded-full bg-primary-500"></div>
-              {workflows.find(w => w.id === filters.workflowId)?.name}
-              <button
-                onClick={() => dispatch(setFilters({ workflowId: undefined }))}
-                className="hover:bg-primary-100 dark:hover:bg-primary-900/30 rounded-full p-0.5 transition-colors"
-              >
-                <XMarkIcon className="h-3.5 w-3.5" />
-              </button>
-            </motion.span>
-          )}
-          {filters.priority && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-warning-300 text-warning-700 dark:text-warning-300 rounded-lg text-sm font-medium shadow-sm"
-            >
-              {['Low', 'Medium', 'High', 'Urgent', 'Critical'][filters.priority - 1]}
-              <button
-                onClick={() => dispatch(setFilters({ priority: undefined }))}
-                className="hover:bg-warning-100 dark:hover:bg-warning-900/30 rounded-full p-0.5 transition-colors"
-              >
-                <XMarkIcon className="h-3.5 w-3.5" />
-              </button>
-            </motion.span>
-          )}
-          {filters.phase && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-secondary-300 text-secondary-700 dark:text-secondary-300 rounded-lg text-sm font-medium shadow-sm"
-            >
-              {phases.find(p => p.id === filters.phase)?.name || filters.phase}
-              <button
-                onClick={() => dispatch(setFilters({ phase: undefined }))}
-                className="hover:bg-secondary-100 dark:hover:bg-secondary-900/30 rounded-full p-0.5 transition-colors"
-              >
-                <XMarkIcon className="h-3.5 w-3.5" />
-              </button>
-            </motion.span>
-          )}
-          {filters.assignedToId && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 border border-success-300 text-success-700 dark:text-success-300 rounded-lg text-sm font-medium shadow-sm"
-            >
-              {filters.assignedToId === user?.id ? 'My Tasks' : 'Assigned'}
-              <button
-                onClick={() => dispatch(setFilters({ assignedToId: undefined }))}
-                className="hover:bg-success-100 dark:hover:bg-success-900/30 rounded-full p-0.5 transition-colors"
-              >
-                <XMarkIcon className="h-3.5 w-3.5" />
-              </button>
-            </motion.span>
-          )}
-        </motion.div>
-      )}
+              {w.color && (
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: w.color }}
+                  aria-hidden="true"
+                />
+              )}
+              {w.name}
+              <span className="tabular-nums text-xs text-gray-500 dark:text-gray-400">{count}</span>
+            </button>
+          )
+        })}
+      </div>
 
-      {/* Grouped Tasks by Workflow */}
+      {/* ── Three columns ────────────────────────────────────────────────── */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-300">Loading tasks...</p>
+        <div className="grid gap-4 lg:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-64 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
+          ))}
         </div>
-      ) : tasks.length === 0 ? (
-        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <div className="text-6xl mb-4">📋</div>
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No tasks found</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-6">
-            {activeFiltersCount > 0 
-              ? 'Try adjusting your filters or create a new task'
-              : 'Get started by creating your first task'}
-          </p>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="btn-primary"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Create Task
-          </button>
-        </div>
+      ) : visible.length === 0 ? (
+        <EmptyState
+          icon={ClipboardDocumentListIcon}
+          title={activeFilters > 0 ? 'Nothing matches those filters' : 'No tasks here yet'}
+          description={
+            activeFilters > 0
+              ? 'Widen the search, or clear the filters to see everything again.'
+              : 'A task is a piece of work. Create one to get the board started.'
+          }
+          action={
+            activeFilters > 0 ? (
+              <button onClick={clearFilters} className="btn-secondary">Clear filters</button>
+            ) : (
+              <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+                <PlusIcon className="mr-2 h-4 w-4" />
+                New task
+              </button>
+            )
+          }
+        />
       ) : (
-        <div className="space-y-4">
-          {Object.entries(groupedTasks).map(([workflowName, { workflow, tasks: workflowTasks }]) => {
-            const isCollapsed = collapsedSections.has(workflowName)
-            
+        <div className="grid gap-4 lg:grid-cols-3">
+          {STAGES.map((stage) => {
+            const column = byStage[stage.key]
+            const allTicked = column.length > 0 && column.every((t) => selected.has(t.id))
             return (
-              <div key={workflowName} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-                {/* Section Header */}
-                <button
-                  onClick={() => toggleSection(workflowName)}
-                  className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-                  style={{
-                    borderLeft: workflow ? `4px solid ${workflow.color}` : '4px solid #6B7280'
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    {isCollapsed ? (
-                      <ChevronRightIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                    ) : (
-                      <ChevronDownIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                    )}
-                    <div className="flex items-center gap-2">
-                      {workflow && (
-                        <div
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: workflow.color }}
-                        />
-                      )}
-                      <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{workflowName}</h2>
-                    </div>
-                    <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-full text-sm font-medium">
-                      {workflowTasks.length} {workflowTasks.length === 1 ? 'task' : 'tasks'}
+              <section key={stage.key} className="surface flex flex-col overflow-hidden">
+                <header className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <span className={`h-2.5 w-2.5 rounded-full ${stage.dot}`} aria-hidden="true" />
+                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                      {stage.label}
+                    </h2>
+                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                      {column.length}
                     </span>
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {workflow?.taskType || 'General'}
-                  </div>
-                </button>
 
-                {/* Tasks Grid */}
-                <AnimatePresence>
-                  {!isCollapsed && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: 'auto' }}
-                      exit={{ opacity: 0, height: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="px-4 pb-4"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {workflowTasks.map((task: Task) => (
-                          <motion.div
-                            key={task.id}
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <TaskListItem task={task} />
-                          </motion.div>
-                        ))}
-                  </div>
-                    </motion.div>
+                  {column.length > 0 && (
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      <input
+                        type="checkbox"
+                        checked={allTicked}
+                        onChange={() => toggleStage(stage.key)}
+                        aria-label={`Select every task in ${stage.label}`}
+                        className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                      />
+                      All
+                    </label>
                   )}
-                </AnimatePresence>
-              </div>
+                </header>
+
+                <div className="flex-1 space-y-2.5 p-3">
+                  {column.length === 0 ? (
+                    <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                      {stage.empty}
+                    </p>
+                  ) : (
+                    column.map((task) => (
+                      <div key={task.id} className="flex items-start gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selected.has(task.id)}
+                          onChange={() => toggle(task.id)}
+                          aria-label={`Select ${task.title}`}
+                          className="mt-3 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <TaskListItem task={task} />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
             )
           })}
         </div>
       )}
 
-      {/* Completed Tasks Section */}
-      {!isLoading && completedTasks.length > 0 && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
-            <button
-            onClick={() => toggleSection('Completed Tasks')}
-            className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors border-l-4 border-green-500"
-          >
-            <div className="flex items-center gap-3">
-              {collapsedSections.has('Completed Tasks') ? (
-                <ChevronRightIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              ) : (
-                <ChevronDownIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-              )}
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full bg-green-500" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Completed Tasks</h2>
-              </div>
-              <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded-full text-sm font-medium">
-                {completedTasks.length} {completedTasks.length === 1 ? 'task' : 'tasks'}
-              </span>
-            </div>
-            <div className="text-sm text-green-600 dark:text-green-400 font-medium">
-              ✓ All Done
-            </div>
-            </button>
-
-          <AnimatePresence>
-            {!collapsedSections.has('Completed Tasks') && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.2 }}
-                className="px-4 pb-4"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {completedTasks.map((task: Task) => (
-                    <motion.div
-                      key={task.id}
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      <TaskListItem task={task} />
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          </div>
+      {!isLoading && visible.length > 0 && (
+        <p className="flex items-center justify-center gap-1.5 text-center text-sm text-gray-500 dark:text-gray-400">
+          <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
+          {byStage.TODO.length} to do, {byStage.IN_PROGRESS.length} in progress,{' '}
+          {byStage.COMPLETED.length} completed
+        </p>
       )}
 
-      {/* Task Count */}
-      {!isLoading && tasks.length > 0 && (
-        <div className="text-center text-sm text-gray-500 dark:text-gray-400 py-4">
-          Showing {activeTasks.length} active task{activeTasks.length !== 1 ? 's' : ''} across {Object.keys(groupedTasks).length} workflow{Object.keys(groupedTasks).length !== 1 ? 's' : ''}
-          {completedTasks.length > 0 && ` • ${completedTasks.length} completed task${completedTasks.length !== 1 ? 's' : ''}`}
-        </div>
-      )}
-
-      {/* Create Task Modal */}
-      <CreateTaskModal 
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+      <TaskScheduleBar
+        taskIds={selectedVisible}
+        quarters={quarters}
+        onClear={() => setSelected(new Set())}
+        onDone={() => {
+          setSelected(new Set())
+          reload()
+        }}
+        onError={(message) => toast.error(message)}
       />
+
+      <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </div>
   )
 }

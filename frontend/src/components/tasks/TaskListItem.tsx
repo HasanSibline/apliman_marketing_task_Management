@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { taskStage, STAGES } from '@/lib/taskStage'
 import { useNavigate } from 'react-router-dom'
 import { 
   UserCircleIcon, 
@@ -189,22 +190,18 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
             <span className="text-xs font-semibold">{priorityConfig.label}</span>
           </div>
 
-          {/* Workflow Phase Tag */}
-          {task.currentPhase && (
-            <div 
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium"
-              style={{ 
-                backgroundColor: `${task.currentPhase.color}20`,
-                color: task.currentPhase.color
-              }}
-            >
-              <span 
-                className="w-1 h-1 rounded-full"
-                style={{ backgroundColor: task.currentPhase.color }}
-              />
-              {task.currentPhase.name}
-            </div>
-          )}
+          {/* One status vocabulary. The card used to show the workflow phase it sat
+              in, which is a second answer to "what state is this in" and could
+              disagree with the column the task was standing in. */}
+          {(() => {
+            const stage = STAGES.find((x) => x.key === taskStage(task))!
+            return (
+              <div className={`inline-flex items-center gap-1.5 rounded px-2 py-0.5 text-xs font-medium ${stage.chip}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} aria-hidden="true" />
+                {stage.label}
+              </div>
+            )
+          })()}
 
           {/* Subtask Progress */}
           {subtaskProgress && (

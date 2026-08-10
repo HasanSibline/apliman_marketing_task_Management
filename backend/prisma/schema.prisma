@@ -312,7 +312,7 @@ model Task {
   taskType       String?
   workflowId     String?
   currentPhaseId String?
-  phase          TaskPhase        @default(PENDING_APPROVAL)
+  phase          TaskPhase        @default(TODO)
   goals          String?
   priority       Int              @default(1)
   dueDate        DateTime?
@@ -740,14 +740,20 @@ enum UserStatus {
   RETIRED
 }
 
+/// A task is in one of three places: TODO, IN_PROGRESS, COMPLETED.
+///
+/// The rest are kept only because PostgreSQL cannot drop a value from an enum type
+/// and rows may still hold them. Nothing writes them any more, and `taskStage` in
+/// src/tasks/task-stage.ts folds them into the three. Do not use them in new code.
 enum TaskPhase {
-  PENDING_APPROVAL
-  APPROVED
-  REJECTED
-  ASSIGNED
+  TODO
   IN_PROGRESS
   COMPLETED
-  ARCHIVED
+  PENDING_APPROVAL // legacy: approval step, removed
+  APPROVED // legacy: approval step, removed
+  REJECTED // legacy: approval step, removed
+  ASSIGNED // legacy: reads as TODO
+  ARCHIVED // legacy: reads as COMPLETED
 }
 
 enum KnowledgeSourceType {
