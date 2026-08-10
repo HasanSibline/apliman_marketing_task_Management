@@ -6,10 +6,14 @@ import toast from 'react-hot-toast'
 /**
  * Closing a quarter, decided in one place.
  *
- * Closing is the only step that is not automatic, because it decides what happens
- * to every unfinished task: carry it into the next quarter, or release it. Anything
- * left unticked keeps its assignee but belongs to no quarter, so the consequence is
- * stated plainly rather than left to be discovered.
+ * Closing is what decides the fate of every unfinished task: carry it into the next
+ * quarter, or release it. Anything left unticked keeps its assignee but belongs to
+ * no quarter, so the consequence is stated plainly rather than left to be found.
+ *
+ * Closing also hands the company to the next cycle. A quarter the planners had
+ * already prepared takes over at once; one the app has to invent waits, because
+ * nobody has agreed to its dates or written a single objective in it. Either way the
+ * team sees nothing until there is a plan, so an empty cycle never goes public.
  */
 
 interface Quarter {
@@ -17,6 +21,7 @@ interface Quarter {
   name: string
   year: number
   status: string
+  startDate: string
 }
 
 interface TaskRow {
@@ -30,8 +35,11 @@ interface Props {
   quarter: Quarter
   quarters: Quarter[]
   onCancel: () => void
-  onClosed: () => void
+  onClosed: (next: { id: string; year: number; started: boolean } | null) => void
 }
+
+/** Sentinel for the deliberate choice to park carried work outside any quarter. */
+const UNSCHEDULED = '__unscheduled__'
 
 const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClosed }) => {
   const [tasks, setTasks] = useState<TaskRow[]>([])
@@ -40,12 +48,22 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
-  // Only quarters that can still receive work: carrying tasks into a closed one
-  // would hide them immediately.
+  // Only quarters that can still receive work, earliest first: carrying tasks into
+  // a closed one would hide them immediately, and the cycle that follows this one is
+  // nearly always the answer, so it should be the one offered first.
   const targets = useMemo(
-    () => quarters.filter((q) => q.id !== quarter.id && q.status !== 'CLOSED'),
+    () =>
+      quarters
+        .filter((q) => q.id !== quarter.id && q.status !== 'CLOSED')
+        .sort((a, b) => a.startDate.localeCompare(b.startDate)),
     [quarters, quarter.id],
   )
+
+  // Work follows the company forward unless someone says otherwise.
+  const successor = targets.find((q) => q.startDate >= quarter.startDate) ?? targets[0] ?? null
+  useEffect(() => {
+    setNextQuarterId((current) => current || successor?.id || UNSCHEDULED)
+  }, [successor?.id])
 
   useEffect(() => {
     let cancelled = false
@@ -78,17 +96,22 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
   const submit = async () => {
     setSaving(true)
     try {
+      const leaveUnscheduled = nextQuarterId === UNSCHEDULED
       const { data } = await api.post(`/quarters/${quarter.id}/close`, {
         rolloverTaskIds: Array.from(selected),
-        nextQuarterId: nextQuarterId || undefined,
+        nextQuarterId: leaveUnscheduled ? undefined : nextQuarterId || undefined,
+        leaveUnscheduled,
       })
-      toast.success(
+      toast.success(data?.message ?? 'Quarter closed.', { duration: 7000 })
+      onClosed(
         data?.nextQuarter
-          ? `Closed. ${data.nextQuarter.name} ${data.nextQuarter.year} is ready to start.`
-          : 'Quarter closed.',
-        { duration: 6000 },
+          ? {
+              id: data.nextQuarter.id,
+              year: data.nextQuarter.year,
+              started: Boolean(data.nextQuarter.started),
+            }
+          : null,
       )
-      onClosed()
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Could not close this quarter')
     } finally {
@@ -112,8 +135,8 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
               Close {quarter.name} {quarter.year}
             </h2>
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              Choose what happens to work that is not finished. Closing does not start the next quarter;
-              you do that when the team is ready.
+              Choose what happens to work that is not finished. The next cycle takes over from here,
+              and stays hidden from the team until its objectives have key results.
             </p>
           </div>
           <button aria-label="Cancel" onClick={onCancel} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
@@ -179,10 +202,13 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
             <div>
               <label htmlFor="next-quarter" className="form-label">Carry the ticked tasks into</label>
               <select id="next-quarter" value={nextQuarterId} onChange={(e) => setNextQuarterId(e.target.value)} className="select-field">
-                <option value="">No quarter yet, leave them unscheduled</option>
                 {targets.map((q) => (
-                  <option key={q.id} value={q.id}>{q.name} {q.year}</option>
+                  <option key={q.id} value={q.id}>
+                    {q.name} {q.year}
+                    {q.id === successor?.id ? ' (next cycle)' : ''}
+                  </option>
                 ))}
+                <option value={UNSCHEDULED}>No quarter yet, leave them unscheduled</option>
               </select>
             </div>
           )}

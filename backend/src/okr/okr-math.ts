@@ -123,6 +123,45 @@ function clamp01(n: number): number {
   return Math.min(Math.max(n, 0), 1);
 }
 
+/**
+ * Kept as one flat shape rather than a discriminated union: it is serialised
+ * straight to the client, and a stable set of fields is easier to read there than
+ * a union whose members appear and vanish.
+ */
+export interface QuarterReadiness {
+  ready: boolean;
+  reason: 'no-objectives' | 'objectives-without-key-results' | null;
+  /** Objectives that cannot be measured yet, named so the UI can say which. */
+  titles: string[];
+}
+
+/**
+ * Whether a quarter is set up well enough for the company to see it.
+ *
+ * A quarter starts the moment the previous one closes, so that the calendar never
+ * stalls waiting for a click. That leaves a window where it is running but nobody
+ * has written the objectives yet, and an empty cycle shown to the whole company
+ * reads as "there is no plan" rather than "the plan is being written". So the
+ * quarter is hidden from everyone but its planners until it holds something worth
+ * seeing, and this decides when that is.
+ *
+ * An objective with no key result is the case worth catching: it can never move off
+ * zero, because progress is only ever evidence from key results. Left in, it drags
+ * the quarter's average down all cycle and the year's verdict with it.
+ */
+export function quarterReadiness(
+  objectives: { title: string; keyResults: unknown[] }[],
+): QuarterReadiness {
+  if (objectives.length === 0) return { ready: false, reason: 'no-objectives', titles: [] };
+
+  const unmeasurable = objectives.filter((o) => o.keyResults.length === 0).map((o) => o.title);
+  if (unmeasurable.length > 0) {
+    return { ready: false, reason: 'objectives-without-key-results', titles: unmeasurable };
+  }
+
+  return { ready: true, reason: null, titles: [] };
+}
+
 export type YearVerdict = 'achieved' | 'partial' | 'missed' | 'no-goals';
 
 /**

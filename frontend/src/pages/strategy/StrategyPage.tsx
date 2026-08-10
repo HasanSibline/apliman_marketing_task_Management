@@ -8,6 +8,8 @@ import {
   PlusIcon,
   ChartBarSquareIcon,
   ArrowPathIcon,
+  EyeSlashIcon,
+  ArrowRightCircleIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
@@ -15,9 +17,16 @@ import { useAppSelector } from '@/hooks/redux'
 import EmptyState from '@/components/common/EmptyState'
 import YearReport from './YearReport'
 import CloseCycleModal from './CloseCycleModal'
+import EndYearModal from './EndYearModal'
 import ObjectiveCard, { Objective as ObjectiveShape } from './ObjectiveCard'
 
 type QuarterStatus = 'UPCOMING' | 'ACTIVE' | 'CLOSED'
+
+interface Readiness {
+  ready: boolean
+  reason: 'no-objectives' | 'objectives-without-key-results' | null
+  titles: string[]
+}
 
 interface Quarter {
   id: string
@@ -26,6 +35,21 @@ interface Quarter {
   status: QuarterStatus
   startDate: string
   endDate: string
+  readiness?: Readiness
+}
+
+/**
+ * What a quarter still needs before the company can see it, in the words of the
+ * thing that is missing rather than a status code.
+ */
+function readinessMessage(r: Readiness): string {
+  if (r.reason === 'no-objectives') {
+    return 'It has no objectives yet. Add what this quarter is trying to achieve.'
+  }
+  const [first, ...rest] = r.titles
+  if (!first) return 'It is not ready to show yet.'
+  const others = rest.length === 1 ? ' and one other' : rest.length > 1 ? ` and ${rest.length} others` : ''
+  return `Add a key result to "${first}"${others}. An objective with none can never show progress.`
 }
 
 type Objective = ObjectiveShape
@@ -48,6 +72,7 @@ const StrategyPage: React.FC = () => {
   const [view, setView] = useState<'plan' | 'report'>('plan')
   const [year, setYear] = useState<number | null>(null)
   const [closing, setClosing] = useState(false)
+  const [endingYear, setEndingYear] = useState(false)
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ title: '', description: '' })
   const [reportYear, setReportYear] = useState<number>(new Date().getFullYear())
@@ -191,7 +216,8 @@ const StrategyPage: React.FC = () => {
         <>
           {/* Years first, then that year's quarters: a flat list mixed every year
               together and made the running quarter hard to find. */}
-          <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Select a year">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Select a year">
             {years.map((y) => (
               <button
                 key={y}
@@ -214,6 +240,14 @@ const StrategyPage: React.FC = () => {
                 </span>
               </button>
             ))}
+            </div>
+
+            {isAdmin && year !== null && quartersInYear.some((q) => q.status !== 'CLOSED') && (
+              <button onClick={() => setEndingYear(true)} className="btn-secondary ml-auto">
+                <ArrowRightCircleIcon className="mr-2 h-4 w-4" />
+                End {year}
+              </button>
+            )}
           </div>
 
           <div className="flex gap-3 overflow-x-auto pb-1" role="group" aria-label="Select a quarter">
@@ -237,6 +271,12 @@ const StrategyPage: React.FC = () => {
                   <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                     {new Date(q.startDate).toLocaleDateString()} to {new Date(q.endDate).toLocaleDateString()}
                   </p>
+                  {q.status === 'ACTIVE' && q.readiness && !q.readiness.ready && (
+                    <p className="mt-1.5 flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                      <EyeSlashIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      Hidden from the team
+                    </p>
+                  )}
                 </button>
               )
             })}
@@ -276,6 +316,19 @@ const StrategyPage: React.FC = () => {
                   </button>
                 )}
               </div>
+
+              {selected.status === 'ACTIVE' && selected.readiness && !selected.readiness.ready && (
+                <div className="mt-4 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
+                  <EyeSlashIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+                  <div>
+                    <p className="text-sm font-semibold">Running, but hidden from the team</p>
+                    <p className="mt-1 text-sm opacity-90">
+                      {readinessMessage(selected.readiness)} Until then only planners can see this cycle,
+                      so nobody opens Strategy to an empty quarter.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="mt-5 border-t border-gray-200 pt-5 dark:border-gray-700">
                 <div className="mb-3 flex items-center justify-between">
@@ -360,10 +413,38 @@ const StrategyPage: React.FC = () => {
               quarter={selected}
               quarters={quarters}
               onCancel={() => setClosing(false)}
-              onClosed={async () => {
+              onClosed={async (next) => {
                 setClosing(false)
-                await loadQuarters()
-                await loadObjectives(selected.id)
+                const list = await loadQuarters()
+                // Follow the company forward. Staying on the quarter just closed
+                // would leave the planner looking at finished work.
+                if (next && list.some((q) => q.id === next.id)) {
+                  setYear(next.year)
+                  setSelectedId(next.id)
+                  await loadObjectives(next.id)
+                } else {
+                  await loadObjectives(selected.id)
+                }
+              }}
+            />
+          )}
+
+          {endingYear && year !== null && (
+            <EndYearModal
+              year={year}
+              onCancel={() => setEndingYear(false)}
+              onClosed={async (nextYear) => {
+                setEndingYear(false)
+                const list = await loadQuarters()
+                // The whole point of ending a year is arriving in the next one.
+                const landing =
+                  list.find((q) => q.year === nextYear && q.status === 'ACTIVE') ??
+                  list.filter((q) => q.year === nextYear).sort((a, b) => a.startDate.localeCompare(b.startDate))[0]
+                if (landing) {
+                  setYear(nextYear)
+                  setSelectedId(landing.id)
+                  await loadObjectives(landing.id)
+                }
               }}
             />
           )}

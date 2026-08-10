@@ -236,14 +236,19 @@ export class OkrAutomationService {
   async closeYear(
     companyId: string,
     year: number,
-    options: { createNextYearQuarters?: boolean } = {},
+    options: { rolloverTaskIds?: string[]; leaveUnscheduled?: boolean } = {},
   ): Promise<{
     year: number;
+    nextYear: number;
     quartersClosed: number;
     objectivesCompleted: number;
     objectivesCarried: number;
     nextYearQuartersCreated: number;
     targetQuarter: string | null;
+    targetQuarterId: string | null;
+    started: boolean;
+    tasksRolledOver: number;
+    tasksReleased: number;
   }> {
     const quarters = await this.prisma.quarter.findMany({
       where: { companyId, year },
@@ -251,23 +256,21 @@ export class OkrAutomationService {
       select: { id: true, name: true, status: true },
     });
 
-    let quartersClosed = 0;
-    for (const q of quarters.filter((q) => q.status !== 'CLOSED')) {
-      await this.prisma.quarter.update({ where: { id: q.id }, data: { status: 'CLOSED' } });
-      quartersClosed++;
-    }
+    const stillOpen = quarters.filter((q) => q.status !== 'CLOSED');
 
-    // Where carried objectives land: the earliest quarter of the following year.
+    // Where next year begins. Creating it is unconditional now: ending a year with
+    // nowhere for the unfinished work to go is what stranded it before.
     let nextYearQuartersCreated = 0;
     let target = await this.prisma.quarter.findFirst({
       where: { companyId, year: year + 1 },
       orderBy: { startDate: 'asc' },
-      select: { id: true, name: true },
+      select: { id: true, name: true, status: true },
     });
+    const nextYearAlreadyPlanned = Boolean(target);
 
-    if (!target && options.createNextYearQuarters) {
-      // Calendar quarters for the new year, all UPCOMING. The daily job activates
-      // each one on its start date, so nobody has to remember.
+    if (!target) {
+      // Calendar quarters for the new year, all UPCOMING. Nothing starts on its own:
+      // the year the app invented has no objectives in it yet.
       for (let i = 0; i < 4; i++) {
         const created = await this.prisma.quarter.create({
           data: {
@@ -279,11 +282,30 @@ export class OkrAutomationService {
             endDate: new Date(Date.UTC(year + 1, i * 3 + 3, 0, 23, 59, 59)),
             status: 'UPCOMING',
           },
-          select: { id: true, name: true },
+          select: { id: true, name: true, status: true },
         });
         if (i === 0) target = created;
         nextYearQuartersCreated++;
       }
+    }
+
+    // Unfinished work gets the same decision a single quarter's close gives it. The
+    // year used to shut its quarters directly, which left tasks pointing at a closed
+    // cycle: not carried, not released, just invisible. That was worse than dropping
+    // them, because nobody was told.
+    const { tasksRolledOver, tasksReleased } = await this.settleTasksForClosingYear(
+      companyId,
+      year,
+      stillOpen,
+      options.rolloverTaskIds ?? [],
+      options.leaveUnscheduled ? null : (target?.id ?? null),
+      target,
+    );
+
+    let quartersClosed = 0;
+    for (const q of stillOpen) {
+      await this.prisma.quarter.update({ where: { id: q.id }, data: { status: 'CLOSED' } });
+      quartersClosed++;
     }
 
     const objectives = await this.prisma.objective.findMany({
@@ -354,19 +376,162 @@ export class OkrAutomationService {
       }
     }
 
+    // A year the planners had already laid out takes over straight away, exactly as
+    // one quarter hands to the next. A year the app just invented waits, because
+    // nobody has agreed to it. Either way the team sees nothing until it is ready.
+    let started = false;
+    if (nextYearAlreadyPlanned && target?.status === 'UPCOMING') {
+      const running = await this.prisma.quarter.findFirst({
+        where: { companyId, status: 'ACTIVE' },
+        select: { id: true },
+      });
+      if (!running) {
+        await this.prisma.quarter.update({ where: { id: target.id }, data: { status: 'ACTIVE' } });
+        started = true;
+      }
+    }
+
     this.logger.log(
       `Year ${year} closed for company ${companyId}: ${quartersClosed} quarter(s), ` +
-        `${objectivesCompleted} completed, ${objectivesCarried} carried`,
+        `${objectivesCompleted} completed, ${objectivesCarried} carried, ` +
+        `${tasksRolledOver} task(s) carried, ${tasksReleased} released`,
+    );
+
+    await this.notifyCompanyAdmins(
+      companyId,
+      'YEAR_CLOSED',
+      `${year} is closed`,
+      target
+        ? started
+          ? `${target.name} ${year + 1} has started. ${objectivesCarried} unmet objective${objectivesCarried === 1 ? '' : 's'} carried forward with the progress already made.`
+          : `${target.name} ${year + 1} is set up and waiting for you to plan it and press Start cycle. ${objectivesCarried} unmet objective${objectivesCarried === 1 ? '' : 's'} carried forward.`
+        : `${objectivesCompleted} objective${objectivesCompleted === 1 ? '' : 's'} completed.`,
+      '/strategy',
     );
 
     return {
       year,
+      nextYear: year + 1,
       quartersClosed,
       objectivesCompleted,
       objectivesCarried,
       nextYearQuartersCreated,
       targetQuarter: target?.name ?? null,
+      targetQuarterId: target?.id ?? null,
+      started,
+      tasksRolledOver,
+      tasksReleased,
     };
+  }
+
+  /**
+   * Carry or release every unfinished task in the quarters a year is about to close,
+   * and tell each assignee which happened to theirs.
+   *
+   * Anything not named in `rolloverTaskIds` is released: it keeps its assignee and
+   * belongs to no quarter. Carrying is the default the dialog offers, so a release
+   * here is something a person chose.
+   */
+  private async settleTasksForClosingYear(
+    companyId: string,
+    year: number,
+    openQuarters: { id: string }[],
+    rolloverTaskIds: string[],
+    targetQuarterId: string | null,
+    target: { name: string; year?: number } | null,
+  ): Promise<{ tasksRolledOver: number; tasksReleased: number }> {
+    if (openQuarters.length === 0) return { tasksRolledOver: 0, tasksReleased: 0 };
+
+    const quarterIds = openQuarters.map((q) => q.id);
+    // Read both sets before writing, while the links still point somewhere.
+    const [rollingOver, beingReleased] = await Promise.all([
+      rolloverTaskIds.length > 0
+        ? this.prisma.task.findMany({
+            where: { id: { in: rolloverTaskIds }, companyId, quarterId: { in: quarterIds } },
+            select: { id: true, title: true, assignedToId: true },
+          })
+        : Promise.resolve([]),
+      this.prisma.task.findMany({
+        where: {
+          companyId,
+          quarterId: { in: quarterIds },
+          id: { notIn: rolloverTaskIds },
+          phase: { notIn: ['COMPLETED', 'ARCHIVED'] },
+        },
+        select: { id: true, title: true, assignedToId: true },
+      }),
+    ]);
+
+    if (rollingOver.length > 0) {
+      await this.prisma.task.updateMany({
+        where: { id: { in: rollingOver.map((t) => t.id) }, companyId },
+        data: { quarterId: targetQuarterId, isRolledOver: true },
+      });
+    }
+
+    if (beingReleased.length > 0) {
+      await this.prisma.task.updateMany({
+        where: { id: { in: beingReleased.map((t) => t.id) }, companyId },
+        data: { quarterId: null },
+      });
+    }
+
+    const payloads = [
+      ...rollingOver
+        .filter((t) => t.assignedToId)
+        .map((t) => ({
+          userId: t.assignedToId!,
+          taskId: t.id,
+          type: 'TASK_ROLLED_OVER',
+          title: 'Your task moved into the new year',
+          message: target
+            ? `"${t.title}" carried from ${year} into ${target.name} ${year + 1}.`
+            : `"${t.title}" carried out of ${year} and is not in a quarter yet.`,
+          actionUrl: `/tasks/${t.id}`,
+        })),
+      ...beingReleased
+        .filter((t) => t.assignedToId)
+        .map((t) => ({
+          userId: t.assignedToId!,
+          taskId: t.id,
+          type: 'TASK_RELEASED_FROM_QUARTER',
+          title: 'Your task is no longer in a quarter',
+          message: `${year} closed and "${t.title}" was not carried forward. It is still assigned to you and is now unscheduled.`,
+          actionUrl: `/tasks/${t.id}`,
+        })),
+    ];
+
+    if (payloads.length > 0) await this.notifications.createBulkNotifications(payloads);
+
+    return { tasksRolledOver: rollingOver.length, tasksReleased: beingReleased.length };
+  }
+
+  /** Unfinished work still sitting in a year's open quarters, for the closing dialog. */
+  async getOpenTasksForYear(companyId: string, year: number) {
+    const quarters = await this.prisma.quarter.findMany({
+      where: { companyId, year, status: { not: 'CLOSED' } },
+      select: { id: true, name: true, year: true, status: true },
+      orderBy: { startDate: 'asc' },
+    });
+    if (quarters.length === 0) return { quarters: [], tasks: [] };
+
+    const tasks = await this.prisma.task.findMany({
+      where: {
+        companyId,
+        quarterId: { in: quarters.map((q) => q.id) },
+        phase: { notIn: ['COMPLETED', 'ARCHIVED'] },
+      },
+      select: {
+        id: true,
+        title: true,
+        taskNumber: true,
+        quarterId: true,
+        assignedTo: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return { quarters, tasks };
   }
 
   // ─────────────────────────────────────────────────────────────────────────

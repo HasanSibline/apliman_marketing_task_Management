@@ -8,6 +8,7 @@ import {
   deriveObjectiveStatus,
   elapsedFraction,
   yearVerdict,
+  quarterReadiness,
 } from './okr-math';
 
 const done = { isCompleted: true };
@@ -273,5 +274,41 @@ describe('yearVerdict', () => {
     expect(yearVerdict(5, 4)).toBe('achieved'); // 80%
     expect(yearVerdict(4, 2)).toBe('partial');  // 50%
     expect(yearVerdict(3, 1)).toBe('missed');   // 33%
+  });
+});
+
+describe('quarterReadiness', () => {
+  const kr = [{}];
+
+  it('is not ready with no objectives at all', () => {
+    const r = quarterReadiness([]);
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe('no-objectives');
+  });
+
+  it('is ready when every objective can be measured', () => {
+    expect(
+      quarterReadiness([
+        { title: 'Grow pipeline', keyResults: kr },
+        { title: 'Cut churn', keyResults: [{}, {}] },
+      ]).ready,
+    ).toBe(true);
+  });
+
+  it('names the objectives that have no key result', () => {
+    const r = quarterReadiness([
+      { title: 'Grow pipeline', keyResults: kr },
+      { title: 'Cut churn', keyResults: [] },
+      { title: 'Launch v2', keyResults: [] },
+    ]);
+    expect(r.ready).toBe(false);
+    expect(r.reason).toBe('objectives-without-key-results');
+    // Named, so the banner can say which one to fix rather than "something".
+    expect(r.titles).toEqual(['Cut churn', 'Launch v2']);
+  });
+
+  it('treats one unmeasurable objective as enough to hold the quarter back', () => {
+    // It would sit at zero all cycle and drag the average down with it.
+    expect(quarterReadiness([{ title: 'Vague ambition', keyResults: [] }]).ready).toBe(false);
   });
 });

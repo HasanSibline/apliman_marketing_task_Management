@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TasksService } from '../tasks/tasks.service';
 import { CreateObjectiveDto } from './dto/create-objective.dto';
 import { CreateKeyResultDto, UpdateKeyResultDto } from './dto/key-result.dto';
-import { taskFraction } from '../okr/okr-math';
+import { taskFraction, quarterReadiness } from '../okr/okr-math';
 
 function calcProgress(keyResults: any[]): number {
     if (!keyResults?.length) return 0;
@@ -27,16 +27,37 @@ export class ObjectivesService {
         return { ...obj, progress };
     }
 
+
+    /**
+     * The quarters someone who is not a planner may read objectives from.
+     *
+     * The same rule Strategy applies to cycles: only the one running, and only once
+     * it holds objectives that can actually be measured. Applied here too, because a
+     * quarter hidden from the quarter list would otherwise still leak through its
+     * objectives.
+     */
+    private async visibleQuarterFilter(companyId: string, userRole: string) {
+        if (['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(userRole)) return null;
+
+        const active = await this.prisma.quarter.findFirst({
+            where: { companyId, status: 'ACTIVE' },
+            select: {
+                id: true,
+                objectives: { select: { title: true, keyResults: { select: { id: true } } } },
+            },
+        });
+
+        const visibleId = active && quarterReadiness(active.objectives).ready ? active.id : null;
+        // An objective outside any quarter belongs to no cycle, so no cycle hides it.
+        return visibleId ? [{ quarterId: null }, { quarterId: visibleId }] : [{ quarterId: null }];
+    }
+
     async findAll(companyId: string, userRole: string, quarterId?: string) {
         const where: any = { companyId };
         if (quarterId) where.quarterId = quarterId;
 
-        if (userRole === 'EMPLOYEE') {
-            where.OR = [
-                { quarter: null },
-                { quarter: { status: { not: 'UPCOMING' } } }
-            ];
-        }
+        const visible = await this.visibleQuarterFilter(companyId, userRole);
+        if (visible) where.OR = visible;
 
         const objectives = await this.prisma.objective.findMany({
             where,
@@ -51,13 +72,9 @@ export class ObjectivesService {
 
     async findOne(id: string, companyId: string, userRole?: string) {
         const where: any = { id, companyId };
-        
-        if (userRole === 'EMPLOYEE') {
-            where.OR = [
-                { quarter: null },
-                { quarter: { status: { not: 'UPCOMING' } } }
-            ];
-        }
+
+        const visible = await this.visibleQuarterFilter(companyId, userRole ?? '');
+        if (visible) where.OR = visible;
 
         const obj = await this.prisma.objective.findFirst({
             where,

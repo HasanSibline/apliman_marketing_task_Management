@@ -22,7 +22,7 @@ export class QuartersController {
     @Get('active')
     @ApiOperation({ summary: 'Get current active quarter' })
     findActive(@Request() req) {
-        return this.quartersService.findActive(req.user.companyId);
+        return this.quartersService.findActive(req.user.companyId, req.user.role);
     }
 
     @Get()
@@ -104,17 +104,24 @@ export class QuartersController {
         return this.okrAutomation.getYearReport(req.user.companyId, year);
     }
 
+    @Get('year/:year/open-tasks')
+    @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+    @ApiOperation({ summary: 'Unfinished work still in a year, for the closing dialog' })
+    async openTasksForYear(@Param('year', ParseIntPipe) year: number, @Request() req) {
+        return this.okrAutomation.getOpenTasksForYear(req.user.companyId, year);
+    }
+
     @Post('year/:year/close')
     @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
-    @ApiOperation({ summary: 'Close a year and carry unmet objectives forward' })
-    @ApiQuery({ name: 'createNextYearQuarters', required: false, type: Boolean })
+    @ApiOperation({ summary: 'Close a year, decide its unfinished work, and hand over to the next' })
     async closeYear(
         @Param('year', ParseIntPipe) year: number,
         @Request() req,
-        @Query('createNextYearQuarters') createNext?: string,
+        @Body() body: { rolloverTaskIds?: string[]; leaveUnscheduled?: boolean } = {},
     ) {
         return this.okrAutomation.closeYear(req.user.companyId, year, {
-            createNextYearQuarters: createNext === 'true',
+            rolloverTaskIds: body?.rolloverTaskIds ?? [],
+            leaveUnscheduled: body?.leaveUnscheduled === true,
         });
     }
 
