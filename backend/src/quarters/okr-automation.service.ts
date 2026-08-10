@@ -28,70 +28,65 @@ export class OkrAutomationService {
   @Cron(CronExpression.EVERY_DAY_AT_1AM)
   async runDailyMaintenance(): Promise<void> {
     this.logger.log('Running OKR daily maintenance');
-    await this.activateDueQuarters();
+    await this.flagQuartersReadyToStart();
     await this.flagOverdueQuarters();
     await this.refreshObjectiveStatuses();
   }
 
   /**
-   * UPCOMING quarters whose start date has arrived become ACTIVE.
+   * A quarter whose start date has arrived is announced, never started.
    *
-   * Only one quarter per company may be ACTIVE, matching the behaviour of manual
-   * activation. When several are due at once, the earliest start wins and the rest
-   * wait for the next run rather than silently overlapping.
+   * This used to activate it, and to close the previous one on the way past. Both
+   * were wrong. Starting a cycle commits a team to a set of objectives, and closing
+   * one decides what happens to every unfinished task; neither is a decision a
+   * timestamp should make at one in the morning. Closing automatically was the worse
+   * of the two, because it skipped the carry-over choice entirely and released work
+   * nobody had agreed to drop.
+   *
+   * So the clock only ever tells someone that a quarter is due. Start cycle stays a
+   * button a person presses.
    */
-  async activateDueQuarters(): Promise<number> {
+  async flagQuartersReadyToStart(): Promise<number> {
     const now = new Date();
 
     const due = await this.prisma.quarter.findMany({
       where: { status: 'UPCOMING', startDate: { lte: now } },
       orderBy: { startDate: 'asc' },
-      select: { id: true, companyId: true, name: true, year: true },
+      select: { id: true, companyId: true, name: true, year: true, startDate: true },
     });
 
     const seen = new Set<string>();
-    let activated = 0;
+    let flagged = 0;
 
     for (const quarter of due) {
+      // One reminder per company: the earliest quarter waiting is the one to start.
       if (seen.has(quarter.companyId)) continue;
       seen.add(quarter.companyId);
 
-      const alreadyActive = await this.prisma.quarter.findFirst({
+      // A quarter still running is not late; its successor waits by design.
+      const running = await this.prisma.quarter.findFirst({
         where: { companyId: quarter.companyId, status: 'ACTIVE' },
         select: { id: true, endDate: true },
       });
+      if (running && running.endDate > now) continue;
 
-      // An active quarter that has not ended yet keeps its place: starting the next
-      // one early would close it behind the team's back.
-      if (alreadyActive && alreadyActive.endDate > now) continue;
+      const daysWaiting = Math.floor(
+        (now.getTime() - quarter.startDate.getTime()) / 86_400_000,
+      );
+      // Say it on the day, then weekly, rather than every morning forever.
+      if (daysWaiting !== 0 && daysWaiting !== 1 && daysWaiting % 7 !== 0) continue;
 
-      await this.prisma.$transaction([
-        ...(alreadyActive
-          ? [
-              this.prisma.quarter.update({
-                where: { id: alreadyActive.id },
-                data: { status: 'CLOSED' as const },
-              }),
-            ]
-          : []),
-        this.prisma.quarter.update({
-          where: { id: quarter.id },
-          data: { status: 'ACTIVE' as const },
-        }),
-      ]);
-
-      activated++;
-      this.logger.log(`Activated ${quarter.name} ${quarter.year} for company ${quarter.companyId}`);
+      flagged++;
       await this.notifyCompanyAdmins(
         quarter.companyId,
-        'QUARTER_STARTED',
-        `${quarter.name} ${quarter.year} has started`,
-        `The quarter is now active. Tasks and objectives linked to it are in play.`,
-        '/quarters',
+        'QUARTER_READY_TO_START',
+        `${quarter.name} ${quarter.year} is ready to start`,
+        'Its start date has arrived. Open Strategy and press Start cycle when the team is ready. Nothing begins until you do.',
+        '/strategy',
       );
     }
 
-    return activated;
+    return flagged;
   }
 
   /**
@@ -124,7 +119,7 @@ export class OkrAutomationService {
         openTasks > 0
           ? `${openTasks} task${openTasks === 1 ? '' : 's'} are still open. Closing the quarter lets you carry them over or release them.`
           : 'All its tasks are finished. Close the quarter to move on.',
-        '/quarters',
+        '/strategy',
       );
     }
 

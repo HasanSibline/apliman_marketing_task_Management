@@ -25,6 +25,7 @@
     "browser-image-compression": "^2.0.2",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^10.16.4",
     "postcss": "^8.4.31",
     "react": "^18.2.0",

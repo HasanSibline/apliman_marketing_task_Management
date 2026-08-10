@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import {
   ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -9,10 +9,9 @@ import {
   ExclamationTriangleIcon,
   XCircleIcon,
   ArrowDownTrayIcon,
-  PrinterIcon,
+  TableCellsIcon,
   DocumentTextIcon,
 } from '@heroicons/react/24/outline'
-import { Link } from 'react-router-dom'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
@@ -105,6 +104,9 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
   const [selectedYears, setSelectedYears] = useState<number[]>([year])
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
+  const [exporting, setExporting] = useState(false)
+  // Charts are captured from this subtree, so it must wrap everything rendered.
+  const reportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -133,10 +135,32 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
   const report = reports.length === 1 ? reports[0] : null
   const multi = reports.length > 1
 
-  const printReport = () => {
-    // A CSV cannot carry a chart. Printing renders what is on screen, so the PDF
-    // contains the same charts and figures the reader just looked at.
-    window.print()
+  const exportWorkbook = async () => {
+    if (reports.length === 0 || exporting) return
+    setExporting(true)
+    try {
+      // Charts are read from what is rendered, so the pictures in the file are the
+      // ones on screen. Nothing is redrawn and nothing can disagree.
+      const { captureCharts, exportYearReport } = await import('./exportReport')
+      const charts = reportRef.current ? await captureCharts(reportRef.current) : []
+      await exportYearReport(
+        reports.map((r) => ({
+          year: r.year,
+          verdictLabel: VERDICT[r.verdict].label,
+          objectiveRate: r.objectiveRate,
+          summary: r.summary,
+          quarters: r.quarters,
+          shortfalls: r.shortfalls,
+        })),
+        charts,
+        'Aura Operations',
+      )
+      toast.success(charts.length > 0 ? `Exported with ${charts.length} charts` : 'Exported')
+    } catch {
+      toast.error('Could not build the report file')
+    } finally {
+      setExporting(false)
+    }
   }
 
   const exportCsv = () => {
@@ -188,7 +212,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
   ].filter((d) => d.value > 0)
 
   return (
-    <div className="space-y-6">
+    <div ref={reportRef} className="space-y-6">
       <div className="no-print flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className="form-label">Years</span>
@@ -215,9 +239,9 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
         </div>
 
         <div className="flex gap-2">
-          <button onClick={printReport} className="btn-primary">
-            <PrinterIcon className="mr-2 h-4 w-4" />
-            Export with charts
+          <button onClick={exportWorkbook} disabled={exporting} className="btn-primary">
+            <TableCellsIcon className="mr-2 h-4 w-4" />
+            {exporting ? 'Building file...' : 'Export to Excel'}
           </button>
           {report && (
             <button onClick={exportCsv} className="btn-secondary">
@@ -416,9 +440,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
                     {report.shortfalls.map((s) => (
                       <tr key={s.id} className="border-b border-gray-100 last:border-0 dark:border-gray-700/60">
                         <td className="px-5 py-3">
-                          <Link to={`/objectives/${s.id}`} className="font-medium text-gray-900 hover:text-primary-600 dark:text-white dark:hover:text-primary-400">
-                            {s.title}
-                          </Link>
+                          <span className="font-medium text-gray-900 dark:text-white">{s.title}</span>
                         </td>
                         <td className="px-5 py-3 text-gray-600 dark:text-gray-400">{s.owner ?? 'Unassigned'}</td>
                         <td className="px-5 py-3 text-right">

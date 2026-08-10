@@ -83,11 +83,11 @@ export class QuartersController {
     @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
     @ApiOperation({ summary: 'Run quarter and objective maintenance immediately' })
     async runAutomation() {
-        const activated = await this.okrAutomation.activateDueQuarters();
+        const readyToStart = await this.okrAutomation.flagQuartersReadyToStart();
         const overdue = await this.okrAutomation.flagOverdueQuarters();
         const statusChanges = await this.okrAutomation.refreshObjectiveStatuses();
         return {
-            quartersActivated: activated,
+            quartersReadyToStart: readyToStart,
             overdueQuartersFlagged: overdue,
             objectiveStatusesChanged: statusChanges,
         };
