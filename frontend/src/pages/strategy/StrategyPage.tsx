@@ -10,6 +10,7 @@ import {
   ArrowPathIcon,
   EyeSlashIcon,
   ArrowRightCircleIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
@@ -173,6 +174,30 @@ const StrategyPage: React.FC = () => {
       }
     } catch (e: any) {
       toast.error(e?.response?.data?.message ?? 'Could not open the next quarter')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Only ever offered for a cycle that never started and holds nothing. The server
+  // enforces that too; this just keeps the button away from the other cases.
+  const removeQuarter = async (quarter: Quarter) => {
+    setBusy(true)
+    try {
+      await api.delete(`/quarters/${quarter.id}`)
+      toast.success(`${quarter.name} ${quarter.year} removed`)
+      const list = await loadQuarters()
+      const fallback = list.find((q) => q.status === 'ACTIVE') ?? list[0]
+      if (fallback) {
+        setYear(fallback.year)
+        setSelectedId(fallback.id)
+        await loadObjectives(fallback.id)
+      } else {
+        setSelectedId('')
+        setObjectives([])
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Could not remove this quarter')
     } finally {
       setBusy(false)
     }
@@ -441,6 +466,16 @@ const StrategyPage: React.FC = () => {
                   <button onClick={() => setClosing(true)} className="btn-secondary">
                     <LockClosedIcon className="mr-2 h-4 w-4" />
                     Close cycle
+                  </button>
+                )}
+                {isAdmin && selected.status === 'UPCOMING' && objectives.length === 0 && (
+                  <button
+                    onClick={() => removeQuarter(selected)}
+                    disabled={busy}
+                    className="btn-secondary text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                  >
+                    <TrashIcon className="mr-2 h-4 w-4" />
+                    Remove
                   </button>
                 )}
               </div>

@@ -428,7 +428,9 @@ export class QuartersService {
                 }),
                 this.prisma.quarter.findFirst({
                     where: { companyId },
-                    orderBy: [{ endDate: 'desc' }],
+                    // By year first, because that is how the app groups quarters and
+                    // nothing forces a quarter's dates to agree with its year.
+                    orderBy: [{ year: 'desc' }, { endDate: 'desc' }],
                     select: {
                         id: true, name: true, year: true,
                         startDate: true, endDate: true, closedAt: true,
@@ -445,6 +447,46 @@ export class QuartersService {
             // is the constraint doing its job, not a failure worth surfacing: reading
             // the plan must never fail because a repair alongside it did.
         }
+    }
+
+    /**
+     * Remove a quarter that was never used.
+     *
+     * Only one that is still upcoming and holds nothing: no objectives, no tasks. A
+     * cycle that ran is a record of what the company did and deleting it would erase
+     * that, while one with work in it would take the work down with it. What this is
+     * for is a quarter created in error, which the app itself has been capable of
+     * producing, so the way back cannot depend on someone reaching the database.
+     */
+    async remove(id: string, companyId: string) {
+        const quarter = await this.prisma.quarter.findFirst({
+            where: { id, companyId },
+            select: {
+                id: true, name: true, year: true, status: true,
+                _count: { select: { objectives: true, tasks: true } },
+            },
+        });
+        if (!quarter) throw new NotFoundException('Quarter not found');
+
+        if (quarter.status !== 'UPCOMING') {
+            throw new BadRequestException(
+                `${quarter.name} ${quarter.year} has already been used, so its record is kept. Only a quarter that never started can be removed.`,
+            );
+        }
+
+        const { objectives, tasks } = quarter._count;
+        if (objectives > 0 || tasks > 0) {
+            const holds = [
+                objectives > 0 ? `${objectives} objective${objectives === 1 ? '' : 's'}` : null,
+                tasks > 0 ? `${tasks} task${tasks === 1 ? '' : 's'}` : null,
+            ].filter(Boolean).join(' and ');
+            throw new BadRequestException(
+                `${quarter.name} ${quarter.year} holds ${holds}. Move or delete them first, so nothing goes with it unnoticed.`,
+            );
+        }
+
+        await this.prisma.quarter.delete({ where: { id } });
+        return { success: true, message: `${quarter.name} ${quarter.year} removed.` };
     }
 
     /**
@@ -473,7 +515,7 @@ export class QuartersService {
 
         const last = await this.prisma.quarter.findFirst({
             where: { companyId },
-            orderBy: [{ endDate: 'desc' }],
+            orderBy: [{ year: 'desc' }, { endDate: 'desc' }],
             select: {
                 id: true, name: true, year: true,
                 startDate: true, endDate: true, closedAt: true,
@@ -531,9 +573,11 @@ export class QuartersService {
                 companyId,
                 status: 'UPCOMING',
                 id: { not: closed.id },
-                startDate: { gte: closed.startDate },
+                // Never travel backwards into a year already behind us. Compared by
+                // year rather than by date, since the two can disagree.
+                year: { gte: closed.year },
             },
-            orderBy: [{ startDate: 'asc' }],
+            orderBy: [{ year: 'asc' }, { startDate: 'asc' }],
             select: { id: true, name: true, year: true },
         });
         if (existing) return { ...existing, wasCreated: false };
@@ -543,6 +587,7 @@ export class QuartersService {
         // closed six weeks early should not leave six weeks of nothing behind it.
         let slot = nextQuarterSlot({
             name: closed.name,
+            year: closed.year,
             endDate: closed.closedAt ?? closed.endDate,
         });
 

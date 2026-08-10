@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Request, Query, ParseIntPipe } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { QuartersService } from './quarters.service';
 import { OkrAutomationService } from './okr-automation.service';
@@ -52,6 +52,13 @@ export class QuartersController {
     @ApiOperation({ summary: 'Update quarter properties' })
     update(@Param('id') id: string, @Body() dto: Partial<CreateQuarterDto>, @Request() req) {
         return this.quartersService.update(id, req.user.companyId, dto);
+    }
+
+    @Delete(':id')
+    @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @ApiOperation({ summary: 'Remove an upcoming quarter that holds nothing' })
+    remove(@Param('id') id: string, @Request() req) {
+        return this.quartersService.remove(id, req.user.companyId);
     }
 
     @Get(':id/analytics')

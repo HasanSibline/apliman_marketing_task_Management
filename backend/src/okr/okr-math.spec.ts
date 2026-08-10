@@ -320,7 +320,7 @@ describe('nextQuarterSlot', () => {
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
   it('lands exactly on the calendar for calendar-aligned quarters', () => {
-    const next = nextQuarterSlot({ name: 'Q1', endDate: new Date('2026-03-31T23:59:59Z') });
+    const next = nextQuarterSlot({ name: 'Q1', year: 2026, endDate: new Date('2026-03-31T23:59:59Z') });
     expect(next.name).toBe('Q2');
     expect(next.year).toBe(2026);
     expect(iso(next.startDate)).toBe('2026-04-01');
@@ -328,7 +328,7 @@ describe('nextQuarterSlot', () => {
   });
 
   it('rolls Q4 into Q1 of the following year', () => {
-    const next = nextQuarterSlot({ name: 'Q4', endDate: new Date('2026-12-31T23:59:59Z') });
+    const next = nextQuarterSlot({ name: 'Q4', year: 2026, endDate: new Date('2026-12-31T23:59:59Z') });
     expect(next.name).toBe('Q1');
     expect(next.year).toBe(2027);
     expect(iso(next.startDate)).toBe('2027-01-01');
@@ -338,7 +338,7 @@ describe('nextQuarterSlot', () => {
   it('follows the sequence even when the previous quarter had unusual dates', () => {
     // The case that exposed this: a Q1 dated across two days in August. Naming from
     // the calendar gave "Q3" starting in July, before the quarter it succeeds.
-    const next = nextQuarterSlot({ name: 'Q1', endDate: new Date('2028-08-11T23:59:59Z') });
+    const next = nextQuarterSlot({ name: 'Q1', year: 2028, endDate: new Date('2028-08-11T23:59:59Z') });
     expect(next.name).toBe('Q2');
     expect(next.year).toBe(2028);
     expect(iso(next.startDate)).toBe('2028-08-12');
@@ -349,20 +349,20 @@ describe('nextQuarterSlot', () => {
     const ends = ['2026-01-15', '2026-05-02', '2026-08-11', '2026-11-30', '2026-12-31'];
     for (const end of ends) {
       const prevEnd = new Date(`${end}T23:59:59Z`);
-      const next = nextQuarterSlot({ name: 'Q2', endDate: prevEnd });
+      const next = nextQuarterSlot({ name: 'Q2', year: 2026, endDate: prevEnd });
       expect(next.startDate.getTime()).toBeGreaterThan(prevEnd.getTime());
       expect(next.endDate.getTime()).toBeGreaterThan(next.startDate.getTime());
     }
   });
 
   it('falls back to the calendar when the name carries no sequence', () => {
-    const next = nextQuarterSlot({ name: 'Spring push', endDate: new Date('2026-03-31T23:59:59Z') });
+    const next = nextQuarterSlot({ name: 'Spring push', year: 2026, endDate: new Date('2026-03-31T23:59:59Z') });
     expect(next.name).toBe('Q2');
     expect(next.year).toBe(2026);
   });
 
   it('steps forward a whole quarter when a slot is already taken', () => {
-    const first = nextQuarterSlot({ name: 'Q1', endDate: new Date('2026-03-31T23:59:59Z') });
+    const first = nextQuarterSlot({ name: 'Q1', year: 2026, endDate: new Date('2026-03-31T23:59:59Z') });
     const second = advanceQuarterSlot(first);
     expect(second.name).toBe('Q3');
     expect(iso(second.startDate)).toBe('2026-07-01');
@@ -406,5 +406,20 @@ describe('quarterEnding', () => {
     const r = quarterEnding({ status: 'CLOSED', endDate: planned, closedAt: null });
     expect(r.state).toBe('on-time');
     expect(r.days).toBe(0);
+  });
+
+  it('counts the year on from the quarter before, not from the dates typed into it', () => {
+    // The bug this caught: a quarter labelled 2028 but dated in 2026. Reading the
+    // year off the derived start date moved the company to 2027, which is neither
+    // the year it was in nor the year it was going to.
+    const next = nextQuarterSlot({ name: 'Q1', year: 2028, endDate: new Date('2026-08-11T23:59:59Z') });
+    expect(next.name).toBe('Q2');
+    expect(next.year).toBe(2028);
+  });
+
+  it('rolls the year on the sequence wrapping, whatever the dates say', () => {
+    const next = nextQuarterSlot({ name: 'Q4', year: 2028, endDate: new Date('2026-08-11T23:59:59Z') });
+    expect(next.name).toBe('Q1');
+    expect(next.year).toBe(2029);
   });
 });

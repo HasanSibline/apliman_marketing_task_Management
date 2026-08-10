@@ -219,12 +219,12 @@ export interface QuarterSlot {
  * ending 31 March gives 1 April to 30 June. For anyone else it stays continuous and
  * never overlaps, which matters more than matching a calendar the company is not on.
  */
-export function nextQuarterSlot(prev: { name: string; endDate: Date }): QuarterSlot {
+export function nextQuarterSlot(prev: { name: string; year: number; endDate: Date }): QuarterSlot {
   const startDate = new Date(prev.endDate.getTime() + 86_400_000);
   startDate.setUTCHours(0, 0, 0, 0);
 
   return {
-    ...quarterNameAfter(prev.name, startDate),
+    ...quarterNameAfter(prev.name, prev.year, startDate),
     startDate,
     endDate: threeMonthsOn(startDate),
   };
@@ -240,7 +240,7 @@ export function advanceQuarterSlot(slot: QuarterSlot): QuarterSlot {
   );
 
   return {
-    ...quarterNameAfter(slot.name, startDate),
+    ...quarterNameAfter(slot.name, slot.year, startDate),
     startDate,
     endDate: threeMonthsOn(startDate),
   };
@@ -256,12 +256,23 @@ function threeMonthsOn(start: Date): Date {
 }
 
 /**
- * The name and year following a quarter called `prevName`.
+ * The name and year following a quarter called `prevName` in `prevYear`.
  *
- * A name outside the Q1..Q4 convention carries no sequence to continue, so the
- * calendar decides instead: it is the only other thing that could.
+ * The year counts on from the quarter before it, and only rolls when the sequence
+ * wraps past Q4. Taking it from the derived start date instead looked equivalent and
+ * was not: a quarter's `year` is what the app groups by and what its unique key is
+ * built from, and nothing forces that to agree with the dates someone typed. Given a
+ * quarter labelled 2028 but dated in 2026, the calendar reading moved the company to
+ * 2027, which is neither the year it was in nor the year it was going to.
+ *
+ * A name outside the Q1..Q4 convention carries no sequence to continue, so there the
+ * calendar decides: it is the only other thing that could.
  */
-function quarterNameAfter(prevName: string, startDate: Date): { name: string; year: number } {
+function quarterNameAfter(
+  prevName: string,
+  prevYear: number,
+  startDate: Date,
+): { name: string; year: number } {
   const match = /^Q([1-4])$/.exec(prevName.trim());
   if (!match) {
     const index = Math.floor(startDate.getUTCMonth() / 3);
@@ -269,11 +280,7 @@ function quarterNameAfter(prevName: string, startDate: Date): { name: string; ye
   }
 
   const n = Number(match[1]);
-  return {
-    name: n === 4 ? 'Q1' : `Q${n + 1}`,
-    // Rolling past Q4 belongs to the year the new quarter actually starts in.
-    year: startDate.getUTCFullYear(),
-  };
+  return n === 4 ? { name: 'Q1', year: prevYear + 1 } : { name: `Q${n + 1}`, year: prevYear };
 }
 
 export type YearVerdict = 'achieved' | 'partial' | 'missed' | 'no-goals';
