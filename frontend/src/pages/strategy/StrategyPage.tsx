@@ -18,6 +18,7 @@ import EmptyState from '@/components/common/EmptyState'
 import YearReport from './YearReport'
 import CloseCycleModal from './CloseCycleModal'
 import EndYearModal from './EndYearModal'
+import YearFolder from './YearFolder'
 import ObjectiveCard, { Objective as ObjectiveShape } from './ObjectiveCard'
 
 type QuarterStatus = 'UPCOMING' | 'ACTIVE' | 'CLOSED'
@@ -28,6 +29,11 @@ interface Readiness {
   titles: string[]
 }
 
+interface Ending {
+  state: 'open' | 'early' | 'on-time' | 'late'
+  days: number
+}
+
 interface Quarter {
   id: string
   name: string
@@ -36,6 +42,23 @@ interface Quarter {
   startDate: string
   endDate: string
   readiness?: Readiness
+  ending?: Ending
+}
+
+/**
+ * Dates are the plan; closing is the event. When the two disagree the record says
+ * so, because a cycle the team finished six weeks early is a fact worth keeping and
+ * not a rounding error against the calendar.
+ */
+const ENDING: Record<'early' | 'late', { label: string; className: string }> = {
+  early: {
+    label: 'Ended early',
+    className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+  },
+  late: {
+    label: 'Ran over',
+    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  },
 }
 
 /**
@@ -256,34 +279,51 @@ const StrategyPage: React.FC = () => {
         <>
           {/* Years first, then that year's quarters: a flat list mixed every year
               together and made the running quarter hard to find. */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap items-center gap-2" role="group" aria-label="Select a year">
-            {years.map((y) => (
-              <button
-                key={y}
-                onClick={() => {
-                  setYear(y)
-                  const first = quarters.find((q) => q.year === y && q.status === 'ACTIVE')
-                    ?? quarters.find((q) => q.year === y)
-                  if (first) setSelectedId(first.id)
-                }}
-                aria-pressed={year === y}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  year === y
-                    ? 'bg-primary-600 text-white shadow-sm'
-                    : 'surface text-gray-700 hover:border-gray-300 dark:text-gray-300 dark:hover:border-gray-600'
-                }`}
-              >
-                {y}
-                <span className={`ml-2 text-xs ${year === y ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>
-                  {quarters.filter((q) => q.year === y).length}
-                </span>
-              </button>
-            ))}
+          {/* Folders are taller than a button, so the row aligns on its baseline
+              rather than centring the actions against the artwork. */}
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="flex flex-wrap items-end gap-1" role="group" aria-label="Select a year">
+            {years.map((y) => {
+              const count = quarters.filter((q) => q.year === y).length
+              const on = year === y
+              return (
+                <button
+                  key={y}
+                  onClick={() => {
+                    setYear(y)
+                    const first = quarters.find((q) => q.year === y && q.status === 'ACTIVE')
+                      ?? quarters.find((q) => q.year === y)
+                    if (first) setSelectedId(first.id)
+                  }}
+                  aria-pressed={on}
+                  aria-label={`${y}, ${count} ${count === 1 ? 'quarter' : 'quarters'}`}
+                  className={`group flex w-24 flex-col items-center gap-1 rounded-xl px-2 py-2.5 transition-colors ${
+                    on
+                      ? 'bg-primary-50 dark:bg-primary-900/25'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  <YearFolder
+                    open={on}
+                    className={`h-11 w-11 transition-transform ${on ? '' : 'group-hover:-translate-y-0.5'}`}
+                  />
+                  <span
+                    className={`text-sm font-semibold tabular-nums ${
+                      on ? 'text-primary-700 dark:text-primary-300' : 'text-gray-800 dark:text-gray-200'
+                    }`}
+                  >
+                    {y}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {count} {count === 1 ? 'quarter' : 'quarters'}
+                  </span>
+                </button>
+              )
+            })}
             </div>
 
             {isAdmin && (
-              <div className="ml-auto flex flex-wrap gap-2">
+              <div className="ml-auto flex flex-wrap gap-2 pb-1.5">
                 {/* Closing the last quarter of a year does not end the year: unmet
                     objectives still have to be carried and the next year opened.
                     Gating this on an open quarter hid it exactly when it was needed. */}
@@ -346,6 +386,15 @@ const StrategyPage: React.FC = () => {
                     {formatSpan(q.startDate)} to {formatSpan(q.endDate)}
                   </p>
 
+                  {q.ending && (q.ending.state === 'early' || q.ending.state === 'late') && (
+                    <span
+                      className={`w-fit rounded-full px-2 py-0.5 text-xs font-medium ${ENDING[q.ending.state].className}`}
+                    >
+                      {ENDING[q.ending.state].label} by {q.ending.days}{' '}
+                      {q.ending.days === 1 ? 'day' : 'days'}
+                    </span>
+                  )}
+
                   {hidden && (
                     <p className="mt-auto flex items-center gap-1 pt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
                       <EyeSlashIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
@@ -374,7 +423,11 @@ const StrategyPage: React.FC = () => {
                       ? 'This quarter is running. Work linked to it counts toward the objectives below.'
                       : selected.status === 'UPCOMING'
                         ? 'Not started yet. Press Start cycle when the team is ready to begin.'
-                        : 'Closed. Its record is kept, but new work should go to a running quarter.'}
+                        : selected.ending?.state === 'early'
+                          ? `Closed ${selected.ending.days} ${selected.ending.days === 1 ? 'day' : 'days'} before its planned end. Its record is kept, and the next cycle picked up from there.`
+                          : selected.ending?.state === 'late'
+                            ? `Closed ${selected.ending.days} ${selected.ending.days === 1 ? 'day' : 'days'} after its planned end. Its record is kept, but new work should go to a running quarter.`
+                            : 'Closed. Its record is kept, but new work should go to a running quarter.'}
                   </p>
                 </div>
 

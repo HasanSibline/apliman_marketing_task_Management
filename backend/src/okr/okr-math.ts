@@ -162,6 +162,120 @@ export function quarterReadiness(
   return { ready: true, reason: null, titles: [] };
 }
 
+export interface QuarterEnding {
+  /** `open` while it runs; otherwise how its real ending compared to the plan. */
+  state: 'open' | 'early' | 'on-time' | 'late';
+  /** Whole days between the planned end and the real one. Always positive. */
+  days: number;
+}
+
+/**
+ * How a quarter's real ending compared to the one on the calendar.
+ *
+ * Dates here are a plan, not a rule. A team that finishes what it set out to do in
+ * ten weeks should close and move on, and the record should say so rather than let
+ * the cycle look as though it ran its full span. The same in reverse for one that
+ * overran.
+ *
+ * A quarter closed before this was recorded has no honest answer, so it reports
+ * on-time rather than inventing one: absence of evidence is not evidence of delay.
+ */
+export function quarterEnding(quarter: {
+  status: string;
+  endDate: Date;
+  closedAt?: Date | null;
+}): QuarterEnding {
+  if (quarter.status !== 'CLOSED') return { state: 'open', days: 0 };
+  if (!quarter.closedAt) return { state: 'on-time', days: 0 };
+
+  const diffMs = quarter.closedAt.getTime() - quarter.endDate.getTime();
+  const days = Math.floor(Math.abs(diffMs) / 86_400_000);
+
+  // Under a day either way is the same day's work, not early or late.
+  if (days < 1) return { state: 'on-time', days: 0 };
+  return { state: diffMs < 0 ? 'early' : 'late', days };
+}
+
+export interface QuarterSlot {
+  name: string;
+  year: number;
+  startDate: Date;
+  endDate: Date;
+}
+
+/**
+ * Where the quarter after this one sits.
+ *
+ * Two rules, and both matter for a reason found the hard way.
+ *
+ * The name follows the sequence, Q1 to Q2 to Q3 to Q4 and round to Q1 of the next
+ * year. Deriving it from the calendar month instead looks identical for a company on
+ * calendar quarters and absurd for anyone else: a Q1 someone dated across two days in
+ * August produced a "Q3" running from the first of July, a successor beginning five
+ * weeks before the quarter it succeeds.
+ *
+ * The dates continue from where the last quarter ended, running three months from the
+ * day after. For calendar-aligned quarters this lands exactly on the calendar: Q1
+ * ending 31 March gives 1 April to 30 June. For anyone else it stays continuous and
+ * never overlaps, which matters more than matching a calendar the company is not on.
+ */
+export function nextQuarterSlot(prev: { name: string; endDate: Date }): QuarterSlot {
+  const startDate = new Date(prev.endDate.getTime() + 86_400_000);
+  startDate.setUTCHours(0, 0, 0, 0);
+
+  return {
+    ...quarterNameAfter(prev.name, startDate),
+    startDate,
+    endDate: threeMonthsOn(startDate),
+  };
+}
+
+/**
+ * The slot after a given one, for when the name it wants is already taken by a
+ * quarter that is over. Used to step past history rather than reopen it.
+ */
+export function advanceQuarterSlot(slot: QuarterSlot): QuarterSlot {
+  const startDate = new Date(
+    Date.UTC(slot.startDate.getUTCFullYear(), slot.startDate.getUTCMonth() + 3, slot.startDate.getUTCDate()),
+  );
+
+  return {
+    ...quarterNameAfter(slot.name, startDate),
+    startDate,
+    endDate: threeMonthsOn(startDate),
+  };
+}
+
+/** Three months from a start, ending the day before, at the last second. */
+function threeMonthsOn(start: Date): Date {
+  const end = new Date(
+    Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 3, start.getUTCDate(), 23, 59, 59),
+  );
+  end.setUTCDate(end.getUTCDate() - 1);
+  return end;
+}
+
+/**
+ * The name and year following a quarter called `prevName`.
+ *
+ * A name outside the Q1..Q4 convention carries no sequence to continue, so the
+ * calendar decides instead: it is the only other thing that could.
+ */
+function quarterNameAfter(prevName: string, startDate: Date): { name: string; year: number } {
+  const match = /^Q([1-4])$/.exec(prevName.trim());
+  if (!match) {
+    const index = Math.floor(startDate.getUTCMonth() / 3);
+    return { name: `Q${index + 1}`, year: startDate.getUTCFullYear() };
+  }
+
+  const n = Number(match[1]);
+  return {
+    name: n === 4 ? 'Q1' : `Q${n + 1}`,
+    // Rolling past Q4 belongs to the year the new quarter actually starts in.
+    year: startDate.getUTCFullYear(),
+  };
+}
+
 export type YearVerdict = 'achieved' | 'partial' | 'missed' | 'no-goals';
 
 /**

@@ -3,7 +3,15 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuarterDto } from './dto/create-quarter.dto';
 import { CloseQuarterDto } from './dto/close-quarter.dto';
 import { NotificationsService } from '../notifications/notifications.service';
-import { didObjectiveLand, quarterReadiness, QuarterReadiness } from '../okr/okr-math';
+import {
+    didObjectiveLand,
+    quarterReadiness,
+    QuarterReadiness,
+    quarterEnding,
+    QuarterEnding,
+    nextQuarterSlot,
+    advanceQuarterSlot,
+} from '../okr/okr-math';
 
 /** Who plans cycles, as opposed to working inside the current one. */
 const PLANNER_ROLES = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'];
@@ -28,11 +36,20 @@ export class QuartersService {
         objectives: { select: { title: true, keyResults: { select: { id: true } } } },
     };
 
-    private withReadiness<T extends { objectives: { title: string; keyResults: unknown[] }[] }>(
-        quarter: T,
-    ): Omit<T, 'objectives'> & { readiness: QuarterReadiness } {
+    private withReadiness<
+        T extends {
+            objectives: { title: string; keyResults: unknown[] }[];
+            status: string;
+            endDate: Date;
+            closedAt?: Date | null;
+        },
+    >(quarter: T): Omit<T, 'objectives'> & { readiness: QuarterReadiness; ending: QuarterEnding } {
         const { objectives, ...rest } = quarter;
-        return { ...rest, readiness: quarterReadiness(objectives) };
+        return {
+            ...rest,
+            readiness: quarterReadiness(objectives),
+            ending: quarterEnding(quarter),
+        };
     }
 
     /**
@@ -250,16 +267,19 @@ export class QuartersService {
         if (!quarter) throw new NotFoundException('Quarter not found');
         if (quarter.status === 'CLOSED') throw new BadRequestException('Quarter is already closed');
 
-        // Close the quarter
+        // Closing is the real end of a cycle, whatever the calendar said. Recording
+        // it is what lets the record show a quarter finished early rather than
+        // pretending it ran its planned span.
+        const closedAt = new Date();
         await this.prisma.quarter.update({
             where: { id },
-            data: { status: 'CLOSED' },
+            data: { status: 'CLOSED', closedAt },
         });
 
         // Work out where the company goes next before touching any task, so carried
         // work can land in the successor even when that successor did not exist a
         // moment ago.
-        const successor = await this.resolveSuccessor(companyId, quarter);
+        const successor = await this.resolveSuccessor(companyId, { ...quarter, closedAt });
 
         const rolloverIds = dto.rolloverTaskIds ?? [];
 
@@ -409,7 +429,10 @@ export class QuartersService {
                 this.prisma.quarter.findFirst({
                     where: { companyId },
                     orderBy: [{ endDate: 'desc' }],
-                    select: { id: true, year: true, startDate: true, endDate: true },
+                    select: {
+                        id: true, name: true, year: true,
+                        startDate: true, endDate: true, closedAt: true,
+                    },
                 }),
             ]);
 
@@ -451,7 +474,10 @@ export class QuartersService {
         const last = await this.prisma.quarter.findFirst({
             where: { companyId },
             orderBy: [{ endDate: 'desc' }],
-            select: { id: true, year: true, startDate: true, endDate: true },
+            select: {
+                id: true, name: true, year: true,
+                startDate: true, endDate: true, closedAt: true,
+            },
         });
 
         if (!last) {
@@ -489,8 +515,17 @@ export class QuartersService {
      */
     private async resolveSuccessor(
         companyId: string,
-        closed: { id: string; year: number; startDate: Date; endDate: Date },
+        closed: {
+            id: string;
+            name: string;
+            year: number;
+            startDate: Date;
+            endDate: Date;
+            closedAt?: Date | null;
+        },
     ): Promise<{ id: string; name: string; year: number; wasCreated: boolean } | null> {
+        // What the planners already laid out wins. Scoped by date so a stale upcoming
+        // quarter left behind in an older year is not mistaken for what comes next.
         const existing = await this.prisma.quarter.findFirst({
             where: {
                 companyId,
@@ -503,34 +538,45 @@ export class QuartersService {
         });
         if (existing) return { ...existing, wasCreated: false };
 
-        // The day after this one ends decides which calendar quarter comes next, so
-        // December rolls into Q1 of the following year without a special case.
-        const dayAfter = new Date(closed.endDate.getTime() + 86_400_000);
-        const year = dayAfter.getUTCFullYear();
-        const index = Math.floor(dayAfter.getUTCMonth() / 3);
-        const name = `Q${index + 1}`;
-
-        // Names are unique per company and year, so a quarter that already exists
-        // under this name is reused rather than collided with.
-        const clash = await this.prisma.quarter.findFirst({
-            where: { companyId, name, year },
-            select: { id: true, name: true, year: true },
+        // Nothing prepared, so one is derived. It begins the day after the cycle
+        // actually ended rather than the day after it was scheduled to: a quarter
+        // closed six weeks early should not leave six weeks of nothing behind it.
+        let slot = nextQuarterSlot({
+            name: closed.name,
+            endDate: closed.closedAt ?? closed.endDate,
         });
-        if (clash) return { ...clash, wasCreated: false };
 
-        const created = await this.prisma.quarter.create({
-            data: {
-                companyId,
-                name,
-                year,
-                startDate: new Date(Date.UTC(year, index * 3, 1)),
-                // Day zero of the following month rolls back to the last day of this one.
-                endDate: new Date(Date.UTC(year, index * 3 + 3, 0, 23, 59, 59)),
-                status: 'UPCOMING',
-            },
-            select: { id: true, name: true, year: true },
-        });
-        return { ...created, wasCreated: true };
+        // A derived name can collide with a cycle already in the books. Step past it
+        // rather than reopen history; the bound stops a strange dataset looping.
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const clash = await this.prisma.quarter.findFirst({
+                where: { companyId, name: slot.name, year: slot.year },
+                select: { id: true, name: true, year: true, status: true },
+            });
+
+            if (!clash) {
+                const created = await this.prisma.quarter.create({
+                    data: {
+                        companyId,
+                        name: slot.name,
+                        year: slot.year,
+                        startDate: slot.startDate,
+                        endDate: slot.endDate,
+                        status: 'UPCOMING',
+                    },
+                    select: { id: true, name: true, year: true },
+                });
+                return { ...created, wasCreated: true };
+            }
+
+            if (clash.status === 'UPCOMING') {
+                return { id: clash.id, name: clash.name, year: clash.year, wasCreated: false };
+            }
+
+            slot = advanceQuarterSlot(slot);
+        }
+
+        return null;
     }
 
     /** Readiness of one quarter, read fresh. */

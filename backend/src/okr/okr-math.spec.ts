@@ -9,6 +9,9 @@ import {
   elapsedFraction,
   yearVerdict,
   quarterReadiness,
+  nextQuarterSlot,
+  advanceQuarterSlot,
+  quarterEnding,
 } from './okr-math';
 
 const done = { isCompleted: true };
@@ -310,5 +313,98 @@ describe('quarterReadiness', () => {
   it('treats one unmeasurable objective as enough to hold the quarter back', () => {
     // It would sit at zero all cycle and drag the average down with it.
     expect(quarterReadiness([{ title: 'Vague ambition', keyResults: [] }]).ready).toBe(false);
+  });
+});
+
+describe('nextQuarterSlot', () => {
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+
+  it('lands exactly on the calendar for calendar-aligned quarters', () => {
+    const next = nextQuarterSlot({ name: 'Q1', endDate: new Date('2026-03-31T23:59:59Z') });
+    expect(next.name).toBe('Q2');
+    expect(next.year).toBe(2026);
+    expect(iso(next.startDate)).toBe('2026-04-01');
+    expect(iso(next.endDate)).toBe('2026-06-30');
+  });
+
+  it('rolls Q4 into Q1 of the following year', () => {
+    const next = nextQuarterSlot({ name: 'Q4', endDate: new Date('2026-12-31T23:59:59Z') });
+    expect(next.name).toBe('Q1');
+    expect(next.year).toBe(2027);
+    expect(iso(next.startDate)).toBe('2027-01-01');
+    expect(iso(next.endDate)).toBe('2027-03-31');
+  });
+
+  it('follows the sequence even when the previous quarter had unusual dates', () => {
+    // The case that exposed this: a Q1 dated across two days in August. Naming from
+    // the calendar gave "Q3" starting in July, before the quarter it succeeds.
+    const next = nextQuarterSlot({ name: 'Q1', endDate: new Date('2028-08-11T23:59:59Z') });
+    expect(next.name).toBe('Q2');
+    expect(next.year).toBe(2028);
+    expect(iso(next.startDate)).toBe('2028-08-12');
+    expect(next.startDate.getTime()).toBeGreaterThan(new Date('2028-08-11T23:59:59Z').getTime());
+  });
+
+  it('never begins before the quarter it follows', () => {
+    const ends = ['2026-01-15', '2026-05-02', '2026-08-11', '2026-11-30', '2026-12-31'];
+    for (const end of ends) {
+      const prevEnd = new Date(`${end}T23:59:59Z`);
+      const next = nextQuarterSlot({ name: 'Q2', endDate: prevEnd });
+      expect(next.startDate.getTime()).toBeGreaterThan(prevEnd.getTime());
+      expect(next.endDate.getTime()).toBeGreaterThan(next.startDate.getTime());
+    }
+  });
+
+  it('falls back to the calendar when the name carries no sequence', () => {
+    const next = nextQuarterSlot({ name: 'Spring push', endDate: new Date('2026-03-31T23:59:59Z') });
+    expect(next.name).toBe('Q2');
+    expect(next.year).toBe(2026);
+  });
+
+  it('steps forward a whole quarter when a slot is already taken', () => {
+    const first = nextQuarterSlot({ name: 'Q1', endDate: new Date('2026-03-31T23:59:59Z') });
+    const second = advanceQuarterSlot(first);
+    expect(second.name).toBe('Q3');
+    expect(iso(second.startDate)).toBe('2026-07-01');
+    expect(iso(second.endDate)).toBe('2026-09-30');
+
+    const third = advanceQuarterSlot(second);
+    expect(third.name).toBe('Q4');
+    const fourth = advanceQuarterSlot(third);
+    expect(fourth.name).toBe('Q1');
+    expect(fourth.year).toBe(2027);
+  });
+});
+
+describe('quarterEnding', () => {
+  const planned = new Date('2026-03-31T23:59:59Z');
+
+  it('reports a running quarter as open, not as on time', () => {
+    expect(quarterEnding({ status: 'ACTIVE', endDate: planned, closedAt: null }).state).toBe('open');
+  });
+
+  it('reports a cycle finished ahead of the calendar as early, with the gap', () => {
+    const r = quarterEnding({ status: 'CLOSED', endDate: planned, closedAt: new Date('2026-02-20T10:00:00Z') });
+    expect(r.state).toBe('early');
+    expect(r.days).toBe(39);
+  });
+
+  it('reports one that overran as late', () => {
+    const r = quarterEnding({ status: 'CLOSED', endDate: planned, closedAt: new Date('2026-04-15T10:00:00Z') });
+    expect(r.state).toBe('late');
+    expect(r.days).toBe(14);
+  });
+
+  it('treats closing within a day of the plan as on time', () => {
+    expect(
+      quarterEnding({ status: 'CLOSED', endDate: planned, closedAt: new Date('2026-04-01T09:00:00Z') }).state,
+    ).toBe('on-time');
+  });
+
+  it('does not claim a quarter closed before this was recorded ran late', () => {
+    // No closedAt means no evidence. Inventing one would assert something untrue.
+    const r = quarterEnding({ status: 'CLOSED', endDate: planned, closedAt: null });
+    expect(r.state).toBe('on-time');
+    expect(r.days).toBe(0);
   });
 });

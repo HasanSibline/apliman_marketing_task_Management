@@ -641,6 +641,9 @@ model Quarter {
   startDate  DateTime
   endDate    DateTime
   status     QuarterStatus @default(UPCOMING)
+  /// When the cycle actually ended, which is rarely when it was planned to. Null
+  /// while it is still open, and on quarters closed before this was recorded.
+  closedAt   DateTime?
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
   objectives Objective[]

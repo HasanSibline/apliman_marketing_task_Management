@@ -302,9 +302,15 @@ export class OkrAutomationService {
       target,
     );
 
+    // Ending a year ends its cycles now, so they record now as their real ending
+    // rather than appearing to have run to whatever date was on the calendar.
+    const closedAt = new Date();
     let quartersClosed = 0;
     for (const q of stillOpen) {
-      await this.prisma.quarter.update({ where: { id: q.id }, data: { status: 'CLOSED' } });
+      await this.prisma.quarter.update({
+        where: { id: q.id },
+        data: { status: 'CLOSED', closedAt },
+      });
       quartersClosed++;
     }
 
