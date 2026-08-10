@@ -382,13 +382,15 @@ const StrategyPage: React.FC = () => {
               const active = q.id === selectedId
               const st = QUARTER_STATUS[q.status]
               const hidden = q.status === 'ACTIVE' && q.readiness && !q.readiness.ready
+              const canStart = isAdmin && q.status === 'UPCOMING'
               return (
-                <button
+                // A card carrying its own action cannot be a button: nesting one
+                // inside another is invalid and leaves the inner one unreachable.
+                // Selecting is a button stretched over the card instead, with the
+                // action sitting above it.
+                <div
                   key={q.id}
-                  aria-pressed={active}
-                  aria-label={`${q.name} ${q.year}, ${st.label}`}
-                  onClick={() => setSelectedId(q.id)}
-                  className={`surface flex w-full flex-col gap-2 p-4 text-left transition-colors ${
+                  className={`surface relative flex flex-col gap-2 p-4 transition-colors ${
                     active
                       // Border and ground rather than a ring: a ring paints outside
                       // the box and is the first thing any container clips.
@@ -396,37 +398,66 @@ const StrategyPage: React.FC = () => {
                       : 'hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="truncate text-base font-semibold text-gray-900 dark:text-white">
-                      {q.name}
-                    </span>
-                    <span
-                      className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${st.className}`}
-                    >
-                      {st.label}
-                    </span>
+                  <button
+                    aria-pressed={active}
+                    aria-label={`${q.name} ${q.year}, ${st.label}`}
+                    onClick={() => setSelectedId(q.id)}
+                    className="absolute inset-0 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary-500"
+                  />
+
+                  {/* Text is inert so a click anywhere on it reaches the card. */}
+                  <div className="pointer-events-none relative flex flex-col gap-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="truncate text-base font-semibold text-gray-900 dark:text-white">
+                        {q.name}
+                      </span>
+                      <span
+                        className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-medium ${st.className}`}
+                      >
+                        {st.label}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {formatSpan(q.startDate)} to {formatSpan(q.endDate)}
+                    </p>
+
+                    {q.ending && (q.ending.state === 'early' || q.ending.state === 'late') && (
+                      <span
+                        className={`w-fit rounded-full px-2 py-0.5 text-xs font-medium ${ENDING[q.ending.state].className}`}
+                      >
+                        {ENDING[q.ending.state].label} by {q.ending.days}{' '}
+                        {q.ending.days === 1 ? 'day' : 'days'}
+                      </span>
+                    )}
+
+                    {hidden && (
+                      <p className="flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                        <EyeSlashIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                        Hidden from the team
+                      </p>
+                    )}
                   </div>
 
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatSpan(q.startDate)} to {formatSpan(q.endDate)}
-                  </p>
-
-                  {q.ending && (q.ending.state === 'early' || q.ending.state === 'late') && (
-                    <span
-                      className={`w-fit rounded-full px-2 py-0.5 text-xs font-medium ${ENDING[q.ending.state].className}`}
+                  {/* Starting a cycle belongs to the quarter it starts, so it sits on
+                      that quarter rather than in a header shared by all of them.
+                      mt-auto keeps it on the bottom edge however tall the row grows. */}
+                  {canStart && (
+                    <button
+                      onClick={() => startCycle(q)}
+                      disabled={busy}
+                      aria-label={`Start ${q.name} ${q.year}`}
+                      className="btn-primary relative mt-auto w-full justify-center"
                     >
-                      {ENDING[q.ending.state].label} by {q.ending.days}{' '}
-                      {q.ending.days === 1 ? 'day' : 'days'}
-                    </span>
+                      {busy ? (
+                        <ArrowPathIcon className="mr-2 h-4 w-4 animate-spin" />
+                      ) : (
+                        <PlayCircleIcon className="mr-2 h-4 w-4" />
+                      )}
+                      Start cycle
+                    </button>
                   )}
-
-                  {hidden && (
-                    <p className="mt-auto flex items-center gap-1 pt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
-                      <EyeSlashIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      Hidden from the team
-                    </p>
-                  )}
-                </button>
+                </div>
               )
             })}
           </div>
@@ -447,7 +478,7 @@ const StrategyPage: React.FC = () => {
                     {selected.status === 'ACTIVE'
                       ? 'This quarter is running. Work linked to it counts toward the objectives below.'
                       : selected.status === 'UPCOMING'
-                        ? 'Not started yet. Press Start cycle when the team is ready to begin.'
+                        ? 'Not started yet. Plan its objectives here, then press Start cycle on the card above.'
                         : selected.ending?.state === 'early'
                           ? `Closed ${selected.ending.days} ${selected.ending.days === 1 ? 'day' : 'days'} before its planned end. Its record is kept, and the next cycle picked up from there.`
                           : selected.ending?.state === 'late'
@@ -456,28 +487,24 @@ const StrategyPage: React.FC = () => {
                   </p>
                 </div>
 
-                {isAdmin && selected.status === 'UPCOMING' && (
-                  <button onClick={() => startCycle(selected)} disabled={busy} className="btn-primary">
-                    {busy ? <ArrowPathIcon className="mr-2 h-4 w-4 animate-spin" /> : <PlayCircleIcon className="mr-2 h-4 w-4" />}
-                    Start cycle
-                  </button>
-                )}
-                {isAdmin && selected.status === 'ACTIVE' && (
-                  <button onClick={() => setClosing(true)} className="btn-secondary">
-                    <LockClosedIcon className="mr-2 h-4 w-4" />
-                    Close cycle
-                  </button>
-                )}
-                {isAdmin && selected.status === 'UPCOMING' && objectives.length === 0 && (
-                  <button
-                    onClick={() => removeQuarter(selected)}
-                    disabled={busy}
-                    className="btn-secondary text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <TrashIcon className="mr-2 h-4 w-4" />
-                    Remove
-                  </button>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {isAdmin && selected.status === 'ACTIVE' && (
+                    <button onClick={() => setClosing(true)} className="btn-secondary">
+                      <LockClosedIcon className="mr-2 h-4 w-4" />
+                      Close cycle
+                    </button>
+                  )}
+                  {isAdmin && selected.status === 'UPCOMING' && objectives.length === 0 && (
+                    <button
+                      onClick={() => removeQuarter(selected)}
+                      disabled={busy}
+                      className="btn-secondary text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    >
+                      <TrashIcon className="mr-2 h-4 w-4" />
+                      Remove
+                    </button>
+                  )}
+                </div>
               </div>
 
               {selected.status === 'ACTIVE' && selected.readiness && !selected.readiness.ready && (
