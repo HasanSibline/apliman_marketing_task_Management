@@ -48,6 +48,12 @@ export class QuartersService {
      */
     async findAll(companyId: string, userRole?: string, selectable = false) {
         const planner = this.isPlanner(userRole);
+
+        // Reading the plan is where a missing successor gets noticed and fixed. Only
+        // a planner's read repairs, so the work happens for the person who would act
+        // on it rather than on an employee's dashboard load.
+        if (planner) await this.openSuccessorIfNoneIsWaiting(companyId);
+
         const where: any = { companyId };
 
         if (!planner) {
@@ -378,6 +384,44 @@ export class QuartersService {
                   }
                 : null,
         };
+    }
+
+    /**
+     * A company that has quarters should always have one to work in.
+     *
+     * Closing creates the successor, but only for quarters closed once that existed.
+     * Anything closed before it stays stuck forever, and no amount of correct code
+     * going forward repairs a company that is already in that state. Production
+     * applies schema with `db push`, so migration SQL never runs there and a data
+     * repair has to live in code that heals on read. This is that repair.
+     *
+     * Deliberately does nothing for a company with no quarters at all: never having
+     * planned a cycle is a choice, and inventing one would be the app deciding the
+     * company wants a feature. That case gets an empty state and a button instead.
+     */
+    private async openSuccessorIfNoneIsWaiting(companyId: string): Promise<void> {
+        try {
+            const [open, last] = await Promise.all([
+                this.prisma.quarter.findFirst({
+                    where: { companyId, status: { in: ['ACTIVE', 'UPCOMING'] } },
+                    select: { id: true },
+                }),
+                this.prisma.quarter.findFirst({
+                    where: { companyId },
+                    orderBy: [{ endDate: 'desc' }],
+                    select: { id: true, year: true, startDate: true, endDate: true },
+                }),
+            ]);
+
+            if (open || !last) return;
+
+            await this.resolveSuccessor(companyId, last);
+        } catch {
+            // Two planners loading Strategy at once both try to create the same
+            // quarter, and the unique index on name and year rejects the loser. That
+            // is the constraint doing its job, not a failure worth surfacing: reading
+            // the plan must never fail because a repair alongside it did.
+        }
     }
 
     /**
