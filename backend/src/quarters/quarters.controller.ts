@@ -68,6 +68,13 @@ export class QuartersController {
         return this.quartersService.create(dto, req.user.companyId);
     }
 
+    @Post('next')
+    @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
+    @ApiOperation({ summary: 'Open the quarter that follows the last one, dates derived' })
+    createNext(@Request() req) {
+        return this.quartersService.createNextQuarter(req.user.companyId);
+    }
+
     @Post(':id/close')
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     @ApiOperation({ summary: 'Close a quarter and roll over selected tasks' })

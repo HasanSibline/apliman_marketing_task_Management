@@ -134,6 +134,27 @@ const StrategyPage: React.FC = () => {
     }
   }
 
+  // Only one cycle can be open at a time, so this is offered exactly when none is.
+  const hasOpenCycle = quarters.some((q) => q.status !== 'CLOSED')
+
+  const openNextQuarter = async () => {
+    setBusy(true)
+    try {
+      const { data } = await api.post('/quarters/next')
+      toast.success(`${data.name} ${data.year} is ready. Plan it, then press Start cycle.`)
+      const list = await loadQuarters()
+      if (list.some((q) => q.id === data.id)) {
+        setYear(data.year)
+        setSelectedId(data.id)
+        await loadObjectives(data.id)
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message ?? 'Could not open the next quarter')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const createObjective = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selected || !draft.title.trim()) return
@@ -217,7 +238,19 @@ const StrategyPage: React.FC = () => {
         <EmptyState
           icon={CalendarDaysIcon}
           title="No quarters yet"
-          description="A quarter is the period your objectives live in. Create the first one to start planning."
+          description="A quarter is the period your objectives live in. Open the first one to start planning."
+          action={
+            isAdmin ? (
+              <button onClick={openNextQuarter} disabled={busy} className="btn-primary">
+                {busy ? (
+                  <ArrowPathIcon className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                )}
+                Open the first quarter
+              </button>
+            ) : undefined
+          }
         />
       ) : (
         <>
@@ -249,11 +282,28 @@ const StrategyPage: React.FC = () => {
             ))}
             </div>
 
-            {isAdmin && year !== null && quartersInYear.some((q) => q.status !== 'CLOSED') && (
-              <button onClick={() => setEndingYear(true)} className="btn-secondary ml-auto">
-                <ArrowRightCircleIcon className="mr-2 h-4 w-4" />
-                End {year}
-              </button>
+            {isAdmin && (
+              <div className="ml-auto flex flex-wrap gap-2">
+                {/* Closing the last quarter of a year does not end the year: unmet
+                    objectives still have to be carried and the next year opened.
+                    Gating this on an open quarter hid it exactly when it was needed. */}
+                {!hasOpenCycle && (
+                  <button onClick={openNextQuarter} disabled={busy} className="btn-primary">
+                    {busy ? (
+                      <ArrowPathIcon className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <PlusIcon className="mr-2 h-4 w-4" />
+                    )}
+                    Open the next quarter
+                  </button>
+                )}
+                {year !== null && quartersInYear.length > 0 && (
+                  <button onClick={() => setEndingYear(true)} className="btn-secondary">
+                    <ArrowRightCircleIcon className="mr-2 h-4 w-4" />
+                    End {year}
+                  </button>
+                )}
+              </div>
             )}
           </div>
 

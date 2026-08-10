@@ -381,6 +381,58 @@ export class QuartersService {
     }
 
     /**
+     * Open the next quarter on demand.
+     *
+     * Closing normally creates the successor itself, so this is the way out of the
+     * states where that did not happen: the company's very first quarter, and any
+     * quarter closed before handover existed. Without it a company whose last
+     * quarter is closed has no route back to a running cycle from Strategy at all.
+     *
+     * Dates are derived rather than asked for. The quarter that follows the last one
+     * is not a judgement call, and a form would only invite an overlap.
+     */
+    async createNextQuarter(companyId: string) {
+        const open = await this.prisma.quarter.findFirst({
+            where: { companyId, status: { in: ['ACTIVE', 'UPCOMING'] } },
+            select: { name: true, year: true, status: true },
+        });
+        if (open) {
+            throw new BadRequestException(
+                open.status === 'ACTIVE'
+                    ? `${open.name} ${open.year} is still running. Close it before opening another.`
+                    : `${open.name} ${open.year} is already waiting to start.`,
+            );
+        }
+
+        const last = await this.prisma.quarter.findFirst({
+            where: { companyId },
+            orderBy: [{ endDate: 'desc' }],
+            select: { id: true, year: true, startDate: true, endDate: true },
+        });
+
+        if (!last) {
+            // Nothing has ever existed here, so begin with the calendar quarter the
+            // company is actually in rather than an arbitrary Q1.
+            const now = new Date();
+            const year = now.getUTCFullYear();
+            const index = Math.floor(now.getUTCMonth() / 3);
+            return this.prisma.quarter.create({
+                data: {
+                    companyId,
+                    name: `Q${index + 1}`,
+                    year,
+                    startDate: new Date(Date.UTC(year, index * 3, 1)),
+                    endDate: new Date(Date.UTC(year, index * 3 + 3, 0, 23, 59, 59)),
+                    status: 'UPCOMING',
+                },
+            });
+        }
+
+        const created = await this.resolveSuccessor(companyId, last);
+        return this.prisma.quarter.findUnique({ where: { id: created!.id } });
+    }
+
+    /**
      * The quarter that follows the one just closed.
      *
      * Prefers what the planners already laid out, taking the earliest upcoming cycle

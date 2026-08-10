@@ -15,6 +15,7 @@ import {
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
+import { useChartTheme } from '@/theme/chartTheme'
 
 /**
  * The year in one screen: did the company hit its goals, and where did it not?
@@ -105,6 +106,11 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
   const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  // Recharts draws its tooltip with inline styles, so it defaults to a white card
+  // with near-black text whatever the page is. The app already has one hook that
+  // resolves those colours against the live theme; charts here use it too rather
+  // than growing a second answer.
+  const chart = useChartTheme()
   // Charts are captured from this subtree, so it must wrap everything rendered.
   const reportRef = useRef<HTMLDivElement>(null)
 
@@ -271,7 +277,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.12} />
                 <XAxis dataKey="year" stroke="currentColor" opacity={0.6} fontSize={12} />
                 <YAxis allowDecimals={false} stroke="currentColor" opacity={0.6} fontSize={12} />
-                <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid rgba(128,128,128,0.3)' }} />
+                <Tooltip contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel} itemStyle={chart.tooltipLabel} />
                 <Legend />
                 <Bar dataKey="Landed" fill={LANDED} radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Missed" fill={MISSED} radius={[4, 4, 0, 0]} />
@@ -357,7 +363,9 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
                     <XAxis dataKey="name" stroke="currentColor" opacity={0.6} fontSize={12} />
                     <YAxis allowDecimals={false} stroke="currentColor" opacity={0.6} fontSize={12} />
                     <Tooltip
-                      contentStyle={{ borderRadius: 10, border: '1px solid rgba(128,128,128,0.3)' }}
+                      contentStyle={chart.tooltip}
+                      labelStyle={chart.tooltipLabel}
+                      itemStyle={chart.tooltipLabel}
                       wrapperStyle={{ outline: 'none' }}
                     />
                     <Legend />
@@ -386,7 +394,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
                           <Cell key={d.name} fill={d.name === 'Landed' ? LANDED : MISSED} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid rgba(128,128,128,0.3)' }} />
+                      <Tooltip contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel} itemStyle={chart.tooltipLabel} />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -406,7 +414,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
                   <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.12} />
                   <XAxis dataKey="name" stroke="currentColor" opacity={0.6} fontSize={12} />
                   <YAxis domain={[0, 100]} unit="%" stroke="currentColor" opacity={0.6} fontSize={12} />
-                  <Tooltip contentStyle={{ borderRadius: 10, border: '1px solid rgba(128,128,128,0.3)' }} />
+                  <Tooltip contentStyle={chart.tooltip} labelStyle={chart.tooltipLabel} itemStyle={chart.tooltipLabel} />
                   <Legend />
                   <Line type="monotone" dataKey="progress" name="Objective progress" stroke={ACCENT} strokeWidth={2} dot={{ r: 3 }} />
                   <Line type="monotone" dataKey="taskCompletionRate" name="Tasks completed" stroke={LANDED} strokeWidth={2} strokeDasharray="5 4" dot={{ r: 3 }} />
