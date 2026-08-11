@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Aura Operations">
+  <!--
+    The Aura mark, drawn for a browser tab rather than scaled down into one.
+
+    The full logo carries three concentric arcs. At the size this is actually seen,
+    sixteen pixels square, those arcs land under a pixel each and the gaps between
+    them land under half of one, so they merge into a smudge that reads as nothing.
+    Detail that cannot survive the size it is displayed at is not detail, it is noise.
+
+    So this keeps what identifies the mark, the broken ring with a lighter quarter and
+    a dot at its centre, and drops the inner arc that only survives at large sizes.
+    Strokes are roughly twice the logo's, which is what makes it legible at sixteen
+    pixels. icon-192 and icon-512 keep the full mark: they are shown large enough for
+    it to read.
+
+    Colours are literal. A favicon renders outside the app, where a CSS variable or
+    currentColor resolves to nothing and the icon comes out invisible.
+  -->
+  <rect width="64" height="64" rx="14" fill="#0B1220"/>
+
+  <g fill="none" stroke-linecap="round">
+    <!-- Three quarters of the ring, from the bottom round to the top. -->
+    <path d="M32 54A22 22 0 1 1 32 10" stroke="#2563EB" stroke-width="8"/>
+    <!-- The remaining quarter, lighter, holding the upper right. -->
+    <path d="M54 32A22 22 0 0 0 32 10" stroke="#93B4FD" stroke-width="8"/>
+    <circle cx="32" cy="32" r="7" fill="#3B82F6"/>
+  </g>
+</svg>

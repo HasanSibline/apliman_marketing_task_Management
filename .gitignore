@@ -101,7 +101,11 @@ dist
 
 # Gatsby files
 .cache/
-public
+# `public` is deliberately absent here. It is Gatsby's build output, and there is no
+# Gatsby in this repository; under Vite, frontend/public is source. Ignoring it kept
+# every favicon, the touch icon and the web manifest out of the repository, so the
+# deployed site served no icons at all while the files sat happily on disk locally
+# and in the local build, which is exactly why it went unnoticed.
 
 # Vuepress build output
 .vuepress/dist
