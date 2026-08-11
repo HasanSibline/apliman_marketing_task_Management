@@ -1,30 +1,32 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useAnimationControls, useReducedMotion } from 'framer-motion'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import AuraAssist from './AuraAssist'
 import AuraBot from './AuraBot'
 
 /**
- * The launcher, and the one thing Aura says without being asked.
+ * The launcher: where Aura lives when it is not being talked to.
  *
- * The button used to pulse forever with an `animate-ping` ring. Permanent motion in
- * the corner of every screen is not an invitation, it is something to learn to
- * ignore, and it moves while people are trying to read. It moves once on arrival now
- * and then holds still.
+ * Two things happen here without being asked. It occasionally slips off the right
+ * edge and peeks back, and it occasionally has something true to say. Both are rare
+ * on purpose. A corner that always moves is a corner people stop looking at, which
+ * costs exactly the attention the behaviour was meant to buy.
  *
- * The nudge is the only thing that interrupts, and it earns it by being specific:
- * counted from this person's own tasks and tickets, never generated, so it costs
- * nothing and stays right even while the AI service is down. Dismissing one silences
- * nudges for the rest of the session, because a thing you closed should stay closed.
+ * Every bit of it yields to being touched. Hover during the peek and it yelps and
+ * goes straight back to where it belongs, because the one thing worse than a mascot
+ * that moves is a mascot that will not get out of the way.
  */
 
 /** Long enough after arriving that it is not competing with the page loading. */
 const FIRST_NUDGE_MS = 25_000
-/** And rarely enough afterwards that it stays worth reading. */
 const NUDGE_INTERVAL_MS = 12 * 60_000
-/** On screen just long enough for a glance. */
 const NUDGE_VISIBLE_MS = 11_000
+
+/** The peek is a surprise, so it must never be predictable or frequent. */
+const FIRST_PEEK_MS = 70_000
+const PEEK_EVERY_MS = 150_000
+const PEEK_JITTER_MS = 90_000
 
 interface Nudge {
   text: string
@@ -42,10 +44,19 @@ export default function FloatingChatButton() {
   const [nudge, setNudge] = useState<Nudge | null>(null)
   const [silenced, setSilenced] = useState(false)
 
-  const hideTimer = useRef<ReturnType<typeof setTimeout>>()
+  const [peeking, setPeeking] = useState(false)
+  const [ouch, setOuch] = useState(false)
 
+  const controls = useAnimationControls()
+  const reduced = useReducedMotion()
+
+  const hideTimer = useRef<ReturnType<typeof setTimeout>>()
+  const ouchTimer = useRef<ReturnType<typeof setTimeout>>()
+  /** Bumped to abandon a sequence in flight, so an interrupted peek cannot resume. */
+  const run = useRef(0)
+
+  // ── Nudges ────────────────────────────────────────────────────────────────
   const fetchNudge = useCallback(async () => {
-    // Never over the top of an open conversation, and never after it was dismissed.
     if (silenced || isChatOpen || document.hidden) return
     try {
       const { data } = await api.get('/chat/nudge', { timeout: 8000 })
@@ -72,6 +83,102 @@ export default function FloatingChatButton() {
     if (isChatOpen) setNudge(null)
   }, [isChatOpen])
 
+  // ── Coming home ───────────────────────────────────────────────────────────
+  const comeBack = useCallback(
+    async (startled: boolean) => {
+      run.current += 1
+      clearTimeout(ouchTimer.current)
+      setPeeking(false)
+
+      if (startled) {
+        setOuch(true)
+        ouchTimer.current = setTimeout(() => setOuch(false), 1400)
+        // Caught: one hop and straight back, no strolling.
+        await controls.start({
+          x: 0,
+          y: [0, -7, 0],
+          rotate: 0,
+          transition: { duration: 0.42, ease: 'easeOut' },
+        })
+        return
+      }
+
+      // Walking: the body rocks side to side and rises on each step. Four steps over
+      // the distance is what keeps it a walk rather than a slide with a wobble on it.
+      await controls.start({
+        x: 0,
+        y: [0, -3, 0, -3, 0, -3, 0, -3, 0],
+        rotate: [0, -4, 0, 4, 0, -4, 0, 4, 0],
+        transition: { duration: 1.5, ease: 'linear' },
+      })
+      await controls.start({ y: 0, rotate: 0, transition: { duration: 0.2 } })
+    },
+    [controls],
+  )
+
+  // ── The peek ──────────────────────────────────────────────────────────────
+  const peek = useCallback(async () => {
+    if (reduced || isChatOpen || document.hidden || peeking || ouch) return
+
+    const token = ++run.current
+    const alive = () => run.current === token
+
+    setPeeking(true)
+
+    // Off to the right, behind the edge of the window. The clipping frame below is
+    // what hides it, so nothing is ever drawn outside the page.
+    await controls.start({ x: 74, rotate: 6, transition: { duration: 0.55, ease: 'easeIn' } })
+    if (!alive()) return
+
+    // Back out just far enough that the head and one hand clear the edge.
+    await controls.start({
+      x: 40,
+      rotate: -6,
+      transition: { type: 'spring', stiffness: 200, damping: 16 },
+    })
+    if (!alive()) return
+
+    // Caught looking. Three blinks, then it walks back as if nothing happened.
+    await new Promise((r) => setTimeout(r, 2600))
+    if (!alive()) return
+
+    setPeeking(false)
+    await comeBack(false)
+  }, [controls, comeBack, isChatOpen, peeking, ouch, reduced])
+
+  useEffect(() => {
+    if (reduced) return
+    let timer: ReturnType<typeof setTimeout>
+
+    const schedule = (delay: number) => {
+      timer = setTimeout(() => {
+        peek()
+        schedule(PEEK_EVERY_MS + Math.random() * PEEK_JITTER_MS)
+      }, delay)
+    }
+
+    schedule(FIRST_PEEK_MS + Math.random() * PEEK_JITTER_MS)
+    return () => clearTimeout(timer)
+  }, [peek, reduced])
+
+  useEffect(() => {
+    // Opening the chat ends whatever it was doing, immediately.
+    if (isChatOpen) {
+      run.current += 1
+      setPeeking(false)
+      controls.start({ x: 0, y: 0, rotate: 0, transition: { duration: 0.2 } })
+    }
+  }, [isChatOpen, controls])
+
+  useEffect(() => () => clearTimeout(ouchTimer.current), [])
+
+  const startled = () => {
+    // Only a yelp if it was actually up to something. Hovering a robot standing
+    // quietly in its corner has hurt nobody.
+    if (!peeking || ouch) return
+    comeBack(true)
+  }
+
   const dismiss = () => {
     setNudge(null)
     setSilenced(true)
@@ -80,10 +187,25 @@ export default function FloatingChatButton() {
   return (
     <>
       {!isChatOpen && (
-        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3">
+        <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2">
           <AnimatePresence>
-            {nudge && (
+            {ouch && (
               <motion.div
+                key="ouch"
+                initial={{ opacity: 0, y: 6, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.9 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                className="rounded-full border border-gray-200 bg-white px-3 py-1 text-xs font-semibold text-gray-800 shadow-md dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                role="status"
+              >
+                Ouch!
+              </motion.div>
+            )}
+
+            {nudge && !ouch && (
+              <motion.div
+                key="nudge"
                 initial={{ opacity: 0, y: 8, scale: 0.96 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.96 }}
@@ -108,23 +230,33 @@ export default function FloatingChatButton() {
             )}
           </AnimatePresence>
 
-          <motion.button
-            onClick={() => setIsChatOpen(true)}
-            // One arrival, then still. Anything that moves forever gets tuned out.
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-            whileHover={{ scale: 1.06 }}
-            whileTap={{ scale: 0.96 }}
-            aria-label="Open Aura Assist"
-            title="Ask Aura Assist"
-            // No plate behind it. A ring and a shadow drawn around a transparent
-            // character frame the empty corners of its box rather than the character,
-            // so the lift comes from a drop-shadow that follows the silhouette.
-            className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
-          >
-            <AuraBot className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]" />
-          </motion.button>
+          {/* The frame it hides behind. Overflow is clipped here rather than by the
+              window, so sliding right never extends the page or raises a scrollbar.
+              Padded at the top so the walk's bounce is not cropped. */}
+          <div className="relative h-[86px] w-[76px] overflow-hidden pt-4">
+            <motion.button
+              onClick={() => setIsChatOpen(true)}
+              onHoverStart={startled}
+              animate={controls}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.96 }}
+              aria-label="Open Aura Assist"
+              title="Ask Aura Assist"
+              className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
+            >
+              <motion.span
+                className="block"
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+              >
+                <AuraBot
+                  className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]"
+                  eyes={peeking ? 'burst' : 'auto'}
+                />
+              </motion.span>
+            </motion.button>
+          </div>
         </div>
       )}
 

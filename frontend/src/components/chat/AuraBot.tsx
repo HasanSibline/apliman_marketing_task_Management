@@ -26,9 +26,20 @@ interface Props {
   thinking?: boolean
   /** Set false for a still frame, e.g. beside a stored message. */
   alive?: boolean
+  /**
+   * `auto` is the idle rhythm. `burst` blinks three times and stops, which is what
+   * it does after peeking out, where the blink is the joke rather than a background
+   * tic and has to be deliberate enough to read as one.
+   */
+  eyes?: 'auto' | 'burst'
 }
 
-const AuraBot: React.FC<Props> = ({ className = 'h-10 w-10', thinking = false, alive = true }) => {
+const AuraBot: React.FC<Props> = ({
+  className = 'h-10 w-10',
+  thinking = false,
+  alive = true,
+  eyes = 'auto',
+}) => {
   // Gradient ids are document-global; two bots would otherwise share whichever
   // definition rendered first.
   const uid = useId().replace(/:/g, '')
@@ -39,14 +50,32 @@ const AuraBot: React.FC<Props> = ({ className = 'h-10 w-10', thinking = false, a
 
   const still = useReducedMotion() || !alive
 
-  // Blink: open, snap shut, open. The delay is not a round number so successive
-  // blinks never fall into a visible pattern.
-  const eye = still || thinking
-    ? {}
-    : {
-        animate: { scaleY: [1, 1, 0.08, 1] },
-        transition: { duration: 0.26, times: [0, 0.82, 0.9, 1], repeat: Infinity, repeatDelay: 3.7 },
-      }
+  // A blink has weight: the lid falls, rests shut for an instant, and opens more
+  // slowly than it closed. The first version snapped through in a quarter second,
+  // which read as a flicker in the rendering rather than as an eye. The delay is not
+  // a round number, so successive blinks never settle into a visible pattern.
+  const idleBlink = {
+    animate: { scaleY: [1, 1, 0.06, 0.06, 1] },
+    transition: {
+      duration: 0.62,
+      times: [0, 0.55, 0.72, 0.8, 1],
+      repeat: Infinity,
+      repeatDelay: 3.9,
+      ease: 'easeInOut' as const,
+    },
+  }
+
+  // Three, unhurried, then still. Read as counting rather than as a malfunction.
+  const burstBlink = {
+    animate: { scaleY: [1, 0.06, 1, 0.06, 1, 0.06, 1] },
+    transition: {
+      duration: 2.4,
+      times: [0, 0.1, 0.24, 0.44, 0.58, 0.78, 1],
+      ease: 'easeInOut' as const,
+    },
+  }
+
+  const eye = still || thinking ? {} : eyes === 'burst' ? burstBlink : idleBlink
 
   // A slow rise and fall. Small enough to be felt rather than watched.
   const breathe = still
@@ -61,8 +90,17 @@ const AuraBot: React.FC<Props> = ({ className = 'h-10 w-10', thinking = false, a
   const glance = still || thinking
     ? {}
     : {
-        animate: { rotate: [0, 0, -7, -7, 0], x: [0, 0, -0.8, -0.8, 0] },
-        transition: { duration: 1.6, times: [0, 0.55, 0.68, 0.86, 1], repeat: Infinity, repeatDelay: 9 },
+        // Held. The tip itself is quick; the pause at the bottom is what makes it
+        // look like attention rather than a twitch, so most of the duration is spent
+        // there before it comes back up.
+        animate: { rotate: [0, 0, -8, -8, -8, 0], x: [0, 0, -1, -1, -1, 0] },
+        transition: {
+          duration: 2.9,
+          times: [0, 0.24, 0.36, 0.76, 0.84, 1],
+          repeat: Infinity,
+          repeatDelay: 9,
+          ease: 'easeInOut' as const,
+        },
       }
 
   return (
