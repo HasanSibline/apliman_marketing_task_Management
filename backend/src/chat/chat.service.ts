@@ -303,7 +303,13 @@ export class ChatService {
         userToken, // Pass user's access token for file fetching
       };
 
-      let aiResponse = await this.callAiChatService(chatPayload);
+      // One deadline for everything this message may cost upstream. Each call used to
+      // carry its own budget, so a message that fell back to the platform key could
+      // spend two full budgets back to back and outlive the browser's own patience,
+      // which throws away the work and shows a network error instead of an answer.
+      const deadline = Date.now() + ChatService.CHAT_BUDGET_MS;
+
+      let aiResponse = await this.callAiChatService(chatPayload, deadline);
 
       // A company on a free provider tier hits per-minute limits routinely, and one
       // chat message costs two upstream calls (this one plus context learning). The
@@ -316,12 +322,15 @@ export class ChatService {
           this.logger.warn(
             `Company key for ${company.name} was rate limited, retrying this message on the platform key.`,
           );
-          aiResponse = await this.callAiChatService({
-            ...chatPayload,
-            api_key: platform.apiKey,
-            provider: platform.provider,
-            model: platform.model ?? undefined,
-          });
+          aiResponse = await this.callAiChatService(
+            {
+              ...chatPayload,
+              api_key: platform.apiKey,
+              provider: platform.provider,
+              model: platform.model ?? undefined,
+            },
+            deadline,
+          );
         }
       }
 
@@ -778,17 +787,25 @@ export class ChatService {
    * permanent problem is reported. Bad credentials are permanent and worth saying
    * plainly, because someone can act on them. Everything else gets the time it needs.
    */
-  private async callAiChatService(data: any) {
-    const startedAt = Date.now();
+  private async callAiChatService(data: any, deadline?: number) {
+    const endBy = deadline ?? Date.now() + ChatService.CHAT_BUDGET_MS;
     let lastDetail = 'Unknown error';
     let attempt = 0;
 
     for (;;) {
+      // Never start an attempt with less time left than it needs to mean anything.
+      const remaining = endBy - Date.now();
+      if (remaining < 3_000) {
+        this.logger.warn(`AI chat out of time before attempt ${attempt + 1}`);
+        break;
+      }
+
       try {
         const response = await firstValueFrom(
           this.httpService.post(`${this.aiServiceUrl}/chat`, data, {
             headers: this.aiServiceHeaders,
-            timeout: ChatService.CHAT_ATTEMPT_TIMEOUT_MS,
+            // Whichever is sooner: a normal attempt, or what is left of the deadline.
+            timeout: Math.min(ChatService.CHAT_ATTEMPT_TIMEOUT_MS, remaining),
             maxBodyLength: Infinity,
             maxContentLength: Infinity,
           }),
@@ -842,18 +859,14 @@ export class ChatService {
         const wait = ChatService.CHAT_BACKOFF_MS[
           Math.min(attempt, ChatService.CHAT_BACKOFF_MS.length - 1)
         ];
-        const elapsed = Date.now() - startedAt;
 
-        // Only retry if the budget has room for the wait and a whole attempt after
-        // it. Starting an attempt that the budget will cut short wastes the time it
-        // spends and returns nothing for it.
-        const roomToTryAgain =
-          elapsed + wait + ChatService.CHAT_ATTEMPT_TIMEOUT_MS <= ChatService.CHAT_BUDGET_MS;
+        // Only retry if what is left covers the wait and a worthwhile attempt after
+        // it. Starting one the deadline will cut short spends the time and returns
+        // nothing for it.
+        const roomToTryAgain = Date.now() + wait + 8_000 <= endBy;
 
         if (!worthRetrying || !roomToTryAgain) {
-          this.logger.error(
-            `AI chat gave up after ${attempt + 1} attempt(s) in ${Math.round(elapsed / 1000)}s: ${lastDetail}`,
-          );
+          this.logger.error(`AI chat gave up after ${attempt + 1} attempt(s): ${lastDetail}`);
           break;
         }
 

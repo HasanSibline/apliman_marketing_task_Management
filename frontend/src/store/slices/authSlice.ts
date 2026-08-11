@@ -81,8 +81,17 @@ export const checkAuth = createAsyncThunk(
       localStorage.setItem('token', response.accessToken)
       return response
     } catch (error: any) {
-      localStorage.removeItem('token')
-      return rejectWithValue(error.response?.data?.message || 'Authentication failed')
+      // A server that never answered has said nothing about the token. Throwing it
+      // away on a timeout signs people out because the backend was cold, and the
+      // token may well still be valid a moment later. Only a refusal is a refusal.
+      const refused = error.response?.status === 401 || error.response?.status === 403
+      if (refused) localStorage.removeItem('token')
+
+      return rejectWithValue(
+        refused
+          ? error.response?.data?.message || 'Your session has expired. Please sign in again.'
+          : 'Could not reach the server. Please try again.',
+      )
     }
   }
 )

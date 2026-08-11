@@ -3,6 +3,7 @@ import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, Chevr
 import { useNavigate } from 'react-router-dom'
 import { CpuChipIcon } from '@heroicons/react/24/solid'
 import ThinkingIndicator from './ThinkingIndicator'
+import { AuraMark } from '@/components/brand/AuraMark'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
 import api from '../../services/api'
@@ -525,12 +526,12 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
           onClick={() => setIsMinimized(false)}
         >
           <div className="flex items-center space-x-3">
-            <div className="relative w-11 h-11 bg-white/20 rounded-lg flex items-center justify-center shadow-md">
-              <CpuChipIcon className="w-6 h-6 text-white" />
-              <div className="absolute -top-1 -right-1 w-3 h-3 bg-success-400 rounded-full border-2 border-white"></div>
+            <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-md">
+              <AuraMark className="h-6 w-6" />
+              <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-success-400"></div>
             </div>
             <div>
-              <h3 className="font-bold text-base">Aura Assist</h3>
+              <h3 className="text-sm font-semibold">Aura Assist</h3>
               <p className="text-xs text-white/90 flex items-center gap-1">
                 <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
                 {messages.length} messages
@@ -580,16 +581,16 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
             <div className="flex flex-col h-full bg-white dark:bg-gray-800 relative">
               {/* Chat Header */}
               <div className="flex items-center justify-between px-5 py-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 z-10 shadow-sm">
-                <div className="flex items-center space-x-3.5">
+                <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="w-10 h-10 rounded-xl bg-primary-50 dark:bg-primary-900/30 flex items-center justify-center shadow-inner">
-                      <CpuChipIcon className="w-6 h-6 text-primary-600 dark:text-primary-400" />
+                    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-50 dark:bg-primary-900/30">
+                      <AuraMark className="h-6 w-6" />
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></div>
+                    <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-green-500 dark:border-gray-800"></div>
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Aura Assist</h2>
-                    <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Aura Operations</p>
+                    <h2 className="text-sm font-semibold tracking-tight text-gray-900 dark:text-white">Aura Assist</h2>
+                    <p className="text-[11px] font-medium tracking-wide text-gray-500 dark:text-gray-400">Aura Operations</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-1">

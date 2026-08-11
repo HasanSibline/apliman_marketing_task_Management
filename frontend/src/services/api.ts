@@ -152,7 +152,12 @@ export const authApi = {
   },
 
   refreshToken: async (): Promise<any> => {
-    const response = await api.post('/auth/refresh')
+    // The whole app waits behind this one call at startup, so it cannot inherit the
+    // shared two-minute timeout. A cold backend meant two minutes of loading screen,
+    // which is indistinguishable from the app being broken. Twenty seconds is longer
+    // than a warm reply needs and short enough to fail into the login page instead of
+    // a spinner nobody can get out of.
+    const response = await api.post('/auth/refresh', undefined, { timeout: 20000 })
     return response.data
   },
 

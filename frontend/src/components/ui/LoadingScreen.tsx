@@ -1,8 +1,18 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { BRAND } from '@/config/brand'
 
 const LoadingScreen: React.FC = () => {
+  // A warm start is over in well under a second. Anything past a few seconds is the
+  // backend waking, and saying so is the difference between a wait and a hang: the
+  // screen is identical either way, so without a word it reads as broken.
+  const [slowToStart, setSlowToStart] = useState(false)
+
+  useEffect(() => {
+    const id = setTimeout(() => setSlowToStart(true), 4000)
+    return () => clearTimeout(id)
+  }, [])
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 dark:from-primary-900/20 to-primary-100 dark:to-primary-900/20 flex items-center justify-center">
       <div className="glass-card rounded-xl p-8 max-w-md w-full mx-4">
@@ -48,7 +58,9 @@ const LoadingScreen: React.FC = () => {
               Loading {BRAND.fullName}
             </h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm">
-              Preparing your workspace...
+              {slowToStart
+                ? 'The server was asleep and is waking up. This first load takes a little longer.'
+                : 'Preparing your workspace...'}
             </p>
           </motion.div>
 
