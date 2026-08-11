@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import ResetPasswordModal from '@/components/users/ResetPasswordModal'
 import { 
   PlusIcon, 
   UserIcon, 
@@ -29,6 +29,7 @@ const UsersPage: React.FC = () => {
   const { users, isLoading } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
   const [activeTab, setActiveTab] = useState<Tab>('users')
+  const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
@@ -85,15 +86,20 @@ const UsersPage: React.FC = () => {
     })
   }
 
+  /**
+   * Set the password directly rather than mailing a link.
+   *
+   * The confirmation this replaced promised "a reset link to their verified email",
+   * which is a promise about email delivery that nothing here can keep, and it left
+   * the admin with no way to tell whether it had worked. Typing the password means
+   * the admin knows the credential and can hand it over, which is what actually
+   * happens in a company anyway.
+   *
+   * The dialog it opens was already written and simply had nothing calling it.
+   */
   const handleResetPassword = (user: any) => {
     setSelectedUser(user)
-    setActionModal({
-      isOpen: true,
-      type: 'reset_password',
-      title: 'Credential Reset Log',
-      description: `Initiate a secure password reset for ${user.name}? This will send a reset link to their verified email.`,
-      targetId: user.id
-    })
+    setResetPasswordOpen(true)
   }
 
   const handleConfirmAction = async () => {
@@ -105,9 +111,6 @@ const UsersPage: React.FC = () => {
         await usersApi.delete(targetId!)
         toast.success(`${selectedUser?.name || 'Personnel'} removed from active logs`)
         dispatch(fetchUsers({}))
-      } else if (type === 'reset_password') {
-        await usersApi.resetPassword(targetId!)
-        toast.success('Credential reset broadcasted successfully')
       }
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Operation synchronization failure')
@@ -218,123 +221,164 @@ const UsersPage: React.FC = () => {
       )}
 
       {activeTab === 'users' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        /*
+         * A table, not cards. This is the same six facts about every person, and a
+         * grid of cards makes six facts look like six different shapes: the eye has to
+         * re-find the task count in each one. Columns let a name be read against a
+         * name and a number against a number, which is the reason anyone opens this
+         * page. It also stops costing a full card of height per person.
+         */
+        <div className="surface overflow-hidden">
           {isLoading ? (
-            <div className="col-span-full flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <div className="flex justify-center py-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600" />
             </div>
           ) : users.length === 0 ? (
-            <div className="col-span-full text-center py-8">
-              <p className="text-gray-500 dark:text-gray-400">No users found</p>
-            </div>
+            <p className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">No users found</p>
           ) : (
-            users.map((userItem: any, index: number) => (
-              <motion.div
-                key={userItem.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 flex flex-col justify-between hover:border-primary-100 transition-all font-outfit"
-              >
-                <div className="flex items-center space-x-4">
-                  <Avatar
-                    src={userItem.avatar}
-                    name={userItem.name}
-                    className="h-12 w-12 border-4 border-primary-50 dark:border-primary-900/40"
-                    size="md"
-                    rounded="2xl"
-                  />
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight">
-                      {userItem.name}
-                    </h3>
-                    <p className="text-gray-600 dark:text-gray-300">{userItem.email}</p>
-                    {userItem.position && (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">{userItem.position}</p>
-                    )}
-                    {userItem.department && (
-                      <p className="text-xs text-primary-600 dark:text-primary-400 font-medium">{userItem.department.name}</p>
-                    )}
-                  </div>
-                  {canManageUser(userItem) && (
-                    <Menu as="div" className="relative">
-                      <Menu.Button className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors">
-                        <EllipsisVerticalIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                      </Menu.Button>
-                      <Menu.Items className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 focus:outline-none z-10">
-                        <div className="py-1">
-                          <Menu.Item>
-                            {({ active }) => (
-                              <button
-                                onClick={() => handleEdit(userItem)}
-                                className={`${
-                                  active ? 'bg-gray-100 dark:bg-gray-800' : ''
-                                } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
-                              >
-                                <PencilIcon className="h-4 w-4 mr-3" />
-                                Edit User
-                              </button>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    {['Name', 'Role', 'Status', 'Department', 'Tasks', 'Joined'].map((head) => (
+                      <th
+                        key={head}
+                        scope="col"
+                        className={`px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 ${
+                          head === 'Tasks' ? 'text-right' : 'text-left'
+                        }`}
+                      >
+                        {head}
+                      </th>
+                    ))}
+                    <th scope="col" className="px-4 py-3">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {users.map((userItem: any) => (
+                    <tr
+                      key={userItem.id}
+                      className="border-b border-gray-100 last:border-0 hover:bg-gray-50 dark:border-gray-700/60 dark:hover:bg-gray-700/30"
+                    >
+                      {/* One cell for identity: a name, the address it belongs to and
+                          the job title are one fact about a person, not three. */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar
+                            src={userItem.avatar}
+                            name={userItem.name}
+                            className="h-9 w-9 shrink-0"
+                            size="sm"
+                            rounded="xl"
+                          />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium text-gray-900 dark:text-white">
+                              {userItem.name}
+                            </p>
+                            <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                              {userItem.email}
+                            </p>
+                            {userItem.position && (
+                              <p className="truncate text-xs text-gray-400 dark:text-gray-500">
+                                {userItem.position}
+                              </p>
                             )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                              <button
-                                onClick={() => handleResetPassword(userItem)}
-                                className={`${
-                                  active ? 'bg-gray-100 dark:bg-gray-800' : ''
-                                } flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200`}
-                              >
-                                <KeyIcon className="h-4 w-4 mr-3" />
-                                Reset Password
-                              </button>
-                            )}
-                          </Menu.Item>
-                          <Menu.Item>
-                            {({ active }) => (
-                              <button
-                                onClick={() => handleDelete(userItem)}
-                                className={`${
-                                  active ? 'bg-gray-100 dark:bg-gray-800' : ''
-                                } flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400`}
-                              >
-                                <TrashIcon className="h-4 w-4 mr-3" />
-                                Delete User
-                              </button>
-                            )}
-                          </Menu.Item>
+                          </div>
                         </div>
-                      </Menu.Items>
-                    </Menu>
-                  )}
-                </div>
-                
-                <div className="mt-4 flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <span className={`status-badge ${roleColors[userItem.role] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-100'}`}>
-                      {getRoleLabel(userItem.role)}
-                    </span>
-                    <span className={`status-badge ${statusColors[userItem.status as keyof typeof statusColors]}`}>
-                      {userItem.status}
-                    </span>
-                    {userItem.strategyAccess && userItem.strategyAccess !== 'NONE' && (
-                      <span className={`status-badge ${userItem.strategyAccess === 'EDIT' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300' : 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'}`}>
-                        Strategy {userItem.strategyAccess === 'EDIT' ? 'Admin' : 'Reader'}
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {userItem._count && (
-                      <span>{userItem._count.assignedTasks} tasks</span>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
-                  Joined {new Date(userItem.createdAt).toLocaleDateString()}
-                </div>
-              </motion.div>
-            ))
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className={`status-badge ${roleColors[userItem.role] || 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'}`}>
+                            {getRoleLabel(userItem.role)}
+                          </span>
+                          {userItem.strategyAccess && userItem.strategyAccess !== 'NONE' && (
+                            <span
+                              className={`status-badge ${
+                                userItem.strategyAccess === 'EDIT'
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                                  : 'bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}
+                            >
+                              Strategy {userItem.strategyAccess === 'EDIT' ? 'Admin' : 'Reader'}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3">
+                        <span className={`status-badge ${statusColors[userItem.status as keyof typeof statusColors]}`}>
+                          {userItem.status}
+                        </span>
+                      </td>
+
+                      <td className="px-4 py-3 text-gray-600 dark:text-gray-300">
+                        {userItem.department?.name ?? <span className="text-gray-400">Not set</span>}
+                      </td>
+
+                      <td className="px-4 py-3 text-right tabular-nums text-gray-700 dark:text-gray-200">
+                        {userItem._count?.assignedTasks ?? 0}
+                      </td>
+
+                      <td className="whitespace-nowrap px-4 py-3 text-gray-500 dark:text-gray-400">
+                        {new Date(userItem.createdAt).toLocaleDateString()}
+                      </td>
+
+                      <td className="px-4 py-3 text-right">
+                        {canManageUser(userItem) && (
+                          <Menu as="div" className="relative inline-block text-left">
+                            <Menu.Button
+                              aria-label={`Actions for ${userItem.name}`}
+                              className="rounded-full p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              <EllipsisVerticalIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                            </Menu.Button>
+                            <Menu.Items className="absolute right-0 z-20 mt-2 w-52 rounded-lg border border-gray-200 bg-white py-1 shadow-lg focus:outline-none dark:border-gray-700 dark:bg-gray-800">
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <button
+                                    onClick={() => handleEdit(userItem)}
+                                    className={`flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 ${active ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                                  >
+                                    <PencilIcon className="mr-3 h-4 w-4" />
+                                    Edit user
+                                  </button>
+                                )}
+                              </Menu.Item>
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <button
+                                    onClick={() => handleResetPassword(userItem)}
+                                    className={`flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 ${active ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                                  >
+                                    <KeyIcon className="mr-3 h-4 w-4" />
+                                    Set a password
+                                  </button>
+                                )}
+                              </Menu.Item>
+                              <Menu.Item>
+                                {({ active }) => (
+                                  <button
+                                    onClick={() => handleDelete(userItem)}
+                                    className={`flex w-full items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 ${active ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                                  >
+                                    <TrashIcon className="mr-3 h-4 w-4" />
+                                    Delete user
+                                  </button>
+                                )}
+                              </Menu.Item>
+                            </Menu.Items>
+                          </Menu>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
       ) : activeTab === 'departments' ? (
@@ -360,6 +404,17 @@ const UsersPage: React.FC = () => {
           }}
           user={selectedUser}
           companyName={companyName}
+        />
+      )}
+
+      {selectedUser && (
+        <ResetPasswordModal
+          isOpen={resetPasswordOpen}
+          onClose={() => {
+            setResetPasswordOpen(false)
+            setSelectedUser(null)
+          }}
+          user={selectedUser}
         />
       )}
 
