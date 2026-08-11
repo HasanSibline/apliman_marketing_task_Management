@@ -1,11 +1,28 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  XMarkIcon, 
+import {
+  XMarkIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline'
+
+/**
+ * The dialog that asks before something happens.
+ *
+ * It had the shape right and the typography backwards. The description, the one line
+ * telling you what you are about to do, was set in bold ten-pixel grey, which is the
+ * treatment for a caption nobody needs to read; the title above it was larger than
+ * the sentence that carried the meaning. It reads as prose now, because reading it is
+ * the entire point of stopping here.
+ *
+ * The two buttons were identical halves of the width, which asks a question and
+ * offers no answer. Confirm leads and cancel is quiet beside it, so the shape of the
+ * dialog says what it expects, and cancel is still the safe thing Escape does.
+ *
+ * Escape closes it, the safe action takes focus on open, and focus returns to
+ * whatever opened it on close. A dialog that traps a keyboard is worse than no dialog.
+ */
 
 interface ActionModalProps {
   isOpen: boolean
@@ -18,9 +35,37 @@ interface ActionModalProps {
   variant?: 'danger' | 'warning' | 'info' | 'success'
   requireReason?: boolean
   reasonPlaceholder?: string
+  reasonLabel?: string
   reasons?: string[]
   isLoading?: boolean
 }
+
+const VARIANTS = {
+  danger: {
+    Icon: ExclamationTriangleIcon,
+    iconClass: 'text-red-600 dark:text-red-400',
+    iconBg: 'bg-red-100 dark:bg-red-900/30',
+    confirm: 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
+  },
+  warning: {
+    Icon: ExclamationTriangleIcon,
+    iconClass: 'text-amber-600 dark:text-amber-400',
+    iconBg: 'bg-amber-100 dark:bg-amber-900/30',
+    confirm: 'bg-amber-600 hover:bg-amber-700 focus-visible:ring-amber-500',
+  },
+  success: {
+    Icon: CheckCircleIcon,
+    iconClass: 'text-emerald-600 dark:text-emerald-400',
+    iconBg: 'bg-emerald-100 dark:bg-emerald-900/30',
+    confirm: 'bg-emerald-600 hover:bg-emerald-700 focus-visible:ring-emerald-500',
+  },
+  info: {
+    Icon: InformationCircleIcon,
+    iconClass: 'text-primary-600 dark:text-primary-400',
+    iconBg: 'bg-primary-50 dark:bg-primary-900/30',
+    confirm: 'bg-primary-600 hover:bg-primary-700 focus-visible:ring-primary-500',
+  },
+} as const
 
 const ActionModal: React.FC<ActionModalProps> = ({
   isOpen,
@@ -32,51 +77,82 @@ const ActionModal: React.FC<ActionModalProps> = ({
   cancelText = 'Cancel',
   variant = 'info',
   requireReason = false,
-  reasonPlaceholder = 'Provide a reason...',
+  reasonPlaceholder = 'Add a reason',
+  reasonLabel = 'Reason',
   reasons = [],
-  isLoading = false
+  isLoading = false,
 }) => {
   const [reason, setReason] = useState('')
+  const [picked, setPicked] = useState('')
+  const panelRef = useRef<HTMLDivElement>(null)
+  const cancelRef = useRef<HTMLButtonElement>(null)
+  const returnFocusTo = useRef<Element | null>(null)
+
+  const { Icon, iconClass, iconBg, confirm } = VARIANTS[variant]
+
+  // A free-text reason is what gets sent; a chosen one fills it in, and picking
+  // "Something else" hands the field back rather than leaving a value behind.
+  const usingList = reasons.length > 0
+  const effectiveReason = usingList && picked && picked !== 'other' ? picked : reason
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    returnFocusTo.current = document.activeElement
+    // The safe option takes focus, so a stray Enter cannot confirm anything.
+    const focusTimer = setTimeout(() => cancelRef.current?.focus(), 50)
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.stopPropagation()
+        onClose()
+        return
+      }
+
+      // Keep Tab inside the dialog. Tabbing onto the page behind a modal leaves a
+      // keyboard somewhere it cannot see and cannot get back from.
+      if (e.key !== 'Tab' || !panelRef.current) return
+      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), input, select, textarea, [href], [tabindex]:not([tabindex="-1"])',
+      )
+      if (focusable.length === 0) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown, true)
+    // The page behind must not scroll under a dialog that is holding a decision.
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      clearTimeout(focusTimer)
+      document.removeEventListener('keydown', onKeyDown, true)
+      document.body.style.overflow = previousOverflow
+      ;(returnFocusTo.current as HTMLElement | null)?.focus?.()
+    }
+  }, [isOpen, onClose])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setReason('')
+      setPicked('')
+    }
+  }, [isOpen])
 
   const handleConfirm = () => {
-    onConfirm(requireReason ? reason : undefined)
-    setReason('')
+    onConfirm(requireReason ? effectiveReason : undefined)
   }
 
-  const getVariantStyles = () => {
-    switch (variant) {
-      case 'danger':
-        return {
-          icon: <ExclamationTriangleIcon className="h-6 w-6 text-rose-600 dark:text-rose-400" />,
-          button: 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-100',
-          bg: 'bg-rose-50 dark:bg-rose-900/30',
-          border: 'border-rose-100 dark:border-rose-900/40'
-        }
-      case 'warning':
-        return {
-          icon: <ExclamationTriangleIcon className="h-6 w-6 text-amber-600 dark:text-amber-400" />,
-          button: 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-100',
-          bg: 'bg-amber-50 dark:bg-amber-900/30',
-          border: 'border-amber-100 dark:border-amber-900/40'
-        }
-      case 'success':
-        return {
-          icon: <CheckCircleIcon className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />,
-          button: 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-100',
-          bg: 'bg-emerald-50 dark:bg-emerald-900/30',
-          border: 'border-emerald-100 dark:border-emerald-900/40'
-        }
-      default:
-        return {
-          icon: <InformationCircleIcon className="h-6 w-6 text-primary-600 dark:text-primary-400" />,
-          button: 'bg-primary-600 hover:bg-primary-700 text-white shadow-primary-100',
-          bg: 'bg-primary-50 dark:bg-primary-900/30',
-          border: 'border-primary-100 dark:border-primary-900/40'
-        }
-    }
-  }
-
-  const styles = getVariantStyles()
+  const blocked = isLoading || (requireReason && !effectiveReason.trim())
 
   return (
     <AnimatePresence>
@@ -87,75 +163,106 @@ const ActionModal: React.FC<ActionModalProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
           />
+
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            ref={panelRef}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="action-modal-title"
+            aria-describedby="action-modal-description"
+            initial={{ opacity: 0, scale: 0.97, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden"
+            exit={{ opacity: 0, scale: 0.97, y: 12 }}
+            transition={{ duration: 0.16 }}
+            className="relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
           >
-            <div className={`p-8 ${styles.bg} border-b ${styles.border} flex items-center gap-4`}>
-              <div className="h-12 w-12 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm border border-gray-50 dark:border-gray-700 flex-shrink-0">
-                {styles.icon}
+            <div className="flex items-start gap-4 p-6">
+              <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${iconBg}`}>
+                <Icon className={`h-6 w-6 ${iconClass}`} aria-hidden="true" />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white tracking-tight font-outfit">{title}</h3>
-                <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1">{description}</p>
+
+              <div className="min-w-0 flex-1">
+                <h2
+                  id="action-modal-title"
+                  className="text-base font-semibold text-gray-900 dark:text-white"
+                >
+                  {title}
+                </h2>
+                <p
+                  id="action-modal-description"
+                  className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-300"
+                >
+                  {description}
+                </p>
               </div>
-              <button aria-label="Close" onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">
-                <XMarkIcon className="h-6 w-6" />
+
+              <button
+                aria-label="Close"
+                onClick={onClose}
+                className="-mr-1 -mt-1 shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <XMarkIcon className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
-              {requireReason && (
-                <div className="space-y-4">
-                  {reasons.length > 0 ? (
-                    <div className="space-y-2">
-                       <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide ml-1">Selection Logic</label>
-                       <select 
-                         value={reason}
-                         onChange={(e) => setReason(e.target.value)}
-                         className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
-                       >
-                         <option value="">Choose a reason...</option>
-                         {reasons.map(r => <option key={r} value={r}>{r}</option>)}
-                         <option value="Other">Other (Specify below)</option>
-                       </select>
-                    </div>
-                  ) : null}
-                  
-                  {(reasons.length === 0 || reason === 'Other') && (
-                    <div className="space-y-2">
-                      <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide ml-1">Contextual Background</label>
-                      <textarea
-                        value={reasons.includes(reason) && reason !== 'Other' ? '' : reason}
-                        onChange={(e) => setReason(e.target.value)}
-                        placeholder={reasonPlaceholder}
-                        rows={3}
-                        className="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900/40 border border-transparent rounded-xl text-xs font-bold text-gray-800 dark:text-gray-100 focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-outfit resize-none shadow-inner"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+            {requireReason && (
+              <div className="space-y-3 px-6 pb-2">
+                {usingList && (
+                  <div>
+                    <label htmlFor="action-modal-choice" className="form-label">
+                      {reasonLabel}
+                    </label>
+                    <select
+                      id="action-modal-choice"
+                      value={picked}
+                      onChange={(e) => setPicked(e.target.value)}
+                      className="select-field"
+                    >
+                      <option value="">Choose one</option>
+                      {reasons.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                      <option value="other">Something else</option>
+                    </select>
+                  </div>
+                )}
 
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={onClose}
-                  className="flex-1 py-4 px-6 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 rounded-xl text-xs font-semibold tracking-wide transition-all"
-                >
-                  {cancelText}
-                </button>
-                <button
-                  onClick={handleConfirm}
-                  disabled={isLoading || (requireReason && !reason.trim())}
-                  className={`flex-1 py-4 px-6 rounded-xl text-xs font-semibold uppercase tracking-wide transition-all shadow-lg disabled:opacity-50 ${styles.button}`}
-                >
-                  {isLoading ? 'Processing...' : confirmText}
-                </button>
+                {(!usingList || picked === 'other') && (
+                  <div>
+                    <label htmlFor="action-modal-reason" className="form-label">
+                      {usingList ? 'Tell us more' : reasonLabel}
+                    </label>
+                    <textarea
+                      id="action-modal-reason"
+                      value={reason}
+                      onChange={(e) => setReason(e.target.value)}
+                      placeholder={reasonPlaceholder}
+                      rows={3}
+                      autoFocus
+                      className="input-field resize-none"
+                    />
+                  </div>
+                )}
               </div>
+            )}
+
+            {/* Confirm leads, cancel sits quietly beside it. Equal halves make the
+                dialog ask a question without suggesting an answer. */}
+            <div className="flex items-center justify-end gap-2 border-t border-gray-100 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
+              <button ref={cancelRef} onClick={onClose} className="btn-secondary">
+                {cancelText}
+              </button>
+              <button
+                onClick={handleConfirm}
+                disabled={blocked}
+                className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-gray-800 ${confirm}`}
+              >
+                {isLoading ? 'Working…' : confirmText}
+              </button>
             </div>
           </motion.div>
         </div>

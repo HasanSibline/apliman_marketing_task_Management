@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { confirmDialog } from '@/components/ui/confirm'
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
@@ -71,7 +72,12 @@ export default function CompanyDetails() {
   };
 
   const handleSuspend = async () => {
-    if (!confirm('Are you sure you want to suspend this company?')) return;
+    if (!(await confirmDialog({
+      title: 'Suspend this company?',
+      description: 'Everyone here loses access until it is reactivated. Nothing is deleted.',
+      confirmText: 'Suspend',
+      variant: 'warning',
+    }))) return;
     
     try {
       setActionLoading(true);

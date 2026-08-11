@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { motion } from 'framer-motion'
 import { PlusIcon, CogIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
@@ -34,7 +35,12 @@ const WorkflowsPage: React.FC = () => {
   }
 
   const handleDeleteWorkflow = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this workflow?')) return
+    if (!(await confirmDialog({
+      title: 'Delete this workflow?',
+      description: 'Tasks already using it keep working. You will not be able to choose it for new ones.',
+      confirmText: 'Delete workflow',
+      variant: 'danger',
+    }))) return
 
     try {
       await workflowsApi.delete(id)

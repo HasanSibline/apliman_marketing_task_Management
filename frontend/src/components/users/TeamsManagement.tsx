@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { PlusIcon, UserGroupIcon, TrashIcon } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import { toast } from 'react-hot-toast'
@@ -49,7 +50,12 @@ const TeamsManagement: React.FC = () => {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this team?')) return
+    if (!(await confirmDialog({
+      title: 'Delete this team?',
+      description: 'The team is removed. Its members keep their accounts and their work.',
+      confirmText: 'Delete team',
+      variant: 'danger',
+    }))) return
     try {
       await api.delete(`/teams/${id}`)
       toast.success('Team deleted')

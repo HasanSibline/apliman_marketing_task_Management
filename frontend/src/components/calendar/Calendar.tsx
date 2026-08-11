@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useAppSelector } from '@/hooks/redux'
@@ -323,7 +324,13 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                             {user?.isMicrosoftSynced ? (
                                 <button 
                                     onClick={async () => {
-                                        if (window.confirm('Are you sure you want to disconnect your Microsoft account?')) {
+                                        if (await confirmDialog({
+      title: 'Disconnect Microsoft?',
+      description:
+        'Meetings stop syncing to your calendar. Nothing already in Aura is removed, and you can reconnect at any time.',
+      confirmText: 'Disconnect',
+      variant: 'warning',
+    })) {
                                             try {
                                                 await api.post('/microsoft/disconnect')
                                                 toast.success('Disconnected successfully')

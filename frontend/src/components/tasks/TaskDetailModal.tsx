@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   XMarkIcon, 
@@ -247,7 +248,12 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                     {(user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN') && (
                       <button
                         onClick={async () => {
-                          if (window.confirm('Are you sure you want to delete this task?')) {
+                          if (await confirmDialog({
+      title: 'Delete this task?',
+      description: 'Its subtasks, comments and time entries are deleted with it. This cannot be undone.',
+      confirmText: 'Delete task',
+      variant: 'danger',
+    })) {
                             try {
                               await tasksApi.delete(task.id)
                               toast.success('Task deleted successfully')

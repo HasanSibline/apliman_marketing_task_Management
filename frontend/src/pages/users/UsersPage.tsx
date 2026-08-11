@@ -35,7 +35,7 @@ const UsersPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<any>(null)
   const [companyName, setCompanyName] = useState<string>('Your Company')
   
-  // Tactical Modal State
+  // Confirmation dialog state
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
     type: 'delete' | 'reset_password';
@@ -80,8 +80,8 @@ const UsersPage: React.FC = () => {
     setActionModal({
       isOpen: true,
       type: 'delete',
-      title: 'Strategic Personnel Deletion',
-      description: `SYSTEM REMOVAL: Are you sure you want to permanently delete ${user.name}? This action is irreversible and distinct from retirement.`,
+      title: 'Delete this user?',
+      description: `${user.name} is removed permanently, along with their access. Their completed work stays on record. To keep the account but revoke access, set their status to Retired instead.`,
       targetId: user.id
     })
   }
@@ -109,11 +109,11 @@ const UsersPage: React.FC = () => {
     try {
       if (type === 'delete') {
         await usersApi.delete(targetId!)
-        toast.success(`${selectedUser?.name || 'Personnel'} removed from active logs`)
+        toast.success(`${selectedUser?.name || 'Personnel'} removed`)
         dispatch(fetchUsers({}))
       }
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Operation synchronization failure')
+      toast.error(error.response?.data?.message || 'Something went wrong. Please try again.')
     }
   }
 
@@ -178,25 +178,26 @@ const UsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Strategic Header */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-white tracking-tight font-outfit">Identity & Logistics</h1>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-1 tracking-normal underline decoration-gray-100">
-            Company Personnel Hub & Tactical Structure
+          <h1 className="page-title">Users</h1>
+          <p className="page-subtitle">
+            People in your company, the departments they sit in, and the teams they work in.
           </p>
         </div>
         
-        {/* Tab Selection Facility */}
-        <div className="flex p-1 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl w-fit">
+        {/* Tabs */}
+        <div role="group" aria-label="Section" className="surface-muted inline-flex w-fit p-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center px-6 py-2.5 text-xs font-semibold uppercase tracking-wide rounded-xl transition-all ${
+              aria-pressed={activeTab === tab.id}
+              className={`flex items-center rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-white dark:bg-gray-800 text-primary-600 border border-gray-100 dark:border-gray-700'
-                  : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300'
+                  ? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white'
+                  : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white'
               }`}
             >
               <tab.icon className="h-4 w-4 mr-2" />
@@ -211,10 +212,10 @@ const UsersPage: React.FC = () => {
           {(user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'ADMIN') && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-primary-600 text-white rounded-xl text-xs font-semibold tracking-wide hover:bg-primary-700 flex items-center transition-all"
+              className="btn-primary"
             >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Onboard Personnel
+              <PlusIcon className="mr-2 h-4 w-4" />
+              Add user
             </button>
           )}
         </div>

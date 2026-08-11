@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { confirmDialog } from '@/components/ui/confirm'
 import {
   PlusIcon as Plus,
   ArrowPathIcon as RefreshCw,
@@ -109,7 +110,12 @@ export default function KnowledgeSourcesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this knowledge source?')) return;
+    if (!(await confirmDialog({
+      title: 'Delete this knowledge source?',
+      description: 'Aura will stop drawing on it when it answers questions.',
+      confirmText: 'Delete',
+      variant: 'danger',
+    }))) return;
     
     try {
       await api.delete(`/knowledge-sources/${id}`);

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -92,8 +93,13 @@ const TaskDetailPage: React.FC = () => {
     dispatch(pauseTimer())
   }
 
-  const handleStopTimer = () => {
-    if (window.confirm('Stop tracking and reset time?')) {
+  const handleStopTimer = async () => {
+    if (await confirmDialog({
+      title: 'Stop tracking and reset?',
+      description: 'The time recorded in this session is discarded and the timer returns to zero.',
+      confirmText: 'Stop and reset',
+      variant: 'warning',
+    })) {
       dispatch(stopTimer())
     }
   }
@@ -217,7 +223,12 @@ const TaskDetailPage: React.FC = () => {
   const handleDeleteTask = async () => {
     if (!currentTask) return
 
-    if (window.confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+    if (await confirmDialog({
+      title: 'Delete this task?',
+      description: 'Its subtasks, comments and time entries are deleted with it. This cannot be undone.',
+      confirmText: 'Delete task',
+      variant: 'danger',
+    })) {
       try {
         await tasksApi.delete(currentTask.id)
         toast.success('Task deleted successfully')
@@ -250,7 +261,12 @@ const TaskDetailPage: React.FC = () => {
 
   const handleRemoveDependency = async (blockerId: string) => {
     if (!id) return
-    if (!window.confirm('Remove this dependency?')) return
+    if (!(await confirmDialog({
+      title: 'Remove this dependency?',
+      description: 'This task will no longer wait on the other one before it can start.',
+      confirmText: 'Remove',
+      variant: 'warning',
+    }))) return
     try {
       await tasksApi.removeDependency(id, blockerId)
       toast.success('Dependency removed')

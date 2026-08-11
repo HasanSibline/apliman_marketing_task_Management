@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import {
   CheckCircleIcon,
   ChevronRightIcon,
@@ -135,7 +136,12 @@ const ObjectiveCard: React.FC<{
   }
 
   const removeKr = async (kr: KeyResult) => {
-    if (!window.confirm(`Delete "${kr.title}"? The tasks stay, but they will no longer measure anything.`)) return
+    if (!(await confirmDialog({
+      title: `Delete "${kr.title}"?`,
+      description: 'The tasks linked to it stay exactly as they are, but stop measuring anything.',
+      confirmText: 'Delete key result',
+      variant: 'danger',
+    }))) return
     setBusy(true)
     try {
       await api.delete(`/objectives/key-results/${kr.id}`)

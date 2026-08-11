@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -124,7 +125,12 @@ const ObjectiveDetailPage: React.FC = () => {
     }
 
     const unlinkTask = async (taskId: string) => {
-        if (!confirm('Unlink this task?')) return
+        if (!(await confirmDialog({
+      title: 'Unlink this task?',
+      description: 'The task stays exactly as it is, but stops counting toward this key result.',
+      confirmText: 'Unlink',
+      variant: 'warning',
+    }))) return
         try {
             await api.delete(`/objectives/${id}/tasks/${taskId}`)
             toast.success('Task unlinked')

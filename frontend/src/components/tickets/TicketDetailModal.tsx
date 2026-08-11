@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { confirmDialog, promptDialog } from '@/components/ui/confirm'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   XMarkIcon, 
@@ -158,7 +159,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
   }
 
   const handleDeleteAttachment = async (fileId: string) => {
-    if (!window.confirm('Remove this attachment?')) return
+    if (!(await confirmDialog({
+      title: 'Remove this attachment?',
+      description: 'The file is detached from this ticket and cannot be recovered from here.',
+      confirmText: 'Remove',
+      variant: 'danger',
+    }))) return
     try {
       await api.delete(`/files/ticket-delete/${fileId}`)
       toast.success('Attachment removed')
@@ -189,7 +195,12 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
   }
 
   const handleDeleteTicket = async () => {
-    if (!window.confirm('PERMANENT DELETION: Are you sure? This ticket will be removed from all logs.')) return
+    if (!(await confirmDialog({
+      title: 'Delete this ticket?',
+      description: 'The ticket and its whole history are removed permanently. This cannot be undone.',
+      confirmText: 'Delete ticket',
+      variant: 'danger',
+    }))) return
     try {
       await api.delete(`/tickets/${ticketId}`)
       toast.success('Ticket deleted permanentely')
@@ -212,7 +223,17 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
   }
 
   const handleReject = async () => {
-    const reason = prompt('State rejection reason:')
+    // The browser prompt gave a bare input with the domain in its title bar and no
+    // room to say why the answer matters. Whoever raised this ticket reads what is
+    // typed here, so the box asking for it should say so.
+    const reason = await promptDialog({
+      title: 'Reject this ticket?',
+      description: 'The reason is shown to whoever raised it, so say what would change your mind.',
+      inputLabel: 'Reason',
+      placeholder: 'What is missing, or why this cannot go ahead',
+      confirmText: 'Reject ticket',
+      variant: 'danger',
+    })
     if (reason === null) return
     try {
       await api.patch(`/tickets/${ticketId}/reject`, { reason })

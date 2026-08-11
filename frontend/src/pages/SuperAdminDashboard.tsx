@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { confirmDialog } from '@/components/ui/confirm'
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
@@ -240,7 +241,13 @@ export default function SuperAdminDashboard() {
   };
 
   const handleDeleteCompany = async (companyId: string, companyName: string) => {
-    if (!confirm(`Are you sure you want to delete "${companyName}"?\n\nThis will permanently delete all users, tasks, workflows and AI history.\n\nThis action CANNOT be undone!`)) return;
+    if (!(await confirmDialog({
+      title: `Delete ${companyName}?`,
+      description:
+        'Every user, task, workflow and conversation belonging to this company is deleted permanently. There is no undo and no backup.',
+      confirmText: 'Delete company',
+      variant: 'danger',
+    }))) return;
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${API_URL}/companies/${companyId}`, {

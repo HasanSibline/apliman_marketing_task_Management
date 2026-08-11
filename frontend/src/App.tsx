@@ -9,6 +9,7 @@ import AdminRoute from '@/components/auth/AdminRoute'
 import CompanyRoute from '@/components/auth/CompanyRoute'
 import Layout from '@/components/layout/Layout'
 import LoadingScreen from '@/components/ui/LoadingScreen'
+import { DialogHost } from '@/components/ui/confirm'
 import { keepAliveService } from '@/services/keepalive'
 import { applyBrandColor } from '@/theme/brandTheme'
 
@@ -85,6 +86,8 @@ function App() {
   }
 
   return (
+    <>
+    <DialogHost />
     <Routes>
       {/* Default Company Login (Generic - No Logo) */}
       <Route
@@ -239,6 +242,7 @@ function App() {
       {/* 404 Route */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </>
   )
 }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { confirmDialog } from '@/components/ui/confirm'
 import {
     UsersIcon,
     ClipboardDocumentCheckIcon,
@@ -61,7 +62,12 @@ const PlanSettings: React.FC = () => {
     };
 
     const handleDelete = async (id: string, name: string) => {
-        if (!window.confirm(`Are you sure you want to delete the "${name}" plan? This cannot be undone if no companies are using it.`)) return;
+        if (!(await confirmDialog({
+      title: `Delete the "${name}" plan?`,
+      description: 'Only possible while no company is on it. Companies already on other plans are unaffected.',
+      confirmText: 'Delete plan',
+      variant: 'danger',
+    }))) return;
 
         try {
             await api.delete(`/plans/${id}`);

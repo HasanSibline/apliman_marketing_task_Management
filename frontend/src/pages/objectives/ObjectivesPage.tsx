@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -230,7 +231,12 @@ const ObjectivesPage: React.FC = () => {
     };
 
     const deleteObjective = async (id: string) => {
-        if (!confirm('Delete this objective and all its key results?')) return
+        if (!(await confirmDialog({
+      title: 'Delete this objective?',
+      description: 'Its key results go with it. Linked tasks stay, but stop measuring anything.',
+      confirmText: 'Delete objective',
+      variant: 'danger',
+    }))) return
         try {
             await api.delete(`/objectives/${id}`)
             setObjectives(prev => prev.filter(o => o.id !== id))

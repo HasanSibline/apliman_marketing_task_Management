@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { confirmDialog } from '@/components/ui/confirm'
 import { Menu } from '@headlessui/react'
 import {
   EllipsisVerticalIcon,
@@ -581,7 +582,12 @@ const TaskBoardItem: React.FC<TaskBoardItemProps> = ({
                         {({ active }) => (
                           <button
                             onClick={async () => {
-                              if (window.confirm('Are you sure you want to delete this task?')) {
+                              if (await confirmDialog({
+      title: 'Delete this task?',
+      description: 'Its subtasks, comments and time entries are deleted with it. This cannot be undone.',
+      confirmText: 'Delete task',
+      variant: 'danger',
+    })) {
                                 try {
                                   await tasksApi.delete(task.id)
                                   toast.success('Task deleted successfully')
