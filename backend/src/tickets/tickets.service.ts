@@ -39,9 +39,17 @@ export class TicketsService {
     return updated;
   }
 
-  async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string, statusType?: string) {
+  /**
+   * @param statusType `HISTORY` for resolved and cancelled, `ALL` for both, and
+   *   anything else for the open ones. The default hides finished tickets, which is
+   *   right for the tickets page and wrong for anything that needs to name one:
+   *   referring to a ticket that was resolved last week is an ordinary thing to do.
+   * @param limit overrides the page size, for callers building a picker rather than
+   *   a page. Capped, because an uncapped limit is a way to ask for the whole table.
+   */
+  async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string, statusType?: string, limit?: number) {
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
-    const take = 10;
+    const take = Math.min(Math.max(limit ?? 10, 1), 200);
     const skip = (page - 1) * take;
 
     const historyStatuses: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CANCELLED];
@@ -58,9 +66,11 @@ export class TicketsService {
           { receiverDept: { managerId: userId } }
         ]
       }),
-      ...(statusType === 'HISTORY'
-        ? { status: { in: historyStatuses } }
-        : { status: { notIn: historyStatuses } }
+      ...(statusType === 'ALL'
+        ? {}
+        : statusType === 'HISTORY'
+          ? { status: { in: historyStatuses } }
+          : { status: { notIn: historyStatuses } }
       ),
       ...(departmentId && {
         OR: [

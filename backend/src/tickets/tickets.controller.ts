@@ -22,7 +22,8 @@ export class TicketsController {
     @Query('page') page: string = '1',
     @Query('search') search?: string,
     @Query('departmentId') departmentId?: string,
-    @Query('statusType') statusType?: string
+    @Query('statusType') statusType?: string,
+    @Query('limit') limit?: string
   ) {
     return this.ticketsService.findAll(
       req.user.companyId, 
@@ -31,7 +32,8 @@ export class TicketsController {
       parseInt(page),
       departmentId,
       search,
-      statusType
+      statusType,
+      limit ? parseInt(limit) : undefined
     );
   }
 

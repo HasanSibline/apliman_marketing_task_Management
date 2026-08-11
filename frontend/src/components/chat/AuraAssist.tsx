@@ -124,7 +124,11 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
       const [usersRes, tasksRes, ticketsRes] = await Promise.allSettled([
         api.get('/users'),
         api.get('/tasks', { params: { limit: 500 } }),
-        api.get('/tickets', { params: { limit: 500 } })
+        // Everything, open and finished. The default hides resolved and cancelled
+        // tickets, which is right for the tickets page and wrong here: asking about
+        // one that was closed last week is an ordinary thing to do. The page size is
+        // ten by default, so without a limit only the ten newest could be mentioned.
+        api.get('/tickets', { params: { statusType: 'ALL', limit: 200 } })
       ])
 
       const unwrap = (r: any, key: string) => {
@@ -446,8 +450,9 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
     if (hashMatch) {
       const query = hashMatch[1].toLowerCase().trim()
 
-      // Rejected and cancelled tickets are history; referencing one is almost never
-      // what someone means while typing.
+      // Cancelled and rejected tickets stay out: those were withdrawn rather than
+      // finished, so naming one is rarely the intent. Resolved ones are kept, since
+      // asking about something that was dealt with last week is ordinary.
       const activeTickets = allTickets.filter(
         (t: any) => !['REJECTED', 'CANCELLED'].includes(t.status),
       )
