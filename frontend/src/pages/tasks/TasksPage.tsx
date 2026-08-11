@@ -66,6 +66,15 @@ const TasksPage: React.FC = () => {
   /** Your own work, or anyone's if you are an admin. */
   const canMove = (task: Task) => isAdmin || task.assignedToId === user?.id
 
+  /**
+   * Done is the asker's word. Whoever requested the work decides whether what came
+   * back is what they wanted, and completing counts the task in full toward its key
+   * result, so it moves an objective on that person's say-so. The server enforces
+   * this; the board only avoids offering a move it knows will be refused.
+   */
+  const canComplete = (task: Task) =>
+    isAdmin || (task as any).createdById === user?.id || task.createdBy?.id === user?.id
+
   // Work in nobody's quarter is the easiest to lose: it appears on no quarter page
   // and nothing else surfaces it. The API supports quarterId=null; this exposes it.
   const [scope, setScope] = useState<'all' | 'active' | 'backlog'>('all')
@@ -211,7 +220,20 @@ const TasksPage: React.FC = () => {
     const { source, destination, draggableId } = result
     if (!destination || destination.droppableId === source.droppableId) return
     const task = visible.find((t) => t.id === draggableId)
-    if (task) requestMove(task, destination.droppableId as TaskStage)
+    if (!task) return
+
+    const to = destination.droppableId as TaskStage
+    const from = source.droppableId as TaskStage
+    if ((to === 'COMPLETED' || from === 'COMPLETED') && !canComplete(task)) {
+      toast.error(
+        to === 'COMPLETED'
+          ? 'Only whoever created this task can mark it complete.'
+          : 'Only whoever created this task can reopen it.',
+      )
+      return
+    }
+
+    requestMove(task, to)
   }
 
   const activeFilters = [filters.search, filters.assignedToId, filters.priority].filter(Boolean).length
@@ -490,7 +512,16 @@ const TasksPage: React.FC = () => {
                                           <EllipsisVerticalIcon className="h-5 w-5" />
                                         </Menu.Button>
                                         <Menu.Items className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg focus:outline-none dark:border-gray-700 dark:bg-gray-800">
-                                          {STAGES.filter((x) => x.key !== stage.key).map((target) => (
+                                          {STAGES.filter(
+                                            (x) =>
+                                              x.key !== stage.key &&
+                                              // Completing, and reopening, belong to
+                                              // whoever asked for the work.
+                                              !(
+                                                (x.key === 'COMPLETED' || stage.key === 'COMPLETED') &&
+                                                !canComplete(task)
+                                              ),
+                                          ).map((target) => (
                                             <Menu.Item key={target.key}>
                                               {({ active }) => (
                                                 <button

@@ -117,20 +117,36 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
   // Fetch users and tasks for autocomplete
   const fetchUsersAndTasks = async () => {
     try {
-      const [usersRes, tasksRes, ticketsRes] = await Promise.all([
+      // allSettled, not all. These feed three independent autocompletes, and with
+      // all() a single failing request threw before any of them were set: one
+      // endpoint refusing left @ and / and # all silently empty, which looks exactly
+      // like the mention feature being broken rather than one lookup failing.
+      const [usersRes, tasksRes, ticketsRes] = await Promise.allSettled([
         api.get('/users'),
-        api.get('/tasks'),
-        api.get('/tickets')
+        api.get('/tasks', { params: { limit: 500 } }),
+        api.get('/tickets', { params: { limit: 500 } })
       ])
-      setAllUsers(usersRes.data || [])
-      // Handle both direct array and paginated response
-      const tasks = Array.isArray(tasksRes.data) ? tasksRes.data : (tasksRes.data?.tasks || [])
+
+      const unwrap = (r: any, key: string) => {
+        if (r.status !== 'fulfilled') {
+          console.error(`Autocomplete: ${key} could not be loaded`, r.reason?.response?.data ?? r.reason)
+          return []
+        }
+        const body = r.value?.data
+        return Array.isArray(body) ? body : (body?.[key] ?? [])
+      }
+
+      setAllUsers(unwrap(usersRes, 'users'))
+      const tasks = unwrap(tasksRes, 'tasks')
       setAllTasks(tasks)
-      
-      const tickets = Array.isArray(ticketsRes.data) ? ticketsRes.data : (ticketsRes.data?.tickets || [])
+
+      const tickets = unwrap(ticketsRes, 'tickets')
       setAllTickets(tickets)
-      console.log('Fetched entities for autocomplete:', { users: usersRes.data?.length, tasks: tasks.length, tickets: tickets.length })
-      console.log('Fetched tasks for autocomplete:', tasks.length)
+      // One line, and only when something is missing: an autocomplete that quietly
+      // has nothing to offer is indistinguishable from one that is broken.
+      if (tickets.length === 0 || tasks.length === 0) {
+        console.warn('Autocomplete loaded with gaps:', { tasks: tasks.length, tickets: tickets.length })
+      }
     } catch (error) {
       console.error('Error fetching users and tasks:', error)
     }

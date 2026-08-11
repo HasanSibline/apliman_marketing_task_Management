@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
-import { TaskStage, STAGE_TO_PHASE } from './task-stage';
+import { TaskStage, STAGE_TO_PHASE, taskStage } from './task-stage';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { WorkflowsService } from '../workflows/workflows.service';
@@ -2089,6 +2089,7 @@ export class TasksService {
         id: true,
         workflowId: true,
         assignedToId: true,
+        createdById: true,
         currentPhase: { select: { id: true, isEndPhase: true } },
       },
     });
@@ -2097,7 +2098,34 @@ export class TasksService {
     // You move your own work; an admin moves anyone's. Checked here rather than only
     // in the board, because a disabled control is a courtesy and not a rule.
     const isAdmin = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(actor.role);
-    if (!isAdmin && task.assignedToId !== actor.id) {
+    const isCreator = task.createdById === actor.id;
+
+    /**
+     * Done is the asker's word, not the doer's.
+     *
+     * Anyone assigned could mark the whole task complete, which is the one judgement
+     * on a task that is not theirs to make: the person who asked for the work is the
+     * one who knows whether what came back is what they wanted. Completing also
+     * counts the task in full toward its key result, so it moves an objective and the
+     * year's verdict behind it, on the say-so of whoever happened to be assigned.
+     *
+     * Both directions are held, since reopening something already accepted is the
+     * same decision in reverse. Everything before that, moving between To do and In
+     * progress, stays entirely with whoever is doing the work.
+     */
+    const decidesCompletion = isAdmin || isCreator;
+    const completionChanges =
+      stage === 'COMPLETED' || taskStage(task as any) === 'COMPLETED';
+
+    if (completionChanges && !decidesCompletion) {
+      throw new ForbiddenException(
+        stage === 'COMPLETED'
+          ? 'Only whoever created this task can mark it complete. Move it to In progress and tell them it is ready for review.'
+          : 'Only whoever created this task can reopen it.',
+      );
+    }
+
+    if (!isAdmin && !isCreator && task.assignedToId !== actor.id) {
       throw new ForbiddenException('This task is assigned to someone else, so only an admin can move it.');
     }
 

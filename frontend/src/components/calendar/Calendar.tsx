@@ -1,4 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
+import { taskStage } from '@/lib/taskStage'
 import { confirmDialog } from '@/components/ui/confirm'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -94,6 +95,11 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
     const sortedEvents = useMemo(() => {
         const safeEvents = Array.isArray(events) ? events : []
         return safeEvents.filter(event => {
+            // A finished task is not a deadline. It was still being drawn on its due
+            // date, in the same red as work that is genuinely late, so a board that
+            // was fully cleared still looked like a day full of missed deadlines.
+            if (event.type === 'TASK' && taskStage(event as any) === 'COMPLETED') return false
+
             const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase())
             let matchesFilter = true
             if (filterType === 'milestone') matchesFilter = event.taskType === 'MILESTONE'
