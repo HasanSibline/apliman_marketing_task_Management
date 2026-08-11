@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiService } from '../ai/ai.service';
@@ -624,6 +624,52 @@ export class MicrosoftService {
 
     const summary = await this.aiService.summarizeText(prompt, 500, userId);
     return { summary };
+  }
+
+  /**
+   * Release someone else's Microsoft link, on an admin's authority.
+   *
+   * Scoped to the admin's own company, and a plain admin may not act on an owner or
+   * on another admin: releasing a link is minor, but the account it frees can then be
+   * claimed by whoever asks next, so it follows the same shape as every other thing
+   * one person may do to another here.
+   */
+  async disconnectAsAdmin(
+    targetUserId: string,
+    actor: { id: string; role: string; companyId?: string | null },
+  ) {
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, name: true, role: true, companyId: true, isMicrosoftSynced: true },
+    });
+    if (!target) throw new NotFoundException('User not found');
+
+    const isSuperAdmin = actor.role === 'SUPER_ADMIN';
+    const sameCompany = !!actor.companyId && actor.companyId === target.companyId;
+
+    if (!isSuperAdmin) {
+      if (!['COMPANY_ADMIN', 'ADMIN'].includes(actor.role) || !sameCompany) {
+        throw new ForbiddenException('You cannot disconnect this account.');
+      }
+      if (target.role === 'SUPER_ADMIN') {
+        throw new ForbiddenException('You cannot disconnect a platform administrator.');
+      }
+      if (actor.role === 'ADMIN' && ['COMPANY_ADMIN', 'ADMIN'].includes(target.role)) {
+        throw new ForbiddenException('Only a company administrator can disconnect another admin.');
+      }
+    }
+
+    if (!target.isMicrosoftSynced) {
+      return { success: true, message: `${target.name} has no Microsoft account connected.` };
+    }
+
+    await this.disconnect(targetUserId);
+    this.logger.log(`${actor.id} disconnected Microsoft for ${targetUserId}`);
+
+    return {
+      success: true,
+      message: `Microsoft disconnected for ${target.name}. That account can now be connected by someone else.`,
+    };
   }
 
   async disconnect(userId: string) {

@@ -139,4 +139,18 @@ export class MicrosoftController {
   async disconnect(@Req() req) {
     return this.microsoftService.disconnect(req.user.id);
   }
+
+  /**
+   * Disconnect someone else.
+   *
+   * Only the person holding a link could release it, which is fine until they have
+   * left, cannot sign in, or connected an account that someone else now needs. The
+   * link is unique, so one stranded row blocks that Microsoft account for everybody,
+   * and the only way out was editing the database by hand.
+   */
+  @Post('disconnect/:userId')
+  @UseGuards(JwtAuthGuard)
+  async disconnectUser(@Req() req, @Param('userId') userId: string) {
+    return this.microsoftService.disconnectAsAdmin(userId, req.user);
+  }
 }

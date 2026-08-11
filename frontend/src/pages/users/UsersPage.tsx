@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import ResetPasswordModal from '@/components/users/ResetPasswordModal'
+import { confirmDialog } from '@/components/ui/confirm'
 import { 
   PlusIcon, 
   UserIcon, 
@@ -7,6 +8,7 @@ import {
   TrashIcon, 
   KeyIcon,
   EllipsisVerticalIcon,
+  LinkSlashIcon,
   UserGroupIcon
 } from '@heroicons/react/24/outline'
 import { Menu } from '@headlessui/react'
@@ -102,6 +104,31 @@ const UsersPage: React.FC = () => {
     setResetPasswordOpen(true)
   }
 
+  /**
+   * Release a Microsoft link on someone's behalf.
+   *
+   * The link is unique to one account, so a person who has left, or who connected an
+   * account a colleague now needs, blocks that Microsoft account for everyone. Before
+   * this the only way to free it was editing the database.
+   */
+  const handleDisconnectMicrosoft = async (target: any) => {
+    if (!(await confirmDialog({
+      title: `Disconnect Microsoft for ${target.name}?`,
+      description:
+        'Their meetings stop syncing and the Microsoft account becomes free for someone else to connect. Nothing already in Aura is removed, and they can reconnect themselves.',
+      confirmText: 'Disconnect',
+      variant: 'warning',
+    }))) return
+
+    try {
+      const { data } = await api.post(`/microsoft/disconnect/${target.id}`)
+      toast.success(data?.message ?? 'Microsoft disconnected')
+      dispatch(fetchUsers({}))
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Could not disconnect that account')
+    }
+  }
+
   const handleConfirmAction = async () => {
     const { type, targetId } = actionModal
     setActionModal(p => ({ ...p, isOpen: false }))
@@ -109,7 +136,7 @@ const UsersPage: React.FC = () => {
     try {
       if (type === 'delete') {
         await usersApi.delete(targetId!)
-        toast.success(`${selectedUser?.name || 'Personnel'} removed`)
+        toast.success(`${selectedUser?.name || 'User'} removed`)
         dispatch(fetchUsers({}))
       }
     } catch (error: any) {
@@ -360,6 +387,19 @@ const UsersPage: React.FC = () => {
                                   </button>
                                 )}
                               </Menu.Item>
+                              {userItem.isMicrosoftSynced && (
+                                <Menu.Item>
+                                  {({ active }) => (
+                                    <button
+                                      onClick={() => handleDisconnectMicrosoft(userItem)}
+                                      className={`flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 ${active ? 'bg-gray-100 dark:bg-gray-700' : ''}`}
+                                    >
+                                      <LinkSlashIcon className="mr-3 h-4 w-4" />
+                                      Disconnect Microsoft
+                                    </button>
+                                  )}
+                                </Menu.Item>
+                              )}
                               <Menu.Item>
                                 {({ active }) => (
                                   <button
