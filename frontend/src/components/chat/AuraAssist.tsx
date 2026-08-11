@@ -45,6 +45,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
   const [cursorPosition, setCursorPosition] = useState(0)
   const [inlineCompletion, setInlineCompletion] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [attachments, setAttachments] = useState<any[]>([])
@@ -87,7 +88,14 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
 
   // Auto-scroll to bottom when new messages arrive
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // scrollIntoView walks up and scrolls every scrollable ancestor it finds, and an
+    // element with overflow:hidden is still scrollable programmatically. So sending a
+    // message scrolled the panel itself: the header slid out of view and the composer
+    // rose to the top, which is the collapse that appeared on send and undid itself
+    // when the reply arrived and something re-rendered. Scrolling the one element
+    // that is meant to scroll touches nothing else.
+    const list = listRef.current
+    if (list) list.scrollTo({ top: list.scrollHeight, behavior: 'smooth' })
   }
 
   useEffect(() => {
@@ -617,7 +625,10 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
               </div>
 
               {/* Message History */}
-              <div className="min-h-0 overflow-y-auto overscroll-contain bg-gray-50/40 p-4 space-y-3 scroll-smooth dark:bg-gray-900/40">
+              <div
+                ref={listRef}
+                className="min-h-0 overflow-y-auto overscroll-contain bg-gray-50/40 p-4 space-y-3 dark:bg-gray-900/40"
+              >
                 {messages.length === 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}

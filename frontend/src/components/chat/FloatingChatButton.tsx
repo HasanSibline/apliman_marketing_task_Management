@@ -118,9 +118,12 @@ export default function FloatingChatButton() {
             whileTap={{ scale: 0.96 }}
             aria-label="Open Aura Assist"
             title="Ask Aura Assist"
-            className="rounded-full shadow-lg shadow-primary-600/25 ring-1 ring-black/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+            // No plate behind it. A ring and a shadow drawn around a transparent
+            // character frame the empty corners of its box rather than the character,
+            // so the lift comes from a drop-shadow that follows the silhouette.
+            className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
           >
-            <AuraBot className="h-14 w-14" />
+            <AuraBot className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]" />
           </motion.button>
         </div>
       )}
