@@ -17,6 +17,8 @@ export interface User {
   strategyAccess: 'NONE' | 'READ' | 'EDIT'
   companyLogo?: string | null
   companyColor?: string | null
+  /** The company's own sign-in address, so sign-out can return to it. */
+  companySlug?: string | null
   isMicrosoftSynced?: boolean
 }
 

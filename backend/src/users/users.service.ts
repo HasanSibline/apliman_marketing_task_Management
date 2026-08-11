@@ -185,6 +185,9 @@ export class UsersService {
       select: {
         id: true,
         name: true,
+        // The slug is what a company's own sign-in page is addressed by, so anything
+        // that has to send a person back to it needs this alongside the branding.
+        slug: true,
         isActive: true,
         subscriptionStatus: true,
         subscriptionPlan: true,

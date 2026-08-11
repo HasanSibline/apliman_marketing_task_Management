@@ -1,4 +1,5 @@
 import React from 'react'
+import { companyLoginPath } from '@/lib/companyLogin'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAppSelector } from '@/hooks/redux'
 
@@ -13,7 +14,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, roles, checkS
   const location = useLocation()
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />
+    return <Navigate to={companyLoginPath()} state={{ from: location }} replace />
   }
 
   const isAdmin = user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)

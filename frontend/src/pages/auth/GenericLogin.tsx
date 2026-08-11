@@ -1,4 +1,5 @@
 import React, { useState, FormEvent } from 'react';
+import { rememberCompany } from '@/lib/companyLogin';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
@@ -29,7 +30,11 @@ const GenericLogin: React.FC = () => {
         password,
       });
 
-      const { access_token, user } = response.data;
+      // The server returns accessToken. Reading access_token gave undefined, which
+      // localStorage stores as the string "undefined", so every request after this
+      // carried "Bearer undefined" and the first 401 threw the session away. That is
+      // the sign-in that lasted a second.
+      const { accessToken, user } = response.data;
 
       // Check if this is a System Admin
       if (user.role === 'SUPER_ADMIN' && user.companyId === null) {
@@ -46,11 +51,14 @@ const GenericLogin: React.FC = () => {
       }
 
       // Store token
-      localStorage.setItem('token', access_token);
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      localStorage.setItem('token', accessToken);
+      api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
-      // Update Redux state
-      dispatch(setAuth({ user, token: access_token }));
+      // Signing in generically still identifies a company, so the way back to its own
+      // page is known from here on even though this page never saw a slug.
+      rememberCompany(user.companySlug);
+
+      dispatch(setAuth({ user, token: accessToken }));
 
       toast.success(`Welcome back, ${user.name}!`);
 

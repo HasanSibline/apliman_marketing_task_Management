@@ -1,4 +1,5 @@
 import React, { useState, useEffect, FormEvent } from 'react';
+import { rememberCompany } from '@/lib/companyLogin';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import toast from 'react-hot-toast';
@@ -105,6 +106,8 @@ const CompanyLogin: React.FC = () => {
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
       // Update Redux state
+      rememberCompany(slug ?? user.companySlug);
+
       dispatch(setAuth({ user, token: accessToken }));
 
       toast.success(`Welcome back, ${user.name}!`);

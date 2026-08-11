@@ -1,4 +1,5 @@
 import React, { useState, FormEvent } from 'react';
+import { forgetCompany } from '@/lib/companyLogin';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ArrowPathIcon } from '@heroicons/react/24/outline';
@@ -36,6 +37,7 @@ const AdminLogin: React.FC = () => {
       }
 
       // Store token
+      forgetCompany();
       localStorage.setItem('token', access_token);
       api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
 

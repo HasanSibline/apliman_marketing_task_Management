@@ -84,6 +84,9 @@ export class AuthService {
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
         companyLogo: company?.logo || null,
         companyColor: company?.primaryColor || null,
+        // Carried so the app can send someone back to their own branded sign-in page
+        // rather than the generic one after they sign out or a session expires.
+        companySlug: company?.slug || null,
       },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),
@@ -262,6 +265,9 @@ export class AuthService {
         subscriptionPlan: company?.subscriptionPlan || null, // Include plan
         companyLogo: company?.logo || null,
         companyColor: company?.primaryColor || null,
+        // Carried so the app can send someone back to their own branded sign-in page
+        // rather than the generic one after they sign out or a session expires.
+        companySlug: company?.slug || null,
       },
       accessToken,
       expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '7d'),

@@ -1,4 +1,6 @@
 import React, { useEffect, useState, Fragment } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { companyLoginPath } from '@/lib/companyLogin'
 import { Link } from 'react-router-dom'
 import {
   Bars3Icon,
@@ -50,8 +52,13 @@ const Header: React.FC = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const handleLogout = () => {
-    dispatch(logout())
+  const navigate = useNavigate()
+
+  const handleLogout = async () => {
+    await dispatch(logout())
+    // Back to the page they signed in at, branded, rather than the generic one that
+    // belongs to no company and leaves them retyping their own URL.
+    navigate(companyLoginPath(), { replace: true })
   }
 
   return (
