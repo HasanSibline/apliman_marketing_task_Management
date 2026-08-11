@@ -324,6 +324,12 @@ export const tasksApi = {
     await api.delete(`/tasks/${id}`)
   },
 
+  /** Move a task between the three stages. */
+  setStage: async (taskId: string, stage: 'TODO' | 'IN_PROGRESS' | 'COMPLETED'): Promise<Task> => {
+    const response = await api.patch(`/tasks/${taskId}/stage`, { stage })
+    return response.data
+  },
+
   // NEW: Phase transition endpoint
   moveToPhase: async (taskId: string, toPhaseId: string, comment?: string): Promise<Task> => {
     const response = await api.post(`/tasks/${taskId}/move-phase`, { toPhaseId, comment })

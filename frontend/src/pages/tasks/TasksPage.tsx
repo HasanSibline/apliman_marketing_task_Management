@@ -15,8 +15,14 @@ import EmptyState from '@/components/common/EmptyState'
 import api, { workflowsApi, usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import { Task } from '@/types/task'
-import { taskStage, TaskStage, STAGES } from '@/lib/taskStage'
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd'
+import type { DropResult } from '@hello-pangea/dnd'
+import { Menu } from '@headlessui/react'
+import { EllipsisVerticalIcon } from '@heroicons/react/24/outline'
+import { tasksApi } from '@/services/api'
+import { taskStage, TaskStage, STAGES, byDeadline } from '@/lib/taskStage'
 import TaskScheduleBar from './TaskScheduleBar'
+import CompleteTaskDialog from './CompleteTaskDialog'
 
 /**
  * Work, arranged the way it is worked.
@@ -50,6 +56,15 @@ const TasksPage: React.FC = () => {
   /** '' is every workflow at once, which is still three columns and not a stack. */
   const [workflowId, setWorkflowId] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set())
+
+  // Where a card is shown while the server catches up. Dropping a card and watching
+  // it sit still until a request returns feels broken even when nothing is wrong.
+  const [moved, setMoved] = useState<Record<string, TaskStage>>({})
+  const [confirming, setConfirming] = useState<{ task: Task; from: TaskStage } | null>(null)
+
+  const isAdmin = !!user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
+  /** Your own work, or anyone's if you are an admin. */
+  const canMove = (task: Task) => isAdmin || task.assignedToId === user?.id
 
   // Work in nobody's quarter is the easiest to lose: it appears on no quarter page
   // and nothing else surfaces it. The API supports quarterId=null; this exposes it.
@@ -86,9 +101,12 @@ const TasksPage: React.FC = () => {
 
   const byStage = useMemo(() => {
     const groups: Record<TaskStage, Task[]> = { TODO: [], IN_PROGRESS: [], COMPLETED: [] }
-    for (const task of visible) groups[taskStage(task)].push(task)
+    for (const task of visible) groups[moved[task.id] ?? taskStage(task)].push(task)
+    // Soonest due at the top of every column, so the next thing needing attention is
+    // the first thing read.
+    for (const key of Object.keys(groups) as TaskStage[]) groups[key].sort(byDeadline)
     return groups
-  }, [visible])
+  }, [visible, moved])
 
   const countFor = (id: string) =>
     id ? tasks.filter((t) => t.workflow?.id === id).length : tasks.length
@@ -116,6 +134,76 @@ const TasksPage: React.FC = () => {
       for (const id of ids) allOn ? next.delete(id) : next.add(id)
       return next
     })
+  }
+
+  /**
+   * Move a task, showing it moved straight away.
+   *
+   * No confirmation: a drag is already deliberate and dragging back undoes it, so
+   * asking every time would only train people to dismiss dialogs. Undo is offered
+   * instead, which costs nothing to ignore. If the server refuses, the card returns
+   * to where it came from and says why.
+   */
+  const move = async (task: Task, to: TaskStage, opts: { undo?: boolean } = {}) => {
+    const from = moved[task.id] ?? taskStage(task)
+    if (from === to) return
+
+    setMoved((prev) => ({ ...prev, [task.id]: to }))
+    try {
+      await tasksApi.setStage(task.id, to)
+      const label = STAGES.find((x) => x.key === to)!.label
+      if (opts.undo === false) {
+        toast.success(`Moved to ${label}`)
+      } else {
+        toast.success(
+          (t) => (
+            <span className="flex items-center gap-3">
+              Moved to {label}
+              <button
+                onClick={() => {
+                  toast.dismiss(t.id)
+                  move(task, from, { undo: false })
+                }}
+                className="font-semibold text-primary-600 underline dark:text-primary-400"
+              >
+                Undo
+              </button>
+            </span>
+          ),
+          { duration: 6000 },
+        )
+      }
+      reload()
+    } catch (e: any) {
+      setMoved((prev) => {
+        const next = { ...prev }
+        delete next[task.id]
+        return next
+      })
+      toast.error(e?.response?.data?.message ?? 'Could not move that task')
+    }
+  }
+
+  /**
+   * Completing counts a task in full toward its key result even with subtasks
+   * unticked, which moves an objective's progress by more than expected. That is the
+   * only move here worth stopping for.
+   */
+  const requestMove = (task: Task, to: TaskStage) => {
+    const subtasks = task.subtasks ?? []
+    const unfinished = subtasks.filter((s: any) => !s.isCompleted).length
+    if (to === 'COMPLETED' && unfinished > 0) {
+      setConfirming({ task, from: moved[task.id] ?? taskStage(task) })
+      return
+    }
+    move(task, to)
+  }
+
+  const onDragEnd = (result: DropResult) => {
+    const { source, destination, draggableId } = result
+    if (!destination || destination.droppableId === source.droppableId) return
+    const task = visible.find((t) => t.id === draggableId)
+    if (task) requestMove(task, destination.droppableId as TaskStage)
   }
 
   const activeFilters = [filters.search, filters.assignedToId, filters.priority].filter(Boolean).length
@@ -276,63 +364,157 @@ const TasksPage: React.FC = () => {
           }
         />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-3">
-          {STAGES.map((stage) => {
-            const column = byStage[stage.key]
-            const allTicked = column.length > 0 && column.every((t) => selected.has(t.id))
-            return (
-              <section key={stage.key} className="surface flex flex-col overflow-hidden">
-                <header className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-                  <div className="flex items-center gap-2">
-                    <span className={`h-2.5 w-2.5 rounded-full ${stage.dot}`} aria-hidden="true" />
-                    <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {stage.label}
-                    </h2>
-                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                      {column.length}
-                    </span>
-                  </div>
-
-                  {column.length > 0 && (
-                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                      <input
-                        type="checkbox"
-                        checked={allTicked}
-                        onChange={() => toggleStage(stage.key)}
-                        aria-label={`Select every task in ${stage.label}`}
-                        className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
-                      />
-                      All
-                    </label>
-                  )}
-                </header>
-
-                <div className="flex-1 space-y-2.5 p-3">
-                  {column.length === 0 ? (
-                    <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
-                      {stage.empty}
-                    </p>
-                  ) : (
-                    column.map((task) => (
-                      <div key={task.id} className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selected.has(task.id)}
-                          onChange={() => toggle(task.id)}
-                          aria-label={`Select ${task.title}`}
-                          className="mt-3 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <TaskListItem task={task} />
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {STAGES.map((stage) => {
+              const column = byStage[stage.key]
+              const allTicked = column.length > 0 && column.every((t) => selected.has(t.id))
+              return (
+                <Droppable droppableId={stage.key} key={stage.key}>
+                  {(dropProvided, dropSnapshot) => (
+                    <section
+                      ref={dropProvided.innerRef}
+                      {...dropProvided.droppableProps}
+                      className={`surface flex flex-col overflow-hidden transition-colors ${
+                        dropSnapshot.isDraggingOver
+                          ? 'border-primary-400 bg-primary-50/50 dark:bg-primary-900/10'
+                          : ''
+                      }`}
+                    >
+                      <header className="flex items-center justify-between gap-2 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                        <div className="flex items-center gap-2">
+                          <span className={`h-2.5 w-2.5 rounded-full ${stage.dot}`} aria-hidden="true" />
+                          <h2 className="text-sm font-semibold text-gray-900 dark:text-white">
+                            {stage.label}
+                          </h2>
+                          <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium tabular-nums text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                            {column.length}
+                          </span>
                         </div>
+
+                        {column.length > 0 && (
+                          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                            <input
+                              type="checkbox"
+                              checked={allTicked}
+                              onChange={() => toggleStage(stage.key)}
+                              aria-label={`Select every task in ${stage.label}`}
+                              className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                            />
+                            All
+                          </label>
+                        )}
+                      </header>
+
+                      <div className="flex-1 space-y-2.5 p-3">
+                        {column.length === 0 ? (
+                          <p className="py-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                            {dropSnapshot.isDraggingOver ? 'Drop to move it here' : stage.empty}
+                          </p>
+                        ) : (
+                          column.map((task, index) => {
+                            const movable = canMove(task)
+                            return (
+                              <Draggable
+                                key={task.id}
+                                draggableId={task.id}
+                                index={index}
+                                isDragDisabled={!movable}
+                              >
+                                {(dragProvided, dragSnapshot) => (
+                                  <div
+                                    ref={dragProvided.innerRef}
+                                    {...dragProvided.draggableProps}
+                                    className={`flex items-start gap-1.5 rounded-xl ${
+                                      dragSnapshot.isDragging ? 'shadow-xl ring-2 ring-primary-400' : ''
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selected.has(task.id)}
+                                      onChange={() => toggle(task.id)}
+                                      aria-label={`Select ${task.title}`}
+                                      className="mt-3 h-4 w-4 shrink-0 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                                    />
+
+                                    {/* The handle is its own control rather than the
+                                        whole card, which stays clickable to open the
+                                        task. Work assigned to someone else shows the
+                                        handle disabled instead of hiding it, so the
+                                        rule is visible rather than mysterious. */}
+                                    <div
+                                      {...dragProvided.dragHandleProps}
+                                      aria-label={
+                                        movable
+                                          ? `Drag ${task.title} to another column`
+                                          : `${task.title} is assigned to someone else`
+                                      }
+                                      title={movable ? 'Drag to move' : 'Only an admin can move this'}
+                                      className={`mt-2.5 shrink-0 rounded p-1 ${
+                                        movable
+                                          ? 'cursor-grab text-gray-400 hover:text-gray-600 active:cursor-grabbing dark:hover:text-gray-200'
+                                          : 'cursor-not-allowed text-gray-300 dark:text-gray-600'
+                                      }`}
+                                    >
+                                      <svg viewBox="0 0 10 16" className="h-4 w-3 fill-current" aria-hidden="true">
+                                        <circle cx="2" cy="3" r="1.3" />
+                                        <circle cx="8" cy="3" r="1.3" />
+                                        <circle cx="2" cy="8" r="1.3" />
+                                        <circle cx="8" cy="8" r="1.3" />
+                                        <circle cx="2" cy="13" r="1.3" />
+                                        <circle cx="8" cy="13" r="1.3" />
+                                      </svg>
+                                    </div>
+
+                                    <div className="min-w-0 flex-1">
+                                      <TaskListItem task={task} />
+                                    </div>
+
+                                    {/* Touch and keyboard reach the same action. The
+                                        columns stack on a phone, where dragging between
+                                        them would mean dragging while scrolling. */}
+                                    {movable && (
+                                      <Menu as="div" className="relative mt-2 shrink-0">
+                                        <Menu.Button
+                                          aria-label={`Move ${task.title}`}
+                                          className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                                        >
+                                          <EllipsisVerticalIcon className="h-5 w-5" />
+                                        </Menu.Button>
+                                        <Menu.Items className="absolute right-0 z-20 mt-1 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg focus:outline-none dark:border-gray-700 dark:bg-gray-800">
+                                          {STAGES.filter((x) => x.key !== stage.key).map((target) => (
+                                            <Menu.Item key={target.key}>
+                                              {({ active }) => (
+                                                <button
+                                                  onClick={() => requestMove(task, target.key)}
+                                                  className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-200 ${
+                                                    active ? 'bg-gray-100 dark:bg-gray-700' : ''
+                                                  }`}
+                                                >
+                                                  <span className={`h-2 w-2 rounded-full ${target.dot}`} aria-hidden="true" />
+                                                  Move to {target.label}
+                                                </button>
+                                              )}
+                                            </Menu.Item>
+                                          ))}
+                                        </Menu.Items>
+                                      </Menu>
+                                    )}
+                                  </div>
+                                )}
+                              </Draggable>
+                            )
+                          })
+                        )}
+                        {dropProvided.placeholder}
                       </div>
-                    ))
+                    </section>
                   )}
-                </div>
-              </section>
-            )
-          })}
-        </div>
+                </Droppable>
+              )
+            })}
+          </div>
+        </DragDropContext>
       )}
 
       {!isLoading && visible.length > 0 && (
@@ -353,6 +535,21 @@ const TasksPage: React.FC = () => {
         }}
         onError={(message) => toast.error(message)}
       />
+
+      {confirming && (
+        <CompleteTaskDialog
+          title={confirming.task.title}
+          done={(confirming.task.subtasks ?? []).filter((s: any) => s.isCompleted).length}
+          total={(confirming.task.subtasks ?? []).length}
+          keyResultTitle={(confirming.task as any).keyResult?.title ?? null}
+          onCancel={() => setConfirming(null)}
+          onConfirm={() => {
+            const { task } = confirming
+            setConfirming(null)
+            move(task, 'COMPLETED')
+          }}
+        />
+      )}
 
       <CreateTaskModal isOpen={showCreateModal} onClose={() => setShowCreateModal(false)} />
     </div>

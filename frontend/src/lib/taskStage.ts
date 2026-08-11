@@ -64,3 +64,34 @@ export function taskStage(task: {
       return 'TODO'
   }
 }
+
+/**
+ * Order within a column: whatever is due soonest, first.
+ *
+ * Overdue work sorts to the very top on its own, because a date in the past is the
+ * nearest date there is. That is the right answer rather than a special case.
+ *
+ * A task with no due date sorts last whatever its priority. Undated work is not
+ * urgent, it is unscheduled, and letting a Critical undated task outrank one due
+ * tomorrow would bury the thing with an actual deadline. Priority breaks ties
+ * between tasks due the same day, which is what priority is for.
+ */
+export function byDeadline(
+  a: { dueDate?: string | null; priority?: number; createdAt?: string },
+  b: { dueDate?: string | null; priority?: number; createdAt?: string },
+): number {
+  const da = a.dueDate ? Date.parse(a.dueDate) : NaN
+  const db = b.dueDate ? Date.parse(b.dueDate) : NaN
+  const aHas = !Number.isNaN(da)
+  const bHas = !Number.isNaN(db)
+
+  if (aHas && bHas && da !== db) return da - db
+  if (aHas !== bHas) return aHas ? -1 : 1
+
+  // Same day, or neither dated: the more urgent first, then the older.
+  const pa = a.priority ?? 0
+  const pb = b.priority ?? 0
+  if (pa !== pb) return pb - pa
+
+  return Date.parse(a.createdAt ?? '') - Date.parse(b.createdAt ?? '') || 0
+}

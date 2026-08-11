@@ -2077,16 +2077,29 @@ export class TasksService {
    * end phase that would otherwise pull the card straight back to where it was
    * dragged from. A control that undoes itself is worse than one that is missing.
    */
-  async setStage(taskId: string, stage: TaskStage, companyId: string) {
+  async setStage(
+    taskId: string,
+    stage: TaskStage,
+    companyId: string,
+    actor: { id: string; role: string },
+  ) {
     const task = await this.prisma.task.findFirst({
       where: { id: taskId, companyId },
       select: {
         id: true,
         workflowId: true,
+        assignedToId: true,
         currentPhase: { select: { id: true, isEndPhase: true } },
       },
     });
     if (!task) throw new NotFoundException('Task not found');
+
+    // You move your own work; an admin moves anyone's. Checked here rather than only
+    // in the board, because a disabled control is a courtesy and not a rule.
+    const isAdmin = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(actor.role);
+    if (!isAdmin && task.assignedToId !== actor.id) {
+      throw new ForbiddenException('This task is assigned to someone else, so only an admin can move it.');
+    }
 
     const data: any = { phase: STAGE_TO_PHASE[stage] };
 

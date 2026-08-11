@@ -340,6 +340,9 @@ export class TasksController {
     if (!isTaskStage(body?.stage)) {
       throw new BadRequestException('Stage must be TODO, IN_PROGRESS or COMPLETED.');
     }
-    return this.tasksService.setStage(id, body.stage, req.user.companyId);
+    return this.tasksService.setStage(id, body.stage, req.user.companyId, {
+      id: req.user.id,
+      role: req.user.role,
+    });
   }
 }
