@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon, PaperClipIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, PaperClipIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import { CpuChipIcon } from '@heroicons/react/24/solid'
 import ThinkingIndicator from './ThinkingIndicator'
+import AuraBot from './AuraBot'
 import { AuraMark } from '@/components/brand/AuraMark'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
@@ -377,7 +378,9 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
     const textBeforeCursor = value.substring(0, cursorPos)
     
     // Check for @ mention (inline autocomplete)
-    const atMatch = textBeforeCursor.match(/@([\w\s]*)$/)
+    // Bounded to two words. Unbounded, an @ typed early kept matching every word
+    // after it, so the member list reopened over the rest of the sentence.
+    const atMatch = textBeforeCursor.match(/@(\w*(?:\s\w*)?)$/)
     if (atMatch) {
       const query = atMatch[1].toLowerCase().trim()
       
@@ -397,7 +400,8 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
     }
 
     // Check for / task reference (inline autocomplete)
-    const slashMatch = textBeforeCursor.match(/\/([\w\s-]*)$/)
+    // Task titles are long, so a few words are allowed, but not the whole message.
+    const slashMatch = textBeforeCursor.match(/\/([\w-]*(?:\s[\w-]*){0,3})$/)
     if (slashMatch) {
       const query = slashMatch[1].toLowerCase().trim()
       
@@ -417,33 +421,53 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
     }
 
     // Check for # ticket reference (inline autocomplete)
-    const hashMatch = textBeforeCursor.match(/#([\w\s-]*)$/)
+    //
+    // The pattern deliberately stops at whitespace. It used to allow spaces, so once
+    // a # had been typed anywhere it kept matching everything after it: pick a
+    // ticket, carry on writing the sentence, and the ticket list stayed open over the
+    // rest of the message because the # was still back there matching forwards.
+    const hashMatch = textBeforeCursor.match(/#([\w-]*)$/)
     if (hashMatch) {
       const query = hashMatch[1].toLowerCase().trim()
-      
-      // Filter only active tickets (not rejected/cancelled as requested)
-      const activeTickets = allTickets.filter(t => !['REJECTED', 'CANCELLED'].includes(t.status))
-      
+
+      // Rejected and cancelled tickets are history; referencing one is almost never
+      // what someone means while typing.
+      const activeTickets = allTickets.filter(
+        (t: any) => !['REJECTED', 'CANCELLED'].includes(t.status),
+      )
+
+      // A ticket without a number is possible, and calling toLowerCase on the missing
+      // one threw inside the keystroke handler, which took the whole box down.
+      const matches = (t: any) => {
+        const number = String(t.ticketNumber ?? '').toLowerCase()
+        const title = String(t.title ?? '').toLowerCase()
+        return number.includes(query) || title.includes(query)
+      }
+
       if (query.length >= 1) {
-        const matchedTicket = activeTickets.find((t: any) => 
-          t.title.toLowerCase().includes(query) || t.ticketNumber.toLowerCase().includes(query)
+        const found = activeTickets.filter(matches).slice(0, 5)
+
+        // Complete only when the number genuinely starts with what has been typed.
+        // The old test asked whether the query contained the ticket number at index
+        // zero, which is the comparison backwards, so it spliced in the wrong text.
+        const startsWith = found.find((t: any) =>
+          String(t.ticketNumber ?? '').toLowerCase().startsWith(query),
         )
-        
-        if (matchedTicket) {
-          setInlineCompletion(matchedTicket.ticketNumber.substring(query.indexOf(matchedTicket.ticketNumber.toLowerCase()) === 0 ? query.length : 0))
-          // For tickets, we might want to just show the list if it's tricky to inline complete
-          setSuggestionType('ticket')
-          setSuggestions(activeTickets.filter(t => 
-            t.title.toLowerCase().includes(query) || t.ticketNumber.toLowerCase().includes(query)
-          ).slice(0, 5))
-          return
-        }
-      } else {
-        // Show all active tickets if just # is typed
-        setSuggestionType('ticket')
-        setSuggestions(activeTickets.slice(0, 5))
+        setInlineCompletion(
+          startsWith ? String(startsWith.ticketNumber).substring(query.length) : '',
+        )
+
+        setSuggestionType(found.length > 0 ? 'ticket' : null)
+        setSuggestions(found)
         return
       }
+
+      // Just a # so far: offer the most recent, since a ticket someone is about to
+      // mention is far more likely to be a current one.
+      setInlineCompletion('')
+      setSuggestionType('ticket')
+      setSuggestions(activeTickets.slice(0, 5))
+      return
     }
 
     // No match, hide completion
@@ -525,50 +549,60 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
 
   if (!isOpen) return null
 
-  // Minimized view - Professional
+  /**
+   * Minimised: the robot, and how much is waiting.
+   *
+   * It used to be a full-width blue bar carrying a logo, a title, a subtitle, an
+   * expand button and a close button, which is more furniture than a minimised thing
+   * should own. Minimising is a request for it to get out of the way, and answering
+   * that with a banner is answering the wrong question.
+   *
+   * So it collapses to the same character that opened it, with the count on its
+   * shoulder. Everything else is available by clicking it.
+   */
   if (isMinimized) {
     return (
-      <div className="fixed bottom-6 right-6 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-md z-50 border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div 
-          className="bg-primary-600 text-white p-4 flex items-center justify-between cursor-pointer hover:bg-primary-700 transition-all duration-300"
+      <div className="fixed bottom-6 right-6 z-50">
+        <motion.button
           onClick={() => setIsMinimized(false)}
+          initial={{ scale: 0.85, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.95 }}
+          aria-label={`Open Aura Assist, ${messages.length} messages`}
+          title="Open Aura Assist"
+          className="group relative block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
         >
-          <div className="flex items-center space-x-3">
-            <div className="relative flex h-10 w-10 items-center justify-center rounded-lg bg-white shadow-md">
-              <AuraMark className="h-6 w-6" />
-              <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white bg-success-400"></div>
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold">Aura Assist</h3>
-              <p className="text-xs text-white/90 flex items-center gap-1">
-                <span className="w-2 h-2 bg-success-400 rounded-full animate-pulse"></span>
-                {messages.length} messages
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-                setIsMinimized(false)
-              }}
-              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
-              title="Expand"
-            >
-              <ChevronUpIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={(e) => {
+          <AuraBot className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]" />
+
+          {messages.length > 0 && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full border-2 border-white bg-primary-600 px-1.5 text-[11px] font-semibold tabular-nums text-white shadow-sm dark:border-gray-900">
+              {messages.length > 99 ? '99+' : messages.length}
+            </span>
+          )}
+
+          {/* Closing is a rarer intent than reopening, so it stays out of the way
+              until the pointer is here rather than sitting beside the count. */}
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="Close Aura Assist"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleClose()
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
                 e.stopPropagation()
                 handleClose()
-              }}
-              className="text-white hover:bg-white/20 rounded-lg p-2 transition-all"
-              title="Close"
-            >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
+              }
+            }}
+            className="absolute -bottom-1 -left-1 flex h-6 w-6 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 opacity-0 shadow-sm transition-opacity hover:text-gray-800 focus:opacity-100 group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-100"
+          >
+            <XMarkIcon className="h-3.5 w-3.5" />
+          </span>
+        </motion.button>
       </div>
     )
   }

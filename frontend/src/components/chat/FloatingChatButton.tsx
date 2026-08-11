@@ -19,14 +19,22 @@ import AuraBot from './AuraBot'
  */
 
 /** Long enough after arriving that it is not competing with the page loading. */
-const FIRST_NUDGE_MS = 25_000
-const NUDGE_INTERVAL_MS = 12 * 60_000
+const FIRST_NUDGE_MS = 12_000
+const NUDGE_INTERVAL_MS = 3 * 60_000
 const NUDGE_VISIBLE_MS = 11_000
 
-/** The peek is a surprise, so it must never be predictable or frequent. */
-const FIRST_PEEK_MS = 70_000
-const PEEK_EVERY_MS = 150_000
-const PEEK_JITTER_MS = 90_000
+/**
+ * The sneak, roughly every half minute.
+ *
+ * Jittered rather than exact. On a fixed interval the eye learns the beat and stops
+ * seeing it, which costs precisely the attention the behaviour exists to earn, and
+ * anything landing on a metronome reads as a machine rather than as something with a
+ * mind of its own. It also never begins while the chat is open or the tab is hidden,
+ * so it cannot animate at nobody.
+ */
+const FIRST_PEEK_MS = 30_000
+const PEEK_EVERY_MS = 30_000
+const PEEK_JITTER_MS = 12_000
 
 interface Nudge {
   text: string
