@@ -35,6 +35,95 @@ export class ChatService {
   }
 
   /**
+   * A short, true thing to say to this person right now.
+   *
+   * Deliberately not written by the AI. A nudge has to be instant, free and correct,
+   * and none of those survive a round trip to a language model: it would cost a call
+   * per person per interval, arrive seconds late, be unavailable exactly when the AI
+   * is down, and occasionally invent a number. Everything here is counted from the
+   * database, so it is always available and never wrong.
+   *
+   * Ordered by what deserves attention rather than by what is cheerful. Something
+   * overdue outranks praise, because a greeting shown over a missed deadline is worse
+   * than no greeting. Only when nothing needs attention does it congratulate.
+   */
+  async getNudge(userId: string): Promise<{ text: string; tone: 'urgent' | 'info' | 'praise' } | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, companyId: true },
+    });
+    if (!user?.companyId) return null;
+
+    const now = new Date();
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    const weekAgo = new Date(now.getTime() - 7 * 86_400_000);
+
+    const open = { phase: { notIn: ['COMPLETED', 'ARCHIVED'] as any }, completedAt: null };
+
+    const [overdue, dueToday, doneThisWeek, openTickets, unscheduled] = await Promise.all([
+      this.prisma.task.count({
+        where: { assignedToId: userId, ...open, dueDate: { lt: now } },
+      }),
+      this.prisma.task.count({
+        where: { assignedToId: userId, ...open, dueDate: { gte: now, lte: endOfToday } },
+      }),
+      this.prisma.task.count({
+        where: { assignedToId: userId, completedAt: { gte: weekAgo } },
+      }),
+      this.prisma.ticket.count({
+        where: { assigneeId: userId, status: { notIn: ['CLOSED', 'RESOLVED'] as any } },
+      }).catch(() => 0),
+      this.prisma.task.count({
+        where: { assignedToId: userId, ...open, quarterId: null },
+      }),
+    ]);
+
+    const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+
+    if (overdue > 0) {
+      return {
+        tone: 'urgent',
+        text: `${overdue} ${plural(overdue, 'task is', 'tasks are')} past due.`,
+      };
+    }
+
+    if (dueToday > 0) {
+      return {
+        tone: 'info',
+        text: `${dueToday} ${plural(dueToday, 'task is', 'tasks are')} due today.`,
+      };
+    }
+
+    if (openTickets > 0) {
+      return {
+        tone: 'info',
+        text: `${openTickets} open ${plural(openTickets, 'ticket needs', 'tickets need')} you.`,
+      };
+    }
+
+    if (doneThisWeek >= 3) {
+      return {
+        tone: 'praise',
+        text: `${doneThisWeek} tasks finished this week. Nice run.`,
+      };
+    }
+
+    if (unscheduled > 0) {
+      return {
+        tone: 'info',
+        text: `${unscheduled} ${plural(unscheduled, 'task is', 'tasks are')} not in a quarter yet.`,
+      };
+    }
+
+    // Nothing needs attention and nothing to celebrate. Saying nothing is better than
+    // manufacturing something: a widget that always has an opinion stops being read.
+    return doneThisWeek > 0
+      ? { tone: 'praise', text: 'Your board is clear. Well done.' }
+      : null;
+  }
+
+  /**
    * Get or create a chat session for a user
    */
   async getOrCreateSession(userId: string, sessionId?: string) {
@@ -971,12 +1060,22 @@ export class ChatService {
       });
 
       // Call AI service to learn from tasks
+      // Every learning call needs the company's own credential, exactly like the
+      // chat call does. Sent without one, the AI service answered "AI is not
+      // configured for your company" every single time and the error was swallowed
+      // by the catch below, so this feature has never once run.
+      const credential = await this.aiService.resolveAiCredential(userId);
+      if (!credential) return null;
+
       const aiResponse = await this.httpService.axiosRef.post(
         `${this.aiServiceUrl}/learn-from-tasks`,
         {
           userContext: userContext.context,
           completedTasks,
           activeTasks,
+          api_key: credential.apiKey,
+          provider: credential.provider,
+          model: credential.model ?? undefined,
         },
         {
           headers: this.aiServiceHeaders,
@@ -1055,12 +1154,18 @@ export class ChatService {
     try {
       const userContext = await this.getUserContext(userId);
 
+      const credential = await this.aiService.resolveAiCredential(userId);
+      if (!credential) return;
+
       const aiResponse = await this.httpService.axiosRef.post(
         `${this.aiServiceUrl}/learn-domain-interests`,
         {
           domainTopic: domain,
           userQuestions: questions,
           existingKnowledge: userContext.context,
+          api_key: credential.apiKey,
+          provider: credential.provider,
+          model: credential.model ?? undefined,
         },
         {
           headers: this.aiServiceHeaders,

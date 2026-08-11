@@ -61,6 +61,15 @@ export class ChatController {
   /**
    * Get user's chat context
    */
+  /**
+   * A one-line, true observation about this person's work. Counted, never generated,
+   * so it costs nothing and is right even when the AI service is unreachable.
+   */
+  @Get('nudge')
+  async getNudge(@Request() req) {
+    return this.chatService.getNudge(req.user.id);
+  }
+
   @Get('context')
   async getUserContext(@Request() req) {
     return this.chatService.getUserContext(req.user.id);

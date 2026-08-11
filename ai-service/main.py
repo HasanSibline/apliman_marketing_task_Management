@@ -535,13 +535,18 @@ class LearnFromTasksRequest(BaseModel):
     completedTasks: List[Dict[str, Any]]
     activeTasks: List[Dict[str, Any]]
     api_key: Optional[str] = None  # Company-specific API key
+    # Carried like every other endpoint. Without them this built a Gemini client and
+    # handed it whichever key the company actually uses, so a company on Anthropic or
+    # Groq could never learn anything.
+    provider: Optional[str] = "gemini"
+    model: Optional[str] = None
 
 @app.post("/learn-from-tasks", dependencies=[Depends(require_service_token)])
 async def learn_from_tasks(request: LearnFromTasksRequest):
     """Learn from user's task history to extract insights and patterns"""
     try:
-        api_key_to_use = resolve_api_key(request.api_key, "learn-from-tasks")
-        temp_chat_service = ChatService(api_key_to_use)
+        keys = resolve_api_key_pool(request.api_key, "learn-from-tasks", request.provider or "gemini")
+        temp_chat_service = ChatService(keys, request.provider or "gemini", request.model)
         
         learned_context = await temp_chat_service.learn_from_task_history(
             user_context=request.userContext,
@@ -569,13 +574,15 @@ class LearnDomainInterestsRequest(BaseModel):
     userQuestions: List[str]
     existingKnowledge: Dict[str, Any]
     api_key: Optional[str] = None  # Company-specific API key
+    provider: Optional[str] = "gemini"
+    model: Optional[str] = None
 
 @app.post("/learn-domain-interests", dependencies=[Depends(require_service_token)])
 async def learn_domain_interests(request: LearnDomainInterestsRequest):
     """Learn what the user is interested in regarding specific domains"""
     try:
-        api_key_to_use = resolve_api_key(request.api_key, "learn-domain-interests")
-        temp_chat_service = ChatService(api_key_to_use)
+        keys = resolve_api_key_pool(request.api_key, "learn-domain-interests", request.provider or "gemini")
+        temp_chat_service = ChatService(keys, request.provider or "gemini", request.model)
         
         learned_interests = await temp_chat_service.learn_about_domain_interests(
             domain_topic=request.domainTopic,

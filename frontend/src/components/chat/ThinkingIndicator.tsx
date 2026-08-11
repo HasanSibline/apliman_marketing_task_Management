@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { CpuChipIcon } from '@heroicons/react/24/outline'
+import AuraBot from './AuraBot'
 
 /**
  * What Aura says while it is thinking.
@@ -52,9 +52,10 @@ const ThinkingIndicator: React.FC = () => {
     // so it refuses to shrink below its own content: one long phrase pushed this row
     // wider than the 340px panel holding it rather than fitting inside.
     <div className="flex max-w-full items-start gap-3">
-      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white text-secondary-600 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-secondary-400">
-        <CpuChipIcon className="h-5 w-5" />
-      </div>
+      {/* The same face that was clicked to open this, now with its eyes closed. It
+          is the cheapest possible signal that the thing being waited on is thinking
+          rather than stalled. */}
+      <AuraBot className="h-8 w-8 flex-shrink-0" thinking />
 
       <div className="flex h-8 min-w-0 items-center gap-2.5 overflow-hidden rounded-full border border-gray-100 bg-white px-4 dark:border-gray-700 dark:bg-gray-800">
         <span className="flex flex-shrink-0 gap-1" aria-hidden="true">

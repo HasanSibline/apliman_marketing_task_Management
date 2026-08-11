@@ -575,10 +575,15 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="fixed bottom-6 right-6 w-[340px] h-[540px] bg-white dark:bg-gray-800 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.12)] flex flex-col z-50 border border-gray-100 dark:border-gray-700 overflow-hidden"
+            className="fixed bottom-4 right-4 left-4 z-50 grid overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl sm:left-auto sm:bottom-6 sm:right-6 sm:w-[380px] dark:border-gray-700 dark:bg-gray-800"
+            style={{
+              // Rows, not flex. The composer is pinned by the grid definition itself,
+              // so it cannot be pushed anywhere by whatever the history contains.
+              gridTemplateRows: 'auto minmax(0, 1fr) auto',
+              height: 'min(600px, calc(100dvh - 2rem))',
+            }}
           >
-            {/* Combined Header, Body and Input - Full Height Layout */}
-            <div className="flex flex-col h-full bg-white dark:bg-gray-800 relative">
+            <div className="contents">
               {/* Chat Header */}
               <div className="flex items-center justify-between px-5 py-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex-shrink-0 z-10 shadow-sm">
                 <div className="flex items-center gap-3">
@@ -612,7 +617,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
               </div>
 
               {/* Message History */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50/30 dark:bg-gray-900/30 scroll-smooth">
+              <div className="min-h-0 overflow-y-auto overscroll-contain bg-gray-50/40 p-4 space-y-3 scroll-smooth dark:bg-gray-900/40">
                 {messages.length === 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
@@ -740,7 +745,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
               </div>
 
               {/* Input Area */}
-              <div className="p-4 bg-white dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 flex-shrink-0 relative">
+              <div className="relative border-t border-gray-100 bg-white p-3.5 dark:border-gray-700 dark:bg-gray-800">
                 {/* Autocomplete Suggestions */}
                 <AnimatePresence>
                   {suggestions.length > 0 && (
