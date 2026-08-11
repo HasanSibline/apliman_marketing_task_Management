@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, ChevronUpIcon, PaperClipIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
 import { CpuChipIcon } from '@heroicons/react/24/solid'
+import ThinkingIndicator from './ThinkingIndicator'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../store'
 import api from '../../services/api'
@@ -724,18 +725,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                   </div>
                 )}
 
-                {isTyping && !streamingMessage && (
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 dark:text-secondary-400 flex items-center justify-center flex-shrink-0 shadow-sm animation-pulse">
-                      <CpuChipIcon className="w-5 h-5" />
-                    </div>
-                    <div className="flex gap-1 p-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-full h-8 items-center px-4">
-                      <div className="w-1 h-1 bg-primary-600 rounded-full animate-bounce"></div>
-                      <div className="w-1 h-1 bg-primary-500 rounded-full animate-bounce delay-75"></div>
-                      <div className="w-1 h-1 bg-primary-400 rounded-full animate-bounce delay-150"></div>
-                    </div>
-                  </div>
-                )}
+                {isTyping && !streamingMessage && <ThinkingIndicator />}
                 <div ref={messagesEndRef} />
               </div>
 

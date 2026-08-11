@@ -144,8 +144,16 @@ const TasksPage: React.FC = () => {
    * instead, which costs nothing to ignore. If the server refuses, the card returns
    * to where it came from and says why.
    */
-  const move = async (task: Task, to: TaskStage, opts: { undo?: boolean } = {}) => {
-    const from = moved[task.id] ?? taskStage(task)
+  const move = async (
+    task: Task,
+    to: TaskStage,
+    opts: { from?: TaskStage; undo?: boolean } = {},
+  ) => {
+    // Undo has to say where the task is now. Reading it from state here looked
+    // equivalent and was not: the toast holds the version of this function from the
+    // render that created it, so `moved` still looked empty and the source came out
+    // equal to the destination. Undo returned on the next line and did nothing.
+    const from = opts.from ?? moved[task.id] ?? taskStage(task)
     if (from === to) return
 
     setMoved((prev) => ({ ...prev, [task.id]: to }))
@@ -162,7 +170,7 @@ const TasksPage: React.FC = () => {
               <button
                 onClick={() => {
                   toast.dismiss(t.id)
-                  move(task, from, { undo: false })
+                  move(task, from, { from: to, undo: false })
                 }}
                 className="font-semibold text-primary-600 underline dark:text-primary-400"
               >

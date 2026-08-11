@@ -94,8 +94,12 @@ const TaskListItem: React.FC<TaskListItemProps> = ({ task }) => {
       case 5: 
         return { 
           color: '#DC2626',
-          bg: 'bg-red-200',
-          text: 'text-red-800 dark:text-red-300',
+          // The only level that had no dark background, so the chip kept a light red
+          // ground while its text went pale: the most severe priority ended up the
+          // hardest to read. It also has to outrank Urgent at a glance, which a
+          // lighter tint of the same red does not.
+          bg: 'bg-red-600 dark:bg-red-600',
+          text: 'text-white dark:text-white',
           icon: FireIcon,
           label: 'Critical'
         }

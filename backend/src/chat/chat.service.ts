@@ -740,61 +740,129 @@ export class ChatService {
     return /quota exceeded|rate limit|429|quota exhausted/i.test(text);
   }
 
+  /**
+   * How long the whole attempt may take, in milliseconds.
+   *
+   * The browser gives up at 120 seconds, so this stays comfortably inside that:
+   * spending the client's entire patience and then having the request cancelled from
+   * under us would waste the work and tell the user nothing.
+   */
+  private static readonly CHAT_BUDGET_MS = 95_000;
+
+  /** Waits between attempts. Short first, since a rate limit often clears in seconds. */
+  private static readonly CHAT_BACKOFF_MS = [1_500, 4_000, 9_000, 15_000];
+
+  private sleep(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Ask the AI service, and keep asking while it is worth asking.
+   *
+   * Most of what went wrong here was temporary and the user was told about it as
+   * though it were permanent. A sleeping service takes the better part of a minute to
+   * wake, and the request that wakes it is the one that fails. A free provider tier
+   * refuses a burst and accepts the same message seconds later. In both cases the
+   * honest thing is to wait and try again, not to hand back an apology the person can
+   * do nothing with, and least of all one about quotas and API keys.
+   *
+   * So retryable failures are retried until the budget runs out, and only a genuinely
+   * permanent problem is reported. Bad credentials are permanent and worth saying
+   * plainly, because someone can act on them. Everything else gets the time it needs.
+   */
   private async callAiChatService(data: any) {
-    try {
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/chat`, data, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000, // Slightly longer timeout since multimodal processing might take longer
-          maxBodyLength: Infinity,
-          maxContentLength: Infinity,
-        }),
-      );
+    const startedAt = Date.now();
+    let lastDetail = 'Unknown error';
+    let attempt = 0;
 
-      return response.data;
-    } catch (error: any) {
-      const statusCode = error.response?.status;
-      const detail = error.response?.data?.detail;
-      const detailedError = detail
-        ? (typeof detail === 'string' ? detail : JSON.stringify(detail))
-        : error.message || 'Unknown error';
+    for (;;) {
+      try {
+        const response = await firstValueFrom(
+          this.httpService.post(`${this.aiServiceUrl}/chat`, data, {
+            headers: this.aiServiceHeaders,
+            timeout: 45000, // multimodal processing can be slow
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+          }),
+        );
+        if (attempt > 0) {
+          this.logger.log(`AI chat succeeded on attempt ${attempt + 1}`);
+        }
+        return response.data;
+      } catch (error: any) {
+        const statusCode = error.response?.status;
+        const detail = error.response?.data?.detail;
+        lastDetail = detail
+          ? typeof detail === 'string'
+            ? detail
+            : JSON.stringify(detail)
+          : error.message || 'Unknown error';
 
-      this.logger.error('Error calling AI chat service:', detailedError);
+        // Credentials are the one thing waiting cannot fix, and the one thing an
+        // admin can. Said plainly, immediately, rather than retried into a timeout.
+        const isAuthProblem =
+          statusCode === 401 ||
+          statusCode === 403 ||
+          lastDetail.includes('API_KEY_INVALID') ||
+          lastDetail.includes('API key not valid');
 
-      // Distinguish between connection failure vs AI service returning an error
-      const isConnectionError =
-        error.code === 'ECONNREFUSED' ||
-        error.code === 'ENOTFOUND' ||
-        error.code === 'ECONNRESET' ||
-        error.code === 'ECONNABORTED' ||
-        error.code === 'ETIMEDOUT' ||
-        error.message?.includes('timeout') ||
-        error.message?.includes('connect');
+        if (isAuthProblem) {
+          this.logger.error(`AI chat rejected the credential: ${lastDetail}`);
+          return {
+            message:
+              '⚠️ The AI key for your company is not being accepted. Please check it in company settings.',
+            contextUsed: false,
+            learnedContext: null,
+          };
+        }
 
-      if (isConnectionError) {
-        // AI service is down, friendly fallback
-        return {
-          message: "I'm having trouble connecting to my AI brain right now. Please try again in a moment.",
-          contextUsed: false,
-          learnedContext: null,
-        };
+        const isConnectionProblem =
+          error.code === 'ECONNREFUSED' ||
+          error.code === 'ENOTFOUND' ||
+          error.code === 'ECONNRESET' ||
+          error.code === 'ECONNABORTED' ||
+          error.code === 'ETIMEDOUT' ||
+          error.message?.includes('timeout') ||
+          error.message?.includes('connect');
+
+        const isBusy =
+          statusCode === 429 ||
+          statusCode >= 500 ||
+          /quota|rate limit|429|overloaded|unavailable/i.test(lastDetail);
+
+        const worthRetrying = isConnectionProblem || isBusy;
+        const wait = ChatService.CHAT_BACKOFF_MS[
+          Math.min(attempt, ChatService.CHAT_BACKOFF_MS.length - 1)
+        ];
+        const elapsed = Date.now() - startedAt;
+
+        // Only wait if there is room for the wait and a real attempt after it.
+        const roomToTryAgain = elapsed + wait + 8_000 < ChatService.CHAT_BUDGET_MS;
+
+        if (!worthRetrying || !roomToTryAgain) {
+          this.logger.error(
+            `AI chat gave up after ${attempt + 1} attempt(s) in ${Math.round(elapsed / 1000)}s: ${lastDetail}`,
+          );
+          break;
+        }
+
+        this.logger.warn(
+          `AI chat attempt ${attempt + 1} failed (${lastDetail}); retrying in ${wait}ms`,
+        );
+        await this.sleep(wait);
+        attempt++;
       }
-
-      // API-level error (bad key, quota, etc.), surface it clearly
-      const userFacingMessage = statusCode === 401 || statusCode === 403
-        ? 'AI authentication failed. Please check the API key in your company settings.'
-        : detailedError.includes('API_KEY_INVALID') || detailedError.includes('API key not valid')
-          ? 'The AI API key is invalid. Please update it in your company settings.'
-          : statusCode === 429 || detailedError.includes('quota') || detailedError.includes('rate limit') || detailedError.includes('429')
-            ? '⏳ AI quota exceeded. All available API keys have reached their rate limit. Please ask your administrator to add an additional API key in the company settings.'
-            : (detailedError && detailedError !== 'Unknown error' ? detailedError : 'The AI service encountered an error.');
-
-      return {
-        message: `⚠️ ${userFacingMessage}`,
-        contextUsed: false,
-        learnedContext: null,
-      };
     }
+
+    // Out of time. Nothing here names quotas or keys: it is not the reader's problem
+    // to solve, and the detail is in the logs and on the AI status page for the people
+    // who can act on it.
+    return {
+      message:
+        "That one is taking longer than it should. I have kept trying and not got there yet, so please send it again in a moment.",
+      contextUsed: false,
+      learnedContext: null,
+    };
   }
 
   /**
