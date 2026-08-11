@@ -16,7 +16,11 @@ export class MicrosoftController {
 
   @Get('callback')
   async handleCallback(@Query('code') code: string, @Res() res: Response) {
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // A configured URL ending in "/" produced //auth/microsoft/callback here, which
+    // the router does not match, so sign-in completed and the page stayed blank.
+    const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173')
+      .trim()
+      .replace(/\/+$/, '');
     res.redirect(`${frontendUrl}/auth/microsoft/callback?code=${code}`);
   }
 

@@ -18,7 +18,13 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
   const port = configService.get('PORT') || 3001;
-  const frontendUrl = configService.get('FRONTEND_URL') || 'http://localhost:5173';
+  // Trailing slashes are stripped because they break two things quietly. An Origin
+  // header never carries one, so a configured value ending in "/" can never match and
+  // CORS falls back to whatever else is on the list. And joining it to a path gives a
+  // double slash, which is a different route to a router than the single-slash one.
+  const frontendUrl = (configService.get('FRONTEND_URL') || 'http://localhost:5173')
+    .trim()
+    .replace(/\/+$/, '');
 
   // Enable CORS with dynamic origin handling
   app.enableCors({
