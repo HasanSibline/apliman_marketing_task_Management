@@ -242,11 +242,20 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
     setStreamingMessage('')
 
     try {
-      const response = await api.post('/chat/message', {
-        message: currentMessage,
-        sessionId,
-        files: currentAttachments.map(a => ({ name: a.name, url: a.url, type: a.type, base64: a.base64 }))
-      })
+      const response = await api.post(
+        '/chat/message',
+        {
+          message: currentMessage,
+          sessionId,
+          files: currentAttachments.map(a => ({ name: a.name, url: a.url, type: a.type, base64: a.base64 }))
+        },
+        // The shared client waits two minutes, which suits a large upload and not a
+        // conversation: two minutes of the thinking indicator is indistinguishable
+        // from a hang. The server gives up at fifty seconds and answers, so this only
+        // has to outlast that answer arriving, and guarantees the indicator stops
+        // either way, since a request that settles is what clears it.
+        { timeout: 65000 },
+      )
 
       if (response.data.sessionId && !sessionId) {
         setSessionId(response.data.sessionId)

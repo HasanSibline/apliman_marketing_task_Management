@@ -743,14 +743,22 @@ export class ChatService {
   /**
    * How long the whole attempt may take, in milliseconds.
    *
-   * The browser gives up at 120 seconds, so this stays comfortably inside that:
-   * spending the client's entire patience and then having the request cancelled from
-   * under us would waste the work and tell the user nothing.
+   * This was ninety-five seconds, which is long enough to be indistinguishable from
+   * the thing being broken. Waiting is only worth doing while it is likely to end in
+   * an answer; past that it is just a slower way of saying no. Fifty seconds covers a
+   * retry after a provider refuses a burst, and covers a service that was asleep when
+   * the first attempt woke it, which is the case the warm-up ping already makes rare.
    */
-  private static readonly CHAT_BUDGET_MS = 95_000;
+  private static readonly CHAT_BUDGET_MS = 50_000;
 
-  /** Waits between attempts. Short first, since a rate limit often clears in seconds. */
-  private static readonly CHAT_BACKOFF_MS = [1_500, 4_000, 9_000, 15_000];
+  /** Waits between attempts. Short, since a rate limit usually clears in seconds. */
+  private static readonly CHAT_BACKOFF_MS = [2_500, 5_000];
+
+  /**
+   * Per attempt. Long enough for a real answer including images, short enough that a
+   * silent connection leaves room to try once more inside the budget.
+   */
+  private static readonly CHAT_ATTEMPT_TIMEOUT_MS = 22_000;
 
   private sleep(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -780,7 +788,7 @@ export class ChatService {
         const response = await firstValueFrom(
           this.httpService.post(`${this.aiServiceUrl}/chat`, data, {
             headers: this.aiServiceHeaders,
-            timeout: 45000, // multimodal processing can be slow
+            timeout: ChatService.CHAT_ATTEMPT_TIMEOUT_MS,
             maxBodyLength: Infinity,
             maxContentLength: Infinity,
           }),
@@ -836,8 +844,11 @@ export class ChatService {
         ];
         const elapsed = Date.now() - startedAt;
 
-        // Only wait if there is room for the wait and a real attempt after it.
-        const roomToTryAgain = elapsed + wait + 8_000 < ChatService.CHAT_BUDGET_MS;
+        // Only retry if the budget has room for the wait and a whole attempt after
+        // it. Starting an attempt that the budget will cut short wastes the time it
+        // spends and returns nothing for it.
+        const roomToTryAgain =
+          elapsed + wait + ChatService.CHAT_ATTEMPT_TIMEOUT_MS <= ChatService.CHAT_BUDGET_MS;
 
         if (!worthRetrying || !roomToTryAgain) {
           this.logger.error(
