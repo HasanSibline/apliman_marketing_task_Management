@@ -115,6 +115,24 @@ export class MicrosoftService {
       const graphClient = Client.init({ authProvider: (done) => done(null, access_token) });
       const profile = await graphClient.api('/me').get();
 
+      // One Microsoft account belongs to one person here, which the unique index on
+      // microsoftId enforces. Writing it blindly meant connecting an account someone
+      // had already connected failed with the database's own words about a constraint
+      // the reader has never heard of. Asked first, the answer can be said in terms of
+      // the thing that actually happened.
+      const alreadyLinked = await this.prisma.user.findUnique({
+        where: { microsoftId: profile.id },
+        select: { id: true, name: true, email: true },
+      });
+
+      if (alreadyLinked && alreadyLinked.id !== userId) {
+        const account = profile.userPrincipalName ?? profile.mail ?? 'That Microsoft account';
+        throw new BadRequestException(
+          `${account} is already connected to ${alreadyLinked.name || alreadyLinked.email}. ` +
+            'Disconnect it from that profile first, then connect it here.',
+        );
+      }
+
       await this.prisma.user.update({
         where: { id: userId },
         data: {
@@ -128,6 +146,19 @@ export class MicrosoftService {
 
       return { success: true };
     } catch (error: any) {
+      // A message already written for the reader passes through untouched. Wrapping it
+      // in "Microsoft Synchronization Failed:" is how the database's own phrasing
+      // reached the screen in the first place.
+      if (error instanceof BadRequestException) throw error;
+
+      // The check above loses a race between two connections of the same account, and
+      // the index catches what it misses. Same situation, so the same sentence.
+      if (error?.code === 'P2002') {
+        throw new BadRequestException(
+          'That Microsoft account is already connected to another profile. Disconnect it there first, then connect it here.',
+        );
+      }
+
       const msg = error.response?.data?.error_description || error.message;
       this.logger.error('OAuth Callback Failed', msg);
       throw new BadRequestException('Microsoft Synchronization Failed: ' + msg);
