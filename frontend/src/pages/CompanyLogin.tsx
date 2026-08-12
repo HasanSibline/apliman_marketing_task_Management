@@ -130,13 +130,15 @@ const CompanyLogin: React.FC = () => {
     }
   };
 
-  // Loading state
-  if (companyLoading) {
-    if (entering !== undefined) {
+  // Signed in. Held here rather than navigating straight through, so the workspace
+  // has a few seconds to load behind something worth looking at.
+  if (entering !== undefined) {
     return <SigningInScreen name={entering} onDone={() => navigate('/dashboard')} />
   }
 
-  return (
+  // Loading state
+  if (companyLoading) {
+    return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 dark:from-blue-900/20 to-indigo-100 dark:to-indigo-900/20">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>

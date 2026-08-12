@@ -156,7 +156,7 @@ const TicketDetailPage: React.FC = () => {
 
   const handleDownload = async (fileId: string, fileName: string) => {
     try {
-      console.log(`📡 Initiation of asset retrieval for: ${fileName} (${fileId})`);
+      console.log(`Downloading ${fileName}`);
       const response = await api.get(`/files/ticket-download/${fileId}`, {
         responseType: 'blob'
       });
@@ -183,7 +183,7 @@ const TicketDetailPage: React.FC = () => {
           toast.error('File no longer on server or access denied');
         }
       } else {
-        toast.error(error.response?.data?.message || 'Strategic retrieval failure');
+        toast.error(error.response?.data?.message || 'Could not load that ticket');
       }
     }
   }
@@ -199,7 +199,7 @@ const TicketDetailPage: React.FC = () => {
         navigate('/tickets')
       } else if (type === 'reject') {
         await api.patch(`/tickets/${ticketId}/reject`, { reason })
-        toast.error('Strategic Rejection Logged')
+        toast.error('Request declined')
         fetchTicketDetails()
       } else if (type === 'cancel') {
         await api.patch(`/tickets/${ticketId}`, { status: 'CANCELLED', metadata: { ...ticket.metadata, cancelReason: reason } })
@@ -251,7 +251,7 @@ const TicketDetailPage: React.FC = () => {
     setActionModal({
       isOpen: true,
       type: 'delete',
-      title: 'Strategic Deletion',
+      title: 'Delete this ticket?',
       description: 'PERMANENT DELETION: This ticket and all its engagement records will be removed from all logs. This action is IRREVERSIBLE.',
     })
   }
@@ -270,10 +270,10 @@ const TicketDetailPage: React.FC = () => {
     setActionModal({
       isOpen: true,
       type: 'reject',
-      title: 'Strategic Rejection',
+      title: 'Decline this request?',
       description: 'Specify the operational reason for rejecting this engagement request.',
       requireReason: true,
-      reasons: ['Incomplete Specifications', 'Budgetary Constraints', 'Personnel Overload', 'Incorrect Departmental Target', 'Duplicate Interaction']
+      reasons: ['Not enough detail', 'No budget for it', 'Too much on right now', 'Wrong department', 'Already raised elsewhere']
     })
   }
 
@@ -301,7 +301,7 @@ const TicketDetailPage: React.FC = () => {
   const handleRemoveAssignment = async (assignmentId: string) => {
     try {
       await api.delete(`/tickets/${ticketId}/assignments/${assignmentId}`)
-      toast.success('Personnel access revoked')
+      toast.success('Removed from this ticket')
       fetchTicketDetails()
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to remove colleague')
@@ -424,168 +424,152 @@ const TicketDetailPage: React.FC = () => {
           className="flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-primary-600 transition group"
         >
           <ChevronLeftIcon className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-          Back to Logistics Hub
+          Back to tickets
         </button>
 
         {isAdmin && (
           <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-full">
-            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Administrative Control Access</span>
+            <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Admin</span>
           </div>
         )}
       </div>
 
-      {/* Header Card (Thematic Gradient Match) */}
-      <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-indigo-800 rounded-xl p-8 lg:px-10 lg:py-7 text-white relative overflow-hidden shadow-lg border border-white/10 min-h-[260px] flex flex-col justify-between">
+      {/*
+        A page header, not a hero.
 
-        {/* Top Section: ID & Status (Left) | Actions & Switcher (Right) */}
-        <div className="relative z-20 flex flex-col lg:flex-row justify-between items-start gap-6">
-
-          {/* Top Left: ID and Badges */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="bg-white/10 backdrop-blur-md px-3 py-1 rounded-full text-xs font-semibold tracking-normal border border-white/10 text-primary-50">
-                IDENTIFIER: {ticket.ticketNumber}
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-black/10 backdrop-blur-sm rounded-full border border-white/5">
-                <div className={`h-1.5 w-1.5 rounded-full ${ticket.status === 'RESOLVED' ? 'bg-emerald-400' : ticket.status === 'CANCELLED' ? 'bg-rose-400' : (ticket.status === 'PENDING_REC_MGR' ? 'bg-amber-400' : 'bg-blue-400')} animate-pulse`} />
-                <span className="text-xs font-semibold tracking-wide text-white/70">
-                  {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' : 
-                   ticket.status.replace(/_/g, ' ')}
+        This was a 260px gradient banner with two blurred orbs, a 48px title, an
+        "IDENTIFIER:" prefix on the ticket number and a status label set in letter-
+        spaced ten-pixel caps reading "Strategic Ticket Status". It cost the top third
+        of the screen before the description, and it was the only page in the app that
+        announced itself this way. The same facts fit in a header the size of every
+        other page's, on the same surface as everything else.
+      */}
+      <div className="surface p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                {ticket.ticketNumber}
+              </span>
+              <span
+                className={`status-badge ${
+                  ticket.status === 'RESOLVED'
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    : ticket.status === 'CANCELLED'
+                      ? 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300'
+                      : ticket.status === 'PENDING_REC_MGR'
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                        : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                }`}
+              >
+                {ticket.status === 'PENDING_REC_MGR' ? 'Pending approval' : ticket.status.replace(/_/g, ' ').toLowerCase()}
+              </span>
+              {ticket.category && (
+                <span className="status-badge bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
+                  {ticket.category}
                 </span>
-              </div>
+              )}
             </div>
 
-            {/* Ticket Objective (Title) - Moved Higher */}
-            <div className="animate-in slide-in-from-left-4 duration-700">
-              {isEditing ? (
-                <input
-                  type="text"
-                  value={editData.title}
-                  onChange={(e) => setEditData({ ...editData, title: e.target.value })}
-                  className="w-full bg-white/5 border-b-2 border-white/20 px-0 py-1 text-3xl lg:text-4xl font-semibold focus:outline-none focus:border-white transition-all placeholder:text-white/20 rounded-none shadow-none"
-                  placeholder="Update Ticket Title..."
-                />
-              ) : (
-                <h1 className="text-3xl lg:text-5xl font-semibold leading-tight tracking-tight drop-shadow-md max-w-4xl">
-                  {ticket.title}
-                </h1>
-              )}
+            {isEditing ? (
+              <input
+                type="text"
+                value={editData.title}
+                onChange={(e) => setEditData({ ...editData, title: e.target.value })}
+                className="input-field mt-2 text-xl font-semibold"
+                placeholder="Ticket title"
+              />
+            ) : (
+              <h1 className="page-title mt-2">{ticket.title}</h1>
+            )}
+
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-gray-600 dark:text-gray-400">
+              <span className="flex items-center gap-2">
+                <Avatar src={ticket.requester?.avatar} name={ticket.requester?.name} size="xs" rounded="full" />
+                Raised by{' '}
+                <span className="font-medium text-gray-900 dark:text-white">{ticket.requester?.name}</span>
+              </span>
+              <span className="text-gray-300 dark:text-gray-600" aria-hidden="true">·</span>
+              <span>
+                For <span className="font-medium text-gray-900 dark:text-white">{ticket.receiverDept?.name}</span>
+              </span>
             </div>
           </div>
 
-          {/* Top Right: Actions + Switcher (Under Actions) */}
-          <div className="flex flex-col items-end gap-3 self-start">
-            {/* Quick Actions */}
-            <div className="flex items-center gap-2 mb-1">
+          <div className="flex flex-col items-end gap-3">
+            <div className="flex items-center gap-2">
+              {canEdit && (
+                <button
+                  onClick={() => setIsEditing(!isEditing)}
+                  className="btn-secondary"
+                  title={isEditing ? 'Stop editing' : 'Edit this ticket'}
+                >
+                  <PencilSquareIcon className="mr-2 h-4 w-4" />
+                  {isEditing ? 'Done' : 'Edit'}
+                </button>
+              )}
               {isAdmin && (
                 <button
                   onClick={handleDeleteTicket}
-                  className="p-2 rounded-lg border border-rose-500/20 bg-rose-500/10 text-rose-100 hover:bg-rose-600 hover:text-white transition-all shadow-lg backdrop-blur-md"
-                  title="Terminate Ticket"
+                  aria-label="Delete this ticket"
+                  className="btn-secondary text-red-600 hover:text-red-700 dark:text-red-400"
                 >
                   <TrashIcon className="h-4 w-4" />
                 </button>
               )}
-              {canEdit && (
-                <button
-                  onClick={() => setIsEditing(!isEditing)}
-                  className={`p-2 rounded-lg border transition-all shadow-lg backdrop-blur-md ${isEditing ? 'bg-emerald-500 border-emerald-400' : 'bg-white/10 border-white/20 hover:bg-white/20'}`}
-                  title="Strategic Adjustment"
-                >
-                  <PencilSquareIcon className="h-4 w-4" />
-                </button>
-              )}
             </div>
 
-            {/* Status Switcher - Moved Up & Scaled Down */}
             {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a: any) => a.userId === user?.id)) ? (
-              <div className="w-full md:w-80">
-                <p className="text-xs font-semibold text-white/40 tracking-[0.3em] mb-1.5 text-right">Strategic Ticket Status</p>
-                <div className="relative group">
-                    <select
-                    value={ticket.status}
-                    onChange={async (e) => {
-                      const val = e.target.value;
-                      if (val === 'CANCELLED') { handleCancel(); return; }
+              <div className="w-full sm:w-64">
+                <label htmlFor="ticket-status" className="form-label">Status</label>
+                <select
+                  id="ticket-status"
+                  value={ticket.status}
+                  onChange={async (e) => {
+                    const val = e.target.value;
+                    if (val === 'CANCELLED') { handleCancel(); return; }
 
-                      try {
-                        const res = await api.patch(`/tickets/${ticketId}`, { status: val })
-                        toast.success('Frequency Synchronized')
-                        setTicket(res.data)
+                    try {
+                      const res = await api.patch(`/tickets/${ticketId}`, { status: val })
+                      toast.success('Status updated')
+                      setTicket(res.data)
 
-                        if (val === 'ASSIGNED') {
-                          document.getElementById('deployment-section')?.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      } catch (err: any) {
-                        toast.error(err.response?.data?.message || 'Sync failure')
+                      if (val === 'ASSIGNED') {
+                        document.getElementById('deployment-section')?.scrollIntoView({ behavior: 'smooth' });
                       }
-                    }}
-                    className="w-full appearance-none bg-white dark:bg-gray-800 text-slate-800 dark:text-gray-100 pr-10 pl-5 py-2.5 rounded-xl text-xs font-semibold tracking-[0.15em] cursor-pointer hover:shadow-md transition-all focus:outline-none shadow-lg border-b-2 border-slate-100 dark:border-gray-700 ring-2 ring-white/5"
-                  >
-                    <option value="PENDING_REC_MGR">Pending approval</option>
-                    <option value="OPEN">Open</option>
-                    <option value="ASSIGNED">
-                      Assigned to {(() => {
-                        const count = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
-                        if (count > 1) return `${count} Specialists`;
-                        if (count === 1) return ticket.assignments.find((a: any) => a.status === 'ACCEPTED')?.user?.name || '1 Specialist';
-                        return 'Specialists';
-                      })()}
-                    </option>
-                    <option value="RESOLVED">Resolved</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    {/* Arrow removed per request */}
-                  </div>
-                </div>
+                    } catch (err: any) {
+                      toast.error(err.response?.data?.message || 'Could not update the status')
+                    }
+                  }}
+                  className="select-field"
+                >
+                  <option value="PENDING_REC_MGR">Pending approval</option>
+                  <option value="OPEN">Open</option>
+                  <option value="ASSIGNED">
+                    Assigned to {(() => {
+                      const count = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
+                      if (count > 1) return `${count} people`;
+                      if (count === 1) return ticket.assignments.find((a: any) => a.status === 'ACCEPTED')?.user?.name || '1 person';
+                      return 'someone';
+                    })()}
+                  </option>
+                  <option value="RESOLVED">Resolved</option>
+                  <option value="CANCELLED">Cancelled</option>
+                </select>
               </div>
-            ) : (
-              <div className="bg-white dark:bg-gray-800 text-slate-900 dark:text-white px-6 py-2.5 rounded-xl flex flex-col items-end shadow-md border-b-2 border-slate-100 dark:border-gray-700 ring-4 ring-white/5">
-                <p className="text-xs font-semibold text-slate-400 tracking-[0.3em] mb-0.5">Operational State</p>
-                <span className="text-sm font-semibold tracking-tight">
-                  {ticket.status === 'PENDING_REC_MGR' ? 'Pending Approval' : 
-                   ticket.status === 'ASSIGNED' ? (() => {
-                     const count = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
-                     if (count > 1) return `Assigned: ${count} Specialists`;
-                     if (count === 1) return `Assigned: ${ticket.assignments.find((a: any) => a.status === 'ACCEPTED')?.user?.name || '1 Specialist'}`;
-                     return 'Assigned';
-                   })() : 
-                   ticket.status.replace(/_/g, ' ')}
-                </span>
-              </div>
-            )}
+            ) : null}
           </div>
         </div>
-
-        {/* Bottom Section: Logistical Metadata - Stays at Bottom */}
-        <div className="relative z-10 opacity-80 border-t border-white/10 pt-4 mt-4 flex flex-wrap items-center gap-x-5 gap-y-2">
-          <div className="flex items-center gap-2">
-            <Avatar src={ticket.requester?.avatar} name={ticket.requester?.name} size="xs" rounded="full" />
-            <p className="text-xs font-bold text-primary-50">
-              Initiated by <span className="text-white font-semibold">{ticket.requester?.name}</span>
-            </p>
-          </div>
-          <div className="h-1 w-1 rounded-full bg-white/20" />
-          <p className="text-xs font-bold text-primary-50 flex items-center gap-2">
-            <span className="text-white/40 font-semibold text-xs tracking-wide">Route:</span>
-            <span className="italic">{ticket.receiverDept?.name} Operation</span>
-          </p>
-        </div>
-
-        {/* Simple Visual Polish - Glass Accents */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-white/5 rounded-full -mr-48 -mt-48 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-indigo-500/10 rounded-full -ml-32 -mb-32 blur-2xl pointer-events-none" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-        {/* Left Col: Strategic Metadata & Actions */}
+        {/* Left: details and actions */}
         <div className="lg:col-span-1 space-y-6">
 
           {/* Approval Matrix Card */}
           {isRecMgrStage && (
-            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-6 shadow-sm">
+            <div className="surface p-6 space-y-6 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                 <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Authorization Required</h3>
@@ -619,10 +603,10 @@ const TicketDetailPage: React.FC = () => {
           )}
 
           {/* Configuration Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 space-y-6 shadow-sm font-outfit">
+          <div className="surface p-6 space-y-6 shadow-sm font-outfit">
             <div className="flex items-center gap-2">
               <ListBulletIcon className="h-4 w-4 text-primary-500" />
-              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-normal">Ticket Configuration</h3>
+              <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-normal">Details</h3>
             </div>
 
             {isEditing ? (
@@ -666,22 +650,22 @@ const TicketDetailPage: React.FC = () => {
                     <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{ticket.requester?.name}</p>
                   </div>
                   <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Logistical Target</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Department</p>
                     <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{ticket.receiverDept?.name}</p>
                   </div>
                 </div>
 
-                {/* Tactical Squad Section */}
+                {/* Who is on it */}
                 <div id="deployment-section" className="space-y-4 pt-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide ml-1">Members Included</p>
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide ml-1">People on this ticket</p>
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
                       <div className="relative group">
                         <button className="flex items-center gap-1 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 px-2 py-1 rounded-md transition-all tracking-wide shadow-md active:scale-95">
-                          <PlusIcon className="h-2 w-2" /> Invite Colleague
+                          <PlusIcon className="h-2 w-2" /> Invite
                         </button>
-                        <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 p-2 z-[100] opacity-0 group-focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto transition-all scale-95 group-focus-within:scale-100 origin-top-right">
+                        <div className="absolute right-0 top-full mt-2 w-56 surface border border-gray-100 dark:border-gray-700 p-2 z-[100] opacity-0 group-focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto transition-all scale-95 group-focus-within:scale-100 origin-top-right">
                           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1.5 px-2">Collaborative Search</p>
                           <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
                             {users.filter(u => u.id !== user?.id && !ticket.assignments?.some((a: any) => a.userId === u.id)).map(u => (
@@ -693,7 +677,7 @@ const TicketDetailPage: React.FC = () => {
                                 <Avatar src={u.avatar} name={u.name} size="xs" rounded="lg" />
                                 <div className="text-left">
                                   <p className="text-xs font-semibold text-gray-900 dark:text-white group-hover/item:text-primary-600 transition-colors truncate tracking-tight">{u.name}</p>
-                                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 truncate tracking-wide">{u.department?.name || 'Logistics'}</p>
+                                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 truncate tracking-wide">{u.department?.name || 'No department'}</p>
                                 </div>
                               </button>
                             ))}
@@ -756,7 +740,7 @@ const TicketDetailPage: React.FC = () => {
                             if (!e.target.value) return;
                             try {
                               await api.post(`/tickets/${ticketId}/assign`, { assigneeId: e.target.value })
-                              toast.success('Personnel Invited')
+                              toast.success('Invitation sent')
                               fetchTicketDetails()
                             } catch (err: any) {
                               toast.error(err.response?.data?.message || 'Deployment failure')
@@ -764,7 +748,7 @@ const TicketDetailPage: React.FC = () => {
                           }}
                           className="w-full appearance-none text-xs border-2 border-primary-50 dark:border-primary-900/40 rounded-xl p-3.5 bg-primary-50/20 dark:bg-primary-900/20 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 font-semibold text-gray-800 dark:text-gray-100 transition-all font-outfit"
                         >
-                          <option value="">Assign Specialists...</option>
+                          <option value="">Assign people...</option>
                           {/* Cross-departmental search allowed as requested */}
                           {users.map(u => (
                             <option key={u.id} value={u.id}>
@@ -805,7 +789,7 @@ const TicketDetailPage: React.FC = () => {
                       }}
                       className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'} text-white rounded-xl text-xs font-semibold uppercase tracking-normal hover:scale-[1.02] transition-all mt-4`}
                     >
-                      Finalize Engagement
+                      Mark resolved
                     </button>
                   )}
                 </div>
@@ -814,7 +798,7 @@ const TicketDetailPage: React.FC = () => {
           </div>
 
           {/* Documentation Repository */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-6 space-y-4 shadow-sm">
+          <div className="surface p-6 space-y-4 shadow-sm">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PaperClipIcon className="h-4 w-4 text-primary-500" />
@@ -857,11 +841,11 @@ const TicketDetailPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Col: Tactical Feed & Focus */}
+        {/* Right: description and conversation */}
         <div className="lg:col-span-2 space-y-8">
 
           {/* Context Focus Area */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm space-y-4">
+          <div className="surface p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-bold text-gray-900 dark:text-white">Description</h3>
             </div>
@@ -870,7 +854,7 @@ const TicketDetailPage: React.FC = () => {
               <div className="p-5 bg-rose-50 dark:bg-rose-900/30 border-l-4 border-rose-500 rounded-xl mb-4 animate-in slide-in-from-top-4 duration-500">
                 <div className="flex items-center gap-3 mb-2">
                   <XCircleIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
-                  <span className="text-xs font-semibold tracking-wide text-rose-700 dark:text-rose-300">Strategic Rejection Notated</span>
+                  <span className="text-xs font-semibold tracking-wide text-rose-700 dark:text-rose-300">Declined</span>
                 </div>
                 <p className="text-sm font-bold text-rose-900 dark:text-rose-300 leading-relaxed italic">
                   "{ticket.comments.find((c: any) => c.comment.startsWith('Rejected:'))?.comment.replace('Rejected: ', '')}"
@@ -887,21 +871,21 @@ const TicketDetailPage: React.FC = () => {
               />
             ) : (
               <div className="text-sm text-gray-800 dark:text-gray-100 leading-[1.8] font-bold font-outfit whitespace-pre-wrap">
-                {ticket.description || 'Zero background context provided by initiator.'}
+                {ticket.description || 'No description was given.'}
               </div>
             )}
           </div>
 
           {/* Communication Feed */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col overflow-hidden h-[700px]">
+          <div className="surface flex flex-col overflow-hidden h-[700px]">
             <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-9 w-9 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl flex items-center justify-center border border-primary-200 shadow-sm">
                   <ChatBubbleLeftRightIcon className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-semibold text-gray-900 dark:text-white tracking-tight leading-none">Ticket conversation</h3>
-                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Conversation on this ticket will be logged</p>
+                  <h3 className="text-xs font-semibold text-gray-900 dark:text-white tracking-tight leading-none">Conversation</h3>
+                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Everything said here stays with the ticket</p>
                 </div>
               </div>
             </div>
@@ -970,7 +954,7 @@ const TicketDetailPage: React.FC = () => {
             ) : (
               <div className="p-8 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700 relative">
                 {showMentions && filteredUsers.length > 0 && (
-                  <div className="absolute bottom-full left-8 mb-4 w-72 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
+                  <div className="absolute bottom-full left-8 mb-4 w-72 surface border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
                     <div className="bg-gray-50/80 dark:bg-gray-900/40 px-4 py-2 text-xs font-semibold text-gray-400 border-b border-gray-100 dark:border-gray-700 tracking-wide">Target Selection</div>
                     {filteredUsers.map(u => (
                       <button
