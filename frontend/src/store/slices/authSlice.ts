@@ -128,6 +128,19 @@ const authSlice = createSlice({
         state.user = { ...state.user, ...action.payload }
       }
     },
+    /**
+     * Drop the session locally, without asking the server.
+     *
+     * For the cases where it has already ended: another tab signed out, or the idle
+     * timer fired. Navigating while `isAuthenticated` stayed true sent people
+     * straight back to the dashboard with no token, where every request 401s.
+     */
+    clearSession: (state) => {
+      state.user = null
+      state.token = null
+      state.isAuthenticated = false
+      state.error = null
+    },
     setAuth: (state, action: PayloadAction<{ user: User; token: string }>) => {
       state.user = action.payload.user
       state.token = action.payload.token
@@ -157,8 +170,16 @@ const authSlice = createSlice({
         state.error = action.payload as string
       })
 
-      // Logout
+      // Logout. Both outcomes clear: the token is already gone from storage either
+      // way, and leaving the app believing it is signed in after a failed sign-out
+      // is the worse of the two states.
       .addCase(logout.fulfilled, (state) => {
+        state.isAuthenticated = false
+        state.user = null
+        state.token = null
+        state.error = null
+      })
+      .addCase(logout.rejected, (state) => {
         state.isAuthenticated = false
         state.user = null
         state.token = null
@@ -200,5 +221,5 @@ const authSlice = createSlice({
   },
 })
 
-export const { clearError, updateUser, setAuth } = authSlice.actions
+export const { clearError, updateUser, setAuth, clearSession } = authSlice.actions
 export default authSlice.reducer

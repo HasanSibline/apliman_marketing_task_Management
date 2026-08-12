@@ -38,7 +38,20 @@ interface ActionModalProps {
   reasonLabel?: string
   reasons?: string[]
   isLoading?: boolean
+  /**
+   * What Escape, the backdrop and the X do, when that is not the same as cancelling.
+   *
+   * Usually dismissing and cancelling are one action. They are not when the cancel
+   * button itself is destructive: the idle warning offers "Sign out now" there, and
+   * wiring Escape to it would make the most reflexive key in the interface end the
+   * session. Defaults to onClose, so every existing caller is unchanged.
+   */
+  onDismiss?: () => void
 }
+
+/** Shared across every instance, so overlapping dialogs cannot fight over it. */
+let openDialogs = 0
+let overflowBeforeAnyDialog = ''
 
 const VARIANTS = {
   danger: {
@@ -81,7 +94,9 @@ const ActionModal: React.FC<ActionModalProps> = ({
   reasonLabel = 'Reason',
   reasons = [],
   isLoading = false,
+  onDismiss,
 }) => {
+  const dismiss = onDismiss ?? onClose
   const [reason, setReason] = useState('')
   const [picked, setPicked] = useState('')
   const panelRef = useRef<HTMLDivElement>(null)
@@ -105,7 +120,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation()
-        onClose()
+        dismiss()
         return
       }
 
@@ -129,17 +144,25 @@ const ActionModal: React.FC<ActionModalProps> = ({
     }
 
     document.addEventListener('keydown', onKeyDown, true)
-    // The page behind must not scroll under a dialog that is holding a decision.
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+
+    // The page behind must not scroll under a dialog holding a decision. Counted
+    // rather than saved and restored: two dialogs can overlap, and the second one
+    // would otherwise save "hidden" as the value to put back, then the first to close
+    // would restore it and leave the page locked with nothing on screen.
+    openDialogs += 1
+    if (openDialogs === 1) {
+      overflowBeforeAnyDialog = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+    }
 
     return () => {
       clearTimeout(focusTimer)
       document.removeEventListener('keydown', onKeyDown, true)
-      document.body.style.overflow = previousOverflow
+      openDialogs = Math.max(0, openDialogs - 1)
+      if (openDialogs === 0) document.body.style.overflow = overflowBeforeAnyDialog
       ;(returnFocusTo.current as HTMLElement | null)?.focus?.()
     }
-  }, [isOpen, onClose])
+  }, [isOpen, dismiss])
 
   useEffect(() => {
     if (!isOpen) {
@@ -162,7 +185,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={dismiss}
             className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
           />
 
@@ -200,7 +223,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
 
               <button
                 aria-label="Close"
-                onClick={onClose}
+                onClick={dismiss}
                 className="-mr-1 -mt-1 shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
               >
                 <XMarkIcon className="h-5 w-5" />

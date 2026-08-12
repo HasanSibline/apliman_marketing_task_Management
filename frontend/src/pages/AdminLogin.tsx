@@ -1,4 +1,5 @@
 import React, { useState, FormEvent } from 'react';
+import { useForcedDark } from '@/theme/useForcedDark'
 import { forgetCompany } from '@/lib/companyLogin';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -9,6 +10,7 @@ import toast from 'react-hot-toast';
 import { setAuth } from '../store/slices/authSlice';
 
 const AdminLogin: React.FC = () => {
+  useForcedDark()
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');

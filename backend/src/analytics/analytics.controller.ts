@@ -86,9 +86,11 @@ export class AnalyticsController {
   @ApiResponse({ status: 200, description: 'User analytics retrieved successfully' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
   @ApiResponse({ status: 404, description: 'User not found' })
-  async getUserAnalytics(@Param('userId') userId: string) {
+  async getUserAnalytics(@Param('userId') userId: string, @Query('timeRange') timeRange?: string) {
     try {
-      return await this.analyticsService.getUserAnalytics(userId);
+      // The range was never accepted here, so the Week/Month/Year control did
+      // nothing for anyone but yourself and silently showed a month regardless.
+      return await this.analyticsService.getUserAnalytics(userId, timeRange);
     } catch (error) {
       console.error('Error getting user analytics:', error);
       throw error;

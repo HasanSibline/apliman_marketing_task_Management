@@ -1,4 +1,5 @@
 import React, { useState, useEffect, FormEvent } from 'react';
+import { useForcedDark } from '@/theme/useForcedDark'
 import { rememberCompany } from '@/lib/companyLogin';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
@@ -20,6 +21,7 @@ interface CompanyBranding {
 }
 
 const CompanyLogin: React.FC = () => {
+  useForcedDark()
   const { slug } = useParams<{ slug: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

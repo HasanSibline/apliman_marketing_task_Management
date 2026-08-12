@@ -278,8 +278,8 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
             {/* Main Area */}
             <div className="flex-1 flex flex-col bg-white dark:bg-gray-800">
                 {/* Control Header */}
-                <div className="h-14 flex items-center justify-between px-6 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 shrink-0">
-                    <div className="flex items-center space-x-6">
+                <div className="flex min-h-14 shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b border-gray-100 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-800">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                         <div className="flex items-center space-x-4">
                             <button 
                                 onClick={goToToday}
@@ -296,8 +296,11 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 </button>
                             </div>
                         </div>
-                        <h3 className="text-base font-bold text-gray-900 dark:text-white border-l border-gray-200 dark:border-gray-700 pl-6">
-                            {format(displayDays[0], 'MMMM d')} to {format(displayDays[displayDays.length-1], isSameMonth(displayDays[0], displayDays[displayDays.length-1]) ? 'd, yyyy' : 'MMMM d, yyyy')}
+                        {/* Shorter and unbreakable. "August 10 to 16, 2026" is wide
+                            enough to wrap in a toolbar, and a date that folds onto two
+                            lines reads as a layout fault rather than as a date. */}
+                        <h3 className="whitespace-nowrap border-l border-gray-200 pl-4 text-sm font-semibold text-gray-900 dark:border-gray-700 dark:text-white">
+                            {format(displayDays[0], 'd MMM')} to {format(displayDays[displayDays.length-1], 'd MMM yyyy')}
                         </h3>
                     </div>
                     
@@ -307,7 +310,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 <button
                                     key={v}
                                     onClick={() => setViewType(v)}
-                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${
+                                    className={`whitespace-nowrap rounded-md px-3 py-1 text-xs font-semibold transition-all ${
                                         viewType === v ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
                                     }`}
                                 >
@@ -315,7 +318,7 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                 </button>
                             ))}
                         </div>
-                        <div className={`flex items-center space-x-3 px-3 py-1.5 rounded-lg text-sm font-bold transition-all shadow-sm ${
+                        <div className={`flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold shadow-sm transition-all ${
                             user?.isMicrosoftSynced 
                             ? 'bg-blue-50 text-blue-700 border border-blue-100' 
                             : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -455,7 +458,32 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
 
                                         {dayEvents.map((event: CalendarEvent) => {
                                             const date = getEventDate(event) ?? new Date(event.dueDate ?? event.start ?? Date.now())
-                                            const topPos = (date.getHours() * 60) + date.getMinutes()
+
+                                            /**
+                                             * A task due on a day has no time of day.
+                                             *
+                                             * A date picked without a clock is stored at midnight UTC, and this
+                                             * grid draws it at whatever hour that lands on locally: three in the
+                                             * morning here, which is a time nobody chose and nobody works. It
+                                             * looked like data and was an offset.
+                                             *
+                                             * Midnight UTC is treated as "no time given" and pinned to the top of
+                                             * the day instead. A meeting genuinely at midnight UTC loses its slot
+                                             * by this rule, which is the right trade: those are rare, and being
+                                             * an hour out on one is better than every dated task in the app
+                                             * claiming a working hour it never had.
+                                             */
+                                            // Judged against the column this event is
+                                            // actually drawn in, which is chosen from the
+                                            // local date. Deciding in UTC while placing
+                                            // locally put a task due the 12th at the top
+                                            // of the 11th for anyone west of UTC.
+                                            const allDay =
+                                                date.getHours() === 0 &&
+                                                date.getMinutes() === 0 &&
+                                                date.getSeconds() === 0
+
+                                            const topPos = allDay ? 2 : (date.getHours() * 60) + date.getMinutes()
                                             
                                             return (
                                                 <motion.div
@@ -486,7 +514,11 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                                     </div>
 
                                                     <div className="flex flex-wrap items-center gap-1.5 mt-auto">
-                                                        <span className="text-xs font-semibold opacity-70 whitespace-nowrap">{format(date, 'h:mm a')}</span>
+                                                        {/* "3:00 AM" on a task due today is an offset being read
+                                                            aloud as a decision. Say the truth instead. */}
+                                                        <span className="whitespace-nowrap text-xs font-semibold opacity-70">
+                                                            {allDay ? 'All day' : format(date, 'h:mm a')}
+                                                        </span>
                                                         
                                                         {event.type === 'TICKET' && (
                                                             <span className="text-xs font-semibold bg-white/20 px-1 py-0.5 rounded">TICKET</span>

@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { useAppSelector } from '@/hooks/redux'
+import { usersApi } from '@/services/api'
 import { motion } from 'framer-motion'
 import {
   ChartBarIcon,
@@ -29,21 +31,50 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
 
 const UserAnalytics: React.FC = () => {
   const chart = useChartTheme()
+  const { user } = useAppSelector((s) => s.auth)
+  const isAdmin = !!user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
+
   const [isLoading, setIsLoading] = useState(true)
   const [userAnalytics, setUserAnalytics] = useState<any>(null)
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('month')
 
+  /**
+   * Whose numbers these are. Empty means your own.
+   *
+   * The endpoint for looking at someone else has existed all along, and the API
+   * helper has taken a userId all along; nothing ever passed one. So an admin could
+   * see the company in aggregate and their own work in detail, and had no way to ask
+   * how any particular person was doing without becoming them.
+   */
+  const [subjectId, setSubjectId] = useState('')
+  const [people, setPeople] = useState<{ id: string; name: string }[]>([])
+  const subjectName = subjectId ? people.find((p) => p.id === subjectId)?.name ?? 'This person' : ''
+
+  useEffect(() => {
+    if (!isAdmin) return
+    usersApi
+      .getAll()
+      .then((u: any) => setPeople((u?.users ?? u ?? []).map((p: any) => ({ id: p.id, name: p.name }))))
+      .catch(() => setPeople([]))
+  }, [isAdmin])
+
   useEffect(() => {
     loadUserAnalytics()
-  }, [timeRange])
+  }, [timeRange, subjectId])
+
+  const requestId = useRef(0)
 
   const loadUserAnalytics = async () => {
+    const mine = ++requestId.current
     setIsLoading(true)
+    // Cleared up front: showing the last person's numbers under this person's name
+    // is worse than showing nothing while it loads.
+    setUserAnalytics(null)
     try {
       console.log('=== Loading User Analytics ===')
       console.log('Time range:', timeRange)
       
-      const data = await analyticsApi.getUserAnalytics(timeRange)
+      const data = await analyticsApi.getUserAnalytics(timeRange, subjectId || undefined)
       
       console.log('=== Received Analytics Data ===')
       console.log('Full response:', data)
@@ -52,6 +83,7 @@ const UserAnalytics: React.FC = () => {
       console.log('Tasks by Status:', data.tasksByStatus)
       console.log('Recent Activity:', data.recentActivity)
       
+      if (mine !== requestId.current) return
       setUserAnalytics(data)
     } catch (error: any) {
       console.error('Error loading analytics:', error)
@@ -70,7 +102,7 @@ const UserAnalytics: React.FC = () => {
       
       // Personal Overview
       const overviewData = [
-        ['My Performance Report'],
+        [subjectName ? `${subjectName} performance report` : 'My performance report'],
         ['Generated:', new Date().toLocaleString()],
         [''],
         ['Metric', 'Value'],
@@ -80,7 +112,7 @@ const UserAnalytics: React.FC = () => {
         ['Tasks Created', data.stats?.totalCreatedTasks || 0],
       ]
       const overviewSheet = XLSX.utils.aoa_to_sheet(overviewData)
-      XLSX.utils.book_append_sheet(workbook, overviewSheet, 'My Performance')
+      XLSX.utils.book_append_sheet(workbook, overviewSheet, 'Performance')
       
       // Generate file
       const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
@@ -88,7 +120,7 @@ const UserAnalytics: React.FC = () => {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.download = `my-analytics-${new Date().toISOString().split('T')[0]}.xlsx`
+      link.download = `analytics-${new Date().toISOString().split('T')[0]}.xlsx`
       link.click()
       window.URL.revokeObjectURL(url)
       
@@ -125,11 +157,37 @@ const UserAnalytics: React.FC = () => {
 
   if (!userAnalytics) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <ChartBarIcon className="h-16 w-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Data Available</h3>
-          <p className="text-gray-500 dark:text-gray-400">Your personal analytics will appear here.</p>
+      <div className="space-y-6">
+        {/* The picker stays. Returning early above it meant that a person whose data
+            failed to load took away the only control that could switch back to
+            someone else, leaving a dead end that needed a page reload. */}
+        {isAdmin && (
+          <div>
+            <label htmlFor="analytics-subject-empty" className="sr-only">Whose analytics</label>
+            <select
+              id="analytics-subject-empty"
+              value={subjectId}
+              onChange={(e) => setSubjectId(e.target.value)}
+              className="select-field w-auto"
+            >
+              <option value="">My analytics</option>
+              {people.filter((p) => p.id !== user?.id).map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="surface flex min-h-[320px] items-center justify-center">
+          <div className="p-8 text-center">
+            <ChartBarIcon className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Nothing to show yet</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {subjectName
+                ? `${subjectName} has no activity in this period.`
+                : 'Your analytics will appear here once you have some activity.'}
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -152,7 +210,7 @@ const UserAnalytics: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">My Analytics</h2>
+          <h2 className="section-title">{subjectName ? `${subjectName}'s analytics` : 'My analytics'}</h2>
           <p className="text-gray-600 dark:text-gray-300 mt-1">Track your personal performance and progress</p>
         </div>
         <button
@@ -160,9 +218,29 @@ const UserAnalytics: React.FC = () => {
           className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm font-medium"
         >
           <ArrowDownTrayIcon className="h-5 w-5" />
-          Export My Report
+          {subjectName ? 'Export report' : 'Export my report'}
         </button>
       </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+      {isAdmin && (
+        <div>
+          <label htmlFor="analytics-subject" className="sr-only">Whose analytics</label>
+          <select
+            id="analytics-subject"
+            value={subjectId}
+            onChange={(e) => setSubjectId(e.target.value)}
+            className="select-field w-auto"
+          >
+            <option value="">My analytics</option>
+            {people
+              .filter((p) => p.id !== user?.id)
+              .map((p) => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+          </select>
+        </div>
+      )}
 
       {/* Time Range Selector */}
       <div className="flex gap-2 surface p-1 border border-gray-200 dark:border-gray-700 w-fit">
@@ -179,6 +257,7 @@ const UserAnalytics: React.FC = () => {
             {range.charAt(0).toUpperCase() + range.slice(1)}
           </button>
         ))}
+      </div>
       </div>
 
       {/* Personal Stats Cards */}

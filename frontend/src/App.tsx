@@ -10,6 +10,7 @@ import CompanyRoute from '@/components/auth/CompanyRoute'
 import Layout from '@/components/layout/Layout'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import { DialogHost } from '@/components/ui/confirm'
+import IdleTimeout from '@/components/auth/IdleTimeout'
 import { keepAliveService } from '@/services/keepalive'
 import { applyBrandColor } from '@/theme/brandTheme'
 
@@ -88,6 +89,7 @@ function App() {
   return (
     <>
     <DialogHost />
+    <IdleTimeout />
     <Routes>
       {/* Default Company Login (Generic - No Logo) */}
       <Route
