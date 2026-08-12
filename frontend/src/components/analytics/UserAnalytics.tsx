@@ -105,7 +105,7 @@ const UserAnalytics: React.FC = () => {
       <div className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="surface p-6 animate-pulse">
               <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-4"></div>
               <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
             </div>
@@ -113,7 +113,7 @@ const UserAnalytics: React.FC = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(2)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="surface p-6 animate-pulse">
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
               <div className="h-80 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
@@ -165,7 +165,7 @@ const UserAnalytics: React.FC = () => {
       </div>
 
       {/* Time Range Selector */}
-      <div className="flex gap-2 bg-white dark:bg-gray-800 rounded-lg p-1 border border-gray-200 dark:border-gray-700 w-fit">
+      <div className="flex gap-2 surface p-1 border border-gray-200 dark:border-gray-700 w-fit">
         {(['week', 'month', 'year'] as const).map((range) => (
           <button
             key={range}
@@ -256,7 +256,7 @@ const UserAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          className="surface p-6 border border-gray-200 dark:border-gray-700"
         >
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">My Performance Trend</h3>
           <div className="h-80">
@@ -305,7 +305,7 @@ const UserAnalytics: React.FC = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          className="surface p-6 border border-gray-200 dark:border-gray-700"
       >
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">My Task Status</h3>
         <div className="h-80">
@@ -379,7 +379,7 @@ const UserAnalytics: React.FC = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        className="surface p-6 border border-gray-200 dark:border-gray-700"
       >
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Personal Insights</h3>
         <div className="space-y-3">

@@ -643,7 +643,12 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
               // Rows, not flex. The composer is pinned by the grid definition itself,
               // so it cannot be pushed anywhere by whatever the history contains.
               gridTemplateRows: 'auto minmax(0, 1fr) auto',
-              height: 'min(600px, calc(100dvh - 2rem))',
+              // dvh follows the mobile URL bar as it hides and shows; vh does not, and
+              // 100vh on a phone is taller than what you can actually see. The 7rem
+              // leaves room for the launcher's own corner plus a margin, so the
+              // composer is always on screen and sending never needs a scroll.
+              height: 'min(600px, calc(100dvh - 7rem))',
+              maxHeight: 'calc(100dvh - 7rem)',
             }}
           >
             <div className="contents">

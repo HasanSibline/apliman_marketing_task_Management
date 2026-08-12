@@ -14,32 +14,32 @@ const AnalyticsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'COMPANY_ADMIN'
   
-  // For non-admin users, start at "My Analytics" (which is tab 0 for them)
-  // For admin users, start at "Overview" (which is tab 0)
-  const [selectedTab, setSelectedTab] = useState(0)
-
+  // Keyed, not indexed. The list depends on the role, so index 2 means Team for an
+  // admin and nothing at all for anyone else: a role that changes mid-session left
+  // the page pointing at a tab that no longer exists.
   const tabs = isAdmin
     ? [
-        { name: 'Overview', icon: ChartBarIcon },
-        { name: 'My Analytics', icon: UserIcon },
-        { name: 'Team Analytics', icon: UserGroupIcon },
+        { key: 'overview', name: 'Overview', icon: ChartBarIcon },
+        { key: 'mine', name: 'My analytics', icon: UserIcon },
+        { key: 'team', name: 'Team analytics', icon: UserGroupIcon },
       ]
-    : [
-        { name: 'My Analytics', icon: UserIcon },
-      ]
+    : [{ key: 'mine', name: 'My analytics', icon: UserIcon }]
+
+  const [selectedKey, setSelectedKey] = useState(tabs[0].key)
+  const selectedTab = Math.max(0, tabs.findIndex((t) => t.key === selectedKey))
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Analytics Dashboard</h1>
-        <p className="text-gray-600 dark:text-gray-300 mt-2">
-          Comprehensive insights into tasks, performance, and team productivity
+        <h1 className="page-title">Analytics</h1>
+        <p className="page-subtitle">
+          How work is moving: what is getting done, by whom, and where it is slowing down.
         </p>
       </div>
 
       {/* Tabs */}
-      <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
+      <Tab.Group selectedIndex={selectedTab} onChange={(i) => setSelectedKey(tabs[i]?.key ?? tabs[0].key)}>
         <Tab.List className="flex space-x-2 rounded-xl bg-gray-100 dark:bg-gray-800 p-1.5">
           {tabs.map((tab) => (
             <Tab

@@ -83,6 +83,17 @@ const TeamsManagement: React.FC = () => {
         </button>
       </div>
 
+      {/* An empty list and a failed request rendered identically: both showed
+          nothing at all, so "none created yet" was indistinguishable from "the
+          request failed", and the only clue was a toast that had already gone. */}
+      {teams.length === 0 ? (
+        <div className="surface px-6 py-12 text-center">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">No teams yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+            A team is a group you can assign work to together, so nobody has to be named individually.
+          </p>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {teams.map((team) => (
           <div key={team.id} className="card p-4 border border-gray-100 dark:border-gray-700 hover:shadow-md transition-shadow">
@@ -115,6 +126,7 @@ const TeamsManagement: React.FC = () => {
           </div>
         ))}
       </div>
+      )}
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">

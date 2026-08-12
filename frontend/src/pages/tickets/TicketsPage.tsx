@@ -18,6 +18,16 @@ import CreateTicketModal from '@/components/tickets/CreateTicketModal'
 
 type TicketStatus = 'PENDING_REC_MGR' | 'OPEN' | 'ASSIGNED' | 'RESOLVED' | 'CANCELLED' | 'IN_PROGRESS'
 
+/**
+ * One page size, named once.
+ *
+ * It was a bare 10 here and a bare 10 in the service, with nothing tying them
+ * together, so the page count silently lied the moment either moved. The request now
+ * states the size it is paginating against rather than assuming the server's default
+ * matches the arithmetic below.
+ */
+const PAGE_SIZE = 12
+
 const TicketsPage: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useAppSelector((state) => state.auth)
@@ -26,11 +36,12 @@ const TicketsPage: React.FC = () => {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE')
   
-  // Tactical Modal States
+  // Confirmation dialog state
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
     type: 'approve' | 'reject' | 'delete' | 'accept_invite' | 'decline_invite';
@@ -46,9 +57,17 @@ const TicketsPage: React.FC = () => {
     description: '',
   })
 
+  // Typing fired a request per character, and eight of them can come back in any
+  // order, so the list could settle on the results for "campai". Waiting for a pause
+  // sends one request for the word that was actually typed.
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(id)
+  }, [search])
+
   useEffect(() => {
     fetchData()
-  }, [page, activeTab, search])
+  }, [page, activeTab, debouncedSearch])
 
   const fetchData = async () => {
     setIsLoading(true)
@@ -57,13 +76,14 @@ const TicketsPage: React.FC = () => {
         params: { 
           page, 
           statusType: activeTab,
-          search 
+          search: debouncedSearch,
+          limit: PAGE_SIZE,
         } 
       })
       setTickets(ticketsRes.data.tickets || [])
       setTotal(ticketsRes.data.total || 0)
     } catch (error) {
-      toast.error('Failed to fetch tickets')
+      toast.error('Could not load tickets')
     } finally {
       setIsLoading(false)
     }
@@ -85,23 +105,23 @@ const TicketsPage: React.FC = () => {
     try {
       if (type === 'approve') {
         await api.patch(`/tickets/${targetId}/approve`)
-        toast.success('Interaction Authorized')
+        toast.success('Request approved')
       } else if (type === 'reject') {
         await api.patch(`/tickets/${targetId}/reject`, { reason })
-        toast.error('Interaction Terminated')
+        toast.success('Request declined')
       } else if (type === 'delete') {
         await api.delete(`/tickets/${targetId}`)
-        toast.success('Record Pruned')
+        toast.success('Ticket deleted')
       } else if (type === 'accept_invite') {
         await api.post(`/tickets/${targetId}/accept`)
-        toast.success('Invitation Accepted')
+        toast.success('You joined this ticket')
       } else if (type === 'decline_invite') {
         await api.post(`/tickets/${targetId}/decline`, { reason })
-        toast.error('Invitation Declined')
+        toast.success('Invitation declined')
       }
       fetchData()
     } catch (error) {
-      toast.error('Operational synchronization failed')
+      toast.error('Something went wrong. Please try again.')
     }
   }
 
@@ -111,45 +131,45 @@ const TicketsPage: React.FC = () => {
       setActionModal({
         isOpen: true,
         type: 'delete',
-        title: 'Strategic Deletion',
-        description: 'Permanently remove this engagement record from all operational logs?',
+        title: 'Delete this ticket?',
+        description: 'The ticket and its whole history are removed permanently. This cannot be undone.',
         targetId: id
       })
     } else if (type === 'reject') {
       setActionModal({
         isOpen: true,
         type: 'reject',
-        title: 'Tactical Rejection',
-        description: 'Identify the operational reason for terminating this request flow.',
+        title: 'Decline this request?',
+        description: 'The reason is shown to whoever raised it, so say what would change your mind.',
         targetId: id,
         requireReason: true,
-        reasons: ['Incomplete Specifications', 'Budgetary Constraints', 'Personnel Overload', 'Incorrect Target', 'Duplicate Interaction']
+        reasons: ['Not enough detail', 'No budget for it', 'Too much on right now', 'Wrong team', 'Already raised elsewhere']
       })
     } else if (type === 'approve') {
       setActionModal({
         isOpen: true,
         type: 'approve',
-        title: 'Operational Authorization',
-        description: 'Authorize this engagement stage and proceed to the next industrial phase?',
+        title: 'Approve this request?',
+        description: 'It moves on to be assigned and worked on.',
         targetId: id
       })
     } else if (type === 'accept_invite') {
       setActionModal({
         isOpen: true,
         type: 'accept_invite',
-        title: 'Accept Invitation',
-        description: 'Join the ticket and collaborate with the tactical squad?',
+        title: 'Join this ticket?',
+        description: 'You will be listed on it and can work on it with the others assigned.',
         targetId: id
       })
     } else if (type === 'decline_invite') {
       setActionModal({
         isOpen: true,
         type: 'decline_invite',
-        title: 'Decline Invitation',
-        description: 'Specify the tactical reason for declining this support request.',
+        title: 'Decline this invitation?',
+        description: 'Whoever invited you sees the reason, so they know where to take it next.',
         targetId: id,
         requireReason: true,
-        reasons: ['Personnel Overload', 'Lacks Expertise', 'Conflicting Ticket', 'Resource Reallocation', 'Out of Department Scope']
+        reasons: ['Too much on right now', 'Not my area', 'Clashes with something else', 'Reassigned elsewhere', 'Outside my department']
       })
     }
   }
@@ -157,49 +177,47 @@ const TicketsPage: React.FC = () => {
   const getStatusBadge = (ticket: any) => {
     switch (ticket.status as TicketStatus) {
       case 'PENDING_REC_MGR': 
-        return <span className="px-3 py-1 bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-lg text-xs font-semibold tracking-[0.1em] border border-orange-100 dark:border-orange-900/40">Pending Approval</span>
-      case 'OPEN': return <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-xs font-semibold tracking-[0.1em] border border-blue-100 dark:border-blue-900/40">Open</span>
+        return <span className="status-badge bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">Pending Approval</span>
+      case 'OPEN': return <span className="status-badge bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">Open</span>
       case 'ASSIGNED': 
         const acceptedCount = ticket.assignments?.filter((a: any) => a.status === 'ACCEPTED').length || 0;
         return (
-          <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-lg text-xs font-semibold tracking-[0.1em] border border-indigo-100 dark:border-indigo-900/40">
-            Assigned: {acceptedCount > 1 ? `${acceptedCount} Specialists` : (ticket.assignee?.name || '1 Specialist')}
+          <span className="status-badge bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">
+            Assigned: {acceptedCount > 1 ? `${acceptedCount} people` : (ticket.assignee?.name || '1 person')}
           </span>
         )
-      case 'RESOLVED': return <span className="px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-xs font-semibold tracking-[0.1em] border border-emerald-100 dark:border-emerald-900/40">Resolved</span>
-      case 'CANCELLED': return <span className="px-3 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 rounded-lg text-xs font-semibold tracking-[0.1em] border border-rose-100 dark:border-rose-900/40">Cancelled</span>
+      case 'RESOLVED': return <span className="status-badge bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Resolved</span>
+      case 'CANCELLED': return <span className="status-badge bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300">Cancelled</span>
       default: return null
     }
   }
 
-  const totalPages = Math.ceil(total / 10)
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20">
-      {/* Strategic Header (Aligned with Strategic Hub) */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-sm border border-primary-500/20 relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2 font-bold text-primary-100 tracking-wide text-xs">
-              <TicketIcon className="h-4 w-4" />
-              Logistics Hub
-            </div>
-            <h1 className="text-3xl font-semibold mb-1 leading-tight font-outfit tracking-tight">Logistics & Requests</h1>
-            <p className="text-primary-50 font-medium max-w-lg opacity-90">Universal Organizational Interaction Log · Real-time ticket tracking and tactical coordination.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setShowCreateModal(true)} 
-              className="flex items-center gap-2 px-6 py-3 bg-white dark:bg-gray-800 text-primary-700 dark:text-primary-300 rounded-lg font-semibold text-xs tracking-wide hover:bg-primary-50 dark:hover:bg-primary-900/30 active:scale-95 transition-all shadow-sm"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Initiate Request
-            </button>
-          </div>
+    <div className="space-y-6">
+      {/*
+        A plain page header, like every other page.
+
+        This was a full-bleed gradient banner with two blurred decorative orbs, an
+        eyebrow reading "Logistics Hub" and the subtitle "Universal Organizational
+        Interaction Log · Real-time ticket tracking and tactical coordination". None
+        of that says anything a person needs, it costs a third of the first screen
+        before a single ticket appears, and it made this the only page in the app
+        that announces itself in a different voice.
+      */}
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="page-title">Tickets</h1>
+          <p className="page-subtitle">
+            Requests between people and departments, and what has happened to each one.
+          </p>
         </div>
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16 blur-2xl pointer-events-none" />
+
+        <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+          <PlusIcon className="mr-2 h-4 w-4" />
+          New request
+        </button>
       </div>
 
       {/* Pending Requests Section */}
@@ -276,7 +294,7 @@ const TicketsPage: React.FC = () => {
           />
         </div>
       </div>
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+      <div className="surface overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -297,11 +315,11 @@ const TicketsPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900/40">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">ID &amp; Title</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Route</th>
-                  <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Requester</th>
-                  <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Actions</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ID &amp; Title</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Route</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Requester</th>
+                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Actions</th>
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">

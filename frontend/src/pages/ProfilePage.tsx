@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
@@ -29,11 +29,21 @@ const passwordSchema = yup.object({
 type ProfileFormData = yup.InferType<typeof profileSchema>
 type PasswordFormData = yup.InferType<typeof passwordSchema>
 
+/** The same wording the rest of the app uses for a role. */
+const ROLE_LABEL: Record<string, string> = {
+  SUPER_ADMIN: 'Platform Administrator',
+  COMPANY_ADMIN: 'System Administrator',
+  ADMIN: 'Administrator',
+  MANAGER: 'Department Manager',
+  EMPLOYEE: 'Employee',
+}
+
 const ProfilePage: React.FC = () => {
   const navigate = useNavigate()
   const dispatch = useAppDispatch()
   const { user, isLoading } = useAppSelector((state) => state.auth)
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile')
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [showPasswords, setShowPasswords] = useState({
     old: false,
     new: false,
@@ -53,6 +63,17 @@ const ProfilePage: React.FC = () => {
     resolver: yupResolver(passwordSchema),
   })
 
+  // defaultValues are captured on the first render only. On a cold start the profile
+  // arrives after mount, and the fields sat empty until someone reloaded the page.
+  useEffect(() => {
+    if (!user) return
+    profileForm.reset({
+      name: user.name ?? '',
+      email: user.email ?? '',
+      position: user.position ?? '',
+    })
+  }, [user?.id, user?.name, user?.email, user?.position])
+
   const onProfileSubmit = async (data: ProfileFormData) => {
     try {
       const updatedUser = await usersApi.updateProfile(data)
@@ -63,12 +84,15 @@ const ProfilePage: React.FC = () => {
     }
   }
 
-  const onPasswordSubmit = (data: PasswordFormData) => {
-    dispatch(changePassword({
+  const onPasswordSubmit = async (data: PasswordFormData) => {
+    // Cleared on the next line regardless of outcome, so a wrong current password
+    // took the error toast and the typed input with it. Only a success empties it.
+    const result = await dispatch(changePassword({
       oldPassword: data.oldPassword,
       newPassword: data.newPassword,
     }))
-    passwordForm.reset()
+
+    if (changePassword.fulfilled.match(result)) passwordForm.reset()
   }
 
   const togglePasswordVisibility = (field: 'old' | 'new' | 'confirm') => {
@@ -82,12 +106,31 @@ const ProfilePage: React.FC = () => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Checked here rather than only by the accept attribute, which is a filter on the
+    // file picker and not a rule: dragging or a mobile picker gets past it. Rejecting
+    // a 20MB photo now beats uploading it and failing after the wait.
+    if (!file.type.startsWith('image/')) {
+      toast.error('Choose an image file.')
+      e.target.value = ''
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('That image is over 5MB. Please choose a smaller one.')
+      e.target.value = ''
+      return
+    }
+
+    setUploadingAvatar(true)
     try {
       const result = await filesApi.uploadAvatar(file)
       dispatch(updateUser({ avatar: result.avatar }))
-      toast.success('Avatar updated successfully!')
+      toast.success('Photo updated')
     } catch (error: any) {
-      toast.error('Failed to upload avatar')
+      toast.error(error.response?.data?.message || 'Could not upload that photo')
+    } finally {
+      setUploadingAvatar(false)
+      // Without this, choosing the same file twice in a row fires no change event.
+      e.target.value = ''
     }
   }
 
@@ -116,24 +159,56 @@ const ProfilePage: React.FC = () => {
                 size="lg"
                 rounded="2xl"
               />
-              <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity rounded-xl">
-                <span className="text-xs font-semibold tracking-wide">Update</span>
-                <input type="file" className="hidden" accept="image/*" onChange={onAvatarChange} />
+              <label
+                className={`absolute inset-0 flex items-center justify-center rounded-xl text-white transition-opacity ${
+                  uploadingAvatar
+                    ? 'bg-black/60 opacity-100'
+                    : 'cursor-pointer bg-black/40 opacity-0 group-hover:opacity-100 focus-within:opacity-100'
+                }`}
+              >
+                <span className="text-xs font-semibold tracking-wide">
+                  {uploadingAvatar ? 'Uploading…' : 'Update'}
+                </span>
+                <input
+                  type="file"
+                  className="sr-only"
+                  accept="image/*"
+                  disabled={uploadingAvatar}
+                  onChange={onAvatarChange}
+                  aria-label="Upload a profile photo"
+                />
               </label>
           </div>
 
           <div>
             <h1 className="text-2xl font-semibold text-gray-900 dark:text-white tracking-tight">{user?.name}</h1>
             <p className="text-gray-500 dark:text-gray-400 font-bold text-sm tracking-tight">{user?.email}</p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-semibold tracking-wide px-3 py-1 rounded-full border border-primary-100 dark:border-primary-900/40">
-                {user?.role?.replace('_', ' ')}
+            {/* What this account actually is. All of it was already on the user
+                object, and the users table showed a colleague more about you than
+                your own profile did. */}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <span className="status-badge bg-primary-50 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300">
+                {ROLE_LABEL[user?.role ?? ''] ?? user?.role?.replace('_', ' ')}
               </span>
               {user?.position && (
-                <span className="bg-gray-50 dark:bg-gray-900/40 text-gray-600 dark:text-gray-300 text-xs font-semibold tracking-wide px-3 py-1 rounded-full border border-gray-100 dark:border-gray-700">
+                <span className="status-badge bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
                   {user.position}
                 </span>
               )}
+              {user?.strategyAccess && user.strategyAccess !== 'NONE' && (
+                <span className="status-badge bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                  Strategy {user.strategyAccess === 'EDIT' ? 'Admin' : 'Reader'}
+                </span>
+              )}
+              <span
+                className={`status-badge ${
+                  user?.isMicrosoftSynced
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+                }`}
+              >
+                {user?.isMicrosoftSynced ? 'Microsoft connected' : 'Microsoft not connected'}
+              </span>
             </div>
           </div>
         </div>
@@ -189,21 +264,26 @@ const ProfilePage: React.FC = () => {
                 )}
               </div>
 
+              {/* Read-only, because the server has always discarded it: PATCH /users/me
+                  keeps only name and position. An editable box that saves nothing and
+                  then reports success is worse than no box, and this one also carries
+                  the address people sign in with, which cannot change without a way to
+                  prove the new one belongs to them. */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  Email Address
+                <label htmlFor="profile-email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  Email address
                 </label>
                 <input
-                  {...profileForm.register('email')}
+                  id="profile-email"
                   type="email"
-                  className={`input-field ${profileForm.formState.errors.email ? 'border-red-300' : ''}`}
-                  placeholder="Enter your email"
+                  value={user?.email ?? ''}
+                  readOnly
+                  disabled
+                  className="input-field cursor-not-allowed opacity-70"
                 />
-                {profileForm.formState.errors.email && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {profileForm.formState.errors.email.message}
-                  </p>
-                )}
+                <p className="form-hint">
+                  This is the address you sign in with. Ask an administrator to change it.
+                </p>
               </div>
 
               <div>

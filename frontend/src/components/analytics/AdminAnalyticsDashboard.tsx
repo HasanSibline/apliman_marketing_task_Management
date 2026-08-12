@@ -263,7 +263,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         {/* Loading skeleton */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="surface p-6 animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 mb-2"></div>
@@ -276,7 +276,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 animate-pulse">
+            <div key={i} className="surface p-6 animate-pulse">
               <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-1/3 mb-4"></div>
               <div className="h-80 bg-gray-200 dark:bg-gray-700 rounded"></div>
             </div>
@@ -454,7 +454,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          className="surface p-6 border border-gray-200 dark:border-gray-700"
         >
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <ChartBarIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
@@ -492,7 +492,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          className="surface p-6 border border-gray-200 dark:border-gray-700"
         >
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Task Status Distribution</h3>
           <div className="h-80">
@@ -538,7 +538,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
-        className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+        className="surface p-6 border border-gray-200 dark:border-gray-700"
       >
         <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Recent Tasks</h3>
         <div className="overflow-x-auto">
@@ -608,7 +608,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-6 border border-gray-200 dark:border-gray-700"
+          className="surface p-6 border border-gray-200 dark:border-gray-700"
         >
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <UserGroupIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />

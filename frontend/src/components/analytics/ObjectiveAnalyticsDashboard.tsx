@@ -161,7 +161,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
 
     if (objectives.length === 0) {
         return (
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-12 text-center border border-gray-200 dark:border-gray-700">
+            <div className="surface p-12 text-center">
                 <p className="text-gray-500 dark:text-gray-400 font-medium">Not enough data to display analytics.</p>
             </div>
         )
