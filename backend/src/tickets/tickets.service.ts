@@ -189,6 +189,7 @@ export class TicketsService {
     assigneeId?: string;
     isInternal?: boolean;
     type?: string;
+    category?: string;
     priority?: string;
     amount?: number;
     providerName?: string;
@@ -233,13 +234,36 @@ export class TicketsService {
       }
     }
 
+    /**
+     * The category has to be one this department actually offers.
+     *
+     * And the enum has to be one that exists. `type` was cast to any and written
+     * straight through, so four of the seven entries the picker offered, HR Request,
+     * Sales / Lead, Product / Dev Issue and QA / Bug, were not values of TicketType
+     * at all: choosing one failed to create the ticket, and the cast is precisely
+     * what stopped the compiler saying so.
+     */
+    const allowedTypes = [
+      'GENERAL', 'PURCHASE_ORDER', 'IT_SUPPORT',
+      'DESIGN_REQUEST', 'LEGAL_CONTRACT', 'MARKETING_ASSET',
+    ];
+    const safeType = allowedTypes.includes(String(data.type)) ? String(data.type) : 'GENERAL';
+
+    const offered = receiverDept?.ticketCategories ?? [];
+    if (data.category && offered.length > 0 && !offered.includes(data.category)) {
+      throw new BadRequestException(
+        `${receiverDept?.name ?? 'That department'} does not take "${data.category}" requests.`,
+      );
+    }
+
     const ticket = await this.prisma.ticket.create({
       data: {
         companyId,
         ticketNumber,
         title: data.title,
         description: data.description,
-        type: (data.type as any) || 'GENERAL',
+        type: safeType as any,
+        category: data.category?.trim() || null,
         priority: data.priority || 'MEDIUM',
         receiverDeptId: data.receiverDeptId,
         assigneeId: data.assigneeId || null,

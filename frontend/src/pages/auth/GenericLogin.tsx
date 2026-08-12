@@ -1,4 +1,5 @@
 import React, { useState, FormEvent } from 'react';
+import SigningInScreen from '@/components/auth/SigningInScreen'
 import { useForcedDark } from '@/theme/useForcedDark'
 import { rememberCompany } from '@/lib/companyLogin';
 import { useNavigate } from 'react-router-dom';
@@ -10,6 +11,7 @@ import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 
 const GenericLogin: React.FC = () => {
   useForcedDark()
+  const [entering, setEntering] = useState<string | null | undefined>(undefined)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -65,7 +67,7 @@ const GenericLogin: React.FC = () => {
       toast.success(`Welcome back, ${user.name}!`);
 
       // Redirect to dashboard
-      navigate('/dashboard');
+      setEntering(user.name ?? null);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(
@@ -96,6 +98,10 @@ const GenericLogin: React.FC = () => {
       setForgotLoading(false);
     }
   };
+
+  if (entering !== undefined) {
+    return <SigningInScreen name={entering} onDone={() => navigate('/dashboard')} />
+  }
 
   return (
     <>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { PlusIcon, UserGroupIcon, UserIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, UserGroupIcon, UserIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import { toast } from 'react-hot-toast'
 
@@ -73,6 +73,19 @@ const DepartmentsManagement: React.FC = () => {
       fetchData()
     } catch (error) {
       toast.error('Failed to create department')
+    }
+  }
+
+  const [newCategory, setNewCategory] = useState<Record<string, string>>({})
+
+  const saveCategories = async (dept: any, next: string[]) => {
+    try {
+      await api.patch(`/departments/${dept.id}`, { ticketCategories: next })
+      setDepartments((prev: any[]) =>
+        prev.map((d) => (d.id === dept.id ? { ...d, ticketCategories: next } : d)),
+      )
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Could not save those request types')
     }
   }
 
@@ -157,6 +170,60 @@ const DepartmentsManagement: React.FC = () => {
                 <span>Team Members</span>
                 <span className="font-semibold">{dept.users?.length || 0}</span>
               </div>
+            </div>
+
+            {/* What this department can be asked for. One list used to serve every
+                department, so Finance was offered "QA / Bug" and Design was offered
+                "Purchase Order". Set here, and only these appear when someone raises
+                a ticket against this department. */}
+            <div className="mt-3 border-t border-gray-50 pt-3 dark:border-gray-700">
+              <p className="eyebrow mb-2">Request types</p>
+
+              {dept.ticketCategories?.length ? (
+                <div className="mb-2 flex flex-wrap gap-1.5">
+                  {dept.ticketCategories.map((c: string) => (
+                    <span
+                      key={c}
+                      className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-200"
+                    >
+                      {c}
+                      <button
+                        onClick={() => saveCategories(dept, dept.ticketCategories.filter((x: string) => x !== c))}
+                        aria-label={`Remove ${c}`}
+                        className="text-gray-400 hover:text-red-600"
+                      >
+                        <XMarkIcon className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                  Not set yet, so people raising a ticket here see a general list.
+                </p>
+              )}
+
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault()
+                  const value = (newCategory[dept.id] ?? '').trim()
+                  if (!value) return
+                  saveCategories(dept, [...(dept.ticketCategories ?? []), value])
+                  setNewCategory((p) => ({ ...p, [dept.id]: '' }))
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  value={newCategory[dept.id] ?? ''}
+                  onChange={(e) => setNewCategory((p) => ({ ...p, [dept.id]: e.target.value }))}
+                  placeholder="Add a request type"
+                  aria-label={`Add a request type for ${dept.name}`}
+                  className="input-field py-1.5 text-xs"
+                />
+                <button type="submit" className="btn-secondary shrink-0 px-3 py-1.5 text-xs">
+                  Add
+                </button>
+              </form>
             </div>
           </div>
         ))}

@@ -58,7 +58,11 @@ export class DepartmentsService {
     });
   }
 
-  async update(id: string, companyId: string, data: { name?: string; managerId?: string }) {
+  async update(
+    id: string,
+    companyId: string,
+    data: { name?: string; managerId?: string; ticketCategories?: string[] },
+  ) {
     await this.findOne(id, companyId);
     
     return this.prisma.$transaction(async (tx) => {
@@ -67,6 +71,18 @@ export class DepartmentsService {
         data: {
           ...(data.name && { name: data.name }),
           ...(data.managerId !== undefined && { managerId: data.managerId }),
+          // Trimmed, blanks dropped, duplicates removed and capped. A picker is only
+          // useful while it is short enough to read, and " Urgent" beside "Urgent"
+          // is two entries that look like one.
+          ...(data.ticketCategories !== undefined && {
+            ticketCategories: [
+              ...new Set(
+                (data.ticketCategories ?? [])
+                  .map((c) => String(c).trim())
+                  .filter(Boolean),
+              ),
+            ].slice(0, 20),
+          }),
         },
       });
 

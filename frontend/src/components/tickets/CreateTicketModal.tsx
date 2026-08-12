@@ -18,6 +18,13 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [description, setDescription] = useState('')
   const [receiverDeptId, setReceiverDeptId] = useState('')
   const [type, setType] = useState('GENERAL')
+  const [category, setCategory] = useState('')
+
+  // A category chosen for one department is meaningless to the next, and leaving it
+  // selected is how you send Design a purchase order.
+  useEffect(() => {
+    setCategory('')
+  }, [receiverDeptId])
   const [priority, setPriority] = useState('MEDIUM')
   const [deadline, setDeadline] = useState('')
   const [metadata, setMetadata] = useState<Record<string, any>>({})
@@ -27,15 +34,23 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [requiresApproval, setRequiresApproval] = useState(false)
   const [approverId, setApproverId] = useState('')
 
-  const ticketTypes = [
-    { id: 'GENERAL', label: 'General Request' },
-    { id: 'PURCHASE_ORDER', label: 'Purchase Order (PO)' },
-    { id: 'IT_SUPPORT', label: 'IT Support' },
-    { id: 'HR_REQUEST', label: 'HR Request' },
-    { id: 'SALES_LEAD', label: 'Sales / Lead' },
-    { id: 'PRODUCT_DEV', label: 'Product / Dev Issue' },
-    { id: 'QA_DEFECT', label: 'QA / Bug' }
-  ]
+  /**
+   * What this department can be asked for.
+   *
+   * One hardcoded list served every department, so a request to Finance was offered
+   * "QA / Bug" and a request to Design was offered "Purchase Order". Worse, four of
+   * the seven were not values the server accepts, so choosing HR Request, Sales /
+   * Lead, Product / Dev Issue or QA / Bug failed to create the ticket at all.
+   *
+   * Categories now belong to the department, set by an admin under Departments. A
+   * department nobody has set up yet falls back to a general list rather than an
+   * empty picker, so a company can raise tickets on day one.
+   */
+  const FALLBACK_CATEGORIES = ['General request', 'Question', 'Problem to fix', 'Something new']
+
+  const targetDept = departments.find((d) => d.id === receiverDeptId)
+  const categories: string[] =
+    (targetDept?.ticketCategories?.length ? targetDept.ticketCategories : FALLBACK_CATEGORIES)
 
   const getTargetDept = () => departments.find(d => d.id === receiverDeptId)
 
@@ -245,6 +260,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         receiverDeptId,
         assigneeId: assigneeId || null,
         type,
+        category,
         priority,
         deadline: deadline || undefined,
         metadata,
@@ -391,17 +407,25 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               {/* Type */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
-                  Interaction Category *
+                  What is this about? *
                 </label>
                 <select
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={!receiverDeptId}
+                  className="select-field"
                 >
-                  {ticketTypes.map((t) => (
-                    <option key={t.id} value={t.id}>{t.label}</option>
-                  ))}
+                  {!receiverDeptId && <option value="">Choose a department first</option>}
+                  {receiverDeptId &&
+                    categories.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
                 </select>
+                <p className="form-hint">
+                  {targetDept?.ticketCategories?.length
+                    ? `What ${targetDept.name} takes requests for.`
+                    : 'This department has not set its own categories yet.'}
+                </p>
               </div>
 
               {/* Title */}

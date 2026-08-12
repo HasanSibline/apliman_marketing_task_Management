@@ -57,6 +57,9 @@ model Department {
   companyId String
   name      String
   managerId String?  @unique
+  /// What this department can be asked for. Empty means it has not been set up yet,
+  /// and the app offers a general fallback rather than an empty picker.
+  ticketCategories String[] @default([])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
@@ -100,6 +103,11 @@ model Ticket {
   title              String
   description        String
   type               TicketType         @default(GENERAL)
+  /// What the receiving department was actually asked for, chosen from that
+  /// department's own list. Free text rather than an enum, because what Finance is
+  /// asked for has nothing to do with what Design is asked for, and a shared enum
+  /// forces every department to carry every other department's vocabulary.
+  category           String?
   status             TicketStatus       @default(OPEN)
   priority           String             @default("MEDIUM")
   isInternal         Boolean            @default(false)

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, FormEvent } from 'react';
+import SigningInScreen from '@/components/auth/SigningInScreen'
 import { useForcedDark } from '@/theme/useForcedDark'
 import { rememberCompany } from '@/lib/companyLogin';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -22,6 +23,7 @@ interface CompanyBranding {
 
 const CompanyLogin: React.FC = () => {
   useForcedDark()
+  const [entering, setEntering] = useState<string | null | undefined>(undefined)
   const { slug } = useParams<{ slug: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -115,7 +117,7 @@ const CompanyLogin: React.FC = () => {
       toast.success(`Welcome back, ${user.name}!`);
 
       // Redirect to dashboard
-      navigate('/dashboard');
+      setEntering(user.name ?? null);
     } catch (err: any) {
       console.error('Login error:', err);
       setError(
@@ -130,7 +132,11 @@ const CompanyLogin: React.FC = () => {
 
   // Loading state
   if (companyLoading) {
-    return (
+    if (entering !== undefined) {
+    return <SigningInScreen name={entering} onDone={() => navigate('/dashboard')} />
+  }
+
+  return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 dark:from-blue-900/20 to-indigo-100 dark:to-indigo-900/20">
         <div className="text-center">
           <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>

@@ -30,7 +30,7 @@ export class DepartmentsController {
   @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
   update(
     @Param('id') id: string,
-    @Body() updateDeptDto: { name?: string; managerId?: string },
+    @Body() updateDeptDto: { name?: string; managerId?: string; ticketCategories?: string[] },
     @Request() req,
   ) {
     return this.departmentsService.update(id, req.user.companyId, updateDeptDto);
