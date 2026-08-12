@@ -68,6 +68,7 @@ const TicketDetailPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const commentsEndRef = useRef<HTMLDivElement>(null)
+  const commentsTopRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (ticketId) {
@@ -79,8 +80,19 @@ const TicketDetailPage: React.FC = () => {
   }, [ticketId])
 
   useEffect(() => {
+    if (isEditing) {
+      scrollToTop()
+      return
+    }
     scrollToBottom()
-  }, [ticket?.comments])
+    // isEditing belongs here: without it, turning editing on reads the flag but never
+    // re-runs, so the field it is meant to reveal stays out of view.
+  }, [ticket?.comments, isEditing])
+
+  /** Editing means looking at the description, which lives at the top of the thread. */
+  const scrollToTop = () => {
+    commentsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }
 
   const scrollToBottom = () => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -572,25 +584,25 @@ const TicketDetailPage: React.FC = () => {
             <div className="surface p-6 space-y-6 shadow-sm">
               <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Authorization Required</h3>
+                <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">Waiting on approval</h3>
               </div>
 
               <div className="space-y-4">
                 <div className="p-4 rounded-xl border-2 border-amber-500 bg-amber-50 dark:bg-amber-900/30 shadow-sm transition-all">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-semibold tracking-tight text-gray-900 dark:text-white">
-                      Departmental Authorization Stage
+                      Needs a decision
                     </span>
                     <ClockIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                   </div>
                   <p className="text-xs font-bold text-gray-600 dark:text-gray-300">
-                    Wait for {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Department Manager'} to authorize this ticket.
+                    Waiting for {ticket.receiverManager?.name || ticket.receiverDept?.manager?.name || 'Department Manager'} to approve or decline this request.
                   </p>
 
                   {(isRecMgrStage && canAuthoriseRec) && (
                     <div className="grid grid-cols-2 gap-2 mt-4">
                       <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold tracking-wide hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
-                        <CheckCircleIcon className="h-4 w-4" /> Finalize
+                        <CheckCircleIcon className="h-4 w-4" /> Approve
                       </button>
                       <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 rounded-lg text-xs font-semibold tracking-wide hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all">
                         <XCircleIcon className="h-4 w-4" /> Reject
@@ -612,7 +624,7 @@ const TicketDetailPage: React.FC = () => {
             {isEditing ? (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wide ml-1">Receiver Dept</label>
+                  <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wide ml-1">Department</label>
                   <select
                     value={editData.receiverDeptId}
                     onChange={(e) => setEditData({ ...editData, receiverDeptId: e.target.value })}
@@ -625,7 +637,7 @@ const TicketDetailPage: React.FC = () => {
                 </div>
                 {isAdmin && (
                   <div className="space-y-2">
-                    <label className="text-xs font-semibold text-rose-600 dark:text-rose-400 tracking-wide ml-1">Direct Status Override</label>
+                    <label className="text-xs font-semibold text-rose-600 dark:text-rose-400 tracking-wide ml-1">Status</label>
                     <select
                       value={editData.status}
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
@@ -638,35 +650,24 @@ const TicketDetailPage: React.FC = () => {
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-2 pt-2">
-                  <button onClick={handleUpdateTicket} className="bg-primary-600 text-white rounded-xl py-3 text-xs font-semibold tracking-wide hover:bg-primary-700 transition-all">Sync Changes</button>
-                  <button onClick={() => setIsEditing(false)} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl py-3 text-xs font-semibold tracking-wide hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Discard</button>
+                  <button onClick={handleUpdateTicket} className="bg-primary-600 text-white rounded-xl py-3 text-xs font-semibold tracking-wide hover:bg-primary-700 transition-all">Save changes</button>
+                  <button onClick={() => setIsEditing(false)} className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl py-3 text-xs font-semibold tracking-wide hover:bg-gray-200 dark:hover:bg-gray-600 transition-all">Cancel</button>
                 </div>
               </div>
             ) : (
               <div className="space-y-5">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Requester</p>
-                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{ticket.requester?.name}</p>
-                  </div>
-                  <div className="p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-100 dark:border-gray-700">
-                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Department</p>
-                    <p className="text-xs font-semibold text-gray-900 dark:text-white truncate">{ticket.receiverDept?.name}</p>
-                  </div>
-                </div>
-
                 {/* Who is on it */}
                 <div id="deployment-section" className="space-y-4 pt-2">
                   <div className="flex items-center justify-between">
                     <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide ml-1">People on this ticket</p>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} Members</span>
+                      <span className="text-xs font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full uppercase">{ticket.assignments?.length || 0} people</span>
                       <div className="relative group">
                         <button className="flex items-center gap-1 text-xs font-semibold text-white bg-primary-600 hover:bg-primary-700 px-2 py-1 rounded-md transition-all tracking-wide shadow-md active:scale-95">
                           <PlusIcon className="h-2 w-2" /> Invite
                         </button>
                         <div className="absolute right-0 top-full mt-2 w-56 surface border border-gray-100 dark:border-gray-700 p-2 z-[100] opacity-0 group-focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto transition-all scale-95 group-focus-within:scale-100 origin-top-right">
-                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1.5 px-2">Collaborative Search</p>
+                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1.5 px-2">Add someone</p>
                           <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
                             {users.filter(u => u.id !== user?.id && !ticket.assignments?.some((a: any) => a.userId === u.id)).map(u => (
                               <button
@@ -802,7 +803,7 @@ const TicketDetailPage: React.FC = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <PaperClipIcon className="h-4 w-4 text-primary-500" />
-                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-normal">Support Documentation</h3>
+                <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-normal">Attachments</h3>
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -834,7 +835,7 @@ const TicketDetailPage: React.FC = () => {
               ))}
               {attachments.length === 0 && (
                 <div className="py-6 text-center border-2 border-dashed border-gray-50 dark:border-gray-700 rounded-xl">
-                  <p className="text-xs font-semibold text-gray-300">Repository Empty</p>
+                  <p className="text-xs font-semibold text-gray-300">Nothing attached yet</p>
                 </div>
               )}
             </div>
@@ -844,54 +845,73 @@ const TicketDetailPage: React.FC = () => {
         {/* Right: description and conversation */}
         <div className="lg:col-span-2 space-y-8">
 
-          {/* Context Focus Area */}
-          <div className="surface p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">Description</h3>
-            </div>
-
-            {ticket.status === 'CANCELLED' && ticket.comments?.some((c: any) => c.comment.startsWith('Rejected:')) && (
-              <div className="p-5 bg-rose-50 dark:bg-rose-900/30 border-l-4 border-rose-500 rounded-xl mb-4 animate-in slide-in-from-top-4 duration-500">
-                <div className="flex items-center gap-3 mb-2">
-                  <XCircleIcon className="h-5 w-5 text-rose-600 dark:text-rose-400" />
-                  <span className="text-xs font-semibold tracking-wide text-rose-700 dark:text-rose-300">Declined</span>
-                </div>
-                <p className="text-sm font-bold text-rose-900 dark:text-rose-300 leading-relaxed italic">
-                  "{ticket.comments.find((c: any) => c.comment.startsWith('Rejected:'))?.comment.replace('Rejected: ', '')}"
+          {/* A declined ticket says so before anything else, because the reason is
+              the only thing anyone opens it for. */}
+          {ticket.status === 'CANCELLED' && ticket.comments?.some((c: any) => c.comment.startsWith('Rejected:')) && (
+            <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/40 dark:bg-rose-900/20">
+              <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" />
+              <div>
+                <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">Declined</p>
+                <p className="mt-1 text-sm leading-relaxed text-rose-800 dark:text-rose-300">
+                  {ticket.comments.find((c: any) => c.comment.startsWith('Rejected:'))?.comment.replace('Rejected: ', '')}
                 </p>
               </div>
-            )}
+            </div>
+          )}
 
-            {isEditing ? (
-              <textarea
-                value={editData.description}
-                onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                className="w-full px-6 py-5 bg-gray-50 dark:bg-gray-900/40 border-2 border-transparent rounded-[2rem] text-sm font-bold text-gray-800 dark:text-gray-100 leading-relaxed min-h-[220px] focus:outline-none focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-outfit"
-                placeholder="Describe the objective context, required deliverables, and strategic background..."
-              />
-            ) : (
-              <div className="text-sm text-gray-800 dark:text-gray-100 leading-[1.8] font-bold font-outfit whitespace-pre-wrap">
-                {ticket.description || 'No description was given.'}
-              </div>
-            )}
-          </div>
+          {/*
+            One thread, opening with the request itself.
 
-          {/* Communication Feed */}
-          <div className="surface flex flex-col overflow-hidden h-[700px]">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-xl flex items-center justify-center border border-primary-200 shadow-sm">
-                  <ChatBubbleLeftRightIcon className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-xs font-semibold text-gray-900 dark:text-white tracking-tight leading-none">Conversation</h3>
-                  <p className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Everything said here stays with the ticket</p>
-                </div>
-              </div>
+            The description sat in its own card above this one, and both looked empty
+            as a result: a sentence marooned in a large box, then a seven-hundred-pixel
+            void with a single system line floating in the middle of it. They are one
+            thing. A ticket is a conversation, and its description is the first thing
+            said in it, so it reads as the opening message and everything else follows
+            in order. The panel now grows with what is in it up to a limit, rather than
+            reserving a fixed height whether or not there is anything to put there.
+          */}
+          <div className="surface flex max-h-[38rem] min-h-[30rem] flex-col overflow-hidden">
+            <div className="flex items-center gap-2.5 border-b border-gray-100 px-5 py-3.5 dark:border-gray-700">
+              <ChatBubbleLeftRightIcon className="h-4 w-4 text-gray-400" />
+              <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Conversation</h3>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {(() => {
+                  const n = ticket.comments?.filter(
+                    (c: any) => !c.isSystem && !c.comment?.startsWith('Rejected: '),
+                  ).length ?? 0
+                  return `${n} ${n === 1 ? 'reply' : 'replies'}`
+                })()}
+              </span>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar">
-              {ticket.comments?.map((comment: any) => (
+            <div className="custom-scrollbar min-h-0 flex-1 space-y-5 overflow-y-auto p-5">
+              {/* The request, as the first message. */}
+              <div ref={commentsTopRef} className="flex items-start gap-3">
+                <Avatar src={ticket.requester?.avatar} name={ticket.requester?.name} size="sm" rounded="full" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {ticket.requester?.name}
+                    <span className="ml-2 text-xs font-normal text-gray-500 dark:text-gray-400">opened this</span>
+                  </p>
+                  {isEditing ? (
+                    <textarea
+                      value={editData.description}
+                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                      rows={5}
+                      className="input-field mt-1.5 resize-none"
+                      placeholder="What do you need, and by when?"
+                    />
+                  ) : (
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+                      {ticket.description || (
+                        <span className="italic text-gray-500 dark:text-gray-400">No description was given.</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {ticket.comments?.filter((c: any) => !c.comment?.startsWith('Rejected: ')).map((comment: any) => (
                 comment.isSystem ? (
                   <div key={comment.id} className="flex justify-center my-6">
                     <div className="bg-gray-100/50 dark:bg-gray-900/40 backdrop-blur-sm border border-gray-200/50 px-5 py-3 rounded-xl shadow-sm animate-in zoom-in duration-500 max-w-[90%]">
@@ -935,12 +955,6 @@ const TicketDetailPage: React.FC = () => {
                   </motion.div>
                 )
               ))}
-              {ticket.comments?.length === 0 && (
-                <div className="py-20 text-center opacity-30">
-                  <ChatBubbleLeftRightIcon className="h-16 w-16 mx-auto text-gray-200" />
-                  <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-[0.3em] mt-4">No communication localized in this thread</p>
-                </div>
-              )}
               <div ref={commentsEndRef} />
             </div>
 
@@ -948,14 +962,14 @@ const TicketDetailPage: React.FC = () => {
             {(ticket.status === 'RESOLVED' || ticket.status === 'CANCELLED') ? (
               <div className="p-8 bg-gray-100/50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700 flex items-center justify-center">
                 <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-[0.3em]">
-                  Intelligence Feed Archived · Ticket {ticket.status === 'RESOLVED' ? 'Finalized' : 'Terminated'}
+                  This ticket is {ticket.status === 'RESOLVED' ? 'resolved' : 'closed'}, so the conversation is closed too.
                 </p>
               </div>
             ) : (
               <div className="p-8 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-100 dark:border-gray-700 relative">
                 {showMentions && filteredUsers.length > 0 && (
                   <div className="absolute bottom-full left-8 mb-4 w-72 surface border border-gray-100 dark:border-gray-700 overflow-hidden z-20">
-                    <div className="bg-gray-50/80 dark:bg-gray-900/40 px-4 py-2 text-xs font-semibold text-gray-400 border-b border-gray-100 dark:border-gray-700 tracking-wide">Target Selection</div>
+                    <div className="bg-gray-50/80 dark:bg-gray-900/40 px-4 py-2 text-xs font-semibold text-gray-400 border-b border-gray-100 dark:border-gray-700 tracking-wide">Choose someone</div>
                     {filteredUsers.map(u => (
                       <button
                         key={u.id}

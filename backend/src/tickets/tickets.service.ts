@@ -284,11 +284,24 @@ export class TicketsService {
       }
     });
 
-    // Strategy Center: Generate Initialization Briefing
-    const summary = `Ticket Initialization: ${ticket.ticketNumber} established.
-    PRIORITY: ${data.priority || 'MEDIUM'}
-    LOGISTICAL TARGET: ${receiverDept?.name || 'Unassigned'}
-    CONTEXT: ${data.title}`;
+    /**
+     * The first line of the thread, in a sentence.
+     *
+     * This was four lines of shouted labels, "Ticket Initialization: TKT-1003
+     * established. PRIORITY: URGENT. LOGISTICAL TARGET: IT. CONTEXT: test", repeating
+     * the title and the department that the page already shows twice above it. A
+     * system line should say the one thing the page does not: what was asked for and
+     * how urgently. The timestamp beside it already says when.
+     */
+    const priority = (data.priority || 'MEDIUM').toLowerCase();
+    // The category is already a noun phrase a department chose, and half of them end
+    // in "request", so wrapping it in "a … request" produced "a general request
+    // request". Quoted and left as written instead. Trimmed to match what is stored,
+    // or a category of spaces persists as null and still reads as though it were set.
+    const category = data.category?.trim();
+    const summary = category
+      ? `Raised for ${receiverDept?.name ?? 'the team'} as "${category}", ${priority} priority.`
+      : `Raised for ${receiverDept?.name ?? 'the team'}, ${priority} priority.`;
     await this.addSystemComment(ticket.id, userId, summary, companyId);
 
     // Notify for tactical authorizations if required
