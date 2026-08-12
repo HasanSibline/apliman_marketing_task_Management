@@ -50,7 +50,7 @@ export class ChatService {
   async getNudge(userId: string): Promise<{ text: string; tone: 'urgent' | 'info' | 'praise' } | null> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { name: true, companyId: true },
+      select: { companyId: true, departmentId: true, role: true, isTicketApprover: true },
     });
     if (!user?.companyId) return null;
 
@@ -58,62 +58,209 @@ export class ChatService {
     const endOfToday = new Date(now);
     endOfToday.setHours(23, 59, 59, 999);
     const weekAgo = new Date(now.getTime() - 7 * 86_400_000);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const open = { phase: { notIn: ['COMPLETED', 'ARCHIVED'] as any }, completedAt: null };
+    /**
+     * Mine, in the sense of work I owe.
+     *
+     * assignedToId alone was wrong: the app has assigned tasks to several people
+     * through TaskAssignment for a long time, and the scalar is only still written
+     * for backward compatibility. Anyone assigned the modern way was invisible here,
+     * so the bot cheerfully reported a clear board to people who had a full one.
+     *
+     * createdById is deliberately not included, though the tasks list does include
+     * it. Raising a task is not owing it, and a reminder about someone else's work
+     * is noise wearing the costume of a reminder.
+     */
+    const mine = {
+      OR: [{ assignedToId: userId }, { assignments: { some: { userId } } }],
+    };
 
-    const [overdue, dueToday, doneThisWeek, openTickets, unscheduled] = await Promise.all([
+    /** Not finished, by the same three-part rule the rest of the app uses. */
+    const open = {
+      completedAt: null,
+      phase: { notIn: ['COMPLETED', 'ARCHIVED'] as any },
+      NOT: { currentPhase: { isEndPhase: true } },
+    };
+
+    /** Tickets are the same story: assigneeId is marked deprecated in the schema. */
+    const mineTicket = {
+      OR: [{ assigneeId: userId }, { assignments: { some: { userId } } }],
+    };
+
+    const [
+      overdue,
+      dueToday,
+      doneThisWeek,
+      openTickets,
+      awaitingMyDecision,
+      myRequestsAnswered,
+      finishedThisMonth,
+    ] = await Promise.all([
+      // Counted and sampled separately. Taking a couple of rows and reporting how
+      // many came back caps the number at whatever the limit was, so someone with
+      // nine tasks due today is told there are two.
+      Promise.all([
+        this.prisma.task.count({ where: { ...mine, ...open, dueDate: { lt: now } } }),
+        this.prisma.task.findFirst({
+          where: { ...mine, ...open, dueDate: { lt: now } },
+          select: { taskNumber: true, dueDate: true },
+          orderBy: { dueDate: 'asc' },
+        }),
+      ]),
+      Promise.all([
+        this.prisma.task.count({
+          where: { ...mine, ...open, dueDate: { gte: now, lte: endOfToday } },
+        }),
+        this.prisma.task.findFirst({
+          where: { ...mine, ...open, dueDate: { gte: now, lte: endOfToday } },
+          select: { taskNumber: true },
+          orderBy: { dueDate: 'asc' },
+        }),
+      ]),
       this.prisma.task.count({
-        where: { assignedToId: userId, ...open, dueDate: { lt: now } },
+        where: { ...mine, completedAt: { gte: weekAgo } },
       }),
-      this.prisma.task.count({
-        where: { assignedToId: userId, ...open, dueDate: { gte: now, lte: endOfToday } },
-      }),
-      this.prisma.task.count({
-        where: { assignedToId: userId, completedAt: { gte: weekAgo } },
-      }),
+      Promise.all([
+        this.prisma.ticket.count({
+          where: { ...mineTicket, status: { in: ['ASSIGNED', 'IN_PROGRESS'] as any } },
+        }),
+        this.prisma.ticket.findFirst({
+          where: { ...mineTicket, status: { in: ['ASSIGNED', 'IN_PROGRESS'] as any } },
+          select: { ticketNumber: true },
+          orderBy: { createdAt: 'asc' },
+        }),
+      ]),
+      // Waiting on me specifically, either because I am the named manager for it or
+      // because I am the department's approver and it has reached my desk.
       this.prisma.ticket.count({
-        where: { assigneeId: userId, status: { notIn: ['CLOSED', 'RESOLVED'] as any } },
-      }).catch(() => 0),
-      this.prisma.task.count({
-        where: { assignedToId: userId, ...open, quarterId: null },
+        where: {
+          status: 'PENDING_REC_MGR' as any,
+          OR: [
+            { receiverManagerId: userId },
+            ...(user.isTicketApprover && user.departmentId
+              ? [{ receiverDeptId: user.departmentId }]
+              : []),
+          ],
+        },
+      }),
+      // Something I asked another department for, now moving.
+      this.prisma.ticket.count({
+        where: {
+          requesterId: userId,
+          status: { in: ['ASSIGNED', 'IN_PROGRESS'] as any },
+          updatedAt: { gte: weekAgo },
+        },
+      }),
+      // Compared in JS rather than SQL. Asking the database whether one column is
+      // later than another needs a field reference, which is a moving target across
+      // Prisma versions; this is one person's month, so the rows are few and the
+      // comparison is unambiguous.
+      this.prisma.task.findMany({
+        where: { ...mine, completedAt: { gte: monthStart } },
+        select: { completedAt: true, dueDate: true },
       }),
     ]);
 
     const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
 
-    if (overdue > 0) {
+    const [overdueCount, firstOverdue] = overdue;
+    const [dueTodayCount, firstDueToday] = dueToday;
+    const [openTicketCount, firstOpenTicket] = openTickets;
+
+    /**
+     * One item gets named, several get counted.
+     *
+     * Named by number rather than title: TSK-1003 is what the task is called in the
+     * list, on the card and in the URL, so it is the thing you can act on. A title
+     * is prose, it is often long enough to wrap the bubble twice, and two tasks can
+     * share one.
+     *
+     * taskNumber is nullable, though. Tasks promoted from a subtask never get one, so
+     * a single task without a number falls back to naming its kind rather than
+     * printing "null is due today".
+     */
+    if (overdueCount > 0) {
+      const id = firstOverdue?.taskNumber;
+      const days = firstOverdue?.dueDate
+        ? Math.floor((now.getTime() - firstOverdue.dueDate.getTime()) / 86_400_000)
+        : 0;
+      let text: string;
+      if (overdueCount > 1) {
+        text = `${overdueCount} tasks are past due.`;
+      } else if (id) {
+        text = days >= 1 ? `${id} is ${days} ${plural(days, 'day', 'days')} past due.` : `${id} is past due.`;
+      } else {
+        text = 'One task is past due.';
+      }
+      return { tone: 'urgent', text };
+    }
+
+    if (awaitingMyDecision > 0) {
       return {
         tone: 'urgent',
-        text: `${overdue} ${plural(overdue, 'task is', 'tasks are')} past due.`,
+        text: `${awaitingMyDecision} ${plural(awaitingMyDecision, 'ticket is', 'tickets are')} waiting on your decision.`,
       };
     }
 
-    if (dueToday > 0) {
+    if (dueTodayCount > 0) {
+      const id = firstDueToday?.taskNumber;
       return {
         tone: 'info',
-        text: `${dueToday} ${plural(dueToday, 'task is', 'tasks are')} due today.`,
+        text:
+          dueTodayCount > 1
+            ? `${dueTodayCount} tasks are due today.`
+            : id
+              ? `${id} is due today.`
+              : 'One task is due today.',
       };
     }
 
-    if (openTickets > 0) {
+    if (openTicketCount > 0) {
+      const id = firstOpenTicket?.ticketNumber;
       return {
         tone: 'info',
-        text: `${openTickets} open ${plural(openTickets, 'ticket needs', 'tickets need')} you.`,
+        text:
+          openTicketCount > 1
+            ? `${openTicketCount} tickets are assigned to you.`
+            : id
+              ? `${id} is assigned to you.`
+              : 'One ticket is assigned to you.',
+      };
+    }
+
+    // Analytics, and the only line here that is a rate rather than a count. Measured
+    // over tasks that actually had a deadline, because one finished without a due
+    // date is neither on time nor late, and counting it as either is a made-up
+    // number. Said only once there is enough of a month behind it to mean something.
+    const dated = finishedThisMonth.filter((t) => t.dueDate && t.completedAt);
+    if (dated.length >= 4) {
+      // On time means "on or before the day it was due", not "before midnight that
+      // morning". Due dates come from a date input, so they arrive as midnight, and a
+      // straight <= comparison marks everything finished during its own due date as
+      // late: someone who has never missed a deadline would be shown 0% on time.
+      const onTime = dated.filter(
+        (t) => t.completedAt!.getTime() < t.dueDate!.getTime() + 86_400_000,
+      ).length;
+      const rate = Math.round((onTime / dated.length) * 100);
+      if (rate === 100) {
+        return { tone: 'praise', text: `All ${dated.length} tasks this month landed on time.` };
+      }
+      if (rate >= 80) {
+        return { tone: 'praise', text: `${rate}% of your tasks landed on time this month.` };
+      }
+      return { tone: 'info', text: `${rate}% on time this month, across ${dated.length} tasks.` };
+    }
+
+    if (myRequestsAnswered > 0) {
+      return {
+        tone: 'info',
+        text: `${myRequestsAnswered} of your ${plural(myRequestsAnswered, 'request', 'requests')} moved this week.`,
       };
     }
 
     if (doneThisWeek >= 3) {
-      return {
-        tone: 'praise',
-        text: `${doneThisWeek} tasks finished this week. Nice run.`,
-      };
-    }
-
-    if (unscheduled > 0) {
-      return {
-        tone: 'info',
-        text: `${unscheduled} ${plural(unscheduled, 'task is', 'tasks are')} not in a quarter yet.`,
-      };
+      return { tone: 'praise', text: `${doneThisWeek} tasks finished this week. Nice run.` };
     }
 
     // Nothing needs attention and nothing to celebrate. Saying nothing is better than

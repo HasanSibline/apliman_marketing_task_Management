@@ -22,6 +22,8 @@ import AuraBot from './AuraBot'
 const FIRST_NUDGE_MS = 12_000
 const NUDGE_INTERVAL_MS = 3 * 60_000
 const NUDGE_VISIBLE_MS = 11_000
+/** Matches the wave's own duration in AuraBot, so the bubble lands as the arm drops. */
+const WAVE_MS = 1_500
 
 /**
  * The sneak, roughly every half minute.
@@ -54,28 +56,78 @@ export default function FloatingChatButton() {
 
   const [peeking, setPeeking] = useState(false)
   const [ouch, setOuch] = useState(false)
+  const [waving, setWaving] = useState(false)
 
   const controls = useAnimationControls()
   const reduced = useReducedMotion()
 
   const hideTimer = useRef<ReturnType<typeof setTimeout>>()
   const ouchTimer = useRef<ReturnType<typeof setTimeout>>()
+  const waveTimer = useRef<ReturnType<typeof setTimeout>>()
+  /** Settles the wave's promise when the timer is cleared instead of allowed to run. */
+  const waveEnd = useRef<(() => void) | null>(null)
   /** Bumped to abandon a sequence in flight, so an interrupted peek cannot resume. */
   const run = useRef(0)
 
+  /**
+   * The state fetchNudge reads part-way through, mirrored into refs.
+   *
+   * Not dependencies. fetchNudge drives the interval that schedules it, so naming
+   * peeking or ouch as a dependency rebuilds that interval every time the robot
+   * peeks, which is more often than the interval itself: the three-minute timer
+   * would be torn down and restarted every thirty seconds and never once fire.
+   *
+   * They also have to be read after the await rather than before, since a wave takes
+   * a second and a half and the chat can be opened inside it. A captured value would
+   * be the one from before the fetch, which is by definition the state that let the
+   * nudge start.
+   */
+  const live = useRef({ isChatOpen, peeking, ouch, reduced })
+  live.current = { isChatOpen, peeking, ouch, reduced }
+
   // ── Nudges ────────────────────────────────────────────────────────────────
   const fetchNudge = useCallback(async () => {
-    if (silenced || isChatOpen || document.hidden) return
+    if (silenced || live.current.isChatOpen || document.hidden) return
     try {
       const { data } = await api.get('/chat/nudge', { timeout: 8000 })
       if (!data?.text) return
+
+      // Wave first, speak second.
+      //
+      // A bubble appearing beside a motionless robot is a notification that happens
+      // to be shaped like a character. The wave is what makes it the character
+      // speaking: it catches the eye where the words will be, and by the time they
+      // arrive you are already looking at the right corner of the screen.
+      //
+      // Skipped mid-peek, because the arm is behind the window edge and would be
+      // waving at nobody, and skipped under reduced motion, where the bubble simply
+      // arrives.
+      const { peeking: away, ouch: hurt, reduced: still } = live.current
+      if (!still && !away && !hurt) {
+        setWaving(true)
+        clearTimeout(waveTimer.current)
+        // Resolves either when the wave finishes or when the component tears the
+        // timer down. Settling on teardown matters: a promise that is only resolved
+        // by the timer leaves this function suspended forever if the timer is
+        // cleared, and waving never returns to false.
+        await new Promise<void>((resolve) => {
+          waveTimer.current = setTimeout(resolve, WAVE_MS)
+          waveEnd.current = resolve
+        })
+        waveEnd.current = null
+        setWaving(false)
+      }
+
+      // Read again, not captured: the chat may have been opened during the wave.
+      if (live.current.isChatOpen || document.hidden) return
+
       setNudge(data)
       clearTimeout(hideTimer.current)
       hideTimer.current = setTimeout(() => setNudge(null), NUDGE_VISIBLE_MS)
     } catch {
       // A greeting is not worth reporting a failure over.
     }
-  }, [silenced, isChatOpen])
+  }, [silenced])
 
   useEffect(() => {
     const first = setTimeout(fetchNudge, FIRST_NUDGE_MS)
@@ -84,11 +136,17 @@ export default function FloatingChatButton() {
       clearTimeout(first)
       clearInterval(repeat)
       clearTimeout(hideTimer.current)
+      clearTimeout(waveTimer.current)
+      waveEnd.current?.()
+      waveEnd.current = null
     }
   }, [fetchNudge])
 
   useEffect(() => {
-    if (isChatOpen) setNudge(null)
+    if (isChatOpen) {
+      setNudge(null)
+      setWaving(false)
+    }
   }, [isChatOpen])
 
   // ── Coming home ───────────────────────────────────────────────────────────
@@ -261,6 +319,7 @@ export default function FloatingChatButton() {
                 <AuraBot
                   className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]"
                   eyes={peeking ? 'burst' : 'auto'}
+                  waving={waving}
                 />
               </motion.span>
             </motion.button>

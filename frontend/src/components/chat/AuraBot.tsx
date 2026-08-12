@@ -32,6 +32,12 @@ interface Props {
    * tic and has to be deliberate enough to read as one.
    */
   eyes?: 'auto' | 'burst'
+  /**
+   * One raised hand, swung twice, then back down. Used to introduce a nudge: the
+   * bubble arriving on its own is a notification, whereas being waved at first is
+   * someone getting your attention before they say something, which is what this is.
+   */
+  waving?: boolean
 }
 
 const AuraBot: React.FC<Props> = ({
@@ -39,6 +45,7 @@ const AuraBot: React.FC<Props> = ({
   thinking = false,
   alive = true,
   eyes = 'auto',
+  waving = false,
 }) => {
   // Gradient ids are document-global; two bots would otherwise share whichever
   // definition rendered first.
@@ -76,6 +83,28 @@ const AuraBot: React.FC<Props> = ({
   }
 
   const eye = still || thinking ? {} : eyes === 'burst' ? burstBlink : idleBlink
+
+  /**
+   * The wave. One arm only, because both is a robot doing jumping jacks.
+   *
+   * It lifts, swings twice from the shoulder, and lowers. The lift and the drop take
+   * longer than the swings between them: an arm has weight, and a hand that snaps to
+   * the top of its arc and snaps back reads as a sprite flipping between two frames.
+   *
+   * Rotated about the shoulder rather than the arm's own centre, or it would pivot
+   * around its middle and read as a spinning pill instead of a limb.
+   */
+  const wave =
+    still || !waving
+      ? {}
+      : {
+          animate: { rotate: [0, -62, -48, -70, -48, -62, 0] },
+          transition: {
+            duration: 1.5,
+            times: [0, 0.22, 0.38, 0.52, 0.66, 0.8, 1],
+            ease: 'easeInOut' as const,
+          },
+        }
 
   // A slow rise and fall. Small enough to be felt rather than watched.
   const breathe = still
@@ -139,7 +168,15 @@ const AuraBot: React.FC<Props> = ({
       <motion.g {...breathe}>
         {/* Arms, behind the body so no join is ever visible. */}
         <ellipse cx="11.5" cy="45" rx="4.3" ry="6.2" fill={`url(#${shell})`} transform="rotate(-20 11.5 45)" />
-        <ellipse cx="52.5" cy="45" rx="4.3" ry="6.2" fill={`url(#${shell})`} transform="rotate(20 52.5 45)" />
+        {/* The waving arm. Its own group so the swing pivots at the shoulder, up at
+            the top of the arm, rather than at the ellipse's centre. */}
+        {/* originX/originY, not style.transformOrigin: framer-motion recomputes an
+            SVG element's transform-origin from its bounding box whenever it animates
+            a transform, and writes that over anything set in style. The head group
+            below sets its pivot the same way for the same reason. */}
+        <motion.g {...wave} style={{ originX: '52.5px', originY: '40px' }}>
+          <ellipse cx="52.5" cy="45" rx="4.3" ry="6.2" fill={`url(#${shell})`} transform="rotate(20 52.5 45)" />
+        </motion.g>
 
         {/* Body. Wide and low, so the head has something to sit on at any size. */}
         <path
