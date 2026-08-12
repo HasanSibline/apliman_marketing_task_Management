@@ -8,6 +8,7 @@ const TeamsManagement: React.FC = () => {
   const [teams, setTeams] = useState<any[]>([])
   const [availableUsers, setAvailableUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newTeamName, setNewTeamName] = useState('')
   const [selectedUserIds, setSelectedUserIds] = useState<string[]>([])
@@ -19,14 +20,25 @@ const TeamsManagement: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [teamsRes, usersRes] = await Promise.all([
+      // allSettled: the member picker failing is no reason to claim this company
+      // has no teams. Each list stands or falls on its own request.
+      const [teamsRes, usersRes] = await Promise.allSettled([
         api.get('/teams'),
         api.get('/users')
       ])
-      setTeams(teamsRes.data)
-      setAvailableUsers(usersRes.data)
+
+      if (teamsRes.status === 'fulfilled') {
+        setTeams(teamsRes.value.data ?? [])
+        setLoadFailed(false)
+      } else {
+        setLoadFailed(true)
+        toast.error('Could not load teams')
+      }
+
+      if (usersRes.status === 'fulfilled') setAvailableUsers(usersRes.value.data ?? [])
     } catch (error) {
-      toast.error('Failed to fetch teams data')
+      setLoadFailed(true)
+      toast.error('Could not load teams')
     } finally {
       setIsLoading(false)
     }
@@ -86,7 +98,14 @@ const TeamsManagement: React.FC = () => {
       {/* An empty list and a failed request rendered identically: both showed
           nothing at all, so "none created yet" was indistinguishable from "the
           request failed", and the only clue was a toast that had already gone. */}
-      {teams.length === 0 ? (
+      {loadFailed ? (
+        <div className="surface px-6 py-12 text-center">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Could not load teams</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+            Nothing is missing, we just could not reach the server. Try again in a moment.
+          </p>
+        </div>
+      ) : teams.length === 0 ? (
         <div className="surface px-6 py-12 text-center">
           <p className="text-sm font-medium text-gray-900 dark:text-white">No teams yet</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">

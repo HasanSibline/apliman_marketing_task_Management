@@ -49,43 +49,63 @@ export class TicketsService {
    */
   async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string, statusType?: string, limit?: number) {
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
-    const take = Math.min(Math.max(limit ?? 10, 1), 200);
-    const skip = (page - 1) * take;
+    // A page number or limit that does not parse arrives as NaN, and NaN survives
+    // both ?? and Math.min/max, so it reached Prisma as take: NaN and threw a 500.
+    const safeLimit = Number.isFinite(limit) ? Number(limit) : 10;
+    const safePage = Number.isFinite(page) && page > 0 ? Number(page) : 1;
+    const take = Math.min(Math.max(safeLimit, 1), 200);
+    const skip = (safePage - 1) * take;
 
     const historyStatuses: TicketStatus[] = [TicketStatus.RESOLVED, TicketStatus.CANCELLED];
 
-    const where: any = {
-      companyId,
-      ...(isAdmin ? {} : {
+    /**
+     * Every clause is its own entry in an AND.
+     *
+     * These were spread as sibling keys on one object, and three of them were called
+     * OR, so the last one written silently replaced the ones before it. The
+     * permission clause is first, so searching or filtering by department overwrote
+     * it: an employee who typed anything into the search box was shown every matching
+     * ticket in the company, including ones they have no part in. It read as a filter
+     * and behaved as a way around the filter that mattered.
+     */
+    const clauses: any[] = [{ companyId }];
+
+    if (!isAdmin) {
+      clauses.push({
         OR: [
           { requesterId: userId },
           { requesterManagerId: userId },
           { receiverManagerId: userId },
           { assigneeId: userId },
           { assignments: { some: { userId } } },
-          { receiverDept: { managerId: userId } }
-        ]
-      }),
-      ...(statusType === 'ALL'
-        ? {}
-        : statusType === 'HISTORY'
-          ? { status: { in: historyStatuses } }
-          : { status: { notIn: historyStatuses } }
-      ),
-      ...(departmentId && {
-        OR: [
-          { requester: { departmentId } },
-          { receiverDeptId: departmentId },
+          { receiverDept: { managerId: userId } },
         ],
-      }),
-      ...(search && {
+      });
+    }
+
+    if (statusType === 'HISTORY') {
+      clauses.push({ status: { in: historyStatuses } });
+    } else if (statusType !== 'ALL') {
+      clauses.push({ status: { notIn: historyStatuses } });
+    }
+
+    if (departmentId) {
+      clauses.push({
+        OR: [{ requester: { departmentId } }, { receiverDeptId: departmentId }],
+      });
+    }
+
+    if (search) {
+      clauses.push({
         OR: [
           { title: { contains: search, mode: 'insensitive' as any } },
           { ticketNumber: { contains: search, mode: 'insensitive' as any } },
-          { requester: { name: { contains: search, mode: 'insensitive' as any } } }
-        ]
-      })
-    };
+          { requester: { name: { contains: search, mode: 'insensitive' as any } } },
+        ],
+      });
+    }
+
+    const where: any = { AND: clauses };
 
     const [tickets, total] = await Promise.all([
       this.prisma.ticket.findMany({

@@ -29,11 +29,11 @@ export class TicketsController {
       req.user.companyId, 
       req.user.id, 
       req.user.role, 
-      parseInt(page),
+      Number.parseInt(page, 10),
       departmentId,
       search,
       statusType,
-      limit ? parseInt(limit) : undefined
+      limit ? Number.parseInt(limit, 10) : undefined
     );
   }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { 
   PlusIcon, 
   TicketIcon, 
@@ -69,7 +69,20 @@ const TicketsPage: React.FC = () => {
     fetchData()
   }, [page, activeTab, debouncedSearch])
 
+  /**
+   * Only the newest request may write to the list.
+   *
+   * Debouncing alone did not close the race. Typing also resets the page, and that
+   * state change fires its own fetch immediately, 300ms ahead of the debounced one,
+   * carrying the *previous* search term. Whichever answers last wins, so the list
+   * could end up showing unfiltered results under a filled-in search box. Stamping
+   * each request and ignoring stale answers is what actually fixes it; the debounce
+   * just stops us making eight of them.
+   */
+  const requestId = useRef(0)
+
   const fetchData = async () => {
+    const mine = ++requestId.current
     setIsLoading(true)
     try {
       const ticketsRes = await api.get('/tickets', { 
@@ -80,12 +93,14 @@ const TicketsPage: React.FC = () => {
           limit: PAGE_SIZE,
         } 
       })
+      if (mine !== requestId.current) return
       setTickets(ticketsRes.data.tickets || [])
       setTotal(ticketsRes.data.total || 0)
     } catch (error) {
+      if (mine !== requestId.current) return
       toast.error('Could not load tickets')
     } finally {
-      setIsLoading(false)
+      if (mine === requestId.current) setIsLoading(false)
     }
   }
 

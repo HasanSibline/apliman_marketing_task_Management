@@ -12,6 +12,7 @@ const DepartmentsManagement: React.FC = () => {
   const { users: availableUsers } = useAppSelector((state) => state.users)
   const [departments, setDepartments] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [loadFailed, setLoadFailed] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newDeptName, setNewDeptName] = useState('')
   const [selectedManagerId, setSelectedManagerId] = useState('')
@@ -35,13 +36,24 @@ const DepartmentsManagement: React.FC = () => {
   const fetchData = async () => {
     setIsLoading(true)
     try {
-      const [deptsRes] = await Promise.all([
+      // allSettled: the users thunk failing is no reason to claim this company has
+      // no departments, which invites someone to create a duplicate of one that is
+      // sitting there perfectly fine.
+      const [deptsRes] = await Promise.allSettled([
         api.get('/departments'),
         dispatch(fetchUsers({})).unwrap()
       ])
-      setDepartments(deptsRes.data)
+
+      if (deptsRes.status === 'fulfilled') {
+        setDepartments(deptsRes.value.data ?? [])
+        setLoadFailed(false)
+      } else {
+        setLoadFailed(true)
+        toast.error('Could not load departments')
+      }
     } catch (error) {
-      toast.error('Failed to fetch departments data')
+      setLoadFailed(true)
+      toast.error('Could not load departments')
     } finally {
       setIsLoading(false)
     }
@@ -102,7 +114,14 @@ const DepartmentsManagement: React.FC = () => {
       {/* An empty list and a failed request rendered identically: both showed
           nothing at all, so "none created yet" was indistinguishable from "the
           request failed", and the only clue was a toast that had already gone. */}
-      {departments.length === 0 ? (
+      {loadFailed ? (
+        <div className="surface px-6 py-12 text-center">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">Could not load departments</p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+            Nothing is missing, we just could not reach the server. Try again in a moment.
+          </p>
+        </div>
+      ) : departments.length === 0 ? (
         <div className="surface px-6 py-12 text-center">
           <p className="text-sm font-medium text-gray-900 dark:text-white">No departments yet</p>
           <p className="mx-auto mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
