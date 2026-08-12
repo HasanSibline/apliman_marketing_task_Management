@@ -257,10 +257,53 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
     setPhaseFilter('')
   }
 
+  /**
+   * The parts that do not depend on the data, rendered in every state.
+   *
+   * The skeleton drew four stat cards and four charts and nothing above them, while
+   * the loaded page opens with a title, two export buttons and the filter bar. So
+   * everything shifted down by about a hundred and fifty pixels the moment the data
+   * arrived, which is the jump you feel rather than see.
+   *
+   * Drawing a grey rectangle the same height would have hidden it. Keeping the real
+   * thing mounted removes it, and has the better side effect: the filters stay usable
+   * while the data they filter is loading, instead of vanishing for the second you
+   * would want to change them.
+   */
+  const chrome = (
+    <>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="section-title">Company overview</h2>
+        <div className="flex gap-2">
+          <button onClick={handleExportExcel} className="btn-secondary">
+            <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+            Excel
+          </button>
+          <button onClick={handleExportPDF} className="btn-secondary">
+            <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+            PDF
+          </button>
+        </div>
+      </div>
+
+      <AnalyticsFilters
+        dateRange={dateRange}
+        onDateRangeChange={setDateRange}
+        workflowFilter={workflowFilter}
+        onWorkflowChange={setWorkflowFilter}
+        phaseFilter={phaseFilter}
+        onPhaseChange={setPhaseFilter}
+        workflows={workflows}
+        phases={phases}
+        onClearFilters={clearFilters}
+      />
+    </>
+  )
+
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Loading skeleton */}
+        {chrome}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="surface p-6 animate-pulse">
@@ -288,11 +331,20 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
 
   if (!dashboardData) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <DocumentChartBarIcon className="h-16 w-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Analytics Data</h3>
-          <p className="text-gray-500 dark:text-gray-400">Analytics data will appear here once you have tasks.</p>
+      <div className="space-y-6">
+        {/* The filters stay here too. A filter combination that matches nothing is
+            the commonest way to reach this screen, and removing the controls that
+            caused it leaves the only way out as a page reload. */}
+        {chrome}
+
+        <div className="surface flex min-h-[320px] items-center justify-center">
+          <div className="p-8 text-center">
+            <DocumentChartBarIcon className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Nothing to show</h3>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              No tasks match these filters. Widen the date range, or clear the filters to see everything.
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -300,39 +352,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
 
   return (
     <div className="space-y-6">
-      {/* Export Buttons */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Admin Analytics Dashboard</h2>
-        <div className="flex gap-3">
-          <button
-            onClick={handleExportExcel}
-            className="flex items-center gap-2 px-4 py-2 bg-success-600 text-white rounded-lg hover:bg-success-700 transition-colors shadow-sm font-medium"
-          >
-            <ArrowDownTrayIcon className="h-5 w-5" />
-            Export Excel
-          </button>
-          <button
-            onClick={handleExportPDF}
-            className="flex items-center gap-2 px-4 py-2 bg-error-600 text-white rounded-lg hover:bg-error-700 transition-colors shadow-sm font-medium"
-          >
-            <ArrowDownTrayIcon className="h-5 w-5" />
-            Export PDF
-          </button>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <AnalyticsFilters
-        dateRange={dateRange}
-        onDateRangeChange={setDateRange}
-        workflowFilter={workflowFilter}
-        onWorkflowChange={setWorkflowFilter}
-        phaseFilter={phaseFilter}
-        onPhaseChange={setPhaseFilter}
-        workflows={workflows}
-        phases={phases}
-        onClearFilters={clearFilters}
-      />
+      {chrome}
 
       {/* Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

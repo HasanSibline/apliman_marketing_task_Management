@@ -108,13 +108,33 @@ const IdleTimeout: React.FC = () => {
     }
   }, [dispatch, navigate, signInPath])
 
+  /**
+   * Signing in is activity, and so is opening the app.
+   *
+   * The clock used to be seeded from whatever timestamp the last session left in
+   * storage. Anyone returning after more than the idle limit, which is to say anyone
+   * returning the next morning, was judged to have been idle since yesterday and
+   * signed out about a second after signing in. The stored value describes a session
+   * that has ended; it says nothing about this one.
+   *
+   * Keyed on the authentication flag alone, so it stamps once when a session begins
+   * and never again: making it depend on anything that changes during the session
+   * would reset the timer continuously and there would be no timeout at all.
+   */
+  useEffect(() => {
+    if (!isAuthenticated) return
+    const now = Date.now()
+    lastActive.current = now
+    lastWrite.current = now
+    writeLastActive(now)
+    ending.current = false
+  }, [isAuthenticated])
+
   useEffect(() => {
     if (!isAuthenticated) {
       ending.current = false
       return
     }
-
-    lastActive.current = readLastActive()
 
     const touch = () => {
       // While the warning is up only the button counts, or someone walking past the

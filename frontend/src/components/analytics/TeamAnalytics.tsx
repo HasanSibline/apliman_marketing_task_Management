@@ -116,9 +116,26 @@ const TeamAnalytics: React.FC = () => {
     }
   }
 
+  /** Rendered in every state, so the page does not shift when the data lands. */
+  const chrome = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h2 className="section-title">Team analytics</h2>
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          How the team is doing, and where the work is sitting.
+        </p>
+      </div>
+      <button onClick={handleExportTeamReport} className="btn-secondary">
+        <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
+        Export report
+      </button>
+    </div>
+  )
+
   if (isLoading) {
     return (
       <div className="space-y-6">
+        {chrome}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="surface p-6 animate-pulse">
@@ -164,20 +181,7 @@ const TeamAnalytics: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Team Analytics</h2>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Monitor team performance and collaboration</p>
-        </div>
-        <button
-          onClick={handleExportTeamReport}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm font-medium"
-        >
-          <ArrowDownTrayIcon className="h-5 w-5" />
-          Export Team Report
-        </button>
-      </div>
+      {chrome}
 
       {/* Team Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
