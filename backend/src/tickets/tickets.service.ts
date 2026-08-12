@@ -1,10 +1,12 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService
@@ -281,6 +283,79 @@ export class TicketsService {
     return ticket;
   }
 
+  /**
+   * Approve or decline several tickets, one at a time.
+   *
+   * Deliberately a loop over the single-ticket methods rather than one bulk query.
+   * Whether a person may approve a given ticket depends on that ticket, its stage and
+   * their relationship to it, and a bulk update written as a single `updateMany`
+   * would have to restate all of that in a where clause: a second copy of the rule
+   * that would drift from the first and quietly hand people the power to approve
+   * things they cannot approve one at a time. Going through the same method means
+   * there is only ever one rule.
+   *
+   * The cost is honesty about partial success. Selecting ten and being allowed six is
+   * normal, so each refusal is reported with the reason the single-ticket path gave,
+   * rather than the whole batch failing or, worse, appearing to succeed.
+   */
+  async bulkDecide(
+    ids: string[],
+    action: 'approve' | 'reject',
+    userId: string,
+    companyId: string,
+    reason?: string,
+  ) {
+    const done: string[] = [];
+    const skipped: { id: string; title: string; reason: string }[] = [];
+
+    // One light read for the labels. findOne pulls the whole comment thread and every
+    // attachment, and calling it per ticket alongside the one approve/reject already
+    // does was roughly a thousand queries for a hundred ids. It also applies no
+    // per-user access check when called without a requesting user, so it would have
+    // returned the number of a ticket the caller cannot see, in the reply that says
+    // why it was skipped.
+    const labels = new Map<string, string>();
+    const visible = await this.prisma.ticket.findMany({
+      where: { id: { in: ids }, companyId },
+      select: { id: true, ticketNumber: true },
+    });
+    for (const t of visible) labels.set(t.id, t.ticketNumber ?? t.id);
+
+    for (const id of ids.slice(0, 100)) {
+      // A ticket from another company is not described, only refused.
+      const title = labels.get(id) ?? 'That ticket';
+
+      try {
+        if (action === 'approve') {
+          await this.approve(id, userId, companyId);
+        } else {
+          await this.reject(id, userId, companyId, reason);
+        }
+        done.push(id);
+      } catch (error: any) {
+        // Only messages written for a reader are shown. A Prisma pool timeout or a
+        // constraint name is not an explanation, and putting one in a toast is how
+        // the database's own words end up in front of a person.
+        const speakable =
+          error instanceof BadRequestException ||
+          error instanceof ForbiddenException ||
+          error instanceof NotFoundException;
+
+        if (!speakable) {
+          this.logger.error(`Bulk ${action} failed for ${id}: ${error?.message}`);
+        }
+
+        skipped.push({
+          id,
+          title,
+          reason: speakable ? error.message : 'could not be updated',
+        });
+      }
+    }
+
+    return { done: done.length, skipped };
+  }
+
   async approve(id: string, userId: string, companyId: string) {
     const ticket = await this.findOne(id, companyId);
 
@@ -294,14 +369,31 @@ export class TicketsService {
   async reject(id: string, userId: string, companyId: string, reason?: string) {
     const ticket = await this.findOne(id, companyId) as any;
 
-    // Authorization check
-    let canReject = false;
-    if (ticket.status === TicketStatus.PENDING_REC_MGR && (ticket.receiverManagerId === userId || ticket.receiverDept?.managerId === userId)) {
-      canReject = true;
-    }
+    /**
+     * The same people who may approve may decline.
+     *
+     * This accepted only the receiver manager, while approving also accepts an admin
+     * and anyone marked a ticket approver. Saying yes and saying no to the same
+     * request are the same authority, and splitting them left an admin able to
+     * approve ten tickets and refused on all ten declines, which is not a stricter
+     * rule so much as an accident of two checks written separately.
+     */
+    const actor = await this.prisma.user.findUnique({ where: { id: userId } });
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(actor?.role || '');
+
+    const canReject =
+      ticket.status === TicketStatus.PENDING_REC_MGR &&
+      (isAdmin ||
+        actor?.isTicketApprover ||
+        ticket.receiverManagerId === userId ||
+        ticket.receiverDept?.managerId === userId);
 
     if (!canReject) {
-      throw new ForbiddenException('You do not have permission to reject this ticket');
+      throw new ForbiddenException(
+        ticket.status === TicketStatus.PENDING_REC_MGR
+          ? 'Only the receiving manager or a designated approver can decline this request'
+          : 'This request is not waiting for approval',
+      );
     }
 
     const comment = reason ? `Rejected: ${reason}` : 'Rejected';

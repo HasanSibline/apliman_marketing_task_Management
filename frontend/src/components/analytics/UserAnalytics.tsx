@@ -95,7 +95,7 @@ const UserAnalytics: React.FC = () => {
 
   const handleExportMyReport = async () => {
     try {
-      toast.loading('Generating your personal report...')
+      toast.loading(subjectName ? `Generating the report for ${subjectName}…` : 'Generating your report…')
       
       const data = userAnalytics
       const workbook = XLSX.utils.book_new()
@@ -125,7 +125,7 @@ const UserAnalytics: React.FC = () => {
       window.URL.revokeObjectURL(url)
       
       toast.dismiss()
-      toast.success('Your report has been downloaded!')
+      toast.success('Report downloaded')
     } catch (error) {
       toast.dismiss()
       toast.error('Failed to export report')
@@ -211,7 +211,9 @@ const UserAnalytics: React.FC = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="section-title">{subjectName ? `${subjectName}'s analytics` : 'My analytics'}</h2>
-          <p className="text-gray-600 dark:text-gray-300 mt-1">Track your personal performance and progress</p>
+          <p className="page-subtitle">
+            {subjectName ? `What ${subjectName} has been working on and how it is going.` : 'What you have been working on and how it is going.'}
+          </p>
         </div>
         <button
           onClick={handleExportMyReport}
@@ -269,7 +271,7 @@ const UserAnalytics: React.FC = () => {
         >
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">My Tasks</p>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-1">Tasks</p>
               <h3 className="text-3xl font-bold text-gray-900 dark:text-white">
                 {stats.totalAssignedTasks || 0}
               </h3>

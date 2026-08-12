@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query, BadRequestException } from '@nestjs/common';
 import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
@@ -45,6 +45,38 @@ export class TicketsController {
   @Post()
   create(@Body() createTicketDto: { title: string; description: string; receiverDeptId: string; isInternal?: boolean }, @Request() req) {
     return this.ticketsService.create(req.user.companyId, req.user.id, createTicketDto);
+  }
+
+  /**
+   * Declared before the parameterised routes below, so "bulk" is never read as an id.
+   */
+  @Post('bulk/decide')
+  bulkDecide(
+    @Body() body: { ids?: unknown; action?: unknown; reason?: unknown },
+    @Request() req,
+  ) {
+    // Coercing anything that is not "reject" into "approve" meant a missing field, a
+    // typo, or the word the UI itself says out loud, "decline", silently approved the
+    // whole batch. An action that is not one of the two is a mistake, not a default.
+    if (body?.action !== 'approve' && body?.action !== 'reject') {
+      throw new BadRequestException('action must be "approve" or "reject".');
+    }
+
+    // An inline body type means the global ValidationPipe has no class to check, so
+    // nothing here has been validated: a bare string would iterate character by
+    // character, and a non-array would throw inside the service.
+    const ids = Array.isArray(body?.ids) ? body.ids.filter((v): v is string => typeof v === 'string') : [];
+    if (ids.length === 0) {
+      throw new BadRequestException('ids must be a non-empty array of ticket ids.');
+    }
+
+    return this.ticketsService.bulkDecide(
+      ids,
+      body.action,
+      req.user.id,
+      req.user.companyId,
+      typeof body?.reason === 'string' ? body.reason : undefined,
+    );
   }
 
   @Patch(':id/approve')

@@ -7,13 +7,15 @@ import {
   ChatBubbleLeftRightIcon,
   ArrowRightIcon,
   TrashIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import api, { formatAssetUrl } from '@/services/api'
 import { useAppSelector } from '@/hooks/redux'
 import { toast } from 'react-hot-toast'
 import { useNavigate } from 'react-router-dom'
 import ActionModal from '@/components/ui/ActionModal'
+import { confirmDialog, promptDialog } from '@/components/ui/confirm'
 import CreateTicketModal from '@/components/tickets/CreateTicketModal'
 
 type TicketStatus = 'PENDING_REC_MGR' | 'OPEN' | 'ASSIGNED' | 'RESOLVED' | 'CANCELLED' | 'IN_PROGRESS'
@@ -37,6 +39,15 @@ const TicketsPage: React.FC = () => {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  /**
+   * Selection is cleared whenever the list changes.
+   *
+   * Ticking rows then paging or searching would otherwise act on tickets that are no
+   * longer visible, which is the one thing a bulk action must never do: nobody can
+   * check what they are about to approve if it is not on screen.
+   */
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE')
@@ -96,6 +107,7 @@ const TicketsPage: React.FC = () => {
       if (mine !== requestId.current) return
       setTickets(ticketsRes.data.tickets || [])
       setTotal(ticketsRes.data.total || 0)
+      setSelected(new Set())
     } catch (error) {
       if (mine !== requestId.current) return
       toast.error('Could not load tickets')
@@ -204,6 +216,76 @@ const TicketsPage: React.FC = () => {
       case 'RESOLVED': return <span className="status-badge bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300">Resolved</span>
       case 'CANCELLED': return <span className="status-badge bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300">Cancelled</span>
       default: return null
+    }
+  }
+
+  /**
+   * The same test the per-row approve and decline buttons use.
+   *
+   * Gating on status alone offered a checkbox and an Approve bar to a requester whose
+   * every id the server would refuse: a control that exists only to fail.
+   */
+  const canDecide = (t: any) =>
+    t.status === 'PENDING_REC_MGR' &&
+    (isAdmin || t.receiverManagerId === user?.id || t.receiverDept?.managerId === user?.id)
+
+  const decidable = tickets.filter(canDecide)
+  const selectedIds = [...selected].filter((id) => decidable.some((t) => t.id === id))
+
+  const toggle = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+
+  const decide = async (action: 'approve' | 'reject') => {
+    if (selectedIds.length === 0) return
+
+    let reason: string | undefined
+    if (action === 'reject') {
+      const given = await promptDialog({
+        title: `Decline ${selectedIds.length} ${selectedIds.length === 1 ? 'request' : 'requests'}?`,
+        description: 'The same reason is sent to everyone who raised them, so keep it general.',
+        inputLabel: 'Reason',
+        placeholder: 'Why these cannot go ahead',
+        confirmText: 'Decline them',
+        variant: 'danger',
+      })
+      if (given === null) return
+      reason = given
+    } else if (!(await confirmDialog({
+      title: `Approve ${selectedIds.length} ${selectedIds.length === 1 ? 'request' : 'requests'}?`,
+      description: 'Each one moves on to be assigned and worked on.',
+      confirmText: 'Approve them',
+    }))) {
+      return
+    }
+
+    setBulkBusy(true)
+    try {
+      const { data } = await api.post('/tickets/bulk/decide', { ids: selectedIds, action, reason })
+      if (data?.done > 0) toast.success(`${data.done} updated`)
+
+      // Named, not counted. Being allowed six of ten is normal, and a silent
+      // difference between what was ticked and what changed is what people notice a
+      // week later.
+      const skipped: { title: string; reason: string }[] = data?.skipped ?? []
+      if (skipped.length > 0) {
+        toast(
+          `${skipped.length} left unchanged: ` +
+            skipped.slice(0, 2).map((x) => `${x.title} (${x.reason})`).join('; ') +
+            (skipped.length > 2 ? `, and ${skipped.length - 2} more` : ''),
+          { duration: 9000, icon: '⚠️' },
+        )
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.message || 'Could not update those tickets')
+    } finally {
+      setBulkBusy(false)
+      // Always, including after a failure: some of the batch may already have gone
+      // through, and leaving those on screen as pending invites approving them twice.
+      fetchData()
     }
   }
 
@@ -330,6 +412,23 @@ const TicketsPage: React.FC = () => {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-900/40">
                 <tr>
+                  {decidable.length > 0 && (
+                    <th scope="col" className="w-10 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        aria-label="Select every request awaiting approval"
+                        checked={selectedIds.length > 0 && selectedIds.length === decidable.length}
+                        onChange={() =>
+                          setSelected(
+                            selectedIds.length === decidable.length
+                              ? new Set()
+                              : new Set(decidable.map((t) => t.id)),
+                          )
+                        }
+                        className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                      />
+                    </th>
+                  )}
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">ID &amp; Title</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Route</th>
@@ -344,6 +443,19 @@ const TicketsPage: React.FC = () => {
                     onClick={() => handleOpenDetail(ticket.id)}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer group"
                   >
+                    {decidable.length > 0 && (
+                      <td className="w-10 px-4 py-4" onClick={(e) => e.stopPropagation()}>
+                        {canDecide(ticket) && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${ticket.ticketNumber}`}
+                            checked={selected.has(ticket.id)}
+                            onChange={() => toggle(ticket.id)}
+                            className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-900"
+                          />
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col">
                         <span className="text-xs font-semibold text-primary-600 dark:text-primary-400 mb-0.5">{ticket.ticketNumber}</span>
@@ -431,6 +543,38 @@ const TicketsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {selectedIds.length > 0 && (
+        <div
+          role="region"
+          aria-label="Selected requests"
+          className="sticky bottom-4 z-30 mx-auto flex w-fit max-w-full flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-lg dark:border-gray-700 dark:bg-gray-800"
+        >
+          <span className="text-sm font-medium text-gray-900 dark:text-white">
+            {selectedIds.length} selected
+          </span>
+          <span className="hidden h-5 w-px bg-gray-200 sm:block dark:bg-gray-700" aria-hidden="true" />
+          <button onClick={() => decide('approve')} disabled={bulkBusy} className="btn-primary">
+            <CheckCircleIcon className="mr-2 h-4 w-4" />
+            Approve
+          </button>
+          <button
+            onClick={() => decide('reject')}
+            disabled={bulkBusy}
+            className="btn-secondary text-red-600 hover:text-red-700 dark:text-red-400"
+          >
+            <XCircleIcon className="mr-2 h-4 w-4" />
+            Decline
+          </button>
+          <button
+            onClick={() => setSelected(new Set())}
+            aria-label="Clear selection"
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
+      )}
 
       <CreateTicketModal
         isOpen={showCreateModal}
