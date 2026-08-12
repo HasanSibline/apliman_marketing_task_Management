@@ -87,7 +87,7 @@ export default function DayTasksPage() {
                     <select
                         value={selectedPhase}
                         onChange={(e) => setSelectedPhase(e.target.value)}
-                        className="w-full pl-11 pr-10 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-gray-700 dark:text-gray-200 font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 appearance-none shadow-sm cursor-pointer"
+                        className="select-field w-full pl-11"
                     >
                         <option value="ALL">All Phases</option>
                         {availablePhases.map(phase => (

@@ -38,6 +38,20 @@
   :root {
     /* The hover marker Recharts paints behind the bar or line under the pointer. */
     --chart-cursor: 15 23 42;
+
+    /* The Aura Assist robot.
+       Light is the case that needed solving: the mascot was drawn as a white shell
+       with a dark visor, which is a robot on the dark chat panel and a pale smudge on
+       a white page. Here it is cast in the app's own slate, so it reads as a solid
+       object with an edge, and the visor drops to near-black so the face still
+       separates from the shell it is set into. The eyes stay cyan in both themes,
+       being the one part that is meant to look lit. */
+    --bot-shell-0: #46536b;
+    --bot-shell-1: #303e57;
+    --bot-shell-2: #1b2740;
+    --bot-visor-0: #121b2c;
+    --bot-visor-1: #0a1120;
+    --bot-visor-2: #04080f;
   }
 
   html {
@@ -60,6 +74,15 @@
     --color-gray-950: 6 10 18;
 
     --chart-cursor: 226 232 240;
+
+    /* Dark keeps the original white shell: against the navy panel it is the robot
+       that has the edge, and inverting here would lose it the same way light lost it. */
+    --bot-shell-0: #ffffff;
+    --bot-shell-1: #f2f6fd;
+    --bot-shell-2: #c9d8ee;
+    --bot-visor-0: #28374f;
+    --bot-visor-1: #131e31;
+    --bot-visor-2: #070c16;
   }
 
   html.dark body {
@@ -112,20 +135,59 @@
   }
 
   /* Form Components */
+  /* Matched to .select-field on purpose: same radius, same border, same hover and
+     the same focus ring. The two sit in the same row of the same form, and a text
+     field with a tighter corner than the dropdown beside it reads as a mistake even
+     when nobody can say which one is wrong. */
   .input-field {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500;
+    @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm placeholder-gray-400 transition-colors duration-200;
+    @apply hover:border-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
+    @apply disabled:cursor-not-allowed disabled:opacity-60;
+    @apply dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:hover:border-gray-500;
   }
 
   .textarea-field {
     @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none transition-colors duration-200 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-500;
   }
 
+  /**
+   * The Aura select.
+   *
+   * A dropdown is the one control in a form that does something the others do not:
+   * it opens. Every field in this app was drawn the same, so a select announced
+   * itself only by a small grey chevron floating in its right margin, which is the
+   * browser default wearing the app's border.
+   *
+   * The signature is a well: the chevron sits in its own compartment behind a
+   * hairline, the way a physical control has a lip where it opens. It costs one
+   * background image, works on the native element so the list stays the operating
+   * system's own and keeps its keyboard behaviour, and it is the only thing in here
+   * that is decorative rather than functional. Everything else, the ground, the
+   * radius, the focus ring, matches the text inputs beside it, because a select is
+   * still a field.
+   *
+   * Drawn with rounded caps to echo the arcs in the Aura mark. The divider and
+   * chevron are a mid slate that reads on both grounds, so one image serves both
+   * themes; the brand appears on focus instead, where it means something.
+   */
   .select-field {
-    @apply block w-full px-3 pr-10 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition-colors duration-200 appearance-none dark:bg-gray-800 dark:border-gray-600 dark:text-gray-100;
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0.5rem center;
+    @apply block w-full appearance-none rounded-lg border border-gray-300 bg-white py-2 pl-3 pr-11 text-sm text-gray-900 shadow-sm transition-colors duration-200;
+    @apply hover:border-gray-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30;
+    @apply disabled:cursor-not-allowed disabled:opacity-60;
+    @apply dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-gray-500;
+
+    /* The well: a hairline, then the chevron centred in the space beyond it. */
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 34 24'%3e%3cpath stroke='%2394a3b8' stroke-opacity='0.45' stroke-width='1' stroke-linecap='round' d='M0.5 5v14'/%3e%3cpath stroke='%2394a3b8' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' d='M13 10.5l4.5 4 4.5-4'/%3e%3c/svg%3e");
+    background-position: right center;
     background-repeat: no-repeat;
-    background-size: 1.5em 1.5em;
+    background-size: 2.125rem 1.5rem;
+  }
+
+  /* The option list is the operating system's, not ours, and the only thing CSS can
+     say about it is which palette to draw it from. Without this a dark app opens a
+     white list. */
+  .select-field option {
+    @apply bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100;
   }
 
   /* ── Design language ──────────────────────────────────────────────────────

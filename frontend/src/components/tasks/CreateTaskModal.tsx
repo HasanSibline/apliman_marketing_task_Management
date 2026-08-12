@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import FormDialog from '@/components/ui/FormDialog'
 import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon, MapPinIcon, UserIcon, ClockIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask } from '@/store/slices/tasksSlice'
@@ -330,45 +331,42 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   return (
     <AnimatePresence>
       <>
-        {isOpen && (
-        <div key="create-task-modal" className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-2xl relative">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={onClose}
-            />
-
-            {/* Modal Container */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden flex flex-col max-h-[90vh]"
-            >
-              {/* Header - Fixed */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 z-10">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">Create New Task</h2>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Fill in the details to create a new task in your workflow</p>
-                </div>
-                <button aria-label="Close"
-                  onClick={onClose}
-                  className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-all duration-200"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Form - Body Scrollable, Footer Fixed */}
-              <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        <FormDialog
+          isOpen={isOpen}
+          onClose={onClose}
+          onSubmit={handleSubmit}
+          busy={isLoading}
+          // The AI preview below is a sibling overlay, not a dialog of its own, so
+          // this one has to stand down while it is up.
+          dismissible={!showAiPreview}
+          width="lg"
+          title="Create a task"
+          description="Pick the workflow it belongs to, then fill in the rest."
+          footer={
+            <>
+              <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                    <span>Creating…</span>
+                  </>
+                ) : (
+                  <>
+                    <PlusIcon className="h-4 w-4" />
+                    <span>Create task</span>
+                  </>
+                )}
+              </button>
+            </>
+          }
+        >
+                <div className="space-y-6">
                 {/* Workflow Selection */}
                 <div>
-                  <label htmlFor="workflowId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label htmlFor="workflowId" className="form-label">
                     <CogIcon className="h-4 w-4 inline mr-1" />
                     Workflow
                   </label>
@@ -377,7 +375,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     name="workflowId"
                     value={formData.workflowId}
                     onChange={(e) => handleWorkflowChange(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="select-field w-full"
                     disabled={isLoadingWorkflows}
                   >
                     <option value="">Select a workflow</option>
@@ -407,7 +405,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Title */}
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label htmlFor="title" className="form-label">
                     Task Title *
                   </label>
                   <div className="relative">
@@ -469,7 +467,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Description */}
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label htmlFor="description" className="form-label">
                     Description *
                   </label>
                   <textarea
@@ -486,7 +484,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Goals */}
                 <div>
-                  <label htmlFor="goals" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label htmlFor="goals" className="form-label">
                     Goals & Success Criteria
                   </label>
                   <textarea
@@ -503,7 +501,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Priority and Due Date */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="priority" className="form-label">
                       Priority
                     </label>
                     <select
@@ -511,7 +509,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       name="priority"
                       value={formData.priority}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="select-field w-full"
                     >
                       <option value={1}>1 - Low</option>
                       <option value={2}>2 - Medium</option>
@@ -522,7 +520,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
 
                   <div>
-                    <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="dueDate" className="form-label">
                       Due Date
                     </label>
                     <input
@@ -540,7 +538,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Quarter and Objective */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label htmlFor="quarterId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="quarterId" className="form-label">
                       Quarter
                     </label>
                     <select
@@ -548,7 +546,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       name="quarterId"
                       value={formData.quarterId}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="select-field w-full"
                     >
                       <option value="">No Quarter</option>
                       {quarters.map((q) => (
@@ -558,7 +556,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
 
                   <div>
-                    <label htmlFor="objectiveId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="objectiveId" className="form-label">
                       Objective
                     </label>
                     <select
@@ -570,7 +568,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         // Reset keyResultId whenever objective changes
                         setFormData(prev => ({ ...prev, keyResultId: '' }));
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      className="select-field w-full"
                     >
                       <option value="">No Objective</option>
                       {objectives
@@ -583,7 +581,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                   {formData.objectiveId && (
                     <div>
-                      <label htmlFor="keyResultId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                      <label htmlFor="keyResultId" className="form-label">
                         Track a Key Result
                       </label>
                       <select
@@ -591,7 +589,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         name="keyResultId"
                         value={formData.keyResultId}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-blue-200 bg-blue-50 dark:bg-blue-900/30 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
+                        className="select-field w-full"
                       >
                         <option value="">Overall Objective</option>
                         {objectives
@@ -605,7 +603,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                 {/* Assign To */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label className="form-label">
                     Assign To
                   </label>
                   <div className="space-y-2">
@@ -619,7 +617,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         name="assignedToId"
                         value={formData.assignedToId}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        className="select-field w-full"
                       >
                         <option value="">Select primary assignee</option>
                         {users.map((u: any) => (
@@ -632,7 +630,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
                     {/* Multiple assignments */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                      <label className="form-label">
                         Assign Team Members
                       </label>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -787,7 +785,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 <select
                                   value={subtask.phaseName}
                                   onChange={(e) => updateSubtask(index, 'phaseName', e.target.value)}
-                                  className="w-full px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded focus:outline-none focus:ring-1 focus:ring-primary-500"
+                                  className="select-field w-full text-sm"
                                 >
                                   {selectedWorkflow?.phases.map((phase) => (
                                     <option key={phase.id} value={phase.name}>
@@ -832,40 +830,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
                 )}
               </div>
-
-                {/* Footer - Fixed */}
-                <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn-secondary px-6"
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary px-8"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <div className="flex items-center">
-                        <ArrowPathIcon className="h-4 w-4 animate-spin mr-2" />
-                        <span>Creating...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <PlusIcon className="h-4 w-4 mr-2" />
-                        <span>Create Task</span>
-                      </div>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        </div>
-      )}
+        </FormDialog>
 
       {/* AI Preview Modal */}
       {showAiPreview && aiPreview && (
@@ -987,7 +952,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   updatedSubtasks[index] = { ...updatedSubtasks[index], phaseName: e.target.value }
                                   setAiPreview(prev => prev ? { ...prev, subtasks: updatedSubtasks } : null)
                                 }}
-                                className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                className="select-field w-full text-xs"
                               >
                                 <option value="">Select Phase</option>
                                 {selectedWorkflow?.phases.map(phase => (
@@ -1012,7 +977,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                   }
                                   setAiPreview(prev => prev ? { ...prev, subtasks: updatedSubtasks } : null)
                                 }}
-                                className="w-full px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                className="select-field w-full text-xs"
                               >
                                 <option value="">Unassigned</option>
                                 {users.map((u: any) => (

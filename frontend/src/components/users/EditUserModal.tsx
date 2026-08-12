@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import FormDialog from '@/components/ui/FormDialog'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { usersApi } from '@/services/api'
 import { fetchUsers } from '@/store/slices/usersSlice'
@@ -212,42 +211,29 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={onClose}
-            />
-            
-            {/* Tactical Edit Modal */}
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.98 }}
-              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
-            >
-              {/* Strategic Header Strip */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight font-outfit">Identify Modification</h2>
-                <button aria-label="Close"
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <FormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      busy={isLoading}
+      width="md"
+      title={user?.name ? `Edit ${user.name}` : 'Edit person'}
+      description="Changes take effect the next time they load a page."
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? 'Saving…' : 'Save changes'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
                 {/* Name */}
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="name" className="form-label">
                     Full Name *
                   </label>
                   <input
@@ -256,8 +242,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.name ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.name ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Enter full name"
                   />
@@ -268,7 +254,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="email" className="form-label">
                     Email Address *
                   </label>
                   <input
@@ -277,8 +263,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.email ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.email ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Enter email address"
                   />
@@ -290,7 +276,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                 {/* Role */}
                 {canEditRole() && (
                   <div>
-                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                    <label htmlFor="role" className="form-label">
                       Role *
                     </label>
                     <select
@@ -305,7 +291,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                           isTicketApprover: newRole === 'MANAGER' ? true : prev.isTicketApprover
                         }));
                       }}
-                      className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none font-outfit"
+                      className="select-field w-full text-sm"
                     >
                       {roleOptions().map((roleOption) => (
                         <option key={roleOption} value={roleOption}>
@@ -318,7 +304,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Position */}
                 <div>
-                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="position" className="form-label">
                     Position *
                   </label>
                   <input
@@ -327,8 +313,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="position"
                     value={formData.position}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.position ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.position ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Enter job position"
                   />
@@ -347,7 +333,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="departmentId"
                     value={formData.departmentId}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="select-field w-full text-sm"
                   >
                     <option value="">No Department Mapping</option>
                     {departments.map((dept) => (
@@ -366,7 +352,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="managerId"
                     value={formData.managerId}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="select-field w-full text-sm"
                   >
                     <option value="">No Direct Manager Mapping</option>
                     {potentialManagers.filter(m => m.id !== user.id).map((m) => (
@@ -403,7 +389,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       name="strategyAccess"
                       value={formData.strategyAccess}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="select-field w-full text-sm"
                     >
                       <option value="NONE">No Access</option>
                       <option value="READ">Read Only (View strategy)</option>
@@ -415,7 +401,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
 
                 {/* Status */}
                 <div>
-                  <label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="status" className="form-label">
                     Status *
                   </label>
                   <select
@@ -423,7 +409,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="select-field w-full"
                   >
                     <option value="ACTIVE">Active</option>
                     <option value="AWAY">Away</option>
@@ -444,30 +430,8 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   </button>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn-secondary"
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </FormDialog>
   )
 }
 

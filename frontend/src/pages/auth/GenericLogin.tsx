@@ -11,7 +11,10 @@ import AuthSplitLayout from '@/components/auth/AuthSplitLayout';
 
 const GenericLogin: React.FC = () => {
   useForcedDark()
-  const [entering, setEntering] = useState<string | null | undefined>(undefined)
+  // Held until the sign-in screen finishes. Opening the session here instead would
+  // make PublicRoute redirect to the dashboard and unmount this page before the
+  // screen ever rendered.
+  const [entering, setEntering] = useState<{ user: any; token: string } | null>(null)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -62,12 +65,7 @@ const GenericLogin: React.FC = () => {
       // page is known from here on even though this page never saw a slug.
       rememberCompany(user.companySlug);
 
-      dispatch(setAuth({ user, token: accessToken }));
-
-      toast.success(`Welcome back, ${user.name}!`);
-
-      // Redirect to dashboard
-      setEntering(user.name ?? null);
+      setEntering({ user, token: accessToken });
     } catch (err: any) {
       console.error('Login error:', err);
       setError(
@@ -99,8 +97,17 @@ const GenericLogin: React.FC = () => {
     }
   };
 
-  if (entering !== undefined) {
-    return <SigningInScreen name={entering} onDone={() => navigate('/dashboard')} />
+  if (entering) {
+    return (
+      <SigningInScreen
+        name={entering.user.name ?? null}
+        onDone={() => {
+          dispatch(setAuth({ user: entering.user, token: entering.token }))
+          toast.success(`Welcome back, ${entering.user.name}!`)
+          navigate('/dashboard')
+        }}
+      />
+    )
   }
 
   return (

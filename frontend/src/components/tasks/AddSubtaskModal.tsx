@@ -1,13 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import {
-  XMarkIcon,
-  PlusIcon,
-  UserIcon,
-  ClockIcon,
-  ChevronDownIcon,
-  CheckIcon,
-} from '@heroicons/react/24/outline'
+import FormDialog from '@/components/ui/FormDialog'
+import { PlusIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
@@ -43,8 +36,6 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
   const [estimatedHours, setEstimatedHours] = useState<string>('')
   const [phaseId, setPhaseId] = useState<string>('')
   const [users, setUsers] = useState<User[]>([])
-  const [showUserDropdown, setShowUserDropdown] = useState(false)
-  const [showPhaseDropdown, setShowPhaseDropdown] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -98,43 +89,37 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
     }
   }
 
-  const selectedUser = users.find(u => u.id === assignedToId)
   const selectedPhase = availablePhases.find(p => p.id === phaseId)
 
-  if (!isOpen) return null
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="flex min-h-screen items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black bg-opacity-50"
-          />
-          
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
+    <FormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      busy={isSubmitting}
+      width="md"
+      title="Add a subtask"
+      description="A smaller piece of work under this task, with its own owner and dates."
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={isSubmitting || !title.trim()}
+            className="btn-primary"
           >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Add Subtask</h2>
-              <button aria-label="Close"
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-
+            <PlusIcon className="h-4 w-4" />
+            {isSubmitting ? 'Adding…' : 'Add subtask'}
+          </button>
+        </>
+      }
+    >
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="form-label">
                   Title *
                 </label>
                 <input
@@ -142,14 +127,14 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter subtask title"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="input-field"
                   autoFocus
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="form-label">
                   Description
                 </label>
                 <textarea
@@ -157,155 +142,68 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter subtask description"
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  className="input-field resize-none"
                 />
               </div>
 
-              {/* Assign To */}
+              {/* These two were hand-built dropdowns: a button, a state flag, and an
+                  absolutely positioned panel of more buttons. They cost more than a
+                  select and did less, and once the dialog body scrolls, the panel is
+                  clipped by it. A native list is drawn by the browser above everything
+                  and cannot be clipped by any container, which is the one thing the
+                  hand-built version could never do. */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                  Assign To
+                <label htmlFor="subtask-assignee" className="form-label">
+                  Assign to
                 </label>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowUserDropdown(!showUserDropdown)}
-                    className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <span className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                      {selectedUser ? (
-                        <>
-                          <UserIcon className="h-4 w-4" />
-                          {selectedUser.name}
-                        </>
-                      ) : (
-                        <>
-                          <UserIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                          <span className="text-gray-500 dark:text-gray-400">Select user (optional)</span>
-                        </>
-                      )}
-                    </span>
-                    <ChevronDownIcon className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${showUserDropdown ? 'rotate-180' : ''}`} />
-                  </button>
-
-                  <AnimatePresence>
-                    {showUserDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden max-h-60 overflow-y-auto"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAssignedToId('')
-                            setShowUserDropdown(false)
-                          }}
-                          className="w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm text-gray-500 dark:text-gray-400"
-                        >
-                          Unassigned
-                        </button>
-                        {users.map((user) => (
-                          <button
-                            key={user.id}
-                            type="button"
-                            onClick={() => {
-                              setAssignedToId(user.id)
-                              setShowUserDropdown(false)
-                            }}
-                            className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3 ${
-                              assignedToId === user.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
-                            }`}
-                          >
-                            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center flex-shrink-0">
-                              <span className="text-sm font-medium text-white">
-                                {user.name.charAt(0).toUpperCase()}
-                              </span>
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{user.name}</p>
-                              {user.position && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{user.position}</p>
-                              )}
-                            </div>
-                            {assignedToId === user.id && (
-                              <CheckIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                            )}
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                <select
+                  id="subtask-assignee"
+                  value={assignedToId}
+                  onChange={(e) => setAssignedToId(e.target.value)}
+                  className="select-field"
+                >
+                  <option value="">Nobody yet</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name}
+                      {user.position ? ` · ${user.position}` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Phase */}
               {availablePhases.length > 0 && (
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label htmlFor="subtask-phase" className="form-label">
                     Phase
                   </label>
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setShowPhaseDropdown(!showPhaseDropdown)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                    >
-                      <span className="text-sm text-gray-700 dark:text-gray-200 flex items-center gap-2">
-                        {selectedPhase && (
-                          <>
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: selectedPhase.color }}
-                            />
-                            {selectedPhase.name}
-                          </>
-                        )}
-                      </span>
-                      <ChevronDownIcon className={`h-4 w-4 text-gray-500 dark:text-gray-400 transition-transform ${showPhaseDropdown ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    <AnimatePresence>
-                      {showPhaseDropdown && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="absolute z-10 mt-2 w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden"
-                        >
-                          {availablePhases.map((phase) => (
-                            <button
-                              key={phase.id}
-                              type="button"
-                              onClick={() => {
-                                setPhaseId(phase.id)
-                                setShowPhaseDropdown(false)
-                              }}
-                              className={`w-full px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-3 ${
-                                phaseId === phase.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
-                              }`}
-                            >
-                              <span
-                                className="w-3 h-3 rounded-full flex-shrink-0"
-                                style={{ backgroundColor: phase.color }}
-                              />
-                              <span className="text-sm font-medium text-gray-900 dark:text-white">{phase.name}</span>
-                              {phaseId === phase.id && (
-                                <CheckIcon className="h-4 w-4 text-blue-600 dark:text-blue-400 ml-auto" />
-                              )}
-                            </button>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
+                  <select
+                    id="subtask-phase"
+                    value={phaseId}
+                    onChange={(e) => setPhaseId(e.target.value)}
+                    className="select-field"
+                  >
+                    {availablePhases.map((phase) => (
+                      <option key={phase.id} value={phase.id}>
+                        {phase.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedPhase && (
+                    <p className="form-hint flex items-center gap-1.5">
+                      <span
+                        className="inline-block h-2 w-2 rounded-full"
+                        style={{ backgroundColor: selectedPhase.color }}
+                      />
+                      Subtask starts in {selectedPhase.name}.
+                    </p>
+                  )}
                 </div>
               )}
 
               {/* Estimated Hours */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="form-label">
                   <ClockIcon className="h-4 w-4 inline mr-1" />
                   Estimated Hours
                 </label>
@@ -316,32 +214,11 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   placeholder="e.g., 2.5"
                   step="0.5"
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="input-field"
                 />
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 mt-6 pt-6 border-t">
-              <button
-                onClick={onClose}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={isSubmitting || !title.trim()}
-                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <PlusIcon className="h-4 w-4" />
-                {isSubmitting ? 'Adding...' : 'Add Subtask'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      </div>
-    </AnimatePresence>
+    </FormDialog>
   )
 }
 

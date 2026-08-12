@@ -1,6 +1,5 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import FormDialog from '@/components/ui/FormDialog'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { usersApi } from '@/services/api'
 import { fetchUsers } from '@/store/slices/usersSlice'
@@ -164,42 +163,29 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={onClose}
-            />
-            
-            {/* Tactical Identity Modal */}
-            <motion.div
-              initial={{ opacity: 0, y: 50, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 50, scale: 0.98 }}
-              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-xl shadow-none border border-gray-100 dark:border-gray-700 overflow-hidden"
-            >
-              {/* Strategic Header Strip */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-50 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white tracking-tight font-outfit">Onboard Personnel</h2>
-                <button aria-label="Close"
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+    <FormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      busy={isLoading}
+      width="md"
+      title="Add someone to the team"
+      description="They can sign in as soon as you save this."
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? 'Creating…' : 'Create account'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
                 {/* Name */}
                 <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="name" className="form-label">
                     Full Name *
                   </label>
                   <input
@@ -208,8 +194,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.name ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.name ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Enter full name"
                   />
@@ -220,7 +206,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Email */}
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="email" className="form-label">
                     Email Address *
                   </label>
                   <input
@@ -229,8 +215,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.email ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.email ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Enter email address"
                   />
@@ -257,7 +243,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                         isTicketApprover: newRole === 'MANAGER' ? true : prev.isTicketApprover
                       }));
                     }}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="select-field w-full text-sm"
                   >
                     {canCreateRole('EMPLOYEE') && <option value="EMPLOYEE">Standard Employee</option>}
                     {canCreateRole('MANAGER') && <option value="MANAGER">Departmental Manager</option>}
@@ -299,7 +285,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                       name="strategyAccess"
                       value={formData.strategyAccess}
                       onChange={handleChange}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="select-field w-full text-sm"
                     >
                       <option value="NONE">No Access</option>
                       <option value="READ">Read Only (View strategy)</option>
@@ -311,7 +297,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Position */}
                 <div>
-                  <label htmlFor="position" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="position" className="form-label">
                     Position *
                   </label>
                   <input
@@ -320,8 +306,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="position"
                     value={formData.position}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.position ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.position ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Enter job position"
                   />
@@ -340,7 +326,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="departmentId"
                     value={formData.departmentId}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-900 dark:text-white focus:outline-none focus:ring-4 focus:ring-primary-500/5 transition-all appearance-none"
+                    className="select-field w-full text-sm"
                   >
                     <option value="">No Department Mapping</option>
                     {departments.map((dept) => (
@@ -351,7 +337,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Manager */}
                 <div>
-                  <label htmlFor="managerId" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="managerId" className="form-label">
                     Direct Manager
                   </label>
                   <select
@@ -359,7 +345,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="managerId"
                     value={formData.managerId}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="select-field w-full"
                   >
                     <option value="">No Manager</option>
                     {potentialManagers.map((m) => (
@@ -370,7 +356,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Password */}
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="password" className="form-label">
                     Password *
                   </label>
                   <input
@@ -379,8 +365,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.password ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.password ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Enter password (min 8 characters)"
                   />
@@ -391,7 +377,7 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
 
                 {/* Confirm Password */}
                 <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label htmlFor="confirmPassword" className="form-label">
                     Confirm Password *
                   </label>
                   <input
@@ -400,8 +386,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.confirmPassword ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
+                    className={`input-field ${
+                      errors.confirmPassword ? 'border-red-400 dark:border-red-500' : ''
                     }`}
                     placeholder="Confirm password"
                   />
@@ -410,30 +396,8 @@ const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClose, comp
                   )}
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn-secondary"
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Creating...' : 'Create User'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </FormDialog>
   )
 }
 

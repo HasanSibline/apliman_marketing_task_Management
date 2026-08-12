@@ -6,6 +6,7 @@ import {
   CheckCircleIcon,
   InformationCircleIcon,
 } from '@heroicons/react/24/outline'
+import useDialogChrome from './dialogChrome'
 
 /**
  * The dialog that asks before something happens.
@@ -48,10 +49,6 @@ interface ActionModalProps {
    */
   onDismiss?: () => void
 }
-
-/** Shared across every instance, so overlapping dialogs cannot fight over it. */
-let openDialogs = 0
-let overflowBeforeAnyDialog = ''
 
 const VARIANTS = {
   danger: {
@@ -99,9 +96,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
   const dismiss = onDismiss ?? onClose
   const [reason, setReason] = useState('')
   const [picked, setPicked] = useState('')
-  const panelRef = useRef<HTMLDivElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
-  const returnFocusTo = useRef<Element | null>(null)
 
   const { Icon, iconClass, iconBg, confirm } = VARIANTS[variant]
 
@@ -110,59 +105,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
   const usingList = reasons.length > 0
   const effectiveReason = usingList && picked && picked !== 'other' ? picked : reason
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    returnFocusTo.current = document.activeElement
-    // The safe option takes focus, so a stray Enter cannot confirm anything.
-    const focusTimer = setTimeout(() => cancelRef.current?.focus(), 50)
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation()
-        dismiss()
-        return
-      }
-
-      // Keep Tab inside the dialog. Tabbing onto the page behind a modal leaves a
-      // keyboard somewhere it cannot see and cannot get back from.
-      if (e.key !== 'Tab' || !panelRef.current) return
-      const focusable = panelRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), input, select, textarea, [href], [tabindex]:not([tabindex="-1"])',
-      )
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener('keydown', onKeyDown, true)
-
-    // The page behind must not scroll under a dialog holding a decision. Counted
-    // rather than saved and restored: two dialogs can overlap, and the second one
-    // would otherwise save "hidden" as the value to put back, then the first to close
-    // would restore it and leave the page locked with nothing on screen.
-    openDialogs += 1
-    if (openDialogs === 1) {
-      overflowBeforeAnyDialog = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-    }
-
-    return () => {
-      clearTimeout(focusTimer)
-      document.removeEventListener('keydown', onKeyDown, true)
-      openDialogs = Math.max(0, openDialogs - 1)
-      if (openDialogs === 0) document.body.style.overflow = overflowBeforeAnyDialog
-      ;(returnFocusTo.current as HTMLElement | null)?.focus?.()
-    }
-  }, [isOpen, dismiss])
+  // Escape, the Tab trap, the scroll lock and focus restore. Shared with FormDialog
+  // rather than kept here, so the two cannot each keep their own count of how many
+  // dialogs are open and leave the page locked when a confirmation closes over a form.
+  // The safe option takes focus, so a stray Enter cannot confirm anything.
+  const panelRef = useDialogChrome({ isOpen, onDismiss: dismiss, initialFocusRef: cancelRef })
 
   useEffect(() => {
     if (!isOpen) {

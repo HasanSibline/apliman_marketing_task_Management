@@ -344,7 +344,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                               name="priority"
                               value={formData.priority}
                               onChange={handleChange}
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                              className="select-field w-full"
                             >
                               <option value={1}>1 - Low</option>
                               <option value={2}>2 - Medium</option>

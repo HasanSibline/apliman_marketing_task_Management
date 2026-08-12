@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import { ExclamationTriangleIcon } from '@heroicons/react/24/outline'
+import FormDialog from '@/components/ui/FormDialog'
 import { useAppDispatch } from '@/hooks/redux'
 import { usersApi } from '@/services/api'
 import { fetchUsers } from '@/store/slices/usersSlice'
@@ -32,77 +32,34 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ isOpen, onClose, user
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={onClose}
-            />
-            
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-md"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <ExclamationTriangleIcon className="h-6 w-6 text-red-500" />
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Delete User</h2>
-                </div>
-                <button aria-label="Close"
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Content */}
-              <div className="p-6">
-                <p className="text-gray-700 dark:text-gray-200">
-                  Are you sure you want to delete <span className="font-semibold">{user?.name}</span>? This action cannot be undone.
-                </p>
-
-                <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/30 rounded-lg">
-                  <p className="text-sm text-red-700 dark:text-red-300">
-                    This will permanently delete the user account and all associated data. Tasks assigned to this user will be unassigned.
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn-secondary"
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleDelete}
-                    className="btn-danger"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Deleting...' : 'Delete User'}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
+    <FormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      busy={isLoading}
+      width="sm"
+      title={`Delete ${user?.name ?? 'this person'}?`}
+      description="This cannot be undone."
+      icon={
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+          <ExclamationTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
         </div>
-      )}
-    </AnimatePresence>
+      }
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+            Cancel
+          </button>
+          <button type="button" onClick={handleDelete} className="btn-danger" disabled={isLoading}>
+            {isLoading ? 'Deleting…' : 'Delete account'}
+          </button>
+        </>
+      }
+    >
+      <p className="text-sm text-gray-700 dark:text-gray-200">
+        The account and everything recorded against it goes with it. Tasks currently assigned to
+        {user?.name ? ` ${user.name.split(' ')[0]}` : ' them'} are left unassigned rather than deleted.
+      </p>
+    </FormDialog>
   )
 }
 

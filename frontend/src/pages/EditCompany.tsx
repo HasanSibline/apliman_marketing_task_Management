@@ -370,7 +370,7 @@ export default function EditCompany() {
                 name="subscriptionPlan"
                 value={formData.subscriptionPlan}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-4"
+                className="select-field w-full mb-4"
               >
                 <option value="FREE_TRIAL">Free Trial (10 users, 500 tasks, 2 GB) - 7 Days</option>
                 <option value="PRO">Pro (25 users, 5000 tasks, 10 GB) - $99/month</option>

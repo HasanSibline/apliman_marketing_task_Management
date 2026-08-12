@@ -92,7 +92,8 @@ npx prisma generate          # after editing schema.prisma
 npx tsc --noEmit             # typecheck
 
 cd frontend
-npx vite build               # typechecks and builds
+npx tsc --noEmit             # typecheck — vite build does NOT do this
+npx vite build               # bundle only; esbuild strips types without checking them
 
 cd ai-service
 python -m py_compile main.py services/*.py

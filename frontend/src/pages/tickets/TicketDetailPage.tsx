@@ -628,7 +628,7 @@ const TicketDetailPage: React.FC = () => {
                   <select
                     value={editData.receiverDeptId}
                     onChange={(e) => setEditData({ ...editData, receiverDeptId: e.target.value })}
-                    className="w-full text-xs border-2 border-primary-50 dark:border-primary-900/40 rounded-xl p-3 bg-primary-50/30 dark:bg-primary-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-semibold text-gray-800 dark:text-gray-100"
+                    className="select-field w-full text-xs"
                   >
                     {departments.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
@@ -641,7 +641,7 @@ const TicketDetailPage: React.FC = () => {
                     <select
                       value={editData.status}
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                      className="w-full text-xs border-2 border-rose-50 dark:border-rose-900/40 rounded-xl p-3 bg-rose-50/30 dark:bg-rose-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-semibold text-gray-800 dark:text-gray-100"
+                      className="select-field w-full text-xs"
                     >
                       {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                         <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -747,7 +747,7 @@ const TicketDetailPage: React.FC = () => {
                               toast.error(err.response?.data?.message || 'Deployment failure')
                             }
                           }}
-                          className="w-full appearance-none text-xs border-2 border-primary-50 dark:border-primary-900/40 rounded-xl p-3.5 bg-primary-50/20 dark:bg-primary-900/20 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 font-semibold text-gray-800 dark:text-gray-100 transition-all font-outfit"
+                          className="select-field w-full text-xs"
                         >
                           <option value="">Assign people...</option>
                           {/* Cross-departmental search allowed as requested */}
@@ -757,9 +757,6 @@ const TicketDetailPage: React.FC = () => {
                             </option>
                           ))}
                         </select>
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                          <PlusIcon className="h-4 w-4 text-primary-500" />
-                        </div>
                       </div>
                     </div>
                   )}

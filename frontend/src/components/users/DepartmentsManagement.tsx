@@ -250,7 +250,7 @@ const DepartmentsManagement: React.FC = () => {
                 <select 
                   value={selectedManagerId}
                   onChange={(e) => setSelectedManagerId(e.target.value)}
-                  className="input-field mt-1"
+                  className="select-field mt-1"
                 >
                   <option value="">Select a manager</option>
                   {availableUsers.map(u => (

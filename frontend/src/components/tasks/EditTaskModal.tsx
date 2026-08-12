@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, CalendarIcon, FlagIcon, UserGroupIcon } from '@heroicons/react/24/outline'
+import FormDialog from '@/components/ui/FormDialog'
+import { CalendarIcon, FlagIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { tasksApi, usersApi, quartersApi, objectivesApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
@@ -88,90 +88,78 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
     }
   }
 
-  if (!isOpen) return null
-
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 overflow-y-auto">
-        <div className="flex min-h-screen items-center justify-center p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black bg-opacity-50"
-          />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Task</h2>
-              <button aria-label="Close"
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-              >
-                <XMarkIcon className="w-6 h-6" />
-              </button>
-            </div>
-
+    <FormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      busy={isLoading}
+      width="lg"
+      title="Edit task"
+      description={task?.title}
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" disabled={isLoading || isLocked} className="btn-primary">
+            {isLoading ? 'Saving…' : 'Save changes'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
             {isLocked && (
-              <div className="mb-6 p-4 bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-100 dark:border-indigo-900/40 rounded-xl flex items-center gap-3">
-                <div className="p-2 bg-white dark:bg-gray-800 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400">
-                  <LockClosedIcon className="h-5 w-5" />
-                </div>
+              <div className="flex items-start gap-3 rounded-xl border border-primary-100 bg-primary-50 p-4 dark:border-primary-900/40 dark:bg-primary-900/20">
+                <LockClosedIcon className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-600 dark:text-primary-400" />
                 <div>
-                    <p className="text-sm font-bold text-indigo-900 dark:text-indigo-300 leading-none">Strategic Lock Active</p>
-                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1 tracking-wider font-bold">This task is part of a future cycle ({task?.quarter?.name}) and is restricted to Admin review.</p>
+                  <p className="text-sm font-medium text-primary-900 dark:text-primary-200">
+                    Locked until {task?.quarter?.name} starts
+                  </p>
+                  <p className="mt-1 text-sm text-primary-700 dark:text-primary-300">
+                    This task belongs to a quarter that has not begun. An admin can still change it.
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="form-label">
                   Title
                 </label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="input-field"
                   required
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="form-label">
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  className="input-field resize-none"
                 />
               </div>
 
               {/* Goals */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="form-label">
                   Goals
                 </label>
                 <textarea
                   value={formData.goals}
                   onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
                   rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                  className="input-field resize-none"
                 />
               </div>
 
@@ -179,14 +167,14 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
               <div className="grid grid-cols-2 gap-4">
                 {/* Priority */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label className="form-label">
                     <FlagIcon className="w-4 h-4 inline mr-1" />
                     Priority
                   </label>
                   <select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="select-field w-full"
                   >
                     <option value={1}>Low</option>
                     <option value={2}>Medium</option>
@@ -196,7 +184,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
                 {/* Due Date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label className="form-label">
                     <CalendarIcon className="w-4 h-4 inline mr-1" />
                     Due Date
                   </label>
@@ -204,7 +192,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     type="date"
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="input-field"
                   />
                 </div>
               </div>
@@ -213,13 +201,13 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {/* Quarter */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label className="form-label">
                     Quarter
                   </label>
                   <select
                     value={formData.quarterId}
                     onChange={(e) => setFormData({ ...formData, quarterId: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="select-field w-full"
                   >
                     <option value="">No Quarter</option>
                     {quarters.map((q) => (
@@ -230,13 +218,13 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
                 {/* Objective */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label className="form-label">
                     Objective
                   </label>
                   <select
                     value={formData.objectiveId}
                     onChange={(e) => setFormData({ ...formData, objectiveId: e.target.value, keyResultId: '' })}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    className="select-field w-full"
                   >
                     <option value="">No Objective</option>
                     {objectives
@@ -250,13 +238,13 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 {/* Key Result */}
                 {formData.objectiveId && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label className="form-label">
                       Track a Key Result
                     </label>
                     <select
                       value={formData.keyResultId}
                       onChange={(e) => setFormData({ ...formData, keyResultId: e.target.value })}
-                      className="w-full px-4 py-2 border border-blue-300 bg-blue-50/50 dark:bg-blue-900/40 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent font-medium"
+                      className="select-field w-full"
                     >
                       <option value="">Overall Objective</option>
                       {objectives
@@ -270,7 +258,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
               {/* Assigned Users (Multiple Selection) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                <label className="form-label">
                   <UserGroupIcon className="w-4 h-4 inline mr-1" />
                   Assigned Users (Select Multiple)
                 </label>
@@ -310,28 +298,8 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading || isLocked}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isLoading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </div>
       </div>
-    </AnimatePresence>
+    </FormDialog>
   )
 }
 

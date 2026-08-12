@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, KeyIcon } from '@heroicons/react/24/outline'
+import { KeyIcon } from '@heroicons/react/24/outline'
+import FormDialog from '@/components/ui/FormDialog'
 import { usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
@@ -84,114 +84,72 @@ const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({ isOpen, onClose
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={handleClose}
-            />
-            
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-lg shadow-md"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <div className="flex items-center space-x-3">
-                  <div className="h-10 w-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                    <KeyIcon className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Reset Password</h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Set a new password for {user?.name}</p>
-                  </div>
-                </div>
-                <button aria-label="Close"
-                  onClick={handleClose}
-                  disabled={isLoading}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors disabled:opacity-50"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    New Password
-                  </label>
-                  <input
-                    type="password"
-                    id="newPassword"
-                    name="newPassword"
-                    value={formData.newPassword}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.newPassword ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Enter new password"
-                    disabled={isLoading}
-                  />
-                  {errors.newPassword && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.newPassword}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleChange}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent ${
-                      errors.confirmPassword ? 'border-red-300' : 'border-gray-300 dark:border-gray-600'
-                    }`}
-                    placeholder="Confirm new password"
-                    disabled={isLoading}
-                  />
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <button
-                    type="button"
-                    onClick={handleClose}
-                    disabled={isLoading}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="px-4 py-2 text-sm font-medium text-white bg-primary-600 border border-transparent rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-                  >
-                    {isLoading ? 'Resetting...' : 'Reset Password'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
+    <FormDialog
+      isOpen={isOpen}
+      onClose={handleClose}
+      onSubmit={handleSubmit}
+      busy={isLoading}
+      width="sm"
+      title="Reset password"
+      description={`Set a new password for ${user?.name ?? 'this person'}. They can sign in with it straight away.`}
+      icon={
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+          <KeyIcon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
         </div>
-      )}
-    </AnimatePresence>
+      }
+      footer={
+        <>
+          <button type="button" onClick={handleClose} disabled={isLoading} className="btn-secondary">
+            Cancel
+          </button>
+          <button type="submit" disabled={isLoading} className="btn-primary">
+            {isLoading ? 'Resetting…' : 'Reset password'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label htmlFor="newPassword" className="form-label">
+            New password
+          </label>
+          <input
+            type="password"
+            id="newPassword"
+            name="newPassword"
+            value={formData.newPassword}
+            onChange={handleChange}
+            className={`input-field ${errors.newPassword ? 'border-red-400 dark:border-red-500' : ''}`}
+            placeholder="At least 6 characters"
+            disabled={isLoading}
+            aria-invalid={!!errors.newPassword}
+          />
+          {errors.newPassword && (
+            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.newPassword}</p>
+          )}
+        </div>
+
+        <div>
+          <label htmlFor="confirmPassword" className="form-label">
+            Confirm password
+          </label>
+          <input
+            type="password"
+            id="confirmPassword"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            className={`input-field ${errors.confirmPassword ? 'border-red-400 dark:border-red-500' : ''}`}
+            placeholder="Type it again"
+            disabled={isLoading}
+            aria-invalid={!!errors.confirmPassword}
+          />
+          {errors.confirmPassword && (
+            <p className="mt-1.5 text-sm text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
+          )}
+        </div>
+      </div>
+    </FormDialog>
   )
 }
 

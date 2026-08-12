@@ -106,15 +106,25 @@ const AuraBot: React.FC<Props> = ({
   return (
     <svg viewBox="0 0 64 64" className={className} role="img" aria-label="Aura Assist">
       <defs>
+        {/* Themed through tokens rather than fixed hex. The robot was drawn white,
+            which is right on the dark chat panel and wrong everywhere else: on a light
+            page a white shell against white has no edge, and what is left reads as a
+            pale blob sitting on a plate. In light it wears Aura's slate instead, and
+            the visor drops to near-black so the face still separates from the shell.
+            See --bot-* in index.css. */}
+        {/* Set through style rather than the stopColor attribute. A presentation
+            attribute holding var() is resolved by some engines and dropped by others,
+            and where it is dropped the stop falls back to black and the robot renders
+            as a silhouette. The style property is plain CSS and resolves everywhere. */}
         <linearGradient id={shell} x1="0.25" y1="0" x2="0.75" y2="1">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="55%" stopColor="#F2F6FD" />
-          <stop offset="100%" stopColor="#C9D8EE" />
+          <stop offset="0%" style={{ stopColor: 'var(--bot-shell-0)' }} />
+          <stop offset="55%" style={{ stopColor: 'var(--bot-shell-1)' }} />
+          <stop offset="100%" style={{ stopColor: 'var(--bot-shell-2)' }} />
         </linearGradient>
         <linearGradient id={visor} x1="0.2" y1="0" x2="0.8" y2="1">
-          <stop offset="0%" stopColor="#28374F" />
-          <stop offset="45%" stopColor="#131E31" />
-          <stop offset="100%" stopColor="#070C16" />
+          <stop offset="0%" style={{ stopColor: 'var(--bot-visor-0)' }} />
+          <stop offset="45%" style={{ stopColor: 'var(--bot-visor-1)' }} />
+          <stop offset="100%" style={{ stopColor: 'var(--bot-visor-2)' }} />
         </linearGradient>
         <radialGradient id={glow}>
           <stop offset="0%" stopColor="#7DD3FC" stopOpacity="0.85" />

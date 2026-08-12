@@ -412,7 +412,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <select
                               value={editData.receiverDeptId}
                               onChange={(e) => setEditData({...editData, receiverDeptId: e.target.value})}
-                              className="w-full text-xs border-2 border-primary-50 dark:border-primary-900/40 rounded-xl p-3 bg-primary-50/30 dark:bg-primary-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-primary-500 transition-all font-semibold text-gray-800 dark:text-gray-100"
+                              className="select-field w-full text-xs"
                             >
                                 <option value="">Select Destination...</option>
                                 {departments.map(d => (
@@ -427,7 +427,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                             <select
                               value={editData.status}
                               onChange={(e) => setEditData({...editData, status: e.target.value})}
-                              className="w-full text-xs border-2 border-rose-50 dark:border-rose-900/40 rounded-xl p-3 bg-rose-50/30 dark:bg-rose-900/30 focus:bg-white dark:focus:bg-gray-700 focus:border-rose-500 transition-all font-semibold text-gray-800 dark:text-gray-100"
+                              className="select-field w-full text-xs"
                             >
                                 {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                                   <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
@@ -494,7 +494,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                   onUpdate()
                                 } catch (error) { toast.error('Assignment failed') }
                               }}
-                              className="w-full text-xs border border-gray-200 dark:border-gray-700 rounded-xl p-3 bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700 font-semibold text-gray-800 dark:text-gray-100 transition-all"
+                              className="select-field w-full text-xs"
                             >
                               <option value="">Select Resource...</option>
                               {users.filter(u => u.departmentId === ticket.receiverDeptId).map(u => (

@@ -64,7 +64,9 @@ const SCRIPT: [Beat, number][] = [
   ['typing', 1500],
   ['thinking', 1100],
   ['answered', 1500],
-  ['leaving', 550],
+  // Long enough for the exit to finish before onDone navigates. Cut this below the
+  // 0.55s transition and the screen vanishes mid-move.
+  ['leaving', 700],
 ]
 
 const QUESTION = 'What needs me today?'
@@ -126,19 +128,26 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
           ? MARKS.chat
           : MARKS.rest
 
+  const leaving = beat === 'leaving'
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
-      animate={{ opacity: beat === 'leaving' ? 0 : 1 }}
-      transition={{ duration: 0.35 }}
+      animate={{ opacity: leaving ? 0 : 1 }}
+      // Slower going than coming. Arriving should be immediate; leaving is the one
+      // moment the screen is handing something over, and cutting it short reads as
+      // the screen being switched off rather than the workspace opening.
+      transition={{ duration: leaving ? 0.55 : 0.35, ease: leaving ? [0.4, 0, 0.2, 1] : 'linear' }}
       className="fixed inset-0 z-[300] overflow-hidden bg-gray-950"
       role="status"
       aria-label="Opening your workspace"
     >
       {/* The same two layers the sign-in page uses, so this is the same room. */}
-      <div
+      <motion.div
         className="pointer-events-none absolute -left-24 -top-24 h-[28rem] w-[28rem] rounded-full opacity-25 blur-3xl"
         style={{ background: 'rgb(var(--color-primary-600))' }}
+        animate={{ scale: leaving && !reduced ? 1.6 : 1, opacity: leaving ? 0 : 0.25 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
       />
       <div
         className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -149,7 +158,18 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
         }}
       />
 
-      <div className="relative z-10 flex h-full flex-col">
+      {/* The stage pushes gently past the viewer on the way out, the way a camera moves
+          through a doorway rather than cutting to the next shot. The dashboard lands
+          underneath it a beat later, so the two read as one movement. */}
+      <motion.div
+        className="relative z-10 flex h-full flex-col"
+        animate={
+          reduced
+            ? { opacity: leaving ? 0 : 1 }
+            : { scale: leaving ? 1.05 : 1, opacity: leaving ? 0 : 1, filter: leaving ? 'blur(8px)' : 'blur(0px)' }
+        }
+        transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+      >
         <div className="flex items-center justify-between p-6 sm:p-10">
           <AuraLogo monochrome className="text-white [&_span]:text-white" size="md" subtitle="Operations" />
           <button
@@ -335,7 +355,7 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
         <p className="relative z-10 border-t border-white/10 px-6 py-4 text-xs text-gray-500 sm:px-10">
           {name ? `Opening your workspace, ${name.split(' ')[0]}.` : 'Opening your workspace.'}
         </p>
-      </div>
+      </motion.div>
     </motion.div>
   )
 }

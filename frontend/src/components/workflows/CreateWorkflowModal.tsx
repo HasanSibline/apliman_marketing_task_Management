@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { XMarkIcon, PlusIcon, TrashIcon, UserGroupIcon } from '@heroicons/react/24/outline'
+import FormDialog from '@/components/ui/FormDialog'
+import { PlusIcon, TrashIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { workflowsApi, usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
 
@@ -218,46 +218,30 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
   }
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={onClose}
-            />
-            
-            {/* Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-md max-h-[90vh] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-800 z-10">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Workflow</h2>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Define phases and assign team members who can work on each phase</p>
-                </div>
-                <button aria-label="Close"
-                  onClick={onClose}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+    <FormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      busy={isLoading}
+      width="xl"
+      title="Create a workflow"
+      description="Set out the phases work moves through, and who can move it."
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+            Cancel
+          </button>
+          <button type="submit" className="btn-primary" disabled={isLoading}>
+            {isLoading ? 'Creating…' : 'Create workflow'}
+          </button>
+        </>
+      }
+    >
+      <div className="space-y-6">
                 {/* Basic Info */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="name" className="form-label">
                       Workflow Name *
                     </label>
                     <input
@@ -266,13 +250,13 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                       required
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="input-field"
                       placeholder="e.g., Social Media Workflow"
                     />
                   </div>
 
                   <div>
-                    <label htmlFor="taskType" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="taskType" className="form-label">
                       Task Type *
                     </label>
                     <select
@@ -280,7 +264,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                       required
                       value={formData.taskType}
                       onChange={(e) => setFormData(prev => ({ ...prev, taskType: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      className="select-field w-full"
                     >
                       <option value="">Select task type</option>
                       {taskTypes.map(type => (
@@ -291,7 +275,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                 </div>
 
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                  <label htmlFor="description" className="form-label">
                     Description
                   </label>
                   <textarea
@@ -299,14 +283,14 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                     rows={3}
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="input-field"
                     placeholder="Describe this workflow..."
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <label htmlFor="color" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+                    <label htmlFor="color" className="form-label">
                       Workflow Color
                     </label>
                     <div className="flex space-x-2">
@@ -371,7 +355,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                            <label className="form-label">
                               Phase Name *
                             </label>
                             <input
@@ -379,13 +363,13 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                               required
                               value={phase.name}
                               onChange={(e) => updatePhase(index, 'name', e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                              className="input-field"
                               placeholder="e.g., In Progress"
                             />
                           </div>
 
                           <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                            <label className="form-label">
                               Phase Color
                             </label>
                             <div className="flex space-x-2">
@@ -405,14 +389,14 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                         </div>
 
                         <div className="mt-4">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                          <label className="form-label">
                             Description
                           </label>
                           <input
                             type="text"
                             value={phase.description}
                             onChange={(e) => updatePhase(index, 'description', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="input-field"
                             placeholder="Describe this phase"
                           />
                         </div>
@@ -477,30 +461,8 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-white dark:bg-gray-800">
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="btn-secondary"
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="btn-primary"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Creating...' : 'Create Workflow'}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
-        </div>
-      )}
-    </AnimatePresence>
+      </div>
+    </FormDialog>
   )
 }
 

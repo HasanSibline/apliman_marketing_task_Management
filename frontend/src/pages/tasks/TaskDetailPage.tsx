@@ -19,7 +19,6 @@ import {
   BoltIcon,
   FireIcon,
   ChevronUpIcon,
-  ChevronDownIcon,
   XMarkIcon,
   ExclamationTriangleIcon,
   CogIcon,
@@ -466,7 +465,7 @@ const TaskDetailPage: React.FC = () => {
                           }
                         }}
                         disabled={!canEdit}
-                        className="appearance-none bg-none px-3 py-1.5 pr-8 rounded-lg text-sm font-medium border-2 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="select-field text-sm"
                         style={{
                           backgroundColor: `${currentTask.currentPhase?.color}20`,
                           color: currentTask.currentPhase?.color,
@@ -479,9 +478,6 @@ const TaskDetailPage: React.FC = () => {
                           </option>
                         ))}
                       </select>
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                        <ChevronDownIcon className="w-4 h-4" style={{ color: currentTask.currentPhase?.color }} />
-                      </div>
                     </div>
                   )}
                 </div>

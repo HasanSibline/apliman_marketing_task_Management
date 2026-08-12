@@ -23,7 +23,12 @@ interface CompanyBranding {
 
 const CompanyLogin: React.FC = () => {
   useForcedDark()
-  const [entering, setEntering] = useState<string | null | undefined>(undefined)
+  // Set once the credentials check out, which is what swaps the form for the
+  // sign-in screen. The session itself is not opened until that screen finishes:
+  // PublicRoute sends an authenticated visitor straight to the dashboard, so
+  // dispatching setAuth here would unmount this page mid-animation and the screen
+  // would never be seen.
+  const [entering, setEntering] = useState<{ user: any; token: string } | null>(null)
   const { slug } = useParams<{ slug: string }>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -109,15 +114,9 @@ const CompanyLogin: React.FC = () => {
       localStorage.setItem('token', accessToken);
       api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
 
-      // Update Redux state
       rememberCompany(slug ?? user.companySlug);
 
-      dispatch(setAuth({ user, token: accessToken }));
-
-      toast.success(`Welcome back, ${user.name}!`);
-
-      // Redirect to dashboard
-      setEntering(user.name ?? null);
+      setEntering({ user, token: accessToken });
     } catch (err: any) {
       console.error('Login error:', err);
       setError(
@@ -130,10 +129,18 @@ const CompanyLogin: React.FC = () => {
     }
   };
 
-  // Signed in. Held here rather than navigating straight through, so the workspace
-  // has a few seconds to load behind something worth looking at.
-  if (entering !== undefined) {
-    return <SigningInScreen name={entering} onDone={() => navigate('/dashboard')} />
+  // Credentials accepted. The session opens when the screen is done, not before.
+  if (entering) {
+    return (
+      <SigningInScreen
+        name={entering.user.name ?? null}
+        onDone={() => {
+          dispatch(setAuth({ user: entering.user, token: entering.token }))
+          toast.success(`Welcome back, ${entering.user.name}!`)
+          navigate('/dashboard')
+        }}
+      />
+    )
   }
 
   // Loading state

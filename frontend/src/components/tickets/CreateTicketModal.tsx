@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  XMarkIcon 
-} from '@heroicons/react/24/outline'
+import { motion } from 'framer-motion'
+import FormDialog from '@/components/ui/FormDialog'
 import api from '@/services/api'
 import { toast } from 'react-hot-toast'
 
@@ -72,7 +70,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Issue Category</label>
             <select 
               onChange={(e) => handleMetadataChange('it_category', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
+              className="select-field w-full text-sm"
             >
               <option value="Hardware">Hardware</option>
               <option value="Software">Software</option>
@@ -101,7 +99,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Type of Document</label>
             <select 
               onChange={(e) => handleMetadataChange('hr_doc_type', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
+              className="select-field w-full text-sm"
             >
               <option value="Salary Certificate">Salary Certificate</option>
               <option value="Contract Copy">Contract Copy</option>
@@ -156,7 +154,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">System Environment</label>
             <select 
               onChange={(e) => handleMetadataChange('environment', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
+              className="select-field w-full text-sm"
             >
               <option value="Production">Production (Live)</option>
               <option value="Staging">Staging</option>
@@ -168,7 +166,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Severity</label>
             <select 
               onChange={(e) => handleMetadataChange('severity', e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
+              className="select-field w-full text-sm"
             >
               <option value="Minor">Minor / UI</option>
               <option value="Major">Major / Functional</option>
@@ -293,47 +291,35 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/50"
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-lg shadow-md"
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Create Cross-Dept Ticket</h2>
-              <button aria-label="Close"
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-              >
-                <XMarkIcon className="h-6 w-6" />
-              </button>
-            </div>
-
-            {/* Form */}
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+    <FormDialog
+      isOpen={isOpen}
+      onClose={onClose}
+      busy={isSubmitting}
+      width="md"
+      title="Ask another department for something"
+      description="They see it as a ticket and decide whether to take it on."
+      footer={
+        <>
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>
+            Cancel
+          </button>
+          <button type="button" onClick={handleSubmit} className="btn-primary" disabled={isSubmitting}>
+            {isSubmitting ? 'Sending…' : 'Send request'}
+          </button>
+        </>
+      }
+    >
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 {/* Target Dept */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label className="form-label">
                     Target Department *
                   </label>
                   <select
                     value={receiverDeptId}
                     onChange={(e) => setReceiverDeptId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium"
+                    className="select-field w-full"
                   >
                     <option value="">Choose a department...</option>
                     {departments.map((dept) => (
@@ -344,14 +330,14 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
                 {/* Target User */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label className="form-label">
                     Target Personnel {!requiresApproval && '*'}
                   </label>
                   <select
                     value={assigneeId}
                     onChange={(e) => setAssigneeId(e.target.value)}
                     disabled={!receiverDeptId}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 font-medium disabled:bg-gray-50 dark:disabled:bg-gray-900/40 disabled:text-gray-400 dark:disabled:text-gray-500"
+                    className="select-field w-full"
                   >
                     <option value="">Direct to Department Manager</option>
                     {deptUsers.map((u) => (
@@ -386,7 +372,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   <select
                     value={approverId}
                     onChange={(e) => setApproverId(e.target.value)}
-                    className="w-full px-3 py-2 border-2 border-gray-100 dark:border-gray-700 rounded-lg text-xs bg-gray-50 dark:bg-gray-900/40 focus:border-primary-500 font-semibold text-gray-800 dark:text-gray-100 transition-all"
+                    className="select-field w-full text-xs"
                   >
                     <option value="">Designate Approver...</option>
                     {deptUsers.filter(u => ['MANAGER', 'ADMIN', 'COMPANY_ADMIN'].includes(u.role)).map(u => (
@@ -406,7 +392,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
               {/* Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="form-label">
                   What is this about? *
                 </label>
                 <select
@@ -430,7 +416,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="form-label">
                   Ticket Title *
                 </label>
                 <input
@@ -438,7 +424,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   placeholder="Summarize the core request..."
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  className="input-field"
                 />
               </div>
 
@@ -456,7 +442,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                <label className="form-label">
                   Extended Instructions
                 </label>
                 <textarea
@@ -471,7 +457,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               <div className="grid grid-cols-2 gap-4">
                 {/* Deadline */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label className="form-label">
                     Target Deadline
                   </label>
                   <input
@@ -485,13 +471,13 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
                 {/* Priority */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  <label className="form-label">
                     Priority
                   </label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    className="select-field w-full"
                   >
                     <option value="LOW">Low</option>
                     <option value="MEDIUM">Medium</option>
@@ -501,30 +487,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 </div>
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn-secondary"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                className="btn-primary"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit Request'}
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </FormDialog>
   )
 }
 

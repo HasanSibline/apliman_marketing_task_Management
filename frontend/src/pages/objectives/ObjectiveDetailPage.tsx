@@ -392,7 +392,7 @@ const ObjectiveDetailPage: React.FC = () => {
                             <select 
                                 value={selectedKRForTask} 
                                 onChange={(e) => setSelectedKRForTask(e.target.value)}
-                                className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm font-medium"
+                                className="select-field w-full text-sm"
                             >
                                 <option value="">None (Link to Objective overall)</option>
                                 {obj.keyResults.map(kr => (
@@ -451,7 +451,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Unit</label>
                                     <select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-sm font-medium">
+                                        className="select-field w-full text-sm">
                                         <option value="number">Number</option>
                                         <option value="percent">%</option>
                                         <option value="currency">$</option>
