@@ -11,6 +11,16 @@ import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from
 
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * How long one nudge holds the rotation before the next is picked.
+ *
+ * Matched to NUDGE_INTERVAL_MS in FloatingChatButton, the rate the client asks at.
+ * Shorter and two polls inside one bucket repeat themselves; longer and consecutive
+ * nudges skip entries. They are two constants in two services rather than one shared
+ * value, so if the client's interval changes this has to change with it.
+ */
+const NUDGE_ROTATION_MS = 3 * 60_000;
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -96,6 +106,9 @@ export class ChatService {
       awaitingMyDecision,
       myRequestsAnswered,
       finishedThisMonth,
+      unscheduled,
+      myRequestsResolved,
+      openSubtasks,
     ] = await Promise.all([
       // Counted and sampled separately. Taking a couple of rows and reporting how
       // many came back caps the number at whatever the limit was, so someone with
@@ -160,6 +173,29 @@ export class ChatService {
         where: { ...mine, completedAt: { gte: monthStart } },
         select: { completedAt: true, dueDate: true },
       }),
+      // Work of mine that no quarter owns. Easy to accumulate and invisible on the
+      // strategy pages, which only show what is inside a cycle.
+      this.prisma.task.count({
+        where: { ...mine, ...open, quarterId: null },
+      }),
+      // Something I asked for that came back done.
+      this.prisma.ticket.count({
+        where: {
+          requesterId: userId,
+          status: 'RESOLVED' as any,
+          updatedAt: { gte: weekAgo },
+        },
+      }),
+      // Subtasks are assigned separately from their parent task and are the usual
+      // place work hides: the task looks untouched while three of its parts are mine.
+      this.prisma.subtask
+        .count({
+          // Scoped to subtasks whose parent task is still running. One left unticked
+          // on a task that shipped weeks ago is bookkeeping, not work, and counting
+          // it would leave a number nobody can ever bring down to zero.
+          where: { assignedToId: userId, isCompleted: false, task: { ...open } },
+        })
+        .catch(() => 0),
     ]);
 
     const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
@@ -180,32 +216,47 @@ export class ChatService {
      * a single task without a number falls back to naming its kind rather than
      * printing "null is due today".
      */
+    type Nudge = { text: string; tone: 'urgent' | 'info' | 'praise' };
+
+    /**
+     * Everything true about this person right now, rather than the first true thing.
+     *
+     * This was a ladder of early returns, which meant whoever had one task past due
+     * saw that one sentence every three minutes for as long as it stayed past due,
+     * and never reached the ticket or the analytics lines at all. The extra branches
+     * existed and were unreachable. Collecting them and rotating is what makes the
+     * bot worth glancing at twice.
+     */
+    const pool: Nudge[] = [];
+
     if (overdueCount > 0) {
       const id = firstOverdue?.taskNumber;
       const days = firstOverdue?.dueDate
         ? Math.floor((now.getTime() - firstOverdue.dueDate.getTime()) / 86_400_000)
         : 0;
-      let text: string;
-      if (overdueCount > 1) {
-        text = `${overdueCount} tasks are past due.`;
-      } else if (id) {
-        text = days >= 1 ? `${id} is ${days} ${plural(days, 'day', 'days')} past due.` : `${id} is past due.`;
-      } else {
-        text = 'One task is past due.';
-      }
-      return { tone: 'urgent', text };
+      pool.push({
+        tone: 'urgent',
+        text:
+          overdueCount > 1
+            ? `${overdueCount} tasks are past due.`
+            : id
+              ? days >= 1
+                ? `${id} is ${days} ${plural(days, 'day', 'days')} past due.`
+                : `${id} is past due.`
+              : 'One task is past due.',
+      });
     }
 
     if (awaitingMyDecision > 0) {
-      return {
+      pool.push({
         tone: 'urgent',
         text: `${awaitingMyDecision} ${plural(awaitingMyDecision, 'ticket is', 'tickets are')} waiting on your decision.`,
-      };
+      });
     }
 
     if (dueTodayCount > 0) {
       const id = firstDueToday?.taskNumber;
-      return {
+      pool.push({
         tone: 'info',
         text:
           dueTodayCount > 1
@@ -213,12 +264,12 @@ export class ChatService {
             : id
               ? `${id} is due today.`
               : 'One task is due today.',
-      };
+      });
     }
 
     if (openTicketCount > 0) {
       const id = firstOpenTicket?.ticketNumber;
-      return {
+      pool.push({
         tone: 'info',
         text:
           openTicketCount > 1
@@ -226,7 +277,21 @@ export class ChatService {
             : id
               ? `${id} is assigned to you.`
               : 'One ticket is assigned to you.',
-      };
+      });
+    }
+
+    if (openSubtasks > 0) {
+      pool.push({
+        tone: 'info',
+        text: `${openSubtasks} ${plural(openSubtasks, 'subtask is', 'subtasks are')} still open under your tasks.`,
+      });
+    }
+
+    if (unscheduled > 0) {
+      pool.push({
+        tone: 'info',
+        text: `${unscheduled} of your ${plural(unscheduled, 'task is', 'tasks are')} not in a quarter yet.`,
+      });
     }
 
     // Analytics, and the only line here that is a rate rather than a count. Measured
@@ -243,31 +308,60 @@ export class ChatService {
         (t) => t.completedAt!.getTime() < t.dueDate!.getTime() + 86_400_000,
       ).length;
       const rate = Math.round((onTime / dated.length) * 100);
-      if (rate === 100) {
-        return { tone: 'praise', text: `All ${dated.length} tasks this month landed on time.` };
-      }
-      if (rate >= 80) {
-        return { tone: 'praise', text: `${rate}% of your tasks landed on time this month.` };
-      }
-      return { tone: 'info', text: `${rate}% on time this month, across ${dated.length} tasks.` };
+      pool.push(
+        rate === 100
+          ? { tone: 'praise', text: `All ${dated.length} tasks this month landed on time.` }
+          : rate >= 80
+            ? { tone: 'praise', text: `${rate}% of your tasks landed on time this month.` }
+            : { tone: 'info', text: `${rate}% on time this month, across ${dated.length} tasks.` },
+      );
+    }
+
+    if (finishedThisMonth.length >= 2) {
+      pool.push({
+        tone: 'praise',
+        text: `${finishedThisMonth.length} tasks finished this month so far.`,
+      });
+    }
+
+    if (myRequestsResolved > 0) {
+      pool.push({
+        tone: 'praise',
+        text: `${myRequestsResolved} of your ${plural(myRequestsResolved, 'request came', 'requests came')} back done this week.`,
+      });
     }
 
     if (myRequestsAnswered > 0) {
-      return {
+      pool.push({
         tone: 'info',
         text: `${myRequestsAnswered} of your ${plural(myRequestsAnswered, 'request', 'requests')} moved this week.`,
-      };
+      });
     }
 
     if (doneThisWeek >= 3) {
-      return { tone: 'praise', text: `${doneThisWeek} tasks finished this week. Nice run.` };
+      pool.push({ tone: 'praise', text: `${doneThisWeek} tasks finished this week. Nice run.` });
     }
 
-    // Nothing needs attention and nothing to celebrate. Saying nothing is better than
-    // manufacturing something: a widget that always has an opinion stops being read.
-    return doneThisWeek > 0
-      ? { tone: 'praise', text: 'Your board is clear. Well done.' }
-      : null;
+    if (pool.length === 0) {
+      // Nothing needs attention and nothing to celebrate. Saying nothing is better
+      // than manufacturing something: a widget that always has an opinion stops
+      // being read.
+      return doneThisWeek > 0
+        ? { tone: 'praise', text: 'Your board is clear. Well done.' }
+        : null;
+    }
+
+    /**
+     * Which one to say this time.
+     *
+     * Stepped by the clock rather than chosen at random, so the same thing is not
+     * repeated twice running and the sequence does not need anything remembered
+     * between requests. The bucket is the nudge interval the client polls on, so
+     * consecutive nudges land on consecutive entries and a full turn through
+     * everything true takes as many nudges as there are things to say.
+     */
+    const bucket = Math.floor(now.getTime() / NUDGE_ROTATION_MS);
+    return pool[bucket % pool.length];
   }
 
   /**
