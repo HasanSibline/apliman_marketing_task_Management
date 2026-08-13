@@ -6,6 +6,7 @@ import { toast } from 'react-hot-toast'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchUsers } from '@/store/slices/usersSlice'
 import ActionModal from '@/components/ui/ActionModal'
+import Select from '@/components/ui/Select'
 
 const DepartmentsManagement: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -247,7 +248,7 @@ const DepartmentsManagement: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Manager (Optional)</label>
-                <select 
+                <Select 
                   value={selectedManagerId}
                   onChange={(e) => setSelectedManagerId(e.target.value)}
                   className="select-field mt-1"
@@ -256,7 +257,7 @@ const DepartmentsManagement: React.FC = () => {
                   {availableUsers.map(u => (
                     <option key={u.id} value={u.id}>{u.name} ({u.role})</option>
                   ))}
-                </select>
+                </Select>
               </div>
             </div>
             <div className="mt-6 flex justify-end space-x-3">

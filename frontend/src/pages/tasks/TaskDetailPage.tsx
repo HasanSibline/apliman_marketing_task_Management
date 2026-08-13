@@ -37,6 +37,7 @@ import SubtaskSidebar from '@/components/tasks/SubtaskSidebar'
 import EditTaskModal from '@/components/tasks/EditTaskModal'
 import AddSubtaskModal from '@/components/tasks/AddSubtaskModal'
 import toast from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 const TaskDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>()
@@ -456,7 +457,7 @@ const TaskDetailPage: React.FC = () => {
                   {/* Phase Dropdown */}
                   {currentTask.workflow?.phases && currentTask.workflow.phases.length > 0 && (
                     <div className="relative">
-                      <select
+                      <Select
                         value={currentTask.currentPhase?.id || ''}
                         onChange={(e) => {
                           const newPhaseId = e.target.value
@@ -477,7 +478,7 @@ const TaskDetailPage: React.FC = () => {
                             {phase.name}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
                   )}
                 </div>

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import FormDialog from '@/components/ui/FormDialog'
 import api from '@/services/api'
 import { toast } from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 interface CreateTicketModalProps {
   isOpen: boolean
@@ -68,7 +69,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Issue Category</label>
-            <select 
+            <Select 
               onChange={(e) => handleMetadataChange('it_category', e.target.value)}
               className="select-field w-full text-sm"
             >
@@ -76,7 +77,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               <option value="Software">Software</option>
               <option value="Network">Network / Wifi</option>
               <option value="Access">Access / Permissions</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Machine/Asset ID</label>
@@ -97,7 +98,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Type of Document</label>
-            <select 
+            <Select 
               onChange={(e) => handleMetadataChange('hr_doc_type', e.target.value)}
               className="select-field w-full text-sm"
             >
@@ -105,7 +106,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               <option value="Contract Copy">Contract Copy</option>
               <option value="Insurance Claim">Insurance Claim</option>
               <option value="Vacation Balance">Vacation Balance</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Urgency Justification</label>
@@ -152,7 +153,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">System Environment</label>
-            <select 
+            <Select 
               onChange={(e) => handleMetadataChange('environment', e.target.value)}
               className="select-field w-full text-sm"
             >
@@ -160,18 +161,18 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               <option value="Staging">Staging</option>
               <option value="Beta">Beta</option>
               <option value="Development">Development</option>
-            </select>
+            </Select>
           </div>
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Severity</label>
-            <select 
+            <Select 
               onChange={(e) => handleMetadataChange('severity', e.target.value)}
               className="select-field w-full text-sm"
             >
               <option value="Minor">Minor / UI</option>
               <option value="Major">Major / Functional</option>
               <option value="Critical">Critical / Blocker</option>
-            </select>
+            </Select>
           </div>
         </div>
       )
@@ -316,7 +317,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   <label className="form-label">
                     Target Department *
                   </label>
-                  <select
+                  <Select
                     value={receiverDeptId}
                     onChange={(e) => setReceiverDeptId(e.target.value)}
                     className="select-field w-full"
@@ -325,7 +326,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Target User */}
@@ -333,7 +334,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   <label className="form-label">
                     Target Personnel {!requiresApproval && '*'}
                   </label>
-                  <select
+                  <Select
                     value={assigneeId}
                     onChange={(e) => setAssigneeId(e.target.value)}
                     disabled={!receiverDeptId}
@@ -343,7 +344,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     {deptUsers.map((u) => (
                       <option key={u.id} value={u.id}>{u.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
               </div>
 
@@ -369,7 +370,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   className="space-y-2 p-3 bg-white dark:bg-gray-800 border border-primary-50 dark:border-primary-900/40 rounded-xl shadow-sm"
                 >
                   <label className="block text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wide ml-1">Selecting Authorization Authority *</label>
-                  <select
+                  <Select
                     value={approverId}
                     onChange={(e) => setApproverId(e.target.value)}
                     className="select-field w-full text-xs"
@@ -385,7 +386,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                          ))}
                        </optgroup>
                     )}
-                  </select>
+                  </Select>
                   <p className="text-xs font-bold text-gray-500 dark:text-gray-400 px-1 leading-none">The selected individual will automatically be deployed to the Tactical Squad.</p>
                 </motion.div>
               )}
@@ -395,7 +396,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 <label className="form-label">
                   What is this about? *
                 </label>
-                <select
+                <Select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   disabled={!receiverDeptId}
@@ -406,7 +407,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     categories.map((c) => (
                       <option key={c} value={c}>{c}</option>
                     ))}
-                </select>
+                </Select>
                 <p className="form-hint">
                   {targetDept?.ticketCategories?.length
                     ? `What ${targetDept.name} takes requests for.`
@@ -474,7 +475,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                   <label className="form-label">
                     Priority
                   </label>
-                  <select
+                  <Select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
                     className="select-field w-full"
@@ -483,7 +484,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     <option value="MEDIUM">Medium</option>
                     <option value="HIGH">High</option>
                     <option value="URGENT">Urgent</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
             </div>

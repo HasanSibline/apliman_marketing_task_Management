@@ -317,7 +317,11 @@ export default function FloatingChatButton() {
                 transition={{ type: 'spring', stiffness: 260, damping: 18 }}
               >
                 <AuraBot
-                  className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]"
+                  // No drop-shadow. It was tuned for a white robot on a dark panel,
+                  // where it read as depth; behind the slate one it renders as a grey
+                  // rectangle of blur around the figure, which is the plate this
+                  // character was drawn without on purpose.
+                  className="h-16 w-16"
                   eyes={peeking ? 'burst' : 'auto'}
                   waving={waving}
                 />

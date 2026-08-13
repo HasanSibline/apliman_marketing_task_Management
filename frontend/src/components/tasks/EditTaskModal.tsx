@@ -5,6 +5,7 @@ import { tasksApi, usersApi, quartersApi, objectivesApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 import { LockClosedIcon } from '@heroicons/react/24/outline'
+import Select from '@/components/ui/Select'
 
 interface EditTaskModalProps {
   task: any
@@ -171,7 +172,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     <FlagIcon className="w-4 h-4 inline mr-1" />
                     Priority
                   </label>
-                  <select
+                  <Select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
                     className="select-field w-full"
@@ -179,7 +180,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     <option value={1}>Low</option>
                     <option value={2}>Medium</option>
                     <option value={3}>High</option>
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Due Date */}
@@ -204,7 +205,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   <label className="form-label">
                     Quarter
                   </label>
-                  <select
+                  <Select
                     value={formData.quarterId}
                     onChange={(e) => setFormData({ ...formData, quarterId: e.target.value })}
                     className="select-field w-full"
@@ -213,7 +214,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     {quarters.map((q) => (
                       <option key={q.id} value={q.id}>{q.name} {q.year}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Objective */}
@@ -221,7 +222,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                   <label className="form-label">
                     Objective
                   </label>
-                  <select
+                  <Select
                     value={formData.objectiveId}
                     onChange={(e) => setFormData({ ...formData, objectiveId: e.target.value, keyResultId: '' })}
                     className="select-field w-full"
@@ -232,7 +233,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                       .map((obj) => (
                         <option key={obj.id} value={obj.id}>{obj.title}</option>
                       ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Key Result */}
@@ -241,7 +242,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     <label className="form-label">
                       Track a Key Result
                     </label>
-                    <select
+                    <Select
                       value={formData.keyResultId}
                       onChange={(e) => setFormData({ ...formData, keyResultId: e.target.value })}
                       className="select-field w-full"
@@ -251,7 +252,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                         .find(o => o.id === formData.objectiveId)?.keyResults?.map((kr: any) => (
                           <option key={kr.id} value={kr.id}>{kr.title}</option>
                         ))}
-                    </select>
+                    </Select>
                   </div>
                 )}
               </div>

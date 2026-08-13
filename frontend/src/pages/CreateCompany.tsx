@@ -15,6 +15,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api from '../services/api';
+import Select from '@/components/ui/Select'
 
 // ── One-time credentials modal ────────────────────────────────────────────────
 function CredentialsModal({
@@ -714,13 +715,13 @@ export default function CreateCompany() {
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Primary AI Provider</label>
-                      <select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
+                      <Select name="aiProvider" value={formData.aiProvider} onChange={handleChange}
                         className="select-field w-full text-sm">
                         <option value="anthropic">Claude (Anthropic), recommended, reads images and PDFs</option>
                         <option value="gemini">Google Gemini, reads images, low free-tier rate limit</option>
                         <option value="groq">Groq: GPT-OSS 120B (text only)</option>
                         <option value="openai">OpenAI: GPT-4o mini (text only)</option>
-                      </select>
+                      </Select>
                       <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                         Only used when this company has its own key above.
                       </p>

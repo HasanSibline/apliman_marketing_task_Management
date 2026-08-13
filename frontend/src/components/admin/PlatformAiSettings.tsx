@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import Select from '@/components/ui/Select'
 
 export interface PlatformAiConfig {
   platformAiEnabled: boolean;
@@ -181,7 +182,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
             >
               Provider
             </label>
-            <select
+            <Select
               id="platform-ai-provider"
               value={config.platformAiProvider}
               onChange={(e) => {
@@ -201,7 +202,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
                   {p.name}
                 </option>
               ))}
-            </select>
+            </Select>
             <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">{provider.summary}</p>
           </div>
 
@@ -213,7 +214,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
               >
                 Model
               </label>
-              <select
+              <Select
                 id="platform-ai-model"
                 value={config.platformAiModel ?? provider.models[0].id}
                 onChange={(e) => onChange({ ...config, platformAiModel: e.target.value })}
@@ -224,7 +225,7 @@ const PlatformAiSettings: React.FC<Props> = ({ config, onChange }) => {
                     {m.label}
                   </option>
                 ))}
-              </select>
+              </Select>
               <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                 Cost scales with the model. Haiku handles task descriptions and chat well for a fraction
                 of the price.

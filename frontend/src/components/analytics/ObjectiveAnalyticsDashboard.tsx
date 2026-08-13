@@ -8,6 +8,7 @@ import { ArrowDownTrayIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import { useChartTheme } from '@/theme/chartTheme'
+import Select from '@/components/ui/Select'
 
 interface KeyResult {
     id: string
@@ -175,7 +176,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                     <div className="flex items-center gap-3 bg-gray-50/50 dark:bg-gray-900/40 px-2 py-1.5 rounded-xl border border-gray-100 dark:border-gray-700 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
                         <FunnelIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 ml-1" />
                         <div className="relative">
-                            <select 
+                            <Select 
                                 value={selectedQuarter} 
                                 onChange={e => setSelectedQuarter(e.target.value)}
                                 className="select-field text-sm min-w-[140px]"
@@ -184,7 +185,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                                 {availableQuarters.map(q => (
                                     <option key={q} value={q}>{q}</option>
                                 ))}
-                            </select>
+                            </Select>
                         </div>
                     </div>
                     <button

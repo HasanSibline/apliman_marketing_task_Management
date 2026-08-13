@@ -23,6 +23,7 @@ import { tasksApi } from '@/services/api'
 import { taskStage, TaskStage, STAGES, byDeadline } from '@/lib/taskStage'
 import TaskScheduleBar from './TaskScheduleBar'
 import CompleteTaskDialog from './CompleteTaskDialog'
+import Select from '@/components/ui/Select'
 
 /**
  * Work, arranged the way it is worked.
@@ -299,7 +300,7 @@ const TasksPage: React.FC = () => {
           ))}
         </div>
 
-        <select
+        <Select
           aria-label="Assigned to"
           value={filters.assignedToId || ''}
           onChange={(e) => dispatch(setFilters({ assignedToId: e.target.value || undefined }))}
@@ -310,9 +311,9 @@ const TasksPage: React.FC = () => {
           {people.filter((p) => p.id !== user?.id).map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
-        </select>
+        </Select>
 
-        <select
+        <Select
           aria-label="Priority"
           value={filters.priority || ''}
           onChange={(e) =>
@@ -326,7 +327,7 @@ const TasksPage: React.FC = () => {
           <option value="3">High</option>
           <option value="2">Medium</option>
           <option value="1">Low</option>
-        </select>
+        </Select>
 
         {activeFilters > 0 && (
           <button onClick={clearFilters} className="btn-secondary">

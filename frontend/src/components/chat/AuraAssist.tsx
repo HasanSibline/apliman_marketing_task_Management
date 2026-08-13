@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { XMarkIcon, PaperAirplaneIcon, ChatBubbleLeftRightIcon, MinusIcon, PaperClipIcon } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
-import { CpuChipIcon } from '@heroicons/react/24/solid'
 import ThinkingIndicator from './ThinkingIndicator'
 import AuraBot from './AuraBot'
 import { AuraMark } from '@/components/brand/AuraMark'
@@ -595,7 +594,7 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
           title="Open Aura Assist"
           className="group relative block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900"
         >
-          <AuraBot className="h-16 w-16 drop-shadow-[0_6px_14px_rgba(15,23,42,0.35)]" />
+          <AuraBot className="h-16 w-16" />
 
           {messages.length > 0 && (
             <span className="absolute -right-0.5 -top-0.5 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full border-2 border-white bg-primary-600 px-1.5 text-[11px] font-semibold tabular-nums text-white shadow-sm dark:border-gray-900">
@@ -726,11 +725,18 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
                     animate={{ opacity: 1, scale: 1 }}
                     className={`flex items-start gap-3 ${message.role === 'user' ? 'flex-row-reverse' : ''}`}
                   >
-                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm border ${
-                      message.role === 'user' ? 'bg-primary-600 text-white border-primary-500' : 'bg-white dark:bg-gray-800 text-secondary-600 dark:text-secondary-400 border-gray-100 dark:border-gray-700'
-                    }`}>
-                      {message.role === 'user' ? <span className="text-xs font-semibold">{getInitials(user?.name)}</span> : <CpuChipIcon className="w-5 h-5" />}
-                    </div>
+                    {/* The face that was clicked to open this, rather than a chip icon
+                        standing in for it. The assistant has a character; using a
+                        generic glyph for its own messages throws that away in the one
+                        place it is read most. No tile behind it, for the same reason
+                        the launcher has none: it is a figure, not an icon. */}
+                    {message.role === 'user' ? (
+                      <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-primary-500 bg-primary-600 text-white shadow-sm">
+                        <span className="text-xs font-semibold">{getInitials(user?.name)}</span>
+                      </div>
+                    ) : (
+                      <AuraBot className="h-8 w-8 flex-shrink-0" alive={false} />
+                    )}
                     
                     <div className={`flex flex-col max-w-[82%] ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
                       <div className={`rounded-xl px-4 py-2.5 shadow-sm relative group transition-all ${
@@ -802,9 +808,9 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
 
                 {streamingMessage && (
                   <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 text-secondary-600 dark:text-secondary-400 flex items-center justify-center flex-shrink-0 shadow-sm">
-                      <CpuChipIcon className="w-5 h-5" />
-                    </div>
+                    {/* Mid-reply, so the eyes are shut: the same signal the thinking
+                        indicator uses, on the message actually being written. */}
+                    <AuraBot className="h-8 w-8 flex-shrink-0" thinking />
                     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-800 dark:text-gray-100 rounded-xl rounded-tl-none px-4 py-2.5 max-w-[82%] shadow-sm">
                       <p className="text-[13px] leading-relaxed font-medium">{humanizeText(streamingMessage)}</p>
                     </div>

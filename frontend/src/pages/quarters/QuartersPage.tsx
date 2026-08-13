@@ -20,6 +20,7 @@ import api, { tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 import CreateTaskModal from '@/components/tasks/CreateTaskModal'
+import Select from '@/components/ui/Select'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Quarter {
@@ -93,9 +94,9 @@ function CreateQuarterModal({ onClose, onCreated }: { onClose: () => void; onCre
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Cycle</label>
-                            <select value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="select-field">
+                            <Select value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} className="select-field">
                                 {QUARTER_NAMES.map(q => <option key={q}>{q}</option>)}
-                            </select>
+                            </Select>
                         </div>
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Year</label>
@@ -117,10 +118,10 @@ function CreateQuarterModal({ onClose, onCreated }: { onClose: () => void; onCre
                     </div>
                     <div>
                         <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-1">Status</label>
-                        <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as any }))} className="select-field">
+                        <Select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as any }))} className="select-field">
                             <option value="UPCOMING">Upcoming (Invisible to team)</option>
                             <option value="ACTIVE">Active (Live now)</option>
-                        </select>
+                        </Select>
                     </div>
                     <div className="flex gap-3 pt-4">
                         <button type="button" onClick={onClose} className="btn-secondary flex-1">Cancel</button>
@@ -240,12 +241,12 @@ function CloseQuarterModal({
                     {otherQuarters.length > 0 && selected.size > 0 && (
                         <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 uppercase mb-2">Move selected tasks to:</label>
-                            <select value={nextQuarterId} onChange={e => setNextQuarterId(e.target.value)} className="select-field">
+                            <Select value={nextQuarterId} onChange={e => setNextQuarterId(e.target.value)} className="select-field">
                                 <option value="">Draft (Standby / No Date)</option>
                                 {otherQuarters.map(q => (
                                     <option key={q.id} value={q.id}>{q.name} {q.year} ({q.status})</option>
                                 ))}
-                            </select>
+                            </Select>
                         </div>
                     )}
                 </div>

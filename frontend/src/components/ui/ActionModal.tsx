@@ -7,6 +7,7 @@ import {
   InformationCircleIcon,
 } from '@heroicons/react/24/outline'
 import useDialogChrome from './dialogChrome'
+import Select from '@/components/ui/Select'
 
 /**
  * The dialog that asks before something happens.
@@ -184,7 +185,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                     <label htmlFor="action-modal-choice" className="form-label">
                       {reasonLabel}
                     </label>
-                    <select
+                    <Select
                       id="action-modal-choice"
                       value={picked}
                       onChange={(e) => setPicked(e.target.value)}
@@ -197,7 +198,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
                         </option>
                       ))}
                       <option value="other">Something else</option>
-                    </select>
+                    </Select>
                   </div>
                 )}
 

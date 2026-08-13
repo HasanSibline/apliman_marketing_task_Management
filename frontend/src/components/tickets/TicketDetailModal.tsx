@@ -19,6 +19,7 @@ import {
 import api, { formatAssetUrl } from '@/services/api'
 import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
+import Select from '@/components/ui/Select'
 
 interface TicketDetailModalProps {
   isOpen: boolean
@@ -409,7 +410,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                       <div className="space-y-4 pt-2">
                          <div className="space-y-2">
                             <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wide ml-1">Redirect To Dept</label>
-                            <select
+                            <Select
                               value={editData.receiverDeptId}
                               onChange={(e) => setEditData({...editData, receiverDeptId: e.target.value})}
                               className="select-field w-full text-xs"
@@ -418,13 +419,13 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                 {departments.map(d => (
                                   <option key={d.id} value={d.id}>{d.name}</option>
                                 ))}
-                            </select>
+                            </Select>
                          </div>
 
                          {isAdmin && (
                          <div className="space-y-2">
                             <label className="text-xs font-semibold text-rose-600 dark:text-rose-400 tracking-wide ml-1">Manual Status Override</label>
-                            <select
+                            <Select
                               value={editData.status}
                               onChange={(e) => setEditData({...editData, status: e.target.value})}
                               className="select-field w-full text-xs"
@@ -432,7 +433,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                                 {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                                   <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
                                 ))}
-                            </select>
+                            </Select>
                          </div>
                          )}
 
@@ -484,7 +485,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                           (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || isAdmin) && (
                           <div className="pt-4 border-t border-gray-50 dark:border-gray-700 space-y-3">
                             <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide">Delegated Assignee</p>
-                            <select
+                            <Select
                               value={ticket.assigneeId || ''}
                               onChange={async (e) => {
                                 try {
@@ -500,7 +501,7 @@ const TicketDetailModal: React.FC<TicketDetailModalProps> = ({ isOpen, onClose, 
                               {users.filter(u => u.departmentId === ticket.receiverDeptId).map(u => (
                                 <option key={u.id} value={u.id}>{u.name}</option>
                               ))}
-                            </select>
+                            </Select>
                           </div>
                         )}
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { XMarkIcon, ArrowPathIcon, CalendarDaysIcon } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 /**
  * What to do with the tasks you ticked.
@@ -84,7 +85,7 @@ const TaskScheduleBar: React.FC<Props> = ({ taskIds, quarters, onClear, onDone, 
       <label htmlFor="schedule-quarter" className="text-sm text-gray-600 dark:text-gray-400">
         Add to
       </label>
-      <select
+      <Select
         id="schedule-quarter"
         value={quarterId}
         onChange={(e) => setQuarterId(e.target.value)}
@@ -97,7 +98,7 @@ const TaskScheduleBar: React.FC<Props> = ({ taskIds, quarters, onClear, onDone, 
             {q.status === 'UPCOMING' ? ' (upcoming)' : ''}
           </option>
         ))}
-      </select>
+      </Select>
 
       <button
         onClick={() => schedule(quarterId)}

@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { CheckIcon } from '@heroicons/react/24/solid'
-import { AuraLogo, AuraMark } from '@/components/brand/AuraMark'
+import { AuraLogo } from '@/components/brand/AuraMark'
 import AuraBot from '@/components/chat/AuraBot'
+import api from '@/services/api'
 
 /**
  * The moment between signing in and arriving.
@@ -19,8 +20,16 @@ import AuraBot from '@/components/chat/AuraBot'
  * slideshow. It is deliberately unhurried, because a cursor that snaps between targets
  * looks like a script and one that eases into them looks like a hand.
  *
- * Everything here is a drawing. No request is made, nothing is fetched, and the
- * numbers are fixed, so it cannot be slowed down by the very load it is covering.
+ * What it shows is this person's own work. The token is stored and set on the client
+ * before this mounts, so the screen fetches the ticket and task actually waiting for
+ * them and puts those on the cards: their reference numbers, their titles, their
+ * counts. A rehearsal with invented content is a screenshot with a cursor drawn on
+ * it, and it reads as one the second time you see the same fictional TCK-1042.
+ *
+ * The fetch cannot hold anything up. It is fire-and-forget with a short timeout, the
+ * cards render placeholder text until it lands, and every request failing leaves the
+ * screen exactly as it was. The requests are ones the workspace behind is making
+ * anyway, so they warm the cache rather than competing with it.
  *
  * It can always be skipped, and it never blocks: if the app is ready first it still
  * plays out, and if it finishes first the app is already waiting. Under
@@ -71,10 +80,72 @@ const SCRIPT: [Beat, number][] = [
 
 const QUESTION = 'What needs me today?'
 
+/** This person's actual work, once it arrives. Null until then. */
+interface Real {
+  ticketRef?: string
+  ticketTitle?: string
+  ticketFrom?: string
+  taskRef?: string
+  taskTitle?: string
+  openTasks?: number
+  dueToday?: number
+}
+
 const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
   const reduced = useReducedMotion()
   const [beat, setBeat] = useState<Beat>('idle')
   const [typed, setTyped] = useState('')
+  const [real, setReal] = useState<Real>({})
+
+  // Their own board, fetched alongside the animation rather than before it. Nothing
+  // here is awaited by the script: whatever has arrived by the time a card paints is
+  // what that card shows, and anything that fails simply never replaces its
+  // placeholder.
+  useEffect(() => {
+    let live = true
+    const opts = { timeout: 6000 }
+
+    Promise.allSettled([
+      api.get('/tickets', { ...opts, params: { limit: 5 } }),
+      api.get('/tasks/my-tasks', { ...opts, params: { limit: 5 } }),
+    ]).then(([tickets, tasks]) => {
+      if (!live) return
+      const next: Real = {}
+
+      if (tickets.status === 'fulfilled') {
+        const list = tickets.value.data?.tickets ?? tickets.value.data ?? []
+        const t = Array.isArray(list) ? list[0] : undefined
+        if (t) {
+          next.ticketRef = t.ticketNumber
+          next.ticketTitle = t.title
+          next.ticketFrom = t.requester?.name ?? t.receiverDept?.name
+        }
+      }
+
+      if (tasks.status === 'fulfilled') {
+        const data = tasks.value.data
+        const list = data?.tasks ?? data ?? []
+        const arr: any[] = Array.isArray(list) ? list : []
+        const open = arr.filter((t) => !t.completedAt)
+        const t = open[0] ?? arr[0]
+        if (t) {
+          next.taskRef = t.taskNumber
+          next.taskTitle = t.title
+        }
+        next.openTasks = open.length
+        const today = new Date().toDateString()
+        next.dueToday = open.filter(
+          (t) => t.dueDate && new Date(t.dueDate).toDateString() === today,
+        ).length
+      }
+
+      setReal(next)
+    })
+
+    return () => {
+      live = false
+    }
+  }, [])
 
   // Reduced motion gets the finished picture and a short pause, not a fast version of
   // the same movement: the objection is to the movement, not to its speed.
@@ -195,9 +266,11 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium tracking-wide text-gray-400">TCK-1042</p>
+                  <p className="text-xs font-medium tracking-wide text-gray-400">
+                    {real.ticketRef ?? 'Ticket'}
+                  </p>
                   <p className="mt-1 truncate text-sm font-medium text-white">
-                    Landing page copy review
+                    {real.ticketTitle ?? 'Opening your tickets'}
                   </p>
                 </div>
                 <AnimatePresence mode="wait">
@@ -225,7 +298,9 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
                     animate={{ opacity: 1, height: 'auto' }}
                     className="mt-3 overflow-hidden text-xs leading-relaxed text-gray-400"
                   >
-                    Approved and routed to Content. Nobody had to be told twice.
+                    {real.ticketFrom
+                      ? `Raised by ${real.ticketFrom}. Everything on it is loaded and waiting.`
+                      : 'Loaded, with every comment and attachment on it.'}
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -259,9 +334,13 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
                     className="truncate text-sm font-medium"
                     animate={{ color: taskDone ? 'rgb(156,163,175)' : 'rgb(255,255,255)' }}
                   >
-                    Send the Q3 asset list
+                    {real.taskTitle ?? 'Gathering your tasks'}
                   </motion.p>
-                  <p className="text-xs text-gray-500">TSK-2481 · due today</p>
+                  <p className="text-xs text-gray-500">
+                    {[real.taskRef, real.dueToday ? `${real.dueToday} due today` : null]
+                      .filter(Boolean)
+                      .join(' · ') || 'Your board'}
+                  </p>
                 </div>
               </div>
 
@@ -291,12 +370,18 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-2.5 flex items-start gap-2.5"
                   >
-                    <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-white/10">
-                      <AuraMark className="h-4 w-4 text-white" monochrome />
-                    </span>
+                    {/* The assistant's own face here too, the same one that answers
+                        in the real panel. */}
+                    <AuraBot className="mt-0.5 h-7 w-7 shrink-0" alive={false} />
                     <div className="rounded-xl rounded-tl-sm border border-white/10 bg-white/[0.07] px-3.5 py-2.5 backdrop-blur">
                       <p className="text-xs leading-relaxed text-gray-300">
-                        Two things: the asset list you just finished, and one ticket waiting on you.
+                        {/* The answer is assembled from what was actually fetched, so
+                            the rehearsal ends on something true. */}
+                        {real.openTasks
+                          ? `${real.openTasks} ${real.openTasks === 1 ? 'task' : 'tasks'} open${
+                              real.dueToday ? `, ${real.dueToday} due today` : ''
+                            }${real.ticketRef ? `, and ${real.ticketRef} waiting on you` : ''}.`
+                          : 'Everything of yours is loaded and ready.'}
                       </p>
                     </div>
                   </motion.div>

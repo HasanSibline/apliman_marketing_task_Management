@@ -3,6 +3,7 @@ import FormDialog from '@/components/ui/FormDialog'
 import { PlusIcon, TrashIcon, UserGroupIcon } from '@heroicons/react/24/outline'
 import { workflowsApi, usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 interface CreateWorkflowModalProps {
   isOpen: boolean
@@ -112,8 +113,17 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
+    // Checked here rather than left to the browser. The task type picker used to be
+    // a native select whose `required` blocked submission on the empty first option;
+    // it is a listbox now, and a button does not take part in form validation, so
+    // without this the form would happily post a workflow with no type.
+    if (!formData.taskType) {
+      toast.error('Choose a task type for this workflow')
+      return
+    }
+
     if (phases.length < 2) {
-      toast.error('Workflow must have at least 2 phases')
+      toast.error('A workflow needs at least two phases')
       return
     }
 
@@ -259,7 +269,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                     <label htmlFor="taskType" className="form-label">
                       Task Type *
                     </label>
-                    <select
+                    <Select
                       id="taskType"
                       required
                       value={formData.taskType}
@@ -270,7 +280,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                       {taskTypes.map(type => (
                         <option key={type} value={type}>{type.replace(/_/g, ' ')}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 </div>
 

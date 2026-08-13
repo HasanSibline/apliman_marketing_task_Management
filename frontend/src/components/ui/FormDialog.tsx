@@ -1,4 +1,5 @@
 import React from 'react'
+import { createPortal } from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import useDialogChrome from './dialogChrome'
@@ -101,7 +102,20 @@ const FormDialog: React.FC<FormDialogProps> = ({
     </>
   )
 
-  return (
+  /**
+   * Rendered into document.body, not where it was written.
+   *
+   * The page content sits inside `.app-backdrop > *`, which sets position:relative
+   * and z-index:1 and so opens a stacking context. Any z-index a dialog gives itself
+   * is then scoped to that context and competes only with its siblings, while the app
+   * header, which is outside it, keeps painting on top: the backdrop dimmed the page
+   * but not the header, and the header's opaque bar covered the top of the panel,
+   * cutting the title in half.
+   *
+   * Raising the number would not have helped. There is no value of z-index inside a
+   * stacking context that beats an element outside it. Leaving the tree does.
+   */
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
@@ -154,7 +168,8 @@ const FormDialog: React.FC<FormDialogProps> = ({
           </motion.div>
         </div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   )
 }
 

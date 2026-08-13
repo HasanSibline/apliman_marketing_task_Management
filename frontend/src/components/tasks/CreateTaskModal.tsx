@@ -10,6 +10,7 @@ import { Workflow } from '@/types/task'
 import ContentSuggester from '../ai/ContentSuggester'
 import toast from 'react-hot-toast'
 import { useAiStatus } from '@/hooks/useAiStatus'
+import Select from '@/components/ui/Select'
 
 interface CreateTaskModalProps {
   isOpen: boolean
@@ -370,7 +371,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     <CogIcon className="h-4 w-4 inline mr-1" />
                     Workflow
                   </label>
-                  <select
+                  <Select
                     id="workflowId"
                     name="workflowId"
                     value={formData.workflowId}
@@ -384,7 +385,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         {workflow.name} ({workflow.taskType})
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   {selectedWorkflow && (
                     <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900/40 rounded-md">
                       <p className="text-sm text-gray-600 dark:text-gray-300">{selectedWorkflow.description}</p>
@@ -406,10 +407,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                 {/* Title */}
                 <div>
                   <label htmlFor="title" className="form-label">
-                    Task Title *
+                    Task title
                   </label>
-                  <div className="relative">
-                    <div className="relative">
+                  <div>
+                    {/* The button sits beside the field, not inside it. Floated over
+                        the right edge it needed the input to reserve room for it, and
+                        pr-10 reserved 2.5rem for a control four times that wide, so
+                        anything typed past a few words ran underneath it. */}
+                    <div className="flex items-center gap-2">
                       <input
                         type="text"
                         id="title"
@@ -417,18 +422,18 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         required
                         value={formData.title}
                         onChange={handleChange}
-                        className="w-full px-3 py-2 pr-10 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        placeholder="Enter task title"
+                        className="input-field"
+                        placeholder="What needs doing?"
                       />
                       <button
                         type="button"
                         onClick={generateAIContent}
                         disabled={isGeneratingContent || !formData.title.trim() || aiBlocked}
                         title={aiBlocked ? (quotaExhausted ? `The AI provider rate limited this company's key${resetCountdown ? `. Back in ${resetCountdown}` : '. Try again shortly'}` : 'AI is not enabled for your company') : ''}
-                        className="btn-secondary text-sm flex items-center space-x-2 disabled:opacity-40 disabled:cursor-not-allowed absolute right-2 top-1/2 -translate-y-1/2"
+                        className="btn-secondary shrink-0 whitespace-nowrap disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         <SparklesIcon className="h-4 w-4" />
-                        <span className="text-xs">{isGeneratingContent ? 'Generating...' : aiBlocked ? '🔒 AI Unavailable' : 'Generate AI'}</span>
+                        <span>{isGeneratingContent ? 'Writing…' : aiBlocked ? 'AI unavailable' : 'Draft with AI'}</span>
                       </button>
                     </div>
 
@@ -504,7 +509,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     <label htmlFor="priority" className="form-label">
                       Priority
                     </label>
-                    <select
+                    <Select
                       id="priority"
                       name="priority"
                       value={formData.priority}
@@ -516,7 +521,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       <option value={3}>3 - Normal</option>
                       <option value={4}>4 - High</option>
                       <option value={5}>5 - Critical</option>
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
@@ -541,7 +546,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     <label htmlFor="quarterId" className="form-label">
                       Quarter
                     </label>
-                    <select
+                    <Select
                       id="quarterId"
                       name="quarterId"
                       value={formData.quarterId}
@@ -552,14 +557,14 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       {quarters.map((q) => (
                         <option key={q.id} value={q.id}>{q.name} {q.year}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
 
                   <div>
                     <label htmlFor="objectiveId" className="form-label">
                       Objective
                     </label>
-                    <select
+                    <Select
                       id="objectiveId"
                       name="objectiveId"
                       value={formData.objectiveId}
@@ -576,7 +581,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                         .map((obj) => (
                           <option key={obj.id} value={obj.id}>{obj.title}</option>
                         ))}
-                    </select>
+                    </Select>
                   </div>
 
                   {formData.objectiveId && (
@@ -584,7 +589,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       <label htmlFor="keyResultId" className="form-label">
                         Track a Key Result
                       </label>
-                      <select
+                      <Select
                         id="keyResultId"
                         name="keyResultId"
                         value={formData.keyResultId}
@@ -596,7 +601,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                           .find(o => o.id === formData.objectiveId)?.keyResults?.map((kr: any) => (
                             <option key={kr.id} value={kr.id}>{kr.title}</option>
                           ))}
-                      </select>
+                      </Select>
                     </div>
                   )}
                 </div>
@@ -612,7 +617,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                       <label htmlFor="assignedToId" className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                         Single Assignment (Legacy)
                       </label>
-                      <select
+                      <Select
                         id="assignedToId"
                         name="assignedToId"
                         value={formData.assignedToId}
@@ -625,7 +630,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                             {u.name} ({u.email}) {u.id === user?.id ? '(You)' : ''}
                           </option>
                         ))}
-                      </select>
+                      </Select>
                     </div>
 
                     {/* Multiple assignments */}
@@ -782,7 +787,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">
                                   Phase
                                 </label>
-                                <select
+                                <Select
                                   value={subtask.phaseName}
                                   onChange={(e) => updateSubtask(index, 'phaseName', e.target.value)}
                                   className="select-field w-full text-sm"
@@ -792,7 +797,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                       {phase.name}
                                     </option>
                                   ))}
-                                </select>
+                                </Select>
                               </div>
 
                               <div>
@@ -945,7 +950,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                             {/* Phase Selection */}
                             <div>
                               <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Phase</label>
-                              <select
+                              <Select
                                 value={subtask.phaseName || ''}
                                 onChange={(e) => {
                                   const updatedSubtasks = [...(aiPreview.subtasks || [])]
@@ -958,13 +963,13 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                 {selectedWorkflow?.phases.map(phase => (
                                   <option key={phase.id} value={phase.name}>{phase.name}</option>
                                 ))}
-                              </select>
+                              </Select>
                             </div>
 
                             {/* User Assignment */}
                             <div>
                               <label className="block text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">Assign To</label>
-                              <select
+                              <Select
                                 value={subtask.suggestedUserId || ''}
                                 onChange={(e) => {
                                   const selectedUser = users.find(u => u.id === e.target.value)
@@ -985,7 +990,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                                     {u.name} ({u.position})
                                   </option>
                                 ))}
-                              </select>
+                              </Select>
                             </div>
                           </div>
 

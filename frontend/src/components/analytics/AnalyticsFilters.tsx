@@ -1,6 +1,7 @@
 import React from 'react'
 import { FunnelIcon, CalendarIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import { motion } from 'framer-motion'
+import Select from '@/components/ui/Select'
 
 interface AnalyticsFiltersProps {
   dateRange: { from: string; to: string }
@@ -83,7 +84,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <label className="form-label">
             Workflow
           </label>
-          <select
+          <Select
             value={workflowFilter}
             onChange={(e) => onWorkflowChange(e.target.value)}
             className="select-field w-full text-sm"
@@ -94,7 +95,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
                 {workflow.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
 
         {/* Phase Filter */}
@@ -102,7 +103,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
           <label className="form-label">
             Phase
           </label>
-          <select
+          <Select
             value={phaseFilter}
             onChange={(e) => onPhaseChange(e.target.value)}
             className="select-field w-full text-sm"
@@ -113,7 +114,7 @@ const AnalyticsFilters: React.FC<AnalyticsFiltersProps> = ({
                 {phase.name}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
     </motion.div>

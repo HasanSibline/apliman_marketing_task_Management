@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import Select from '@/components/ui/Select'
 
 interface KnowledgeSource {
   id: string;
@@ -376,7 +377,7 @@ export default function KnowledgeSourcesPage() {
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
                       Type *
                     </label>
-                    <select
+                    <Select
                       value={formData.type}
                       onChange={(e) => setFormData({ ...formData, type: e.target.value as 'OWN_COMPANY' | 'COMPETITOR' })}
                       className="select-field w-full"
@@ -384,7 +385,7 @@ export default function KnowledgeSourcesPage() {
                     >
                       <option value="OWN_COMPANY">{companyName}</option>
                       <option value="COMPETITOR">Competitor</option>
-                    </select>
+                    </Select>
                   </div>
 
                   <div>

@@ -26,6 +26,7 @@ import { analyticsApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import { useChartTheme } from '@/theme/chartTheme'
+import Select from '@/components/ui/Select'
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444']
 
@@ -164,7 +165,7 @@ const UserAnalytics: React.FC = () => {
         {isAdmin && (
           <div>
             <label htmlFor="analytics-subject-empty" className="sr-only">Whose analytics</label>
-            <select
+            <Select
               id="analytics-subject-empty"
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
@@ -174,7 +175,7 @@ const UserAnalytics: React.FC = () => {
               {people.filter((p) => p.id !== user?.id).map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
 
@@ -228,7 +229,7 @@ const UserAnalytics: React.FC = () => {
       {isAdmin && (
         <div>
           <label htmlFor="analytics-subject" className="sr-only">Whose analytics</label>
-          <select
+          <Select
             id="analytics-subject"
             value={subjectId}
             onChange={(e) => setSubjectId(e.target.value)}
@@ -240,7 +241,7 @@ const UserAnalytics: React.FC = () => {
               .map((p) => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
-          </select>
+          </Select>
         </div>
       )}
 

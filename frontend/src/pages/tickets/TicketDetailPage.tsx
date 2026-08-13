@@ -24,6 +24,7 @@ import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 
 import ActionModal from '@/components/ui/ActionModal'
+import Select from '@/components/ui/Select'
 
 const TicketDetailPage: React.FC = () => {
   const { id: ticketId } = useParams<{ id: string }>()
@@ -534,7 +535,7 @@ const TicketDetailPage: React.FC = () => {
             {(isAdmin || canAuthoriseRec || ticket.assigneeId === user?.id || ticket.assignments?.some((a: any) => a.userId === user?.id)) ? (
               <div className="w-full sm:w-64">
                 <label htmlFor="ticket-status" className="form-label">Status</label>
-                <select
+                <Select
                   id="ticket-status"
                   value={ticket.status}
                   onChange={async (e) => {
@@ -567,7 +568,7 @@ const TicketDetailPage: React.FC = () => {
                   </option>
                   <option value="RESOLVED">Resolved</option>
                   <option value="CANCELLED">Cancelled</option>
-                </select>
+                </Select>
               </div>
             ) : null}
           </div>
@@ -625,7 +626,7 @@ const TicketDetailPage: React.FC = () => {
               <div className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wide ml-1">Department</label>
-                  <select
+                  <Select
                     value={editData.receiverDeptId}
                     onChange={(e) => setEditData({ ...editData, receiverDeptId: e.target.value })}
                     className="select-field w-full text-xs"
@@ -633,12 +634,12 @@ const TicketDetailPage: React.FC = () => {
                     {departments.map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
                 {isAdmin && (
                   <div className="space-y-2">
                     <label className="text-xs font-semibold text-rose-600 dark:text-rose-400 tracking-wide ml-1">Status</label>
-                    <select
+                    <Select
                       value={editData.status}
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                       className="select-field w-full text-xs"
@@ -646,7 +647,7 @@ const TicketDetailPage: React.FC = () => {
                       {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
                         <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 )}
                 <div className="grid grid-cols-2 gap-2 pt-2">
@@ -735,7 +736,7 @@ const TicketDetailPage: React.FC = () => {
                     <div className="space-y-2 pt-2">
                       <p className="text-xs font-semibold text-primary-600 dark:text-primary-400 tracking-wide ml-1">Add more colleagues</p>
                       <div className="relative">
-                        <select
+                        <Select
                           value=""
                           onChange={async (e) => {
                             if (!e.target.value) return;
@@ -756,7 +757,7 @@ const TicketDetailPage: React.FC = () => {
                               {u.name} ({u.department?.name || 'No Dept'})
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     </div>
                   )}

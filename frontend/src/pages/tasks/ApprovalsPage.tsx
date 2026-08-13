@@ -13,6 +13,7 @@ import { tasksApi } from '@/services/api'
 import { useAppSelector } from '@/hooks/redux'
 import toast from 'react-hot-toast'
 import type { Task } from '@/types/task'
+import Select from '@/components/ui/Select'
 
 const ApprovalsPage: React.FC = () => {
   const navigate = useNavigate()
@@ -127,7 +128,7 @@ const ApprovalsPage: React.FC = () => {
           {/* Workflow Filter */}
           <div className="relative">
             <FunnelIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500 dark:text-gray-400" />
-            <select
+            <Select
               value={selectedWorkflow}
               onChange={(e) => setSelectedWorkflow(e.target.value)}
               className="select-field w-full pl-10"
@@ -136,7 +137,7 @@ const ApprovalsPage: React.FC = () => {
               {workflows.map(workflow => (
                 <option key={workflow.id} value={workflow.id}>{workflow.name}</option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
       </div>

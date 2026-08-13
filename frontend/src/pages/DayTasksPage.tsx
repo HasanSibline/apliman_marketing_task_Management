@@ -4,6 +4,7 @@ import { useAppSelector } from '@/hooks/redux'
 import TaskListItem from '@/components/tasks/TaskListItem'
 import { ArrowLeftIcon, CalendarDaysIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import EmptyState from '@/components/common/EmptyState'
+import Select from '@/components/ui/Select'
 
 export default function DayTasksPage() {
     const { date } = useParams<{ date: string }>()
@@ -84,7 +85,7 @@ export default function DayTasksPage() {
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                         <FunnelIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                     </div>
-                    <select
+                    <Select
                         value={selectedPhase}
                         onChange={(e) => setSelectedPhase(e.target.value)}
                         className="select-field w-full pl-11"
@@ -93,7 +94,7 @@ export default function DayTasksPage() {
                         {availablePhases.map(phase => (
                             <option key={phase} value={phase}>{phase}</option>
                         ))}
-                    </select>
+                    </Select>
                 </div>
             </div>
 

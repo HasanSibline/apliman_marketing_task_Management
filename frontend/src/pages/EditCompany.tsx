@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import api, { formatAssetUrl } from '../services/api';
+import Select from '@/components/ui/Select'
 
 interface EditCompanyForm {
   name: string;
@@ -366,7 +367,7 @@ export default function EditCompany() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                 Subscription Plan
               </label>
-              <select
+              <Select
                 name="subscriptionPlan"
                 value={formData.subscriptionPlan}
                 onChange={handleChange}
@@ -375,7 +376,7 @@ export default function EditCompany() {
                 <option value="FREE_TRIAL">Free Trial (10 users, 500 tasks, 2 GB) - 7 Days</option>
                 <option value="PRO">Pro (25 users, 5000 tasks, 10 GB) - $99/month</option>
                 <option value="ENTERPRISE">Enterprise (Unlimited) - $299/month</option>
-              </select>
+              </Select>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
                 <div>
@@ -443,7 +444,7 @@ export default function EditCompany() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                   AI Provider
                 </label>
-                <select
+                <Select
                   name="aiProvider"
                   value={formData.aiProvider}
                   onChange={handleChange}
@@ -453,7 +454,7 @@ export default function EditCompany() {
                   <option value="gemini">Google Gemini, reads images, low free-tier rate limit</option>
                   <option value="groq">Groq: GPT-OSS 120B (text only)</option>
                   <option value="openai">OpenAI: GPT-4o mini (text only)</option>
-                </select>
+                </Select>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                   Only used when this company has its own key above.
                 </p>

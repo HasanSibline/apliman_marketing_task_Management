@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { usersApi } from '@/services/api'
 import { fetchUsers } from '@/store/slices/usersSlice'
 import toast from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 interface EditUserModalProps {
   isOpen: boolean
@@ -279,7 +280,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     <label htmlFor="role" className="form-label">
                       Role *
                     </label>
-                    <select
+                    <Select
                       id="role"
                       name="role"
                       value={formData.role}
@@ -298,7 +299,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                           {getRoleOptionLabel(roleOption)}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   </div>
                 )}
 
@@ -328,7 +329,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   <label htmlFor="departmentId" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2 ml-1">
                     Organizational Department
                   </label>
-                  <select
+                  <Select
                     id="departmentId"
                     name="departmentId"
                     value={formData.departmentId}
@@ -339,7 +340,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     {departments.map((dept) => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Direct Manager Selector */}
@@ -347,7 +348,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   <label htmlFor="managerId" className="block text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-2 ml-1">
                     Direct Reporting Manager
                   </label>
-                  <select
+                  <Select
                     id="managerId"
                     name="managerId"
                     value={formData.managerId}
@@ -358,7 +359,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     {potentialManagers.filter(m => m.id !== user.id).map((m) => (
                       <option key={m.id} value={m.id}>{m.name} ({m.position || 'Standard Personnel'})</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Additional Permissions */}
@@ -384,7 +385,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   {/* Strategy Access */}
                   <div className="flex flex-col gap-2">
                     <label htmlFor="strategyAccess" className="text-sm font-semibold text-gray-900 dark:text-white leading-none">Strategy Access</label>
-                    <select
+                    <Select
                       id="strategyAccess"
                       name="strategyAccess"
                       value={formData.strategyAccess}
@@ -394,7 +395,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                       <option value="NONE">No Access</option>
                       <option value="READ">Read Only (View strategy)</option>
                       <option value="EDIT">Full Edit (Manage strategy)</option>
-                    </select>
+                    </Select>
                     <span className="text-xs text-gray-500 dark:text-gray-400">Determines visibility and control over Quarters and Objectives</span>
                   </div>
                 </div>
@@ -404,7 +405,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                   <label htmlFor="status" className="form-label">
                     Status *
                   </label>
-                  <select
+                  <Select
                     id="status"
                     name="status"
                     value={formData.status}
@@ -415,7 +416,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, user, co
                     <option value="AWAY">Away</option>
                     <option value="OFFLINE">Offline</option>
                     <option value="RETIRED">Retired</option>
-                  </select>
+                  </Select>
                 </div>
 
                 {/* Reset Password Button */}

@@ -16,6 +16,7 @@ import {
 import api from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
+import Select from '@/components/ui/Select'
 
 // --- Types ---
 interface KeyResult {
@@ -389,7 +390,7 @@ const ObjectiveDetailPage: React.FC = () => {
                         </div>
                         <div className="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-900/40">
                             <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1.5">Optional: Assign to a Key Result</label>
-                            <select 
+                            <Select 
                                 value={selectedKRForTask} 
                                 onChange={(e) => setSelectedKRForTask(e.target.value)}
                                 className="select-field w-full text-sm"
@@ -398,7 +399,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                 {obj.keyResults.map(kr => (
                                     <option key={kr.id} value={kr.id}>{kr.title}</option>
                                 ))}
-                            </select>
+                            </Select>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
                             {availableTasks.length === 0 ? (
@@ -450,12 +451,12 @@ const ObjectiveDetailPage: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-1">Unit</label>
-                                    <select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))}
+                                    <Select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))}
                                         className="select-field w-full text-sm">
                                         <option value="number">Number</option>
                                         <option value="percent">%</option>
                                         <option value="currency">$</option>
-                                    </select>
+                                    </Select>
                                 </div>
                             </div>
                             <div className="flex gap-3 pt-4">

@@ -3,6 +3,7 @@ import FormDialog from '@/components/ui/FormDialog'
 import { PlusIcon, ClockIcon } from '@heroicons/react/24/outline'
 import { usersApi } from '@/services/api'
 import toast from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 interface AddSubtaskModalProps {
   isOpen: boolean
@@ -156,7 +157,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                 <label htmlFor="subtask-assignee" className="form-label">
                   Assign to
                 </label>
-                <select
+                <Select
                   id="subtask-assignee"
                   value={assignedToId}
                   onChange={(e) => setAssignedToId(e.target.value)}
@@ -169,7 +170,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                       {user.position ? ` · ${user.position}` : ''}
                     </option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               {availablePhases.length > 0 && (
@@ -177,7 +178,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                   <label htmlFor="subtask-phase" className="form-label">
                     Phase
                   </label>
-                  <select
+                  <Select
                     id="subtask-phase"
                     value={phaseId}
                     onChange={(e) => setPhaseId(e.target.value)}
@@ -188,7 +189,7 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
                         {phase.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   {selectedPhase && (
                     <p className="form-hint flex items-center gap-1.5">
                       <span

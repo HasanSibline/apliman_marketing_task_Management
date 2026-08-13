@@ -21,6 +21,7 @@ import api from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 import ObjectiveAnalyticsDashboard from '@/components/analytics/ObjectiveAnalyticsDashboard'
+import Select from '@/components/ui/Select'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface KeyResult {
@@ -155,16 +156,16 @@ function CreateObjectiveModal({
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Quarter</label>
-                            <select value={form.quarterId} onChange={e => setForm(p => ({ ...p, quarterId: e.target.value }))} className="select-field">
+                            <Select value={form.quarterId} onChange={e => setForm(p => ({ ...p, quarterId: e.target.value }))} className="select-field">
                                 <option value="">No quarter</option>
                                 {quarters.map(q => <option key={q.id} value={q.id}>{q.name} {q.year}</option>)}
-                            </select>
+                            </Select>
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">Status</label>
-                            <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="select-field">
+                            <Select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} className="select-field">
                                 {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
+                            </Select>
                         </div>
                     </div>
                     <div className="flex gap-3 pt-2">
@@ -343,11 +344,11 @@ const ObjectivesPage: React.FC = () => {
                                         <div className="grid grid-cols-3 gap-2">
                                             <input type="number" placeholder="Start" value={krForm.startValue} onChange={e => setKrForm(p => ({ ...p, startValue: +e.target.value }))} className="input-field text-sm" />
                                             <input type="number" placeholder="Target" value={krForm.targetValue} onChange={e => setKrForm(p => ({ ...p, targetValue: +e.target.value }))} className="input-field text-sm" />
-                                            <select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))} className="select-field text-sm">
+                                            <Select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))} className="select-field text-sm">
                                                 <option value="number">Number</option>
                                                 <option value="percent">%</option>
                                                 <option value="currency">$</option>
-                                            </select>
+                                            </Select>
                                         </div>
                                         <div className="flex gap-2 pt-1">
                                             <button onClick={handleAddKR} className="btn-primary text-xs py-1.5 px-3">Add</button>
@@ -423,16 +424,16 @@ const ObjectivesPage: React.FC = () => {
 
                     {/* Filters */}
                     <div className="flex gap-3 flex-wrap">
-                        <select value={filterQuarter} onChange={e => setFilterQuarter(e.target.value)}
+                        <Select value={filterQuarter} onChange={e => setFilterQuarter(e.target.value)}
                             className="select-field w-auto text-sm">
                             <option value="">All quarters</option>
                             {quarters.map(q => <option key={q.id} value={q.id}>{q.name} {q.year}</option>)}
-                        </select>
-                        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                        </Select>
+                        <Select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
                             className="select-field w-auto text-sm">
                             <option value="">All statuses</option>
                             {Object.entries(STATUS_CFG).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                        </select>
+                        </Select>
                     </div>
 
                     {/* Objectives Table */}

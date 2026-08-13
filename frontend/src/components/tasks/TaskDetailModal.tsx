@@ -24,6 +24,7 @@ import TaskActivityLog from './TaskActivityLog'
 import SubtaskList from './SubtaskList'
 import TimeTracker from './TimeTracker'
 import toast from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 interface TaskDetailModalProps {
   isOpen: boolean
@@ -339,7 +340,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                             <label htmlFor="priority" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                               Priority
                             </label>
-                            <select
+                            <Select
                               id="priority"
                               name="priority"
                               value={formData.priority}
@@ -351,7 +352,7 @@ const TaskDetailModal: React.FC<TaskDetailModalProps> = ({ isOpen, onClose, task
                               <option value={3}>3 - Normal</option>
                               <option value={4}>4 - High</option>
                               <option value={5}>5 - Critical</option>
-                            </select>
+                            </Select>
                           </div>
 
                           <div>

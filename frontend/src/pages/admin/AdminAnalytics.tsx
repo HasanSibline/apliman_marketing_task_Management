@@ -10,6 +10,7 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
+import Select from '@/components/ui/Select'
 
 interface PlatformStats {
   totalCompanies: number;
@@ -162,7 +163,7 @@ const AdminAnalytics: React.FC = () => {
 
         <div>
           <label htmlFor="analytics-scope" className="form-label">Scope</label>
-          <select
+          <Select
             id="analytics-scope"
             value={companyId}
             onChange={(e) => setCompanyId(e.target.value)}
@@ -172,7 +173,7 @@ const AdminAnalytics: React.FC = () => {
             {companies.map((c) => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { XMarkIcon, LockClosedIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
+import Select from '@/components/ui/Select'
 
 /**
  * Closing a quarter, decided in one place.
@@ -201,7 +202,7 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
           {selected.size > 0 && (
             <div>
               <label htmlFor="next-quarter" className="form-label">Carry the ticked tasks into</label>
-              <select id="next-quarter" value={nextQuarterId} onChange={(e) => setNextQuarterId(e.target.value)} className="select-field">
+              <Select id="next-quarter" value={nextQuarterId} onChange={(e) => setNextQuarterId(e.target.value)} className="select-field">
                 {targets.map((q) => (
                   <option key={q.id} value={q.id}>
                     {q.name} {q.year}
@@ -209,7 +210,7 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
                   </option>
                 ))}
                 <option value={UNSCHEDULED}>No quarter yet, leave them unscheduled</option>
-              </select>
+              </Select>
             </div>
           )}
 
