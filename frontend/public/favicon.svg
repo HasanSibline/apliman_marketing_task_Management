@@ -15,9 +15,13 @@
 
     Colours are literal. A favicon renders outside the app, where a CSS variable or
     currentColor resolves to nothing and the icon comes out invisible.
-  -->
-  <rect width="64" height="64" rx="14" fill="#0B1220"/>
 
+    No plate behind the mark. A rounded navy tile was drawn here, which meant the icon
+    carried its own background into a strip the browser has already coloured: a dark
+    square sitting in a light toolbar, and a slightly wrong dark square sitting in a
+    dark one. Transparent lets the tab supply the ground, so the mark belongs to
+    whatever chrome it lands in. The blue holds against both.
+  -->
   <g fill="none" stroke-linecap="round">
     <!-- Three quarters of the ring, from the bottom round to the top. -->
     <path d="M32 54A22 22 0 1 1 32 10" stroke="#2563EB" stroke-width="8"/>

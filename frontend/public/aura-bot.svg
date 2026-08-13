@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Aura Assist">
+  <!--
+    Aura, as a picture rather than a component.
+
+    The chat mascot is drawn inline so it can breathe, blink and take the app's theme
+    from CSS variables. None of that survives being loaded through an <img>: the file
+    is isolated, so every colour here is baked in, and it is built for one ground, the
+    near-black of the sign-in screen it hangs behind.
+
+    Drawn at 512 rather than the component's 64 because this is shown at roughly four
+    hundred pixels. The extra room buys the things that read at that size and are
+    invisible at button size: a rim light down the left of each form, occlusion where
+    the head meets the body, a reflection across the visor, and eyes with a real
+    falloff instead of flat capsules.
+  -->
+  <defs>
+    <linearGradient id="shell" x1="0.2" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="45%" stop-color="#eef3fb"/>
+      <stop offset="100%" stop-color="#b9cbe4"/>
+    </linearGradient>
+
+    <linearGradient id="shellDim" x1="0.2" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#e8eef7"/>
+      <stop offset="100%" stop-color="#9db2cf"/>
+    </linearGradient>
+
+    <linearGradient id="visor" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0%" stop-color="#2b3b55"/>
+      <stop offset="42%" stop-color="#121d31"/>
+      <stop offset="100%" stop-color="#050912"/>
+    </linearGradient>
+
+    <!-- The light the eyes throw onto the inside of the visor. -->
+    <radialGradient id="eyeGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="eye" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a5e8ff"/>
+      <stop offset="55%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0ea5e9"/>
+    </linearGradient>
+
+    <!-- A single sweep across the glass, the cue that says the visor is a surface. -->
+    <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.20"/>
+      <stop offset="48%" stop-color="#ffffff" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <linearGradient id="occlusion" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0b1220" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#0b1220" stop-opacity="0"/>
+    </linearGradient>
+
+    <filter id="soft" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <!-- Arms, behind the body so no join shows. Dimmer than the front surfaces,
+       because they sit further back. -->
+  <ellipse cx="96" cy="360" rx="34" ry="50" fill="url(#shellDim)" transform="rotate(-20 96 360)"/>
+  <ellipse cx="416" cy="360" rx="34" ry="50" fill="url(#shellDim)" transform="rotate(20 416 360)"/>
+
+  <!-- Body -->
+  <path d="M146 376c0-50 50-75 110-75s110 25 110 75v60a44 44 0 0 1-44 44H190a44 44 0 0 1-44-44Z" fill="url(#shell)"/>
+  <!-- Rim light down the left edge: one stroke, and the form stops looking flat. -->
+  <path d="M148 392c2-42 26-66 58-78" fill="none" stroke="#ffffff" stroke-opacity="0.75" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- The shadow the head casts on the chest. The one cue that says these are two
+       objects rather than one silhouette. -->
+  <ellipse cx="256" cy="322" rx="120" ry="27" fill="url(#occlusion)" filter="url(#soft)"/>
+
+  <!-- Head -->
+  <rect x="100" y="80" width="312" height="232" rx="100" fill="url(#shell)"/>
+  <path d="M126 190c8-52 52-82 104-92-52 18-82 44-96 100Z" fill="#ffffff" opacity="0.5"/>
+
+  <!-- Visor -->
+  <rect x="136" y="116" width="240" height="160" rx="76" fill="url(#visor)"/>
+  <ellipse cx="256" cy="196" rx="104" ry="64" fill="url(#eyeGlow)"/>
+
+  <!-- Eyes. Rounded capsules with a highlight on the right one only: matched
+       highlights read as a pattern, a single one reads as a light source. -->
+  <rect x="196" y="156" width="43" height="80" rx="21.5" fill="url(#eye)"/>
+  <rect x="273" y="156" width="43" height="80" rx="21.5" fill="url(#eye)"/>
+  <circle cx="303" cy="176" r="11" fill="#ffffff" opacity="0.92"/>
+  <circle cx="226" cy="176" r="5" fill="#ffffff" opacity="0.45"/>
+
+  <!-- Glass sweep, over the eyes so it reads as being in front of them. -->
+  <path d="M136 192a76 76 0 0 1 76-76h96L176 276h-4a76 76 0 0 1-36-64Z" fill="url(#sheen)"/>
+</svg>

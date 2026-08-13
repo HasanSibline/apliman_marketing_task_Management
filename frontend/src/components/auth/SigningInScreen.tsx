@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { CheckIcon } from '@heroicons/react/24/solid'
 import { AuraLogo } from '@/components/brand/AuraMark'
 import AuraBot from '@/components/chat/AuraBot'
-import api from '@/services/api'
+import api, { formatAssetUrl } from '@/services/api'
 
 /**
  * The moment between signing in and arriving.
@@ -96,6 +96,37 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
   const [beat, setBeat] = useState<Beat>('idle')
   const [typed, setTyped] = useState('')
   const [real, setReal] = useState<Real>({})
+  const [logos, setLogos] = useState<{ name: string; logo: string | null }[]>([])
+
+  // The wall behind everything. Failing leaves the two rows empty, which is the
+  // design without its wallpaper rather than a broken screen.
+  useEffect(() => {
+    let live = true
+    api
+      .get('/companies/logos', { timeout: 6000 })
+      .then(({ data }) => {
+        if (live && Array.isArray(data)) setLogos(data.filter((c) => c?.logo))
+      })
+      .catch(() => {})
+    return () => {
+      live = false
+    }
+  }, [])
+
+  /**
+   * Split in two, not repeated twice.
+   *
+   * One list running through both rows puts the same mark on screen twice at once,
+   * a few hundred pixels apart, and the eye reads that as a rendering fault rather
+   * than as branding. Alternate entries go to alternate rows, so the two never carry
+   * the same company and a passer-by sees twice as many logos in the same time.
+   *
+   * Each row is then doubled end to end, which is what a marquee needs: the copy
+   * takes over exactly as the original leaves, and the seam is invisible because the
+   * two halves are identical.
+   */
+  const rowA = logos.filter((_, i) => i % 2 === 0)
+  const rowB = logos.filter((_, i) => i % 2 === 1)
 
   // Their own board, fetched alongside the animation rather than before it. Nothing
   // here is awaited by the script: whatever has arrived by the time a card paints is
@@ -228,6 +259,84 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
           backgroundSize: '44px 44px',
         }}
       />
+
+      {/* ── The wall of company marks ──────────────────────────────────────
+          Two rows drifting right to left at different speeds, so they never line up
+          into a grid. Low opacity and greyscale: this is the room's wallpaper, and
+          anything brighter would compete with the cards it sits behind.
+
+          The rails are wider than the window and start off its right edge, so a mark
+          enters from beyond the frame and leaves beyond the other one. Nothing is
+          ever seen appearing or vanishing mid-screen. */}
+      {logos.length > 0 && !reduced && (
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+          {[
+            { row: rowA, top: '18%', duration: 52, size: 'h-12' },
+            { row: rowB, top: '66%', duration: 68, size: 'h-10' },
+          ].map(({ row, top, duration, size }, r) =>
+            row.length === 0 ? null : (
+              <motion.div
+                key={r}
+                className="absolute flex w-max items-center gap-24"
+                style={{ top }}
+                initial={{ x: '0%' }}
+                animate={{ x: '-50%' }}
+                transition={{ duration, repeat: Infinity, ease: 'linear' }}
+              >
+                {/* Doubled, so the loop back to 0% lands on an identical frame. */}
+                {[...row, ...row].map((c, i) => (
+                  <img
+                    key={`${c.name}-${i}`}
+                    src={formatAssetUrl(c.logo)}
+                    alt=""
+                    className={`${size} w-auto max-w-[9rem] shrink-0 object-contain opacity-[0.07] grayscale invert`}
+                    loading="eager"
+                  />
+                ))}
+              </motion.div>
+            ),
+          )}
+        </div>
+      )}
+
+      {/* ── The robot, looking in ──────────────────────────────────────────
+          Large and fully opaque. It is the one thing back here meant to be looked at:
+          the logos are wallpaper and stay faint, and a faint robot on top of faint
+          wallpaper would read as a smudge rather than as a character.
+
+          The picture, not the component. The chat mascot is inline SVG so it can
+          breathe and take its colour from CSS variables, and neither survives being
+          loaded through an <img>; the file in /public is drawn for exactly this, at
+          eight times the detail, for the one dark ground it hangs on.
+
+          The clipping frame is what guarantees no cut edge. It is anchored past the
+          right of the window and hides its own overflow, so the robot slides out
+          through a boundary that is already off-screen instead of being sliced by the
+          viewport. Sits behind the stage, so it never covers anything being read. */}
+      {!reduced && (
+        <div
+          className="pointer-events-none absolute -right-40 top-[16%] z-0 h-[30rem] w-[34rem] overflow-hidden"
+          aria-hidden="true"
+        >
+          <motion.img
+            src="/aura-bot.svg"
+            alt=""
+            className="absolute left-0 top-0 h-[30rem] w-[30rem]"
+            // Leans in, holds while the cards are being worked, then withdraws
+            // completely. Slow on both the entry and the exit: a head that snaps in
+            // and out is a glitch, one that eases is somebody looking.
+            initial={{ x: 520 }}
+            animate={{ x: [520, 150, 150, 520] }}
+            transition={{
+              duration: 11,
+              times: [0, 0.18, 0.76, 1],
+              repeat: Infinity,
+              repeatDelay: 4,
+              ease: [0.4, 0, 0.2, 1],
+            }}
+          />
+        </div>
+      )}
 
       {/* The stage pushes gently past the viewer on the way out, the way a camera moves
           through a doorway rather than cutting to the next shot. The dashboard lands

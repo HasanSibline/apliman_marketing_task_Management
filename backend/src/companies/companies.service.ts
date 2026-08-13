@@ -138,6 +138,23 @@ export class CompaniesService {
    * Get all companies with statistics
    * IMPORTANT: Super admin can see stats but NOT actual data
    */
+  /**
+   * The marks of every active company, for the wall behind the sign-in screen.
+   *
+   * Deliberately the narrowest possible select. Anyone signed in can call this, so
+   * it returns a name and an image and stops: no slug, no plan, no counts, nothing
+   * that could be used to reach another tenant. Companies without a logo are dropped
+   * here rather than filtered in the browser, so the response carries no rows the
+   * caller has no use for.
+   */
+  async getLogos() {
+    return this.prisma.company.findMany({
+      where: { isActive: true, logo: { not: null } },
+      select: { name: true, logo: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   async findAll() {
     const companies = await this.prisma.company.findMany({
       include: {

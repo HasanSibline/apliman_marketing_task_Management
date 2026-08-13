@@ -52,6 +52,31 @@ export class CompaniesController {
     return this.companiesService.getMyCompany(req.user.id);
   }
 
+  /**
+   * Every active company's mark, and nothing else.
+   *
+   * Declared before the ':id' route below, or "logos" is read as an id.
+   *
+   * Open to any signed-in person rather than super admins, because it feeds the wall
+   * of logos behind the sign-in screen and everyone sees that. It is worth being
+   * deliberate about: it tells whoever is signed in which companies exist on the
+   * platform, which is a customer list. Only the display name and the image are
+   * returned, never a slug, plan, status or count, so it cannot be used to reach
+   * another tenant, and companies with no logo are left out entirely.
+   */
+  @Get('logos')
+  @ApiOperation({ summary: 'Display names and logos of active companies, for branding' })
+  @Roles(
+    UserRole.SUPER_ADMIN,
+    UserRole.COMPANY_ADMIN,
+    UserRole.ADMIN,
+    UserRole.MANAGER,
+    UserRole.EMPLOYEE,
+  )
+  getLogos() {
+    return this.companiesService.getLogos();
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all companies with statistics (NO actual data)' })
   @Roles(UserRole.SUPER_ADMIN)
