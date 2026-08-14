@@ -1,12 +1,9 @@
 import React, { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { 
-  CloudArrowUpIcon, 
-  DocumentIcon, 
-  PhotoIcon,
-  TrashIcon 
-} from '@heroicons/react/24/outline'
+import { CloudArrowUpIcon, TrashIcon } from '@heroicons/react/24/outline'
 import { filesApi } from '@/services/api'
+import FileIcon from '@/components/ui/FileIcon'
+import { fileKind, FILE_KIND_LABEL, formatBytes } from '@/lib/fileKind'
 
 interface FileUploadProps {
   taskId: string
@@ -106,21 +103,6 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
     }
   }
 
-  const getFileIcon = (fileType: string) => {
-    if (fileType.startsWith('image/')) {
-      return <PhotoIcon className="h-5 w-5 text-blue-500" />
-    }
-    return <DocumentIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-  }
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
-
   return (
     <div className="space-y-4">
       {/* Upload Area */}
@@ -187,11 +169,12 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
               className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg"
             >
               <div className="flex items-center space-x-3">
-                {getFileIcon(file.fileType)}
-                <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{file.fileName}</p>
+                <FileIcon fileName={file.fileName} mimeType={file.fileType} />
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{file.fileName}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {formatFileSize(file.fileSize * 1024)} • {new Date(file.uploadedAt).toLocaleDateString()}
+                    {FILE_KIND_LABEL[fileKind(file.fileName, file.fileType)]} ·{' '}
+                    {formatBytes(file.fileSize * 1024)} · {new Date(file.uploadedAt).toLocaleDateString()}
                   </p>
                 </div>
               </div>

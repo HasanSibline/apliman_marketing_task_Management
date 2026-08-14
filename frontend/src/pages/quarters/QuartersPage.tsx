@@ -21,6 +21,7 @@ import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 import CreateTaskModal from '@/components/tasks/CreateTaskModal'
 import Select from '@/components/ui/Select'
+import { stageLabel } from '@/lib/taskStage'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface Quarter {
@@ -798,7 +799,7 @@ const QuartersPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="inline-flex px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded text-xs font-bold uppercase tracking-tight">
-                                                {task.phase.replace(/_/g, ' ')}
+                                                {stageLabel(task)}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-bold text-gray-500 dark:text-gray-400">

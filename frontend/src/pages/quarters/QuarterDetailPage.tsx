@@ -16,6 +16,7 @@ import {
 } from '@heroicons/react/24/outline'
 import api from '@/services/api'
 import toast from 'react-hot-toast'
+import { stageLabel } from '@/lib/taskStage'
 
 // --- Types ---
 interface Objective {
@@ -320,7 +321,7 @@ const QuarterDetailPage: React.FC = () => {
                                             </span>
                                         ) : (
                                             <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-tighter ml-2 bg-white dark:bg-gray-800 px-1.5 py-0.5 rounded border border-gray-100 dark:border-gray-700">
-                                                {task.phase.replace(/_/g, ' ')}
+                                                {stageLabel(task)}
                                             </span>
                                         )}
                                     </Link>
@@ -377,7 +378,7 @@ const QuarterDetailPage: React.FC = () => {
                                             </span>
                                         ) : (
                                             <span className="text-xs font-bold px-2.5 py-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full tracking-wider block w-max">
-                                                {task.phase.replace(/_/g, ' ')}
+                                                {stageLabel(task)}
                                             </span>
                                         )}
                                     </td>

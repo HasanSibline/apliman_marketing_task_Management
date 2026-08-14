@@ -45,7 +45,17 @@ export const STAGES: {
 export function taskStage(task: {
   phase?: string | null
   completedAt?: string | Date | null
-  currentPhase?: { isEndPhase?: boolean | null } | null
+  /**
+   * Deliberately untyped, and only this field.
+   *
+   * Callers pass whatever their own Task type says currentPhase is. Some pass the
+   * shared Phase interface, which has isEndPhase; some declare a local shape with
+   * only id, name and colour, which has not. A closed type rejects the second for
+   * having no property in common, and an index signature rejects the first because
+   * an interface cannot satisfy one. Reading an absent isEndPhase as undefined is
+   * exactly the behaviour wanted, and the body below already guards for it.
+   */
+  currentPhase?: any
 }): TaskStage {
   // Completion is recorded in more than one place and those places have disagreed,
   // so the evidence wins over the phase column.
@@ -63,6 +73,19 @@ export function taskStage(task: {
     default:
       return 'TODO'
   }
+}
+
+/**
+ * The stage as a person would say it.
+ *
+ * Several pages printed `task.phase.replace(/_/g, ' ')`, which is the raw enum with
+ * its underscores taken out: a task left over from the approval era reads "PENDING
+ * APPROVAL" there, naming a step this app no longer has. Going through the stage
+ * rule means every screen says one of three things, and they are the same three
+ * words the board uses.
+ */
+export function stageLabel(task: Parameters<typeof taskStage>[0]): string {
+  return STAGES.find((s) => s.key === taskStage(task))!.label
 }
 
 /**

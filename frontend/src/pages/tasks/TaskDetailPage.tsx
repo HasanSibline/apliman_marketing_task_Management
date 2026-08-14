@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { confirmDialog } from '@/components/ui/confirm'
+import { taskStage, STAGES } from '@/lib/taskStage'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -345,8 +346,18 @@ const TaskDetailPage: React.FC = () => {
   return (
     <div className="flex h-[calc(100vh-8rem)] gap-6">
       {/* Main Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl space-y-6">
+      <div className="min-w-0 flex-1 overflow-y-auto">
+        {/*
+          No width cap. This was max-w-4xl, which is a sensible measure for a column of
+          prose and the wrong one here: the column already has a fixed sidebar beside
+          it, so the cap did not protect the line length, it just left a band of empty
+          page between the two. What the description needs is a reading measure, which
+          is set on the description itself further down, where it belongs.
+
+          min-w-0 because a flex child will not shrink below its content otherwise, and
+          one long unbroken title would push the sidebar off the screen.
+        */}
+        <div className="space-y-6">
           {/* Back Button */}
           <button
             onClick={() => navigate('/tasks')}
@@ -513,7 +524,7 @@ const TaskDetailPage: React.FC = () => {
                 <FlagIcon className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 Description
               </h2>
-              <div className="prose max-w-none text-gray-700 dark:text-gray-200">
+              <div className="prose max-w-prose text-gray-700 dark:text-gray-200">
                 <p className="whitespace-pre-wrap">{currentTask.description}</p>
               </div>
             </div>
@@ -525,7 +536,7 @@ const TaskDetailPage: React.FC = () => {
                   <CheckCircleIcon className="h-5 w-5 text-green-600 dark:text-green-400" />
                   Goals & Objectives
                 </h2>
-                <div className="prose max-w-none text-gray-700 dark:text-gray-200">
+                <div className="prose max-w-prose text-gray-700 dark:text-gray-200">
                   <p className="whitespace-pre-wrap">{currentTask.goals}</p>
                 </div>
               </div>
@@ -562,13 +573,24 @@ const TaskDetailPage: React.FC = () => {
                           className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/40 rounded-lg group"
                         >
                           <div
-                            className="flex items-center gap-3 cursor-pointer"
+                            className="flex min-w-0 cursor-pointer items-center gap-3"
                             onClick={() => navigate(`/tasks/${dep.blocker.id}`)}
                           >
-                            <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />
-                            <span className="text-sm font-medium text-red-700 dark:text-red-300 hover:underline line-clamp-1">
+                            <ExclamationTriangleIcon className="h-4 w-4 shrink-0 text-red-500" />
+                            <span className="line-clamp-1 text-sm font-medium text-red-700 hover:underline dark:text-red-300">
                               {dep.blocker.title}
                             </span>
+                            {/* Whether the thing blocking this is itself finished. A
+                                blocker list with no status on it cannot answer the only
+                                question anyone asks of it: can I start yet. */}
+                            {(() => {
+                              const s = STAGES.find((x) => x.key === taskStage(dep.blocker))
+                              return s ? (
+                                <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${s.chip}`}>
+                                  {s.label}
+                                </span>
+                              ) : null
+                            })()}
                           </div>
                           {canEdit && (
                             <button
@@ -733,11 +755,26 @@ const TaskDetailPage: React.FC = () => {
                             onClick={() => handleAddDependency(task.id)}
                             className="w-full flex items-center justify-between p-3 hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors text-left"
                           >
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 dark:text-white line-clamp-1">{task.title}</p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {task.currentPhase?.name || 'No Phase'} • {task.assignedTo?.name || 'Unassigned'}
-                              </p>
+                            <div className="min-w-0">
+                              <p className="line-clamp-1 text-sm font-medium text-gray-900 dark:text-white">{task.title}</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                                {/* Where it has got to, not which workflow step it sits
+                                    at. This showed currentPhase.name, so a finished
+                                    task offered itself as a blocker labelled "To Do",
+                                    which is the one label that would make you pick it. */}
+                                {(() => {
+                                  const s = STAGES.find((x) => x.key === taskStage(task))!
+                                  return (
+                                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${s.chip}`}>
+                                      {s.label}
+                                    </span>
+                                  )
+                                })()}
+                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                  {task.assignedTo?.name || 'Unassigned'}
+                                  {task.currentPhase?.name ? ` · ${task.currentPhase.name}` : ''}
+                                </span>
+                              </div>
                             </div>
                             <PlusIcon className="w-5 h-5 text-blue-500" />
                           </button>

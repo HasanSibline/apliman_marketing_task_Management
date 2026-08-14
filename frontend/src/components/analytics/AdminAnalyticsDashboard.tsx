@@ -27,6 +27,7 @@ import toast from 'react-hot-toast'
 import * as XLSX from 'xlsx'
 import AnalyticsFilters from './AnalyticsFilters'
 import { useChartTheme } from '@/theme/chartTheme'
+import { STAGES } from '@/lib/taskStage'
 
 const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#F97316']
 
@@ -590,16 +591,26 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                       {task.title}
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full"
-                      style={{
-                        backgroundColor: task.phaseColor ? `${task.phaseColor}20` : '#F3F4F6',
-                        color: task.phaseColor || '#374151'
-                      }}
-                    >
-                      {task.phase}
-                    </span>
+                  <td className="whitespace-nowrap px-6 py-4">
+                    {/* task.phase is the stage now, in the app's own words, so it
+                        wears the app's own status colours rather than the workflow
+                        phase's colour. The workflow step is shown beside it, which is
+                        the information the colour used to carry. */}
+                    {(() => {
+                      const s = STAGES.find((x) => x.label === task.phase)
+                      return (
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold leading-5 ${
+                            s?.chip ?? 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                          }`}
+                        >
+                          {task.phase}
+                        </span>
+                      )
+                    })()}
+                    {task.workflowPhase && (
+                      <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">{task.workflowPhase}</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                     {task.workflow || 'Unknown'}

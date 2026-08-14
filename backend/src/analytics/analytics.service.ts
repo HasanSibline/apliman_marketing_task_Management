@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import * as XLSX from 'xlsx';
 import { UserRole } from '../types/prisma';
+import { taskStage, TASK_STAGE_LABEL } from '../tasks/task-stage';
 
 // This is a simplified version that provides basic analytics while the workflow system is integrated
 
@@ -181,7 +182,10 @@ export class AnalyticsService {
       take: 5,
       include: {
         assignedTo: { select: { name: true, email: true } },
-        currentPhase: { select: { name: true, color: true } },
+        // isEndPhase and completedAt are what taskStage reads. Without them the
+        // status below is the workflow phase wearing the word "status", which is how
+        // a finished task came to be listed as To Do.
+        currentPhase: { select: { name: true, color: true, isEndPhase: true } },
         workflow: { select: { name: true } },
       },
     });
@@ -253,7 +257,19 @@ export class AnalyticsService {
         id: task.id,
         title: task.title,
         assignedTo: task.assignedTo?.name || 'Unassigned',
-        phase: task.currentPhase?.name || 'Unknown',
+        /**
+         * Where the task has got to, by the one rule the whole app uses.
+         *
+         * This reported currentPhase.name, which is a different question. A workflow
+         * phase is the step a task sits at inside its workflow; a stage is whether
+         * anyone has started it and whether it is done. A task finished by ticking
+         * every subtask keeps whatever phase it was in, so the table listed work that
+         * was plainly Completed on the board as To do here, and the two screens
+         * contradicted each other.
+         */
+        phase: TASK_STAGE_LABEL[taskStage(task)],
+        /** The workflow step, still worth showing, no longer pretending to be status. */
+        workflowPhase: task.currentPhase?.name || null,
         phaseColor: task.currentPhase?.color,
         workflow: task.workflow?.name || 'Unknown',
         createdAt: task.createdAt,
@@ -413,7 +429,10 @@ export class AnalyticsService {
       select: {
         id: true,
         title: true,
-        currentPhase: { select: { name: true } },
+        // Same three fields taskStage reads, for the same reason as above.
+        phase: true,
+        completedAt: true,
+        currentPhase: { select: { name: true, isEndPhase: true } },
         updatedAt: true,
       },
     });
@@ -433,7 +452,8 @@ export class AnalyticsService {
       recentActivity: recentTasks.map(task => ({
         id: task.id,
         title: task.title,
-        phase: task.currentPhase?.name || 'Unknown',
+        phase: TASK_STAGE_LABEL[taskStage(task)],
+        workflowPhase: task.currentPhase?.name || null,
         updatedAt: task.updatedAt,
       })),
     };

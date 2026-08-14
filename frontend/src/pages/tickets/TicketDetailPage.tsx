@@ -12,7 +12,6 @@ import {
   ListBulletIcon,
   PaperClipIcon,
   ArrowDownTrayIcon,
-  DocumentIcon,
   PlusIcon,
   ChevronLeftIcon,
   ClockIcon,
@@ -25,6 +24,8 @@ import { useAppSelector } from '@/hooks/redux'
 
 import ActionModal from '@/components/ui/ActionModal'
 import Select from '@/components/ui/Select'
+import FileIcon from '@/components/ui/FileIcon'
+import { fileKind, FILE_KIND_LABEL, formatBytes } from '@/lib/fileKind'
 
 const TicketDetailPage: React.FC = () => {
   const { id: ticketId } = useParams<{ id: string }>()
@@ -817,12 +818,15 @@ const TicketDetailPage: React.FC = () => {
               {attachments.map(att => (
                 <div key={att.id} className="group flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-transparent hover:border-gray-100 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-8 w-8 rounded-lg bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-primary-600 dark:text-primary-400 shadow-sm">
-                      <DocumentIcon className="h-4 w-4" />
+                    {/* The file's own icon, not one grey document for everything. */}
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                      <FileIcon fileName={att.fileName} mimeType={att.fileType} className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-gray-900 dark:text-white truncate tracking-tight">{att.fileName}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 font-bold tracking-wide">{(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
+                      <p className="truncate text-xs font-semibold tracking-tight text-gray-900 dark:text-white">{att.fileName}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {FILE_KIND_LABEL[fileKind(att.fileName, att.fileType)]} · {formatBytes(att.fileSize)}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">

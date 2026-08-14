@@ -17,6 +17,7 @@ import api from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 import Select from '@/components/ui/Select'
+import { stageLabel } from '@/lib/taskStage'
 
 // --- Types ---
 interface KeyResult {
@@ -338,7 +339,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                         </span>
                                                     ) : (
                                                         <span className="text-xs font-bold text-gray-500 dark:text-gray-400 px-1.5 py-0.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded tracking-wider">
-                                                            {task.phase.replace(/_/g, ' ')}
+                                                            {stageLabel(task)}
                                                         </span>
                                                     )}
                                                     
@@ -413,7 +414,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                     >
                                         <div className="min-w-0">
                                             <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-primary-700 truncate">{task.title}</p>
-                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium">{task.phase.replace(/_/g, ' ')}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium">{stageLabel(task)}</p>
                                         </div>
                                         <PlusIcon className="h-5 w-5 text-gray-300 group-hover:text-primary-600" />
                                     </button>
