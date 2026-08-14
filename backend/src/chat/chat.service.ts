@@ -21,6 +21,13 @@ import { ConfigService } from '@nestjs/config';
  */
 const NUDGE_ROTATION_MS = 3 * 60_000;
 
+/** "3rd" rather than "3", because a leaderboard position is an ordinal. */
+function ordinal(n: number): string {
+  const rest = n % 100;
+  if (rest >= 11 && rest <= 13) return `${n}th`;
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`;
+}
+
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
@@ -93,6 +100,13 @@ export class ChatService {
       NOT: { currentPhase: { isEndPhase: true } },
     };
 
+    /**
+     * A task the board would show. Every subtask is also a Task row of type SUBTASK,
+     * and the board hides them because they already appear inside their parent; a
+     * nudge counting them reports work the person cannot find when they go looking.
+     */
+    const realTask = { taskType: { not: 'SUBTASK' } };
+
     /** Tickets are the same story: assigneeId is marked deprecated in the schema. */
     const mineTicket = {
       OR: [{ assigneeId: userId }, { assignments: { some: { userId } } }],
@@ -114,25 +128,25 @@ export class ChatService {
       // many came back caps the number at whatever the limit was, so someone with
       // nine tasks due today is told there are two.
       Promise.all([
-        this.prisma.task.count({ where: { ...mine, ...open, dueDate: { lt: now } } }),
+        this.prisma.task.count({ where: { ...mine, ...open, ...realTask, dueDate: { lt: now } } }),
         this.prisma.task.findFirst({
-          where: { ...mine, ...open, dueDate: { lt: now } },
+          where: { ...mine, ...open, ...realTask, dueDate: { lt: now } },
           select: { taskNumber: true, dueDate: true },
           orderBy: { dueDate: 'asc' },
         }),
       ]),
       Promise.all([
         this.prisma.task.count({
-          where: { ...mine, ...open, dueDate: { gte: now, lte: endOfToday } },
+          where: { ...mine, ...open, ...realTask, dueDate: { gte: now, lte: endOfToday } },
         }),
         this.prisma.task.findFirst({
-          where: { ...mine, ...open, dueDate: { gte: now, lte: endOfToday } },
+          where: { ...mine, ...open, ...realTask, dueDate: { gte: now, lte: endOfToday } },
           select: { taskNumber: true },
           orderBy: { dueDate: 'asc' },
         }),
       ]),
       this.prisma.task.count({
-        where: { ...mine, completedAt: { gte: weekAgo } },
+        where: { ...mine, ...realTask, completedAt: { gte: weekAgo } },
       }),
       Promise.all([
         this.prisma.ticket.count({
@@ -170,13 +184,13 @@ export class ChatService {
       // Prisma versions; this is one person's month, so the rows are few and the
       // comparison is unambiguous.
       this.prisma.task.findMany({
-        where: { ...mine, completedAt: { gte: monthStart } },
+        where: { ...mine, ...realTask, completedAt: { gte: monthStart } },
         select: { completedAt: true, dueDate: true },
       }),
       // Work of mine that no quarter owns. Easy to accumulate and invisible on the
       // strategy pages, which only show what is inside a cycle.
       this.prisma.task.count({
-        where: { ...mine, ...open, quarterId: null },
+        where: { ...mine, ...open, ...realTask, quarterId: null },
       }),
       // Something I asked for that came back done.
       this.prisma.ticket.count({
@@ -400,6 +414,19 @@ export class ChatService {
     // alone misses everyone assigned through TaskAssignment, and Ticket.assigneeId is
     // marked deprecated in the schema.
     const mine = { OR: [{ assignedToId: userId }, { assignments: { some: { userId } } }] };
+
+    /**
+     * A task, in the sense the board means it.
+     *
+     * Every subtask is also written as a Task row of type SUBTASK, and the board
+     * excludes them because they are already shown inside their parent. This did not,
+     * so the brief listed five tasks "140 days past due" for someone whose board read
+     * To do: 0 — the same five rows, counted in a place that filtered them and a place
+     * that did not. Anything user-facing has to agree with the board or one of the two
+     * is lying.
+     */
+    const realTask = { taskType: { not: 'SUBTASK' } };
+
     const open = {
       completedAt: null,
       phase: { notIn: ['COMPLETED', 'ARCHIVED'] as any },
@@ -409,17 +436,27 @@ export class ChatService {
 
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [overdue, dueToday, awaitingMe, myTickets, openSubtasks, finishedThisWeek, meetings] =
-      await Promise.all([
+    const [
+      overdue,
+      dueToday,
+      awaitingMe,
+      myTickets,
+      openSubtasks,
+      finishedThisWeek,
+      meetings,
+      finishedToday,
+      monthCompletions,
+    ] = await Promise.all([
         this.prisma.task.findMany({
-          where: { ...mine, ...open, dueDate: { lt: now } },
+          where: { ...mine, ...open, ...realTask, dueDate: { lt: now } },
           select: { taskNumber: true, title: true, dueDate: true },
           orderBy: { dueDate: 'asc' },
           take: 5,
         }),
         this.prisma.task.findMany({
-          where: { ...mine, ...open, dueDate: { gte: now, lte: endOfToday } },
+          where: { ...mine, ...open, ...realTask, dueDate: { gte: now, lte: endOfToday } },
           select: { taskNumber: true, title: true },
           orderBy: { priority: 'desc' },
           take: 5,
@@ -443,13 +480,41 @@ export class ChatService {
         this.prisma.subtask
           .count({ where: { assignedToId: userId, isCompleted: false, task: { ...open } } })
           .catch(() => 0),
-        this.prisma.task.count({ where: { ...mine, completedAt: { gte: weekAgo } } }),
+        this.prisma.task.count({ where: { ...mine, ...realTask, completedAt: { gte: weekAgo } } }),
         // Today's calendar. Most people will not have connected an account, and Graph
         // is the one call here that leaves our infrastructure, so it fails to an empty
         // list rather than taking the brief down with it.
         this.microsoftService
           .getCalendarEvents(userId, startOfToday.toISOString(), endOfToday.toISOString())
           .catch(() => [] as any[]),
+
+        // What they have already closed today. This is the difference between a brief
+        // that lists what is left and one that notices you have been working.
+        this.prisma.task.findMany({
+          where: { ...mine, ...realTask, completedAt: { gte: startOfToday } },
+          select: { taskNumber: true, title: true },
+          take: 5,
+        }),
+
+        /**
+         * Where they stand this month, tallied here rather than grouped in SQL.
+         *
+         * A groupBy can only group on a column, and a task's people live in
+         * TaskAssignment as well as in assignedToId, so grouping would rank everyone
+         * by the legacy scalar and quietly score multi-assignee work to one person.
+         * One month of one company's completed tasks is a small set; counting it in
+         * memory is honest and cheap.
+         */
+        user?.companyId
+          ? this.prisma.task.findMany({
+              where: {
+                companyId: user.companyId,
+                ...realTask,
+                completedAt: { gte: monthStart },
+              },
+              select: { assignedToId: true, assignments: { select: { userId: true } } },
+            })
+          : Promise.resolve([] as any[]),
       ]);
 
     const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
@@ -554,82 +619,159 @@ export class ChatService {
     const hour = now.getHours();
     const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
-    // The composed brief. This is what ships when there is no AI, and it is also what
-    // the AI is given to rewrite, so the facts are identical either way.
-    const parts: string[] = [];
+    /**
+     * Where they stand this month among everyone else in the company.
+     *
+     * Each task credits everybody on it once, whether they were named through the old
+     * scalar or through TaskAssignment, so a shared task does not count for one person
+     * and vanish for the other.
+     */
+    const tally = new Map<string, number>();
+    for (const t of monthCompletions as any[]) {
+      const people = new Set<string>();
+      if (t.assignedToId) people.add(t.assignedToId);
+      for (const a of t.assignments ?? []) people.add(a.userId);
+      for (const p of people) tally.set(p, (tally.get(p) ?? 0) + 1);
+    }
+    const ranked = [...tally.entries()].sort((a, b) => b[1] - a[1]);
+    const myPosition = ranked.findIndex(([id]) => id === userId);
+    const standing =
+      myPosition >= 0 && ranked.length > 1
+        ? { rank: myPosition + 1, of: ranked.length, done: ranked[myPosition][1] }
+        : null;
 
-    // Meetings first in the sentence for the same reason they are first in the list:
-    // they are the fixed points the rest of the day has to fit around.
+    /**
+     * The composed brief: what ships when there is no AI, and what the AI is handed to
+     * rewrite, so the facts are identical either way.
+     *
+     * Written as sentences about the day rather than a list of titles. Someone reading
+     * "Research Aireach and Apliman's Telecom-Grade Engagement Infrastructure" in a
+     * summary is reading the list again, in prose, which is longer and no clearer. The
+     * list above already names things; this says what they add up to.
+     */
+    const sentences: string[] = [];
+
+    // Progress first when there is any. A brief that opens with what is left, when you
+    // have spent the day closing things, reads as though nobody noticed.
+    if (finishedToday.length) {
+      sentences.push(
+        `You have closed ${finishedToday.length} ${plural(finishedToday.length, 'task', 'tasks')} today.`,
+      );
+    }
+
+    // Meetings, including their absence: a day with no meetings is worth being told.
     const ahead = meetingRows.filter((m) => m.at >= now);
     if (ahead.length) {
       const next = ahead[0].at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      parts.push(
-        `${ahead.length} ${plural(ahead.length, 'meeting', 'meetings')} left today, the next at ${next}`,
+      sentences.push(
+        `You have ${ahead.length} ${plural(ahead.length, 'meeting', 'meetings')} left, the next at ${next}.`,
       );
+    } else if (meetingRows.length) {
+      sentences.push('Your meetings for today are behind you.');
+    } else {
+      sentences.push('Your calendar is clear today, so the time is yours to place.');
     }
 
+    const workParts: string[] = [];
     if (overdue.length) {
-      parts.push(
-        `${overdue.length} ${plural(overdue.length, 'task is', 'tasks are')} already past due`,
-      );
+      workParts.push(`${overdue.length} ${plural(overdue.length, 'is', 'are')} past due`);
     }
     if (dueToday.length) {
-      parts.push(`${dueToday.length} ${plural(dueToday.length, 'is', 'are')} due today`);
+      workParts.push(`${dueToday.length} ${plural(dueToday.length, 'is', 'are')} due today`);
     }
-    if (awaitingMe) {
-      parts.push(
-        `${awaitingMe} ${plural(awaitingMe, 'ticket is', 'tickets are')} waiting on your decision`,
+    if (openSubtasks) {
+      workParts.push(`${openSubtasks} ${plural(openSubtasks, 'subtask is', 'subtasks are')} open`);
+    }
+    if (workParts.length) {
+      sentences.push(
+        `On your board, ${workParts.slice(0, -1).join(', ')}${workParts.length > 1 ? ' and ' : ''}${workParts[workParts.length - 1]}.`,
       );
+    } else {
+      sentences.push('Nothing on your board is overdue or due today.');
     }
-    if (myTickets.length) {
-      parts.push(
-        `${myTickets.length} ${plural(myTickets.length, 'ticket is', 'tickets are')} assigned to you`,
+
+    if (awaitingMe || myTickets.length) {
+      const ticketParts: string[] = [];
+      if (awaitingMe) {
+        ticketParts.push(
+          `${awaitingMe} ${plural(awaitingMe, 'is', 'are')} waiting on your decision`,
+        );
+      }
+      if (myTickets.length) {
+        ticketParts.push(
+          `${myTickets.length} ${plural(myTickets.length, 'is', 'are')} assigned to you`,
+        );
+      }
+      sentences.push(`On tickets, ${ticketParts.join(' and ')}.`);
+    } else {
+      sentences.push('No tickets need you right now.');
+    }
+
+    if (standing) {
+      sentences.push(
+        `You are ${ordinal(standing.rank)} of ${standing.of} this month, on ${standing.done} ${plural(standing.done, 'task', 'tasks')} finished.`,
       );
     }
 
-    let summary =
-      parts.length === 0
-        ? finishedThisWeek > 0
-          ? `Nothing is waiting on you today. You finished ${finishedThisWeek} ${plural(finishedThisWeek, 'task', 'tasks')} this week, so this is a good moment to pull something forward.`
-          : 'Nothing is waiting on you today. Your board is clear.'
-        : `${parts.slice(0, -1).join(', ')}${parts.length > 1 ? ' and ' : ''}${parts[parts.length - 1]}.` +
-          (overdue.length
-            ? ` Start with ${overdue[0].taskNumber ?? 'the oldest one'}, it has waited longest.`
-            : '');
+    let summary = sentences.join(' ');
 
     let aiWritten = false;
 
-    // Only worth a round trip when there is something to say about.
-    if (items.length > 0) {
-      try {
-        const credential = await this.aiService.resolveAiCredential(userId);
-        if (credential) {
-          const facts = items.map((i) => `- ${i.label} (${i.detail})`).join('\n');
-          const response = await this.httpService.axiosRef.post(
-            `${this.aiServiceUrl}/summarize`,
-            {
-              text:
-                `Write a short daily brief for ${user?.name ?? 'this person'}, in the second person, ` +
-                `two or three sentences. Say what needs attention first and why. Do not invent anything ` +
-                `that is not listed, do not restate every line, and do not greet them.\n\n${facts}`,
-              max_length: 320,
-              api_key: credential.apiKey,
-              provider: credential.provider,
-              model: credential.model ?? undefined,
-            },
-            { headers: this.aiServiceHeaders, timeout: 20000 },
-          );
-          const written = response.data?.summary?.trim();
-          if (written) {
-            summary = written;
-            aiWritten = true;
-          }
+    try {
+      const credential = await this.aiService.resolveAiCredential(userId);
+      if (credential) {
+        /**
+         * Counts, not titles.
+         *
+         * The model is given the shape of the day and never the names of things. Hand
+         * it a list of task titles and it writes them back out, which is the list
+         * again in paragraph form: longer, no clearer, and it reads as a machine
+         * reciting rather than a colleague telling you where you stand.
+         */
+        const facts = [
+          `Meetings left today: ${ahead.length}${ahead.length ? ` (next at ${ahead[0].at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})` : ''}`,
+          `Meetings already finished today: ${meetingRows.length - ahead.length}`,
+          `Tasks past due: ${overdue.length}`,
+          `Tasks due today: ${dueToday.length}`,
+          `Open subtasks: ${openSubtasks}`,
+          `Tickets waiting on their decision: ${awaitingMe}`,
+          `Tickets assigned to them: ${myTickets.length}`,
+          `Tasks they finished today: ${finishedToday.length}`,
+          `Tasks they finished this week: ${finishedThisWeek}`,
+          standing
+            ? `Leaderboard: ${ordinal(standing.rank)} of ${standing.of} this month on ${standing.done} finished`
+            : 'Leaderboard: not enough data this month',
+        ].join('\n');
+
+        const response = await this.httpService.axiosRef.post(
+          `${this.aiServiceUrl}/summarize`,
+          {
+            text:
+              `You are Aura, this person's work assistant. Write ${user?.name?.split(' ')[0] ?? 'them'} ` +
+              `a short spoken-sounding brief about their day, in the second person, three or four ` +
+              `sentences, no greeting and no sign-off.\n\n` +
+              `Cover, in this order and only where the number is not zero: what they have already ` +
+              `finished today (say it warmly, they earned it), their meetings, their tasks, their ` +
+              `tickets, and where they stand on the leaderboard. If they have no meetings today, say ` +
+              `so plainly. Use the counts as given. Do not invent anything, do not name individual ` +
+              `tasks or tickets, and do not write a list.\n\n${facts}`,
+            max_length: 400,
+            api_key: credential.apiKey,
+            provider: credential.provider,
+            model: credential.model ?? undefined,
+          },
+          { headers: this.aiServiceHeaders, timeout: 20000 },
+        );
+        const written = response.data?.summary?.trim();
+        if (written) {
+          summary = written;
+          aiWritten = true;
         }
-      } catch (error) {
-        // The composed brief above is already correct, so a provider being down costs
-        // the phrasing and nothing else. Logged, not surfaced.
-        this.logger.warn(`Day brief fell back to composed text: ${error.message}`);
       }
+    } catch (error) {
+      // The composed brief above is already correct, so a provider being down costs
+      // the phrasing and nothing else. Logged, not surfaced.
+      this.logger.warn(`Day brief fell back to composed text: ${error.message}`);
     }
 
     return { greeting, items, summary, aiWritten };

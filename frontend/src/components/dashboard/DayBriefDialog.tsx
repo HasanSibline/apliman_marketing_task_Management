@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
-import { SparklesIcon } from '@heroicons/react/24/outline'
 import FormDialog from '@/components/ui/FormDialog'
 import AuraBot from '@/components/chat/AuraBot'
 import api from '@/services/api'
@@ -127,7 +126,9 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
     <FormDialog
       isOpen={isOpen}
       onClose={onClose}
-      width="md"
+      // Wide enough that a task title and its status sit on one line. At md the two
+      // competed for the same row and every title truncated mid-word.
+      width="lg"
       // The page behind is competition here, not context: everything in this dialog is
       // meant to be read, so the room goes properly out of focus and the panel drops
       // away entirely, leaving the words on the blur.
@@ -215,12 +216,11 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
             <AuraBot className="mt-0.5 h-9 w-9 flex-shrink-0" alive={typingDone} thinking={!typingDone} />
 
             <div className="min-w-0 flex-1 space-y-1.5">
-              <div className="flex items-center gap-1.5">
-                <SparklesIcon className="h-3.5 w-3.5 flex-shrink-0 text-primary-400" />
-                <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-                  {brief.aiWritten ? 'Summarised by Aura' : 'Summarised from your board'}
-                </span>
-              </div>
+              {/* No icon. The robot is already sitting next to this line saying the
+                  same thing, and a sparkle beside it is the second mark for one idea. */}
+              <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                {brief.aiWritten ? 'Summarised by Aura' : 'Summarised from your board'}
+              </span>
 
               <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-200">
                 {typed}
