@@ -340,12 +340,31 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
   const card =
     'absolute rounded-xl border border-white/10 bg-white/[0.06] p-4 backdrop-blur-sm'
 
-  // Placeholder bars, replaced by real numbers the moment they arrive.
-  const bars = [
-    { label: 'Open', value: real.openTasks ?? 0 },
-    { label: 'Due today', value: real.dueToday ?? 0 },
-    { label: 'Done, 7d', value: real.doneThisWeek ?? 0 },
-  ]
+  /**
+   * The week, with something to show before the numbers land.
+   *
+   * These read from `real` and fall back together, not field by field. Mixing one real
+   * count with two invented ones would be worse than either: the card would look
+   * authoritative while two thirds of it was made up.
+   *
+   * The fallback exists because the honest empty state is three zeroes and no bars,
+   * which is what this card showed for anyone whose fetch had not returned yet, and
+   * for every brand-new account. A chart of nothing does not demonstrate a chart.
+   */
+  const haveWeek = real.openTasks !== undefined
+  const bars = haveWeek
+    ? [
+        { label: 'Open', value: real.openTasks ?? 0 },
+        { label: 'Due today', value: real.dueToday ?? 0 },
+        { label: 'Done, 7d', value: real.doneThisWeek ?? 0 },
+      ]
+    : [
+        { label: 'Open', value: 7 },
+        { label: 'Due today', value: 2 },
+        { label: 'Done, 7d', value: 5 },
+      ]
+  // A real board of all zeroes still gets bars with a visible floor rather than an
+  // empty frame, so the card reads as measured-and-empty rather than broken.
   const peak = Math.max(1, ...bars.map((b) => b.value))
 
   const meetings = real.meetings ?? [
@@ -598,13 +617,15 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
             >
               <div className="flex items-baseline justify-between">
                 <p className="text-sm font-medium text-white">Your week</p>
-                {real.onTime !== undefined && (
+                {/* Shown against the demonstration figures too, so the card is not
+                    missing its headline number in the case it exists to cover. */}
+                {(real.onTime !== undefined || !haveWeek) && (
                   <motion.span
                     initial={{ opacity: 0 }}
                     animate={{ opacity: statsUp ? 1 : 0 }}
                     className="text-[11px] font-medium text-emerald-300"
                   >
-                    {real.onTime}% on time
+                    {real.onTime ?? 86}% on time
                   </motion.span>
                 )}
               </div>

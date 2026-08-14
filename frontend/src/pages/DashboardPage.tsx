@@ -9,7 +9,9 @@ import {
   CloudIcon,
   SunIcon,
   TrophyIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline'
+import DayBriefDialog from '@/components/dashboard/DayBriefDialog'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { fetchDashboardAnalytics } from '@/store/slices/analyticsSlice'
 import { fetchPhaseCount } from '@/store/slices/tasksSlice'
@@ -26,6 +28,7 @@ const DashboardPage: React.FC = () => {
   const { teamMembers: presenceTeamMembers } = useAppSelector((state) => state.presence)
   const [activeQuarter, setActiveQuarter] = useState<any>(null)
   const [weather, setWeather] = useState<any>(null)
+  const [isDayBriefOpen, setIsDayBriefOpen] = useState(false)
 
   const isAdmin = user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
   const hasStrategyAccess = isAdmin || (user?.strategyAccess && user.strategyAccess !== 'NONE')
@@ -158,11 +161,26 @@ const DashboardPage: React.FC = () => {
                      <span className="opacity-50 tracking-wide">Atmosphere Synced</span>
                   </div>
                )}
-               
+
              </div>
           </div>
+
+          {/* Sits at the far end of the greeting row, so the panel reads as: who you
+              are on the left, what today holds on the right. md:ml-auto rather than
+              justify-between, because the profile block must stay left-aligned when
+              this wraps under it on a phone. */}
+          <button
+            type="button"
+            onClick={() => setIsDayBriefOpen(true)}
+            className="group flex items-center gap-2.5 self-start rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-medium text-white backdrop-blur transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 md:ml-auto md:self-auto"
+          >
+            <SparklesIcon className="h-4 w-4 text-primary-100 transition-transform group-hover:scale-110" />
+            Summarise my day
+          </button>
         </motion.div>
       </div>
+
+      <DayBriefDialog isOpen={isDayBriefOpen} onClose={() => setIsDayBriefOpen(false)} />
 
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

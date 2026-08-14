@@ -70,6 +70,19 @@ export class ChatController {
     return this.chatService.getNudge(req.user.id);
   }
 
+  /**
+   * Everything waiting on this person today, and a written brief of it.
+   *
+   * A GET, because it changes nothing and two people asking twice should get the same
+   * answer. The facts are counted from the database and are always returned; the prose
+   * is written by the AI when one is configured and composed here when it is not, so
+   * the brief never simply fails to appear because a provider is rate limited.
+   */
+  @Get('day-brief')
+  async getDayBrief(@Request() req) {
+    return this.chatService.getDayBrief(req.user.id);
+  }
+
   @Get('context')
   async getUserContext(@Request() req) {
     return this.chatService.getUserContext(req.user.id);

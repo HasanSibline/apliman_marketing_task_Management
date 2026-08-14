@@ -365,6 +365,216 @@ export class ChatService {
   }
 
   /**
+   * Today, for one person: the facts, then a brief written from them.
+   *
+   * Two halves with different guarantees, and the split is the point.
+   *
+   * The **facts** are counted from the database. They are exact, they cost nothing,
+   * and they are always returned. Everything a reader might act on lives here.
+   *
+   * The **brief** is prose over those facts. The AI writes it when a company has a
+   * provider configured; otherwise it is composed below. Either way the numbers came
+   * from the query, never from the model, so the brief cannot invent a deadline. The
+   * model is being asked to phrase a paragraph, not to look anything up.
+   *
+   * `aiWritten` says which happened, because a reader deserves to know whether they
+   * are reading a language model or a template.
+   */
+  async getDayBrief(userId: string): Promise<{
+    greeting: string;
+    items: { kind: string; label: string; detail: string; tone: 'urgent' | 'info' | 'praise' }[];
+    summary: string;
+    aiWritten: boolean;
+  }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, companyId: true, departmentId: true, isTicketApprover: true },
+    });
+
+    const now = new Date();
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    const weekAgo = new Date(now.getTime() - 7 * 86_400_000);
+
+    // The same two predicates the nudge uses, and for the same reason: assignedToId
+    // alone misses everyone assigned through TaskAssignment, and Ticket.assigneeId is
+    // marked deprecated in the schema.
+    const mine = { OR: [{ assignedToId: userId }, { assignments: { some: { userId } } }] };
+    const open = {
+      completedAt: null,
+      phase: { notIn: ['COMPLETED', 'ARCHIVED'] as any },
+      NOT: { currentPhase: { isEndPhase: true } },
+    };
+    const mineTicket = { OR: [{ assigneeId: userId }, { assignments: { some: { userId } } }] };
+
+    const [overdue, dueToday, awaitingMe, myTickets, openSubtasks, finishedThisWeek] =
+      await Promise.all([
+        this.prisma.task.findMany({
+          where: { ...mine, ...open, dueDate: { lt: now } },
+          select: { taskNumber: true, title: true, dueDate: true },
+          orderBy: { dueDate: 'asc' },
+          take: 5,
+        }),
+        this.prisma.task.findMany({
+          where: { ...mine, ...open, dueDate: { gte: now, lte: endOfToday } },
+          select: { taskNumber: true, title: true },
+          orderBy: { priority: 'desc' },
+          take: 5,
+        }),
+        this.prisma.ticket.count({
+          where: {
+            status: 'PENDING_REC_MGR' as any,
+            OR: [
+              { receiverManagerId: userId },
+              ...(user?.isTicketApprover && user?.departmentId
+                ? [{ receiverDeptId: user.departmentId }]
+                : []),
+            ],
+          },
+        }),
+        this.prisma.ticket.findMany({
+          where: { ...mineTicket, status: { in: ['ASSIGNED', 'IN_PROGRESS'] as any } },
+          select: { ticketNumber: true, title: true },
+          take: 5,
+        }),
+        this.prisma.subtask
+          .count({ where: { assignedToId: userId, isCompleted: false, task: { ...open } } })
+          .catch(() => 0),
+        this.prisma.task.count({ where: { ...mine, completedAt: { gte: weekAgo } } }),
+      ]);
+
+    const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
+    const items: { kind: string; label: string; detail: string; tone: 'urgent' | 'info' | 'praise' }[] = [];
+
+    for (const t of overdue) {
+      const days = t.dueDate ? Math.floor((now.getTime() - t.dueDate.getTime()) / 86_400_000) : 0;
+      items.push({
+        kind: 'task',
+        label: t.taskNumber ? `${t.taskNumber} · ${t.title}` : t.title,
+        detail: days >= 1 ? `${days} ${plural(days, 'day', 'days')} past due` : 'Past due',
+        tone: 'urgent',
+      });
+    }
+
+    if (awaitingMe > 0) {
+      items.push({
+        kind: 'ticket',
+        label: `${awaitingMe} ${plural(awaitingMe, 'ticket needs', 'tickets need')} your decision`,
+        detail: 'Waiting on you to approve or decline',
+        tone: 'urgent',
+      });
+    }
+
+    for (const t of dueToday) {
+      items.push({
+        kind: 'task',
+        label: t.taskNumber ? `${t.taskNumber} · ${t.title}` : t.title,
+        detail: 'Due today',
+        tone: 'info',
+      });
+    }
+
+    for (const t of myTickets) {
+      items.push({
+        kind: 'ticket',
+        label: `${t.ticketNumber} · ${t.title}`,
+        detail: 'Assigned to you',
+        tone: 'info',
+      });
+    }
+
+    if (openSubtasks > 0) {
+      items.push({
+        kind: 'subtask',
+        label: `${openSubtasks} open ${plural(openSubtasks, 'subtask', 'subtasks')}`,
+        detail: 'Under tasks that are still running',
+        tone: 'info',
+      });
+    }
+
+    if (finishedThisWeek > 0) {
+      items.push({
+        kind: 'done',
+        label: `${finishedThisWeek} finished this week`,
+        detail: 'Completed in the last seven days',
+        tone: 'praise',
+      });
+    }
+
+    const hour = now.getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
+    // The composed brief. This is what ships when there is no AI, and it is also what
+    // the AI is given to rewrite, so the facts are identical either way.
+    const parts: string[] = [];
+    if (overdue.length) {
+      parts.push(
+        `${overdue.length} ${plural(overdue.length, 'task is', 'tasks are')} already past due`,
+      );
+    }
+    if (dueToday.length) {
+      parts.push(`${dueToday.length} ${plural(dueToday.length, 'is', 'are')} due today`);
+    }
+    if (awaitingMe) {
+      parts.push(
+        `${awaitingMe} ${plural(awaitingMe, 'ticket is', 'tickets are')} waiting on your decision`,
+      );
+    }
+    if (myTickets.length) {
+      parts.push(
+        `${myTickets.length} ${plural(myTickets.length, 'ticket is', 'tickets are')} assigned to you`,
+      );
+    }
+
+    let summary =
+      parts.length === 0
+        ? finishedThisWeek > 0
+          ? `Nothing is waiting on you today. You finished ${finishedThisWeek} ${plural(finishedThisWeek, 'task', 'tasks')} this week, so this is a good moment to pull something forward.`
+          : 'Nothing is waiting on you today. Your board is clear.'
+        : `${parts.slice(0, -1).join(', ')}${parts.length > 1 ? ' and ' : ''}${parts[parts.length - 1]}.` +
+          (overdue.length
+            ? ` Start with ${overdue[0].taskNumber ?? 'the oldest one'}, it has waited longest.`
+            : '');
+
+    let aiWritten = false;
+
+    // Only worth a round trip when there is something to say about.
+    if (items.length > 0) {
+      try {
+        const credential = await this.aiService.resolveAiCredential(userId);
+        if (credential) {
+          const facts = items.map((i) => `- ${i.label} (${i.detail})`).join('\n');
+          const response = await this.httpService.axiosRef.post(
+            `${this.aiServiceUrl}/summarize`,
+            {
+              text:
+                `Write a short daily brief for ${user?.name ?? 'this person'}, in the second person, ` +
+                `two or three sentences. Say what needs attention first and why. Do not invent anything ` +
+                `that is not listed, do not restate every line, and do not greet them.\n\n${facts}`,
+              max_length: 320,
+              api_key: credential.apiKey,
+              provider: credential.provider,
+              model: credential.model ?? undefined,
+            },
+            { headers: this.aiServiceHeaders, timeout: 20000 },
+          );
+          const written = response.data?.summary?.trim();
+          if (written) {
+            summary = written;
+            aiWritten = true;
+          }
+        }
+      } catch (error) {
+        // The composed brief above is already correct, so a provider being down costs
+        // the phrasing and nothing else. Logged, not surfaced.
+        this.logger.warn(`Day brief fell back to composed text: ${error.message}`);
+      }
+    }
+
+    return { greeting, items, summary, aiWritten };
+  }
+
+  /**
    * Get or create a chat session for a user
    */
   async getOrCreateSession(userId: string, sessionId?: string) {
