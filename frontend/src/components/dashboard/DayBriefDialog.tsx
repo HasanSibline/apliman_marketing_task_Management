@@ -129,31 +129,31 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
       onClose={onClose}
       width="md"
       // The page behind is competition here, not context: everything in this dialog is
-      // meant to be read, so the room goes properly out of focus.
+      // meant to be read, so the room goes properly out of focus and the panel drops
+      // away entirely, leaving the words on the blur.
       backdrop="heavy"
+      bare
       title="Your day"
       description={brief ? `${brief.greeting}. Here is everything waiting on you.` : 'Gathering what is waiting on you.'}
-      icon={
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 dark:bg-primary-900/30">
-          <SparklesIcon className="h-5 w-5 text-primary-600 dark:text-primary-400" />
-        </div>
-      }
+      // The robot heads the dialog rather than a sparkle in a tile: it is the thing
+      // that read your day, and it is the face this answer arrives in everywhere else
+      // in the app.
+      icon={<AuraBot className="h-10 w-10" thinking={loading} />}
       footer={
-        <button type="button" onClick={onClose} className="btn-primary">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        >
           Got it
         </button>
       }
     >
       <div className="space-y-6">
-        {loading && (
-          <div className="flex items-center gap-3 py-6">
-            <AuraBot className="h-8 w-8 flex-shrink-0" thinking />
-            <p className="text-sm text-gray-500 dark:text-gray-400">Reading your day…</p>
-          </div>
-        )}
+        {loading && <p className="py-6 text-sm text-gray-400">Reading your day…</p>}
 
         {failed && (
-          <p className="py-4 text-sm text-gray-700 dark:text-gray-200">
+          <p className="py-4 text-sm text-gray-200">
             Your day could not be read just now. Nothing has changed on your board, and the
             tasks and tickets pages have it in full.
           </p>
@@ -168,9 +168,13 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
           GROUPS.map(({ kinds, label }) => {
             const rows = brief.items.filter((i) => kinds.includes(i.kind))
             if (rows.length === 0) return null
+            // The column is only reserved when something fills it. An older server
+            // sends no meta at all, and a fixed-width empty column indents every row
+            // for nothing.
+            const hasMeta = rows.some((r) => r.meta)
             return (
               <div key={label} className="space-y-2.5">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
                   {label}
                 </p>
                 {rows.map((item, i) => (
@@ -181,16 +185,14 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
                     transition={{ duration: 0.2, delay: reduced ? 0 : Math.min(i * 0.04, 0.3) }}
                     className="flex items-center gap-3 text-sm"
                   >
-                    <span className="w-[4.5rem] flex-shrink-0 truncate text-xs tabular-nums text-gray-400 dark:text-gray-500">
-                      {item.meta}
-                    </span>
+                    {hasMeta && (
+                      <span className="w-[4.5rem] flex-shrink-0 truncate text-xs tabular-nums text-gray-400">
+                        {item.meta}
+                      </span>
+                    )}
                     <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${DOT[item.tone]}`} />
-                    <span className="min-w-0 flex-1 truncate text-gray-800 dark:text-gray-100">
-                      {item.label}
-                    </span>
-                    <span className="flex-shrink-0 text-xs text-gray-400 dark:text-gray-500">
-                      {item.detail}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate text-gray-100">{item.label}</span>
+                    <span className="flex-shrink-0 text-xs text-gray-400">{item.detail}</span>
                   </motion.div>
                 ))}
               </div>
@@ -198,34 +200,39 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
           })}
 
         {brief && brief.items.length === 0 && (
-          <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          <p className="py-6 text-center text-sm text-gray-400">
             Nothing is waiting on you today. Enjoy it.
           </p>
         )}
 
         {/* ── The brief ──────────────────────────────────────────────────────
-            The one bordered thing on the page, exactly as on the sign-in screen:
-            a quiet strip naming who wrote what follows, then the sentence itself
-            as plain text. Clicking anywhere finishes the typing. */}
+            The robot beside its own answer, the way it appears beside every other
+            reply it gives. A hairline above rather than a box around: the answer
+            needs separating from the list, which a rule does, and does without
+            drawing a container nothing needed. Clicking anywhere finishes typing. */}
         {brief && (
-          <div className="space-y-3 pt-1" onClick={finishTyping}>
-            <div className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700">
-              <SparklesIcon className="h-3.5 w-3.5 flex-shrink-0 text-primary-500 dark:text-primary-400" />
-              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                {brief.aiWritten ? 'Summarised by Aura' : 'Summarised from your board'}
-              </span>
-            </div>
+          <div className="flex gap-3 border-t border-white/10 pt-5" onClick={finishTyping}>
+            <AuraBot className="mt-0.5 h-9 w-9 flex-shrink-0" alive={typingDone} thinking={!typingDone} />
 
-            <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300">
-              {typed}
-              {!typingDone && (
-                <motion.span
-                  className="ml-0.5 inline-block h-4 w-px translate-y-0.5 bg-gray-400 dark:bg-gray-400"
-                  animate={{ opacity: [1, 0, 1] }}
-                  transition={{ duration: 0.9, repeat: Infinity }}
-                />
-              )}
-            </p>
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <div className="flex items-center gap-1.5">
+                <SparklesIcon className="h-3.5 w-3.5 flex-shrink-0 text-primary-400" />
+                <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
+                  {brief.aiWritten ? 'Summarised by Aura' : 'Summarised from your board'}
+                </span>
+              </div>
+
+              <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-200">
+                {typed}
+                {!typingDone && (
+                  <motion.span
+                    className="ml-0.5 inline-block h-4 w-px translate-y-0.5 bg-gray-300"
+                    animate={{ opacity: [1, 0, 1] }}
+                    transition={{ duration: 0.9, repeat: Infinity }}
+                  />
+                )}
+              </p>
+            </div>
           </div>
         )}
       </div>

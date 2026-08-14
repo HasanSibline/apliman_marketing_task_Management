@@ -76,6 +76,19 @@ interface FormDialogProps {
    * the panel the only thing in the room.
    */
   backdrop?: 'default' | 'heavy'
+  /**
+   * Drops the panel: no ground, no border, no shadow, no rules between the sections.
+   * The content sits directly on the blurred page.
+   *
+   * For a form this would be wrong — fields need a surface to sit on, and the edge of
+   * that surface is what tells you where the form ends. For something that is only
+   * read, the panel is a box drawn around text for no reason, and removing it leaves
+   * the words and nothing else.
+   *
+   * Bare mode fixes its own colours rather than taking them from the theme. The
+   * backdrop is dark in both themes, so light-theme greys would be invisible on it.
+   */
+  bare?: boolean
 }
 
 const FormDialog: React.FC<FormDialogProps> = ({
@@ -92,6 +105,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
   flush = false,
   dismissible = true,
   backdrop = 'default',
+  bare = false,
 }) => {
   // A dialog mid-save is not in a state anyone can safely back out of, so Escape and
   // the backdrop go quiet until it settles rather than closing over the top of it.
@@ -105,7 +119,13 @@ const FormDialog: React.FC<FormDialogProps> = ({
     <>
       <div className={`min-h-0 flex-1 overflow-y-auto ${flush ? '' : 'px-6 py-5'}`}>{children}</div>
       {footer && (
-        <div className="flex flex-shrink-0 items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
+        <div
+          className={`flex flex-shrink-0 items-center justify-end gap-3 px-6 py-4 ${
+            bare
+              ? ''
+              : 'border-t border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900/40'
+          }`}
+        >
           {footer}
         </div>
       )}
@@ -149,14 +169,26 @@ const FormDialog: React.FC<FormDialogProps> = ({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.97, y: 8 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            className={`relative flex max-h-[calc(100vh-3rem)] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-white/10 ${WIDTHS[width]}`}
+            className={`relative flex max-h-[calc(100vh-3rem)] w-full flex-col overflow-hidden rounded-2xl ${
+              bare
+                ? ''
+                : 'bg-white shadow-2xl ring-1 ring-gray-900/5 dark:bg-gray-800 dark:ring-white/10'
+            } ${WIDTHS[width]}`}
           >
-            <div className="flex flex-shrink-0 items-start gap-4 border-b border-gray-200 px-6 py-5 dark:border-gray-700">
+            <div
+              className={`flex flex-shrink-0 items-start gap-4 px-6 py-5 ${
+                bare ? '' : 'border-b border-gray-200 dark:border-gray-700'
+              }`}
+            >
               {icon && <div className="mt-0.5 flex-shrink-0">{icon}</div>}
               <div className="min-w-0 flex-1">
-                <h2 className="text-base font-semibold text-gray-900 dark:text-white">{title}</h2>
+                <h2 className={`text-base font-semibold ${bare ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                  {title}
+                </h2>
                 {description && (
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p>
+                  <p className={`mt-1 text-sm ${bare ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {description}
+                  </p>
                 )}
               </div>
               <button
@@ -164,7 +196,11 @@ const FormDialog: React.FC<FormDialogProps> = ({
                 onClick={dismiss}
                 disabled={busy || !dismissible}
                 aria-label="Close"
-                className="-mr-1.5 -mt-1 flex-shrink-0 rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600 disabled:opacity-40 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                className={`-mr-1.5 -mt-1 flex-shrink-0 rounded-lg p-1.5 transition-colors disabled:opacity-40 ${
+                  bare
+                    ? 'text-gray-400 hover:bg-white/10 hover:text-white'
+                    : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200'
+                }`}
               >
                 <XMarkIcon className="h-5 w-5" />
               </button>
