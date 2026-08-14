@@ -743,18 +743,20 @@ export class ChatService {
             : 'Leaderboard: not enough data this month',
         ].join('\n');
 
+        /**
+         * /daily-brief, not /summarize.
+         *
+         * summarize_text wraps whatever it receives in "Summarize the following text",
+         * so instructions sent to it are summarized rather than followed: this returned
+         * a tidy paragraph describing the brief it should have written, in place of the
+         * brief. The instructions live in the AI service now, and only counts cross the
+         * wire.
+         */
         const response = await this.httpService.axiosRef.post(
-          `${this.aiServiceUrl}/summarize`,
+          `${this.aiServiceUrl}/daily-brief`,
           {
-            text:
-              `You are Aura, this person's work assistant. Write ${user?.name?.split(' ')[0] ?? 'them'} ` +
-              `a short spoken-sounding brief about their day, in the second person, three or four ` +
-              `sentences, no greeting and no sign-off.\n\n` +
-              `Cover, in this order and only where the number is not zero: what they have already ` +
-              `finished today (say it warmly, they earned it), their meetings, their tasks, their ` +
-              `tickets, and where they stand on the leaderboard. If they have no meetings today, say ` +
-              `so plainly. Use the counts as given. Do not invent anything, do not name individual ` +
-              `tasks or tickets, and do not write a list.\n\n${facts}`,
+            firstName: user?.name?.split(' ')[0] ?? 'there',
+            facts,
             max_length: 400,
             api_key: credential.apiKey,
             provider: credential.provider,
@@ -762,10 +764,27 @@ export class ChatService {
           },
           { headers: this.aiServiceHeaders, timeout: 20000 },
         );
-        const written = response.data?.summary?.trim();
-        if (written) {
+        const written: string = response.data?.brief?.trim() ?? '';
+
+        /**
+         * Reject a brief that is describing itself.
+         *
+         * A model handed instructions sometimes restates them instead of following
+         * them, and the result reads plausibly enough to ship: "Write a brief, spoken
+         * update warmly noting the work already finished..." went out looking exactly
+         * like a summary. It always opens with the imperative it was given, which is
+         * the one thing a brief written to somebody never does, so that is what this
+         * checks. The composed text is already correct and takes over.
+         */
+        const echoesTheBrief = /^(write|create|generate|compose|draft|summari[sz]e|produce)\b/i.test(
+          written,
+        );
+
+        if (written && !echoesTheBrief) {
           summary = written;
           aiWritten = true;
+        } else if (echoesTheBrief) {
+          this.logger.warn('Day brief: model restated the instructions, using composed text');
         }
       }
     } catch (error) {

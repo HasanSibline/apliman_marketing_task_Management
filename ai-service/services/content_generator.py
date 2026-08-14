@@ -769,6 +769,49 @@ Respond with ONLY the JSON array, no other text."""
             logger.error(f"Error generating subtasks: {str(e)}")
             return self._generate_fallback_subtasks(title, task_type)
 
+    async def write_daily_brief(self, first_name: str, facts: str, max_length: int = 400) -> str:
+        """
+        Write one person's daily brief from counts the caller has already established.
+
+        Deliberately not summarize_text. That method wraps whatever it is given in
+        "Summarize the following text", so a caller who passes instructions gets those
+        instructions summarized back: the brief once rendered as a paragraph describing
+        the brief it should have written. Instructions belong in the prompt, and the
+        prompt belongs here, not smuggled through a method built for something else.
+
+        Only counts are passed in. The model never sees a task or ticket title, so it
+        cannot name the wrong one, and it has no numbers of its own to reach for.
+        """
+        try:
+            await self._rate_limit()
+
+            prompt = f"""
+            You are Aura, {first_name}'s assistant at work. Speak to them directly.
+
+            Write three or four short sentences about their day. No greeting, no
+            sign-off, no lists, no headings, no markdown.
+
+            Order: what they have already finished today, then meetings, then tasks,
+            then tickets, then where they stand on the leaderboard. Skip anything whose
+            count is zero, except meetings: if they have none today, say so.
+
+            Open warmly on finished work if there is any. Use only the numbers below and
+            never invent, estimate or name individual items.
+
+            {facts}
+
+            Reply with the brief itself and nothing else.
+            """
+
+            brief = await self._make_request(prompt)
+            return brief.strip()[:max_length]
+
+        except Exception as e:
+            logger.error(f"Error in write_daily_brief: {str(e)}")
+            # The caller composes its own brief from the same facts, so returning
+            # nothing lets that one through rather than replacing it with an apology.
+            return ""
+
     async def summarize_text(self, text: str, max_length: int = 150) -> str:
         """Summarize long text into a concise summary"""
         try:

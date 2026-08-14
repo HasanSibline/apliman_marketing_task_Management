@@ -338,6 +338,33 @@ async def summarize(request: SummarizeRequest):
         logger.error(f"Summarization failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class DailyBriefRequest(BaseModel):
+    firstName: str = "there"
+    facts: str
+    max_length: int = 400
+    api_key: Optional[str] = None
+    provider: Optional[str] = "gemini"
+    model: Optional[str] = None
+
+@app.post("/daily-brief", dependencies=[Depends(require_service_token)])
+async def daily_brief(request: DailyBriefRequest):
+    """
+    Write a person's daily brief from counts the backend has already established.
+
+    Separate from /summarize because the two want opposite things from their input:
+    summarize treats its text as material to condense, so instructions sent to it come
+    back condensed rather than followed. This one carries its own prompt and takes only
+    facts.
+    """
+    try:
+        api_key_to_use = resolve_api_key(request.api_key, "daily-brief")
+        generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
+        brief = await generator.write_daily_brief(request.firstName, request.facts, request.max_length)
+        return {"brief": brief}
+    except Exception as e:
+        logger.error(f"Daily brief failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/scrape-url", dependencies=[Depends(require_service_token)])
 async def scrape_url(request: ScrapeUrlRequest):
     """Scrape content from a URL"""
