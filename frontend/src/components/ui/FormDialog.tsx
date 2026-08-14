@@ -67,6 +67,15 @@ interface FormDialogProps {
    * would dismiss the form beneath and leave the preview pointing at nothing.
    */
   dismissible?: boolean
+  /**
+   * Pushes the page further out of focus behind the panel.
+   *
+   * Two pixels of blur is right for a form, where the page behind is context you may
+   * want to glance at. It is wrong for a dialog whose whole content is something being
+   * read: there the page behind is competition, and blurring it properly is what makes
+   * the panel the only thing in the room.
+   */
+  backdrop?: 'default' | 'heavy'
 }
 
 const FormDialog: React.FC<FormDialogProps> = ({
@@ -82,6 +91,7 @@ const FormDialog: React.FC<FormDialogProps> = ({
   busy = false,
   flush = false,
   dismissible = true,
+  backdrop = 'default',
 }) => {
   // A dialog mid-save is not in a state anyone can safely back out of, so Escape and
   // the backdrop go quiet until it settles rather than closing over the top of it.
@@ -125,7 +135,9 @@ const FormDialog: React.FC<FormDialogProps> = ({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             onClick={dismiss}
-            className="absolute inset-0 bg-gray-950/60 backdrop-blur-[2px]"
+            className={`absolute inset-0 ${
+              backdrop === 'heavy' ? 'bg-gray-950/75 backdrop-blur-lg' : 'bg-gray-950/60 backdrop-blur-[2px]'
+            }`}
           />
 
           <motion.div

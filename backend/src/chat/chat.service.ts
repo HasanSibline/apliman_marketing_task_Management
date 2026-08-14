@@ -407,7 +407,10 @@ export class ChatService {
     };
     const mineTicket = { OR: [{ assigneeId: userId }, { assignments: { some: { userId } } }] };
 
-    const [overdue, dueToday, awaitingMe, myTickets, openSubtasks, finishedThisWeek] =
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [overdue, dueToday, awaitingMe, myTickets, openSubtasks, finishedThisWeek, meetings] =
       await Promise.all([
         this.prisma.task.findMany({
           where: { ...mine, ...open, dueDate: { lt: now } },
@@ -441,16 +444,58 @@ export class ChatService {
           .count({ where: { assignedToId: userId, isCompleted: false, task: { ...open } } })
           .catch(() => 0),
         this.prisma.task.count({ where: { ...mine, completedAt: { gte: weekAgo } } }),
+        // Today's calendar. Most people will not have connected an account, and Graph
+        // is the one call here that leaves our infrastructure, so it fails to an empty
+        // list rather than taking the brief down with it.
+        this.microsoftService
+          .getCalendarEvents(userId, startOfToday.toISOString(), endOfToday.toISOString())
+          .catch(() => [] as any[]),
       ]);
 
     const plural = (n: number, one: string, many: string) => (n === 1 ? one : many);
-    const items: { kind: string; label: string; detail: string; tone: 'urgent' | 'info' | 'praise' }[] = [];
+    const items: {
+      kind: string;
+      /** The left column: a clock time for a meeting, a reference for everything else. */
+      meta: string;
+      label: string;
+      detail: string;
+      tone: 'urgent' | 'info' | 'praise';
+    }[] = [];
+
+    /**
+     * Meetings lead, because they are the only thing here you cannot reschedule by
+     * deciding to. A task can move; a ten o'clock cannot.
+     *
+     * Graph nests the time as start.dateTime with a separate timeZone, so it is read
+     * through that rather than as a string, and anything unparseable is dropped rather
+     * than printed as Invalid Date.
+     */
+    const meetingRows = (Array.isArray(meetings) ? meetings : [])
+      .map((e: any) => {
+        const raw = e?.start?.dateTime ?? e?.start;
+        const at = raw ? new Date(raw) : null;
+        return at && !isNaN(at.getTime()) ? { at, title: e.subject || 'Meeting' } : null;
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => a.at - b.at) as { at: Date; title: string }[];
+
+    for (const m of meetingRows.slice(0, 6)) {
+      const passed = m.at < now;
+      items.push({
+        kind: 'meeting',
+        meta: m.at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+        label: m.title,
+        detail: passed ? 'Earlier today' : 'Today',
+        tone: passed ? 'info' : 'urgent',
+      });
+    }
 
     for (const t of overdue) {
       const days = t.dueDate ? Math.floor((now.getTime() - t.dueDate.getTime()) / 86_400_000) : 0;
       items.push({
         kind: 'task',
-        label: t.taskNumber ? `${t.taskNumber} · ${t.title}` : t.title,
+        meta: t.taskNumber ?? 'Task',
+        label: t.title,
         detail: days >= 1 ? `${days} ${plural(days, 'day', 'days')} past due` : 'Past due',
         tone: 'urgent',
       });
@@ -459,8 +504,9 @@ export class ChatService {
     if (awaitingMe > 0) {
       items.push({
         kind: 'ticket',
+        meta: 'Approve',
         label: `${awaitingMe} ${plural(awaitingMe, 'ticket needs', 'tickets need')} your decision`,
-        detail: 'Waiting on you to approve or decline',
+        detail: 'Waiting on you',
         tone: 'urgent',
       });
     }
@@ -468,7 +514,8 @@ export class ChatService {
     for (const t of dueToday) {
       items.push({
         kind: 'task',
-        label: t.taskNumber ? `${t.taskNumber} · ${t.title}` : t.title,
+        meta: t.taskNumber ?? 'Task',
+        label: t.title,
         detail: 'Due today',
         tone: 'info',
       });
@@ -477,7 +524,8 @@ export class ChatService {
     for (const t of myTickets) {
       items.push({
         kind: 'ticket',
-        label: `${t.ticketNumber} · ${t.title}`,
+        meta: t.ticketNumber,
+        label: t.title,
         detail: 'Assigned to you',
         tone: 'info',
       });
@@ -486,8 +534,9 @@ export class ChatService {
     if (openSubtasks > 0) {
       items.push({
         kind: 'subtask',
-        label: `${openSubtasks} open ${plural(openSubtasks, 'subtask', 'subtasks')}`,
-        detail: 'Under tasks that are still running',
+        meta: 'Subtasks',
+        label: `${openSubtasks} still open`,
+        detail: 'Under running tasks',
         tone: 'info',
       });
     }
@@ -495,8 +544,9 @@ export class ChatService {
     if (finishedThisWeek > 0) {
       items.push({
         kind: 'done',
+        meta: 'Done',
         label: `${finishedThisWeek} finished this week`,
-        detail: 'Completed in the last seven days',
+        detail: 'Last seven days',
         tone: 'praise',
       });
     }
@@ -507,6 +557,17 @@ export class ChatService {
     // The composed brief. This is what ships when there is no AI, and it is also what
     // the AI is given to rewrite, so the facts are identical either way.
     const parts: string[] = [];
+
+    // Meetings first in the sentence for the same reason they are first in the list:
+    // they are the fixed points the rest of the day has to fit around.
+    const ahead = meetingRows.filter((m) => m.at >= now);
+    if (ahead.length) {
+      const next = ahead[0].at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      parts.push(
+        `${ahead.length} ${plural(ahead.length, 'meeting', 'meetings')} left today, the next at ${next}`,
+      );
+    }
+
     if (overdue.length) {
       parts.push(
         `${overdue.length} ${plural(overdue.length, 'task is', 'tasks are')} already past due`,

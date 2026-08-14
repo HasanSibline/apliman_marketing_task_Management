@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
-import { SparklesIcon, ExclamationTriangleIcon, TicketIcon, CheckCircleIcon, ClipboardDocumentListIcon } from '@heroicons/react/24/outline'
+import React, { useEffect, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
+import { SparklesIcon } from '@heroicons/react/24/outline'
 import FormDialog from '@/components/ui/FormDialog'
 import AuraBot from '@/components/chat/AuraBot'
 import api from '@/services/api'
@@ -20,6 +20,8 @@ import api from '@/services/api'
 
 interface BriefItem {
   kind: string
+  /** The left column: a clock time for a meeting, a reference for everything else. */
+  meta: string
   label: string
   detail: string
   tone: 'urgent' | 'info' | 'praise'
@@ -37,16 +39,27 @@ interface Props {
   onClose: () => void
 }
 
-const TONE: Record<BriefItem['tone'], { chip: string; Icon: React.ComponentType<{ className?: string }> }> = {
-  urgent: { chip: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300', Icon: ExclamationTriangleIcon },
-  info: { chip: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200', Icon: ClipboardDocumentListIcon },
-  praise: { chip: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300', Icon: CheckCircleIcon },
+/**
+ * A dot, not an icon tile.
+ *
+ * Every row was a bordered card with an icon in a coloured square, which turned a
+ * six-line list into six boxes and made the reading harder rather than easier. The
+ * dot carries the same state in a tenth of the space, and the row reads as a line of
+ * text, which is what it is.
+ */
+const DOT: Record<BriefItem['tone'], string> = {
+  urgent: 'bg-red-500',
+  info: 'bg-primary-500',
+  praise: 'bg-emerald-500',
 }
 
-const ICON_BY_KIND: Record<string, React.ComponentType<{ className?: string }>> = {
-  ticket: TicketIcon,
-  done: CheckCircleIcon,
-}
+/** Rows are grouped under these, in this order. Meetings first: a ten o'clock cannot move. */
+const GROUPS: { kinds: string[]; label: string }[] = [
+  { kinds: ['meeting'], label: 'Today' },
+  { kinds: ['task', 'subtask'], label: 'Your work' },
+  { kinds: ['ticket'], label: 'Tickets' },
+  { kinds: ['done'], label: 'Behind you' },
+]
 
 /** Characters per tick. Fast enough not to test anyone's patience on a long brief. */
 const TYPE_MS = 18
@@ -110,13 +123,14 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
   // Skip to the end on click, for anyone who reads faster than the animation.
   const finishTyping = () => setTyped(summary)
 
-  const listRef = useRef<HTMLDivElement>(null)
-
   return (
     <FormDialog
       isOpen={isOpen}
       onClose={onClose}
       width="md"
+      // The page behind is competition here, not context: everything in this dialog is
+      // meant to be read, so the room goes properly out of focus.
+      backdrop="heavy"
       title="Your day"
       description={brief ? `${brief.greeting}. Here is everything waiting on you.` : 'Gathering what is waiting on you.'}
       icon={
@@ -130,85 +144,90 @@ const DayBriefDialog: React.FC<Props> = ({ isOpen, onClose }) => {
         </button>
       }
     >
-      <div className="space-y-5">
-        {/* ── The brief ─────────────────────────────────────────────────── */}
-        <div
-          onClick={finishTyping}
-          className="flex gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/40"
-        >
-          <AuraBot className="mt-0.5 h-8 w-8 flex-shrink-0" thinking={loading} />
-
-          <div className="min-w-0 flex-1">
-            {loading && (
-              <p className="text-sm text-gray-500 dark:text-gray-400">Reading your board…</p>
-            )}
-
-            {failed && (
-              <p className="text-sm text-gray-700 dark:text-gray-200">
-                Your day could not be read just now. Everything below is still on your board,
-                and the tasks and tickets pages have it in full.
-              </p>
-            )}
-
-            {brief && (
-              <>
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-800 dark:text-gray-100">
-                  {typed}
-                  {!typingDone && (
-                    <motion.span
-                      className="ml-0.5 inline-block h-4 w-px translate-y-0.5 bg-gray-500 dark:bg-gray-300"
-                      animate={{ opacity: [1, 0, 1] }}
-                      transition={{ duration: 0.9, repeat: Infinity }}
-                    />
-                  )}
-                </p>
-                {typingDone && (
-                  <p className="form-hint">
-                    {brief.aiWritten ? 'Summarised by Aura' : 'Summarised from your board'}
-                  </p>
-                )}
-              </>
-            )}
+      <div className="space-y-6">
+        {loading && (
+          <div className="flex items-center gap-3 py-6">
+            <AuraBot className="h-8 w-8 flex-shrink-0" thinking />
+            <p className="text-sm text-gray-500 dark:text-gray-400">Reading your day…</p>
           </div>
-        </div>
+        )}
+
+        {failed && (
+          <p className="py-4 text-sm text-gray-700 dark:text-gray-200">
+            Your day could not be read just now. Nothing has changed on your board, and the
+            tasks and tickets pages have it in full.
+          </p>
+        )}
 
         {/* ── The list ──────────────────────────────────────────────────────
-            Arrives whole, not typed. These are the things worth acting on, and
-            making someone wait for a sentence before they can see a deadline
-            would be animation charged to the reader. */}
-        <div ref={listRef} className="space-y-2">
-          <AnimatePresence>
-            {brief?.items.map((item, i) => {
-              const tone = TONE[item.tone]
-              const Icon = ICON_BY_KIND[item.kind] ?? tone.Icon
-              return (
-                <motion.div
-                  key={`${item.kind}-${item.label}-${i}`}
-                  initial={reduced ? false : { opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.22, delay: reduced ? 0 : Math.min(i * 0.045, 0.4) }}
-                  className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700"
-                >
-                  <span className={`flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg ${tone.chip}`}>
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{item.label}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{item.detail}</p>
-                  </div>
-                </motion.div>
-              )
-            })}
-          </AnimatePresence>
+            Plain rows under a small heading, no card per item: a fixed left column
+            for the time or reference, a dot for state, then the line itself. The
+            left column is tabular so the times and the references stack into a
+            true column rather than drifting with the width of each string. */}
+        {brief &&
+          GROUPS.map(({ kinds, label }) => {
+            const rows = brief.items.filter((i) => kinds.includes(i.kind))
+            if (rows.length === 0) return null
+            return (
+              <div key={label} className="space-y-2.5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                  {label}
+                </p>
+                {rows.map((item, i) => (
+                  <motion.div
+                    key={`${item.kind}-${item.label}-${i}`}
+                    initial={reduced ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: reduced ? 0 : Math.min(i * 0.04, 0.3) }}
+                    className="flex items-center gap-3 text-sm"
+                  >
+                    <span className="w-[4.5rem] flex-shrink-0 truncate text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                      {item.meta}
+                    </span>
+                    <span className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${DOT[item.tone]}`} />
+                    <span className="min-w-0 flex-1 truncate text-gray-800 dark:text-gray-100">
+                      {item.label}
+                    </span>
+                    <span className="flex-shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                      {item.detail}
+                    </span>
+                  </motion.div>
+                ))}
+              </div>
+            )
+          })}
 
-          {brief && brief.items.length === 0 && (
-            <div className="rounded-lg border border-dashed border-gray-300 py-8 text-center dark:border-gray-600">
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                Nothing is waiting on you. Enjoy it.
-              </p>
+        {brief && brief.items.length === 0 && (
+          <p className="py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+            Nothing is waiting on you today. Enjoy it.
+          </p>
+        )}
+
+        {/* ── The brief ──────────────────────────────────────────────────────
+            The one bordered thing on the page, exactly as on the sign-in screen:
+            a quiet strip naming who wrote what follows, then the sentence itself
+            as plain text. Clicking anywhere finishes the typing. */}
+        {brief && (
+          <div className="space-y-3 pt-1" onClick={finishTyping}>
+            <div className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-2.5 dark:border-gray-700">
+              <SparklesIcon className="h-3.5 w-3.5 flex-shrink-0 text-primary-500 dark:text-primary-400" />
+              <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
+                {brief.aiWritten ? 'Summarised by Aura' : 'Summarised from your board'}
+              </span>
             </div>
-          )}
-        </div>
+
+            <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+              {typed}
+              {!typingDone && (
+                <motion.span
+                  className="ml-0.5 inline-block h-4 w-px translate-y-0.5 bg-gray-400 dark:bg-gray-400"
+                  animate={{ opacity: [1, 0, 1] }}
+                  transition={{ duration: 0.9, repeat: Infinity }}
+                />
+              )}
+            </p>
+          </div>
+        )}
       </div>
     </FormDialog>
   )
