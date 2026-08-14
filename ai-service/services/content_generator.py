@@ -786,14 +786,18 @@ Respond with ONLY the JSON array, no other text."""
             await self._rate_limit()
 
             prompt = f"""
-            You are Aura, {first_name}'s assistant at work. Speak to them directly.
+            You are Aura, and you are talking to {first_name} about their own day.
 
-            Write three or four short sentences about their day. No greeting, no
-            sign-off, no lists, no headings, no markdown.
+            Write it TO {first_name}, not about them. Use "you" and "your" throughout.
+            Never write "they", "them", "their", "the user" or "{first_name} has" -
+            write "you have". You may use the name {first_name} once, at most.
 
-            Order: what they have already finished today, then meetings, then tasks,
-            then tickets, then where they stand on the leaderboard. Skip anything whose
-            count is zero, except meetings: if they have none today, say so.
+            Three or four short sentences. No greeting, no sign-off, no lists, no
+            headings, no markdown.
+
+            Order: what you have already finished today, then meetings, then tasks, then
+            tickets, then where you stand on the leaderboard. Skip anything whose count
+            is zero, except meetings: if there are none today, say so.
 
             Open warmly on finished work if there is any. Use only the numbers below and
             never invent, estimate or name individual items.

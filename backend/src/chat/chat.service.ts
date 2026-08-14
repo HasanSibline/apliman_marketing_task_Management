@@ -728,19 +728,28 @@ export class ChatService {
          * again in paragraph form: longer, no clearer, and it reads as a machine
          * reciting rather than a colleague telling you where you stand.
          */
+        /**
+         * Labels with no pronouns in them at all.
+         *
+         * These read "Tickets waiting on their decision" and "Tasks they finished this
+         * week", and the model wrote the brief in the voice it was handed: "They have
+         * no meetings today. They sit first of two." The instruction said second person
+         * and lost to the data, which is the usual outcome. Naming a count without
+         * naming a person leaves the prompt to decide who is being spoken to.
+         */
         const facts = [
-          `Meetings left today: ${ahead.length}${ahead.length ? ` (next at ${ahead[0].at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})` : ''}`,
-          `Meetings already finished today: ${meetingRows.length - ahead.length}`,
+          `Meetings remaining today: ${ahead.length}${ahead.length ? ` (next at ${ahead[0].at.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })})` : ''}`,
+          `Meetings already held today: ${meetingRows.length - ahead.length}`,
           `Tasks past due: ${overdue.length}`,
           `Tasks due today: ${dueToday.length}`,
           `Open subtasks: ${openSubtasks}`,
-          `Tickets waiting on their decision: ${awaitingMe}`,
-          `Tickets assigned to them: ${myTickets.length}`,
-          `Tasks they finished today: ${finishedToday.length}`,
-          `Tasks they finished this week: ${finishedThisWeek}`,
+          `Tickets awaiting a decision: ${awaitingMe}`,
+          `Tickets assigned: ${myTickets.length}`,
+          `Tasks completed today: ${finishedToday.length}`,
+          `Tasks completed this week: ${finishedThisWeek}`,
           standing
-            ? `Leaderboard: ${ordinal(standing.rank)} of ${standing.of} this month on ${standing.done} finished`
-            : 'Leaderboard: not enough data this month',
+            ? `Leaderboard position: ${ordinal(standing.rank)} of ${standing.of} this month, on ${standing.done} completed`
+            : 'Leaderboard position: not enough data this month',
         ].join('\n');
 
         /**
@@ -780,11 +789,23 @@ export class ChatService {
           written,
         );
 
-        if (written && !echoesTheBrief) {
+        /**
+         * Written about the reader rather than to them.
+         *
+         * The first attempt came back "They have no meetings today. They sit first of
+         * two", which is accurate, fluent and addressed to nobody in the room. Checking
+         * for the absence of "you" catches it without banning "they", which a brief may
+         * legitimately need for other people.
+         */
+        const notSpokenToThem = written.length > 0 && !/\byou(r|rs)?\b/i.test(written);
+
+        if (written && !echoesTheBrief && !notSpokenToThem) {
           summary = written;
           aiWritten = true;
         } else if (echoesTheBrief) {
           this.logger.warn('Day brief: model restated the instructions, using composed text');
+        } else if (notSpokenToThem) {
+          this.logger.warn('Day brief: model wrote in the third person, using composed text');
         }
       }
     } catch (error) {
