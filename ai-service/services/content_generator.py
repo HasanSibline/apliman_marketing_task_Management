@@ -816,6 +816,56 @@ Respond with ONLY the JSON array, no other text."""
             # nothing lets that one through rather than replacing it with an apology.
             return ""
 
+    async def write_ticket_note(self, draft_title: str, facts: str, max_length: int = 320) -> str:
+        """
+        Tell someone what they are about to raise, and whether it already exists.
+
+        The duplicate matching happened before this was called and its results are
+        passed in. This phrases them; it does not decide them. A model asked to judge
+        similarity would occasionally invent a ticket number, and a wrong number here
+        sends somebody to a ticket that is not theirs.
+        """
+        try:
+            await self._rate_limit()
+
+            prompt = f"""
+            You are Aura. Someone is about to raise this request: "{draft_title}"
+
+            Write them two short sentences, speaking to them as "you". No greeting, no
+            sign-off, no lists, no markdown.
+
+            Say what the request is for and who it goes to. Then, if anything below is
+            listed as a similar request, tell them plainly that it exists, give its
+            number exactly as written, and say whether it is open or closed. If nothing
+            similar is listed, say the request looks new.
+
+            If a match shows "How it was solved", tell them what solved it last time, in
+            your own words, and say they can close this without sending if that works
+            for them too. That answer is the most useful thing you can give them, so
+            lead with it over anything else about the match.
+
+            If a match shows "Why it was cancelled", tell them this was asked before and
+            turned down, give the reason, and say they should raise it again only if
+            something has changed since, and to say what changed. A refusal matters more
+            than a duplicate, so lead with that if both appear.
+
+            Use only what is below. Never invent a ticket number, a status, a name or a
+            solution. Do not tell them not to raise it; the decision is theirs.
+
+            {facts}
+
+            Reply with the note itself and nothing else.
+            """
+
+            note = await self._make_request(prompt)
+            return note.strip()[:max_length]
+
+        except Exception as e:
+            logger.error(f"Error in write_ticket_note: {str(e)}")
+            # The caller composed the same note from the same facts, so an empty string
+            # lets that one through rather than replacing it with an apology.
+            return ""
+
     async def summarize_text(self, text: str, max_length: int = 150) -> str:
         """Summarize long text into a concise summary"""
         try:

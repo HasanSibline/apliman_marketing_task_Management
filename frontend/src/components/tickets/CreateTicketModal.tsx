@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import FormDialog from '@/components/ui/FormDialog'
+import TicketPreflightDialog from './TicketPreflightDialog'
 import api from '@/services/api'
 import { toast } from 'react-hot-toast'
 import Select from '@/components/ui/Select'
@@ -28,6 +29,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [deadline, setDeadline] = useState('')
   const [metadata, setMetadata] = useState<Record<string, any>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showPreflight, setShowPreflight] = useState(false)
   const [deptUsers, setDeptUsers] = useState<any[]>([])
   const [assigneeId, setAssigneeId] = useState('')
   const [requiresApproval, setRequiresApproval] = useState(false)
@@ -240,17 +242,29 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     }
   }
 
-  const handleSubmit = async () => {
+  /**
+   * Send now checks first.
+   *
+   * Validation stays here and runs before anything is shown: there is no point asking
+   * about duplicates for a draft that is missing its department. Once it passes, the
+   * pre-flight dialog opens and the ticket is created only when that is confirmed, so
+   * Keep editing genuinely leaves nothing behind.
+   */
+  const handleSend = () => {
     if (!title || !receiverDeptId) {
-      toast.error('Please fill all required fields');
-      return;
+      toast.error('Add a title and choose a department first')
+      return
     }
 
     if (!requiresApproval && !assigneeId) {
-      toast.error('Target Personnel is mandatory if no approval is requested.');
-      return;
+      toast.error('Choose who this is for, or ask for approval instead')
+      return
     }
 
+    setShowPreflight(true)
+  }
+
+  const handleSubmit = async () => {
     setIsSubmitting(true)
     try {
       await api.post('/tickets', {
@@ -292,6 +306,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
 
 
   return (
+    <>
     <FormDialog
       isOpen={isOpen}
       onClose={onClose}
@@ -304,7 +319,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
           <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>
             Cancel
           </button>
-          <button type="button" onClick={handleSubmit} className="btn-primary" disabled={isSubmitting}>
+          <button type="button" onClick={handleSend} className="btn-primary" disabled={isSubmitting}>
             {isSubmitting ? 'Sending…' : 'Send request'}
           </button>
         </>
@@ -489,6 +504,30 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
               </div>
             </div>
     </FormDialog>
+
+    {/* Sits outside the form dialog rather than inside it. Both portal to the body, so
+        this one lands on top; nested inside, it would be clipped by the form's own
+        scrolling body. */}
+    <TicketPreflightDialog
+      isOpen={showPreflight}
+      draft={{ title, description, receiverDeptId, category }}
+      submitting={isSubmitting}
+      onCancel={() => setShowPreflight(false)}
+      onConfirm={async () => {
+        await handleSubmit()
+        setShowPreflight(false)
+      }}
+      onResolved={() => {
+        // Answered by what they just read, so nothing is raised. The form closes with
+        // it: leaving a half-filled ticket open behind an "all done" is an invitation
+        // to send it by accident a minute later.
+        setShowPreflight(false)
+        resetForm()
+        onClose()
+        toast.success('Nothing raised. Glad that was already answered.')
+      }}
+    />
+    </>
   )
 }
 

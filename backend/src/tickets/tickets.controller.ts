@@ -42,6 +42,21 @@ export class TicketsController {
     return this.ticketsService.findOne(id, req.user.companyId, req.user.id);
   }
 
+  /**
+   * What to tell someone before their ticket exists.
+   *
+   * A POST because it is a question about a body, not a resource to fetch, but it
+   * writes nothing: calling it twice creates nothing and changes nothing.
+   */
+  @Post('preflight')
+  preflight(
+    @Body()
+    draft: { title: string; description?: string; receiverDeptId?: string; category?: string },
+    @Request() req,
+  ) {
+    return this.ticketsService.preflight(req.user.companyId, req.user.id, draft);
+  }
+
   @Post()
   create(@Body() createTicketDto: { title: string; description: string; receiverDeptId: string; isInternal?: boolean }, @Request() req) {
     return this.ticketsService.create(req.user.companyId, req.user.id, createTicketDto);
@@ -126,8 +141,12 @@ export class TicketsController {
   }
 
   @Patch(':id/resolve')
-  resolve(@Param('id') id: string, @Request() req) {
-    return this.ticketsService.resolve(id, req.user.id, req.user.companyId);
+  resolve(
+    @Param('id') id: string,
+    @Body() body: { resolutionNote?: string },
+    @Request() req,
+  ) {
+    return this.ticketsService.resolve(id, req.user.id, req.user.companyId, body?.resolutionNote);
   }
 
   @Patch(':id')

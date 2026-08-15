@@ -365,6 +365,31 @@ async def daily_brief(request: DailyBriefRequest):
         logger.error(f"Daily brief failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+class TicketCheckRequest(BaseModel):
+    draftTitle: str
+    facts: str
+    max_length: int = 320
+    api_key: Optional[str] = None
+    provider: Optional[str] = "gemini"
+    model: Optional[str] = None
+
+@app.post("/ticket-check", dependencies=[Depends(require_service_token)])
+async def ticket_check(request: TicketCheckRequest):
+    """
+    Phrase what the backend already worked out about a ticket somebody is drafting.
+
+    The duplicate matching is done in the backend and its results arrive as facts. This
+    only writes them up, so a wrong number cannot be produced here.
+    """
+    try:
+        api_key_to_use = resolve_api_key(request.api_key, "ticket-check")
+        generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
+        note = await generator.write_ticket_note(request.draftTitle, request.facts, request.max_length)
+        return {"note": note}
+    except Exception as e:
+        logger.error(f"Ticket check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/scrape-url", dependencies=[Depends(require_service_token)])
 async def scrape_url(request: ScrapeUrlRequest):
     """Scrape content from a URL"""

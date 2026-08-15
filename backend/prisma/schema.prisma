@@ -121,6 +121,19 @@ model Ticket {
   deadline           DateTime?
   metadata           Json?              @default("{}")
   isArchived         Boolean            @default(false)
+  /// How this was actually dealt with, written by whoever resolved it.
+  ///
+  /// Nothing recorded an answer before: resolving set a status and left a system
+  /// comment saying the status had been set, which tells the next person nothing. The
+  /// answer had to be guessed from the tail of the conversation, and a guess is not
+  /// something to show somebody about to raise the same request.
+  resolutionNote     String?
+  /// Why this was cancelled, written by whoever cancelled it.
+  ///
+  /// Separate from resolutionNote rather than one shared field, because a ticket can be
+  /// resolved, reopened and then cancelled, and one field would lose the first answer
+  /// to the second. They are also read in different places and mean opposite things.
+  cancellationReason String?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   taskId             String?            @unique

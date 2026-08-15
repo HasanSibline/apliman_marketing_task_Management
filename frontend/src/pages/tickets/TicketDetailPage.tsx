@@ -42,7 +42,7 @@ const TicketDetailPage: React.FC = () => {
   // Modal States
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
-    type: 'delete' | 'reject' | 'remove_attachment' | 'cancel';
+    type: 'delete' | 'reject' | 'remove_attachment' | 'cancel' | 'resolve';
     title: string;
     description: string;
     targetId?: string;
@@ -219,13 +219,19 @@ const TicketDetailPage: React.FC = () => {
         await api.patch(`/tickets/${ticketId}`, { status: 'CANCELLED', metadata: { ...ticket.metadata, cancelReason: reason } })
         toast.error('Ticket Aborted')
         fetchTicketDetails()
+      } else if (type === 'resolve') {
+        await api.patch(`/tickets/${ticketId}/resolve`, { resolutionNote: reason })
+        toast.success('Resolved, and the answer is recorded')
+        fetchTicketDetails()
       } else if (type === 'remove_attachment' && targetId) {
         await api.delete(`/files/ticket-delete/${targetId}`)
         toast.success('Asset removed')
         fetchAttachments()
       }
-    } catch (error) {
-      toast.error('Operation synchronization failed')
+    } catch (error: any) {
+      // The server explains the one refusal that matters here, which is a resolution
+      // written too briefly to help anybody.
+      toast.error(error.response?.data?.message || 'That did not go through')
     }
   }
 
@@ -780,13 +786,20 @@ const TicketDetailPage: React.FC = () => {
 
                   {(ticket.status === 'ASSIGNED' || ticket.status === 'IN_PROGRESS') && (ticket.assigneeId === user?.id || isAdmin || ticket.assignments?.some((a: any) => a.userId === user?.id)) && (
                     <button
-                      onClick={async () => {
-                        try {
-                          await api.patch(`/tickets/${ticketId}/resolve`)
-                          toast.success('TICKET FINALIZED')
-                          fetchTicketDetails()
-                        } catch { toast.error('Sync error') }
-                      }}
+                      onClick={() =>
+                        // Asked before it closes, not after. The person knows what
+                        // fixed it at this exact moment and will not know it as well
+                        // later, and this answer is what the next person with the same
+                        // problem is shown before they raise their own ticket.
+                        setActionModal({
+                          isOpen: true,
+                          type: 'resolve',
+                          title: 'How did you resolve this?',
+                          description:
+                            'Whoever hits this next sees your answer before they raise their own ticket, so it may save them the request entirely.',
+                          requireReason: true,
+                        })
+                      }
                       className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'} text-white rounded-xl text-xs font-semibold uppercase tracking-normal hover:scale-[1.02] transition-all mt-4`}
                     >
                       Mark resolved
@@ -1024,10 +1037,32 @@ const TicketDetailPage: React.FC = () => {
         onConfirm={confirmAction}
         title={actionModal.title}
         description={actionModal.description}
-        variant={actionModal.type === 'delete' ? 'danger' : actionModal.type === 'reject' ? 'warning' : 'danger'}
+        // Resolving is the one action here that is not destructive, so it does not
+        // wear the colour the others do.
+        variant={
+          actionModal.type === 'resolve'
+            ? 'success'
+            : actionModal.type === 'reject'
+              ? 'warning'
+              : 'danger'
+        }
         requireReason={actionModal.requireReason}
         reasons={actionModal.reasons}
-        confirmText={actionModal.type === 'delete' ? 'Delete Permanently' : actionModal.type === 'reject' ? 'Reject' : 'Confirm'}
+        reasonLabel={actionModal.type === 'resolve' ? 'What fixed it' : 'Reason'}
+        reasonPlaceholder={
+          actionModal.type === 'resolve'
+            ? 'e.g. Cleared the cache on the reporting server and re-ran the export'
+            : 'Add a reason'
+        }
+        confirmText={
+          actionModal.type === 'delete'
+            ? 'Delete Permanently'
+            : actionModal.type === 'reject'
+              ? 'Reject'
+              : actionModal.type === 'resolve'
+                ? 'Mark resolved'
+                : 'Confirm'
+        }
       />
     </div>
   )

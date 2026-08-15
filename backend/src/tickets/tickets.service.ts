@@ -2,31 +2,69 @@ import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestEx
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@nestjs/config';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
 
+  private readonly aiServiceUrl: string;
+
   constructor(
     private prisma: PrismaService,
-    private notifications: NotificationsService
-  ) { }
+    private notifications: NotificationsService,
+    private httpService: HttpService,
+    private configService: ConfigService,
+    private aiService: AiService,
+  ) {
+    this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
+  }
 
-  async resolve(id: string, userId: string, companyId: string) {
+  /** Authorization headers sent with every AI service request. */
+  private get aiServiceHeaders(): Record<string, string> {
+    const secret = this.configService.get<string>('AI_SERVICE_SECRET', '');
+    return secret ? { Authorization: `Bearer ${secret}` } : {};
+  }
+
+  /**
+   * Close a ticket, and record how.
+   *
+   * The note is required. Resolving used to set a status and leave a system comment
+   * announcing that the status had been set, so the one thing worth keeping, what
+   * actually fixed it, was never written down anywhere. Somebody hitting the same
+   * problem next month had no way to find the answer, and the pre-flight check had
+   * nothing better to offer them than the last line of a thread.
+   *
+   * Asking for a sentence at the moment of closing is the only time it is cheap: the
+   * person knows the answer right then and will not know it as well later.
+   */
+  async resolve(id: string, userId: string, companyId: string, resolutionNote?: string) {
     const ticket = await this.findOne(id, companyId);
-    
+
     // Only assignee or manager can resolve
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes((await this.prisma.user.findUnique({ where: { id: userId } }))?.role || '');
     if (ticket.assigneeId !== userId && !isAdmin) {
       throw new ForbiddenException('Only the assigned resource or an admin can finalize this engagement');
     }
 
+    const note = (resolutionNote ?? '').trim();
+    if (note.length < 10) {
+      throw new BadRequestException(
+        'Say how this was resolved, in a sentence. It is what the next person with this problem will read.',
+      );
+    }
+
     const updated = await this.prisma.ticket.update({
       where: { id },
-      data: { status: 'RESOLVED' }
+      data: { status: 'RESOLVED', resolutionNote: note },
     });
 
-    await this.addSystemComment(id, userId, 'Status updated to Resolved', companyId);
+    // Written to the thread as well as the column. The column is what gets read by
+    // machinery; the comment is what a person scrolling the ticket expects to find.
+    await this.addComment(id, userId, note, companyId, false);
+    await this.addSystemComment(id, userId, 'Resolved', companyId);
 
     // Notify requester that the goal is finalized
     await this.notifications.createNotification({
@@ -180,6 +218,219 @@ export class TicketsService {
     }
 
     return ticket;
+  }
+
+  /**
+   * What a person should know before they raise this ticket.
+   *
+   * Checked before the ticket exists rather than after, because after is too late to
+   * be useful: telling somebody they have just filed a duplicate leaves two tickets,
+   * two people working, and one of them wasted. The whole value is in the moment
+   * between deciding to ask and having asked.
+   *
+   * The matching is ordinary word overlap, not a model. Titles here are short and
+   * concrete, the same request tends to be worded the same way twice, and a count of
+   * shared words is instant, free, explainable and identical on every run. A model
+   * would be none of those and would occasionally hallucinate a match.
+   */
+  async preflight(
+    companyId: string,
+    userId: string,
+    draft: { title: string; description?: string; receiverDeptId?: string; category?: string },
+  ) {
+    const title = (draft.title ?? '').trim();
+    if (!title) return { similar: [], note: '', aiWritten: false };
+
+    // Words worth matching on. Anything two letters or shorter, and the handful of
+    // words every request contains, carry no signal and would match everything.
+    const NOISE = new Set([
+      'the', 'and', 'for', 'with', 'this', 'that', 'from', 'need', 'please', 'can',
+      'you', 'our', 'new', 'about', 'have', 'has', 'want', 'would', 'like', 'get',
+      'request', 'ticket', 'help', 'issue', 'all', 'any', 'not', 'are', 'was',
+    ]);
+    const terms = (s: string) =>
+      new Set(
+        s
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, ' ')
+          .split(/\s+/)
+          .filter((w) => w.length > 2 && !NOISE.has(w)),
+      );
+
+    const mine = terms(title);
+    if (mine.size === 0) return { similar: [], note: '', aiWritten: false };
+
+    // Scoped to the department being asked, and to the last ninety days. The same
+    // request to two different departments is two different requests, and a ticket
+    // from last year is history rather than a duplicate.
+    const since = new Date(Date.now() - 90 * 86_400_000);
+    const candidates = await this.prisma.ticket.findMany({
+      where: {
+        companyId,
+        isArchived: false,
+        createdAt: { gte: since },
+        ...(draft.receiverDeptId ? { receiverDeptId: draft.receiverDeptId } : {}),
+      },
+      select: {
+        id: true,
+        ticketNumber: true,
+        title: true,
+        status: true,
+        createdAt: true,
+        resolutionNote: true,
+        cancellationReason: true,
+        requester: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    });
+
+    const scored = candidates
+      .map((t) => {
+        const theirs = terms(t.title ?? '');
+        const shared = [...mine].filter((w) => theirs.has(w)).length;
+        // Measured against the shorter title, so a short request still matches a long
+        // one that contains it. Dividing by the union would bury exactly that case.
+        const denominator = Math.min(mine.size, theirs.size) || 1;
+        return { ticket: t, score: shared / denominator, shared };
+      })
+      // Two shared meaningful words is the floor. One is a coincidence.
+      .filter((s) => s.shared >= 2 && s.score >= 0.5)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+    /**
+     * How the closed ones ended, in the words of whoever closed them.
+     *
+     * Read from the ticket's own columns rather than inferred from the tail of its
+     * conversation. Both are written at the moment of closing, when the person knows
+     * the answer, so this is a record rather than a guess. Older tickets closed before
+     * those columns existed simply have nothing, which is the honest outcome: showing
+     * an unrelated last comment as "how it was solved" is worse than showing nothing.
+     *
+     * A cancellation matters as much as a resolution here. Knowing a request was turned
+     * down, and why, is exactly what somebody about to make it again needs.
+     */
+    const similar = scored.map(({ ticket }) => ({
+      ticketNumber: ticket.ticketNumber,
+      title: ticket.title,
+      status: ticket.status,
+      createdAt: ticket.createdAt,
+      requesterName: ticket.requester?.name ?? 'Someone',
+      /** Their own earlier ticket reads differently from a colleague's. */
+      mine: ticket.requester?.id === userId,
+      open: !['RESOLVED', 'CANCELLED'].includes(ticket.status as string),
+      cancelled: ticket.status === 'CANCELLED',
+      /** Trimmed: a dialog is not the place for an essay. */
+      resolution: ticket.resolutionNote?.slice(0, 400) ?? null,
+      cancelReason: ticket.cancellationReason?.slice(0, 400) ?? null,
+    }));
+
+    /**
+     * The note, composed here so it is always right, and only phrased by the model.
+     *
+     * Facts about the draft come from the draft; facts about duplicates come from the
+     * query. The model is given both as counts and short titles and asked to write two
+     * sentences, so it can be warmer than a template without being in a position to
+     * invent a ticket number or a status.
+     */
+    const dept = draft.receiverDeptId
+      ? await this.prisma.department.findUnique({
+          where: { id: draft.receiverDeptId },
+          select: { name: true },
+        })
+      : null;
+
+    const openMatches = similar.filter((s) => s.open);
+    const parts: string[] = [];
+
+    parts.push(
+      dept?.name
+        ? `This goes to ${dept.name}${draft.category ? ` as a ${draft.category.toLowerCase()} request` : ''}.`
+        : 'This goes to the department you picked.',
+    );
+
+    if (openMatches.length) {
+      const first = openMatches[0];
+      parts.push(
+        openMatches.length === 1
+          ? `${first.ticketNumber} looks like the same thing and is still open${first.mine ? ', and you raised it' : `, raised by ${first.requesterName}`}. Worth adding to that one instead of starting a second.`
+          : `${openMatches.length} similar requests are still open, the closest being ${first.ticketNumber}. Worth checking those before adding another.`,
+      );
+    } else if (similar.length) {
+      const closed = similar[0];
+
+      if (closed.cancelled) {
+        // A refusal is worth more warning than a fix. Raising a request that was
+        // already turned down wastes the asker's time and the decider's twice over.
+        parts.push(`${closed.ticketNumber} asked for this before and was cancelled.`);
+        parts.push(
+          closed.cancelReason
+            ? `The reason given was: "${closed.cancelReason}"`
+            : 'No reason was recorded.',
+        );
+        parts.push('Raise it again if something has changed since, and say what.');
+      } else if (closed.resolution) {
+        // The answer, when there is one, is the most useful sentence in this dialog:
+        // it may mean the request does not need raising at all.
+        parts.push(`${closed.ticketNumber} asked the same thing and was resolved.`);
+        parts.push(`It was solved by: "${closed.resolution}"`);
+        parts.push('If that works for you too, you can close this without sending anything.');
+      } else {
+        parts.push(
+          `Something similar was asked before, ${closed.ticketNumber}, and it is already closed. Nobody recorded how it ended.`,
+        );
+      }
+    } else {
+      parts.push('Nothing like it has been asked in the last three months, so this looks new.');
+    }
+
+    let note = parts.join(' ');
+    let aiWritten = false;
+
+    try {
+      const credential = await this.aiService.resolveAiCredential(userId);
+      if (credential) {
+        const facts = [
+          `Department receiving it: ${dept?.name ?? 'unknown'}`,
+          `Category: ${draft.category || 'none chosen'}`,
+          `Similar requests still open: ${openMatches.length}`,
+          `Similar requests already closed: ${similar.length - openMatches.length}`,
+          ...similar.map(
+            (s) =>
+              `Match ${s.ticketNumber}: "${s.title}" (${s.open ? 'open' : s.cancelled ? 'cancelled' : 'resolved'}${s.mine ? ', raised by this same person' : ''})` +
+              (s.resolution ? `\n  How it was solved: "${s.resolution}"` : '') +
+              (s.cancelReason ? `\n  Why it was cancelled: "${s.cancelReason}"` : ''),
+          ),
+        ].join('\n');
+
+        const response = await this.httpService.axiosRef.post(
+          `${this.aiServiceUrl}/ticket-check`,
+          {
+            draftTitle: title,
+            facts,
+            api_key: credential.apiKey,
+            provider: credential.provider,
+            model: credential.model ?? undefined,
+          },
+          { headers: this.aiServiceHeaders, timeout: 15000 },
+        );
+
+        const written: string = response.data?.note?.trim() ?? '';
+        // Same two guards as the day brief: a model can restate its instructions, and
+        // one writing about the reader rather than to them has missed the point.
+        const echoes = /^(write|create|generate|compose|draft|summari[sz]e|produce)\b/i.test(written);
+        const notSpokenToThem = written.length > 0 && !/\byou(r|rs)?\b/i.test(written);
+        if (written && !echoes && !notSpokenToThem) {
+          note = written;
+          aiWritten = true;
+        }
+      }
+    } catch (error) {
+      this.logger?.warn?.(`Ticket preflight fell back to composed text: ${error.message}`);
+    }
+
+    return { similar, note, aiWritten };
   }
 
   async create(companyId: string, userId: string, data: {
@@ -433,13 +684,16 @@ export class TicketsService {
       );
     }
 
-    const comment = reason ? `Rejected: ${reason}` : 'Rejected';
-    await this.addSystemComment(id, userId, `Status set to Cancelled. Reason: ${reason || 'Denied'}`, companyId);
-    await this.addComment(id, userId, comment, companyId, false);
+    // Recorded on the ticket, not only in the thread. Somebody about to raise the same
+    // request needs to know it was turned down and why, and reading that off a comment
+    // means guessing which comment.
+    const why = (reason ?? '').trim();
+    await this.addSystemComment(id, userId, 'Cancelled', companyId);
+    if (why) await this.addComment(id, userId, why, companyId, false);
 
     const updated = await this.prisma.ticket.update({
       where: { id },
-      data: { status: TicketStatus.CANCELLED },
+      data: { status: TicketStatus.CANCELLED, cancellationReason: why || null },
     });
 
     // Notify the initiator that the ticket was aborted
