@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react'
 import { confirmDialog } from '@/components/ui/confirm'
 import { motion } from 'framer-motion'
-import { PlusIcon, CogIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, Squares2X2Icon, TrashIcon, PencilIcon } from '@heroicons/react/24/outline'
 import { useAppSelector } from '@/hooks/redux'
 import { workflowsApi } from '@/services/api'
 import { Workflow } from '@/types/task'
 import CreateWorkflowModal from '@/components/workflows/CreateWorkflowModal'
 import toast from 'react-hot-toast'
 
+/**
+ * The steps work moves through, per kind of work.
+ *
+ * Managers can configure these, not only admins. A workflow describes how one team's
+ * own work actually flows, and the manager is the person who knows that; sending every
+ * phase rename through someone with no view of the work is how a workflow drifts out of
+ * step with what the team really does. Which company a workflow belongs to is enforced
+ * on the server, so this decides who may configure their own and nothing wider.
+ */
 const WorkflowsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [editing, setEditing] = useState<Workflow | null>(null)
 
-  const isAdmin =
-    user?.role === 'SUPER_ADMIN' || user?.role === 'COMPANY_ADMIN' || user?.role === 'ADMIN'
+  const canManage = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN', 'MANAGER'].includes(user?.role ?? '')
 
   useEffect(() => {
     loadWorkflows()
@@ -28,173 +37,204 @@ const WorkflowsPage: React.FC = () => {
       setWorkflows(data)
     } catch (error) {
       console.error('Error loading workflows:', error)
-      toast.error('Failed to load workflows')
+      toast.error('Could not load workflows')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleDeleteWorkflow = async (id: string) => {
-    if (!(await confirmDialog({
-      title: 'Delete this workflow?',
-      description: 'Tasks already using it keep working. You will not be able to choose it for new ones.',
-      confirmText: 'Delete workflow',
-      variant: 'danger',
-    }))) return
+  const handleDeleteWorkflow = async (workflow: Workflow) => {
+    if (
+      !(await confirmDialog({
+        title: `Delete ${workflow.name}?`,
+        description:
+          'Tasks already using it keep working exactly as they are. You will not be able to choose it for new ones.',
+        confirmText: 'Delete workflow',
+        variant: 'danger',
+      }))
+    )
+      return
 
     try {
-      await workflowsApi.delete(id)
-      toast.success('Workflow deleted successfully')
+      await workflowsApi.delete(workflow.id)
+      toast.success(`${workflow.name} deleted`)
       loadWorkflows()
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to delete workflow')
+      // The server explains why in the one case that matters, which is a workflow
+      // still in use, so its message is worth more than a generic failure.
+      toast.error(error.response?.data?.message || 'Could not delete this workflow')
     }
   }
 
-  if (!isAdmin) {
+  if (!canManage) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
-          <p className="text-gray-600 dark:text-gray-300">You need admin privileges to manage workflows.</p>
-        </div>
+      <div className="surface flex flex-col items-center justify-center px-6 py-20 text-center">
+        <Squares2X2Icon className="h-10 w-10 text-gray-400 dark:text-gray-500" />
+        <h1 className="mt-4 text-lg font-semibold text-gray-900 dark:text-white">
+          Workflows are set up by your manager
+        </h1>
+        <p className="mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+          You will still see a task move through its phases. Changing the phases themselves is done
+          here by an admin or a manager.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Workflow Management</h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-2">
-                Create and manage dynamic workflows for your tasks
-              </p>
-            </div>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="btn-primary flex items-center space-x-2"
-            >
-              <PlusIcon className="h-5 w-5" />
-              <span>Create Workflow</span>
-            </button>
-          </div>
+    <div className="space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="page-title">Workflows</h1>
+          <p className="page-subtitle">The phases work moves through, one set per kind of work.</p>
         </div>
+        <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+          <PlusIcon className="h-4 w-4" />
+          New workflow
+        </button>
+      </header>
 
-        {/* Workflows Grid */}
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-2 text-gray-600 dark:text-gray-300">Loading workflows...</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {workflows.map((workflow) => (
-              <motion.div
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="surface h-56 animate-pulse" />
+          ))}
+        </div>
+      ) : workflows.length === 0 ? (
+        <div className="surface flex flex-col items-center justify-center px-6 py-16 text-center">
+          <Squares2X2Icon className="h-10 w-10 text-gray-400 dark:text-gray-500" />
+          <h2 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
+            No workflows yet
+          </h2>
+          <p className="mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+            A workflow is the set of phases a task passes through. Create one and it becomes
+            available when anybody starts a task of that kind.
+          </p>
+          <button onClick={() => setShowCreateModal(true)} className="btn-primary mt-5">
+            <PlusIcon className="h-4 w-4" />
+            Create the first one
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {workflows.map((workflow, i) => {
+            // Copied before sorting. Array.prototype.sort works in place, so sorting
+            // the phases straight off state mutates the object React is holding, and
+            // the render that caused it is a render that changed state.
+            const phases = [...(workflow.phases ?? [])].sort((a, b) => a.order - b.order)
+
+            return (
+              <motion.article
                 key={workflow.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border-l-4"
-                style={{ borderLeftColor: workflow.color }}
+                transition={{ duration: 0.22, delay: Math.min(i * 0.04, 0.24) }}
+                className="surface group flex flex-col gap-4 p-5"
               >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-2">
-                      <div
-                        className="h-4 w-4 rounded-full"
-                        style={{ backgroundColor: workflow.color }}
-                      />
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-start gap-2.5">
+                    <span
+                      className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: workflow.color }}
+                      aria-hidden="true"
+                    />
+                    <div className="min-w-0">
+                      <h2 className="truncate text-base font-semibold text-gray-900 dark:text-white">
                         {workflow.name}
-                      </h3>
-                      {workflow.isDefault && (
-                        <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs px-2 py-1 rounded-full">
-                          Default
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => handleDeleteWorkflow(workflow.id)}
-                        className="text-red-600 dark:text-red-400 hover:text-red-800 p-1"
-                        title="Delete workflow"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
+                      </h2>
+                      <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        {workflow.taskType?.replace(/_/g, ' ').toLowerCase() || 'Any work'}
+                        {workflow.isDefault && ' · used by default'}
+                      </p>
                     </div>
                   </div>
 
-                  <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
-                    {workflow.description || 'No description'}
-                  </p>
-
-                  <div className="mb-4">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wide">
-                      Task Type
-                    </span>
-                    <p className="text-sm font-medium text-gray-900 dark:text-white mt-1">
-                      {workflow.taskType}
-                    </p>
-                  </div>
-
-                  <div className="mb-4">
-                    <span className="text-xs font-medium text-gray-500 dark:text-gray-400 tracking-wide">
-                      Phases ({workflow.phases.length})
-                    </span>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {workflow.phases
-                        .sort((a, b) => a.order - b.order)
-                        .map((phase) => (
-                          <span
-                            key={phase.id}
-                            className="text-xs px-2 py-1 rounded-full text-white"
-                            style={{ backgroundColor: phase.color }}
-                          >
-                            {phase.name}
-                          </span>
-                        ))}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>Created by {workflow.createdBy?.name}</span>
-                    <span>{new Date(workflow.createdAt).toLocaleDateString()}</span>
+                  {/* Revealed on hover, reachable on focus. Actions that are only ever
+                      visible on hover are invisible to a keyboard. */}
+                  <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                    <button
+                      onClick={() => setEditing(workflow)}
+                      aria-label={`Edit ${workflow.name}`}
+                      className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                    >
+                      <PencilIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteWorkflow(workflow)}
+                      aria-label={`Delete ${workflow.name}`}
+                      className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/30 dark:hover:text-red-400"
+                    >
+                      <TrashIcon className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
-              </motion.div>
-            ))}
 
-            {workflows.length === 0 && (
-              <div className="col-span-full text-center py-12">
-                <CogIcon className="h-12 w-12 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No workflows yet</h3>
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
-                  Create your first workflow to get started with dynamic task management.
+                {workflow.description && (
+                  <p className="line-clamp-2 text-sm text-gray-600 dark:text-gray-300">
+                    {workflow.description}
+                  </p>
+                )}
+
+                {/* The phases in order, as a path rather than a bag of chips: the order
+                    is the entire point of a workflow, and separate pills say nothing
+                    about which comes first. */}
+                <div className="mt-auto">
+                  <p className="eyebrow">
+                    {phases.length} {phases.length === 1 ? 'phase' : 'phases'}
+                  </p>
+                  <ol className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-2">
+                    {phases.map((phase, index) => (
+                      <li key={phase.id} className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 py-1 pl-2 pr-2.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:text-gray-200">
+                          {/* The phase colour as a dot, not as the label's ground. A
+                              user-chosen colour behind white text is a contrast bet
+                              nobody placed. */}
+                          <span
+                            className="h-1.5 w-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: phase.color }}
+                            aria-hidden="true"
+                          />
+                          {phase.name}
+                        </span>
+                        {index < phases.length - 1 && (
+                          <span className="text-gray-300 dark:text-gray-600" aria-hidden="true">
+                            →
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                    {phases.length === 0 && (
+                      <li className="text-xs text-gray-500 dark:text-gray-400">
+                        No phases yet, so tasks using this have nowhere to move.
+                      </li>
+                    )}
+                  </ol>
+                </div>
+
+                <p className="border-t border-gray-100 pt-3 text-xs text-gray-500 dark:border-gray-700 dark:text-gray-400">
+                  {workflow.createdBy?.name ? `Set up by ${workflow.createdBy.name}` : 'Set up'}
+                  {' · '}
+                  {new Date(workflow.createdAt).toLocaleDateString()}
                 </p>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="btn-primary"
-                >
-                  Create Your First Workflow
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+              </motion.article>
+            )
+          })}
+        </div>
+      )}
 
-        {/* Create Workflow Modal */}
-        <CreateWorkflowModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          onSuccess={() => {
-            setShowCreateModal(false)
-            loadWorkflows()
-          }}
-        />
-      </div>
+      <CreateWorkflowModal
+        isOpen={showCreateModal || !!editing}
+        workflow={editing}
+        onClose={() => {
+          setShowCreateModal(false)
+          setEditing(null)
+        }}
+        onSuccess={() => {
+          setShowCreateModal(false)
+          setEditing(null)
+          loadWorkflows()
+        }}
+      />
     </div>
   )
 }

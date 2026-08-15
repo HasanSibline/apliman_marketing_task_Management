@@ -9,6 +9,18 @@ interface CreateWorkflowModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  /**
+   * The workflow being edited, or null to create one.
+   *
+   * The update endpoint has existed since this feature shipped and nothing ever called
+   * it, so a workflow could be made and deleted but never corrected: a typo in a phase
+   * name meant rebuilding the whole thing, which nobody does, so the typo stays.
+   *
+   * Editing covers the workflow's own fields only. The server's update handles name,
+   * description, colour and default, and does not touch phases, so the phase editor is
+   * hidden rather than shown and silently ignored.
+   */
+  workflow?: any | null
 }
 
 interface User {
@@ -28,7 +40,14 @@ interface PhaseData {
   color: string
 }
 
-const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+  workflow = null,
+}) => {
+  const isEditing = !!workflow
+
   const [isLoading, setIsLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [formData, setFormData] = useState({
@@ -71,6 +90,19 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
       loadUsers()
     }
   }, [isOpen])
+
+  // Seeded from the workflow each time the dialog opens on one, so editing a second
+  // workflow after a first does not show the first one's values.
+  useEffect(() => {
+    if (!isOpen || !workflow) return
+    setFormData({
+      name: workflow.name ?? '',
+      description: workflow.description ?? '',
+      taskType: workflow.taskType ?? '',
+      isDefault: !!workflow.isDefault,
+      color: workflow.color ?? '#3B82F6',
+    })
+  }, [isOpen, workflow])
 
   const loadUsers = async () => {
     try {
@@ -122,24 +154,36 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
       return
     }
 
-    if (phases.length < 2) {
+    // Only a new workflow defines its phases here. An edit leaves them alone, so the
+    // two-phase minimum is not its business.
+    if (!isEditing && phases.length < 2) {
       toast.error('A workflow needs at least two phases')
       return
     }
 
     try {
       setIsLoading(true)
-      
-      await workflowsApi.create({
-        ...formData,
-        phases: phases,
-      })
 
-      toast.success('Workflow created successfully!')
+      if (isEditing) {
+        await workflowsApi.update(workflow.id, {
+          name: formData.name,
+          description: formData.description,
+          color: formData.color,
+          isDefault: formData.isDefault,
+        })
+        toast.success(`${formData.name} saved`)
+      } else {
+        await workflowsApi.create({ ...formData, phases })
+        toast.success(`${formData.name} created`)
+      }
+
       onSuccess()
       resetForm()
     } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Failed to create workflow')
+      toast.error(
+        error.response?.data?.message ||
+          (isEditing ? 'Could not save this workflow' : 'Could not create this workflow'),
+      )
     } finally {
       setIsLoading(false)
     }
@@ -234,15 +278,25 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
       onSubmit={handleSubmit}
       busy={isLoading}
       width="xl"
-      title="Create a workflow"
-      description="Set out the phases work moves through, and who can move it."
+      title={isEditing ? `Edit ${workflow.name}` : 'Create a workflow'}
+      description={
+        isEditing
+          ? 'Its phases stay as they are. Tasks already using it are unaffected.'
+          : 'Set out the phases work moves through, and who can move it.'
+      }
       footer={
         <>
           <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
             Cancel
           </button>
           <button type="submit" className="btn-primary" disabled={isLoading}>
-            {isLoading ? 'Creating…' : 'Create workflow'}
+            {isLoading
+              ? isEditing
+                ? 'Saving…'
+                : 'Creating…'
+              : isEditing
+                ? 'Save changes'
+                : 'Create workflow'}
           </button>
         </>
       }
@@ -333,8 +387,10 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({ isOpen, onClo
                   </div>
                 </div>
 
-                {/* Phases */}
-                <div>
+                {/* Phases. Hidden while editing: the update endpoint changes the
+                    workflow's own fields and never its phases, so showing the editor
+                    would take changes and quietly discard them. */}
+                <div className={isEditing ? 'hidden' : ''}>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">Workflow Phases</h3>
                     <button

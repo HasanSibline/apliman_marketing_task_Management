@@ -118,7 +118,41 @@ export class WorkflowsService {
     return workflows;
   }
 
-  async getWorkflowById(id: string) {
+  /**
+   * The caller's company, and whether they are allowed to ignore it.
+   *
+   * Every single-workflow route took an id and nothing else, so a workflow was
+   * reachable by anyone who knew its id regardless of which company owned it. In a
+   * multi-tenant app that is one guessed identifier away from reading, editing or
+   * deleting another customer's configuration.
+   *
+   * A super admin genuinely operates across companies, so they are the one caller that
+   * skips the check. Everyone else is pinned to their own.
+   */
+  private async assertSameCompany(workflowId: string, userId?: string) {
+    if (!userId) throw new NotFoundException('Workflow not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true },
+    });
+    if (user?.role === 'SUPER_ADMIN') return;
+
+    const workflow = await this.prisma.workflow.findUnique({
+      where: { id: workflowId },
+      select: { companyId: true },
+    });
+
+    // Not found rather than forbidden: telling someone a workflow exists but is not
+    // theirs confirms the id, which is the thing worth not confirming.
+    if (!workflow || !user?.companyId || workflow.companyId !== user.companyId) {
+      throw new NotFoundException('Workflow not found');
+    }
+  }
+
+  async getWorkflowById(id: string, userId?: string) {
+    await this.assertSameCompany(id, userId);
+
     const workflow = await this.prisma.workflow.findUnique({
       where: { id },
       include: {
@@ -181,7 +215,9 @@ export class WorkflowsService {
     return fromPhase.workflowId === toPhase.workflowId;
   }
 
-  async updateWorkflow(id: string, dto: Partial<CreateWorkflowDto>) {
+  async updateWorkflow(id: string, dto: Partial<CreateWorkflowDto>, userId?: string) {
+    await this.assertSameCompany(id, userId);
+
     const workflow = await this.prisma.workflow.update({
       where: { id },
       data: {
@@ -203,10 +239,14 @@ export class WorkflowsService {
     };
   }
 
-  async deleteWorkflow(id: string) {
+  async deleteWorkflow(id: string, userId?: string) {
+    await this.assertSameCompany(id, userId);
+
     const taskCount = await this.prisma.task.count({ where: { workflowId: id } });
     if (taskCount > 0) {
-      throw new BadRequestException('Cannot delete workflow in use by tasks');
+      throw new BadRequestException(
+        `This workflow is used by ${taskCount} ${taskCount === 1 ? 'task' : 'tasks'}, so it cannot be deleted.`,
+      );
     }
 
     return this.prisma.workflow.delete({ where: { id } });

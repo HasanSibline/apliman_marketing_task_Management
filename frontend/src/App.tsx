@@ -169,7 +169,10 @@ function App() {
         <Route
           path="workflows"
           element={
-            <ProtectedRoute roles={['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN']}>
+            // Managers included. A workflow is how a team's own work moves and the
+            // manager is the person who knows that; the server still scopes every
+            // change to the caller's own company.
+            <ProtectedRoute roles={['SUPER_ADMIN', 'ADMIN', 'COMPANY_ADMIN', 'MANAGER']}>
               <WorkflowsPage />
             </ProtectedRoute>
           }

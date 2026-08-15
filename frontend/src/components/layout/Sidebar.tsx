@@ -34,7 +34,10 @@ const Sidebar: React.FC = () => {
     // existing links and bookmarks keep working.
     { name: 'Strategy', href: '/strategy', icon: FlagIcon, strategyOnly: true },
     { name: 'Tickets', href: '/tickets', icon: TicketIcon },
-    { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true },
+    // Managers configure workflows as well as admins, which the other adminOnly
+    // entries do not allow, so it is flagged rather than folded into isAdmin: sharing
+    // that flag would hand managers Users, Settings and Knowledge Sources too.
+    { name: 'Workflows', href: '/workflows', icon: CogIcon, adminOnly: true, managersToo: true },
     { name: 'Users', href: '/users', icon: UsersIcon, adminOnly: true },
     { name: 'Knowledge Sources', href: '/knowledge-sources', icon: GlobeAltIcon, adminOnly: true },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon },
@@ -44,8 +47,10 @@ const Sidebar: React.FC = () => {
 
   const isAdmin = user && ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'].includes(user.role)
 
+  const isManager = user?.role === 'MANAGER'
+
   const filteredNavigation = navigation.filter(item => {
-    if (item.adminOnly && !isAdmin) return false
+    if (item.adminOnly && !isAdmin && !(item.managersToo && isManager)) return false
     if (item.strategyOnly && !isAdmin && (user?.strategyAccess === 'NONE' || !user?.strategyAccess)) return false
     return true
   })

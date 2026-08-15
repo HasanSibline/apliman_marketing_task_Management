@@ -11,8 +11,17 @@ import { CreateWorkflowDto } from './dto/create-workflow.dto';
 export class WorkflowsController {
   constructor(private workflowsService: WorkflowsService) {}
 
+  /**
+   * Managers can shape workflows too.
+   *
+   * A workflow is how a team's own work moves, and a manager is the person who knows
+   * that. Restricting it to admins meant every phase rename went through someone with
+   * no view of the work, so in practice the workflow stopped matching what the team
+   * actually did. Company isolation is enforced in the service, not by role, so
+   * widening this changes who may configure their own company and nothing else.
+   */
   @Post()
-  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   async createWorkflow(@Body() dto: CreateWorkflowDto, @Request() req) {
     return this.workflowsService.createWorkflow(dto, req.user.id);
   }
@@ -23,8 +32,8 @@ export class WorkflowsController {
   }
 
   @Get(':id')
-  async getWorkflowById(@Param('id') id: string) {
-    return this.workflowsService.getWorkflowById(id);
+  async getWorkflowById(@Param('id') id: string, @Request() req?) {
+    return this.workflowsService.getWorkflowById(id, req?.user?.id);
   }
 
   @Get('default/:taskType')
@@ -33,15 +42,19 @@ export class WorkflowsController {
   }
 
   @Put(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
-  async updateWorkflow(@Param('id') id: string, @Body() dto: Partial<CreateWorkflowDto>) {
-    return this.workflowsService.updateWorkflow(id, dto);
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  async updateWorkflow(
+    @Param('id') id: string,
+    @Body() dto: Partial<CreateWorkflowDto>,
+    @Request() req?,
+  ) {
+    return this.workflowsService.updateWorkflow(id, dto, req?.user?.id);
   }
 
   @Delete(':id')
-  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
-  async deleteWorkflow(@Param('id') id: string) {
-    return this.workflowsService.deleteWorkflow(id);
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.MANAGER)
+  async deleteWorkflow(@Param('id') id: string, @Request() req?) {
+    return this.workflowsService.deleteWorkflow(id, req?.user?.id);
   }
 }
 
