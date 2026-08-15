@@ -97,7 +97,25 @@ const Select: React.FC<SelectProps> = ({
   'aria-label': ariaLabel,
 }) => {
   const options = readOptions(children)
-  const current = String(value ?? '')
+
+  /**
+   * Controlled when given a value, self-managing when not.
+   *
+   * A native select keeps its own state, so a call site with an onChange and no value
+   * works: the browser remembers the choice. This component was controlled only, so
+   * those call sites could never show a selection at all. Picking an option fired the
+   * handler and the trigger went straight back to the placeholder, which reads as a
+   * dropdown that refuses to be used, and four of the ticket form's fields were exactly
+   * that.
+   *
+   * Uncontrolled still shows the placeholder until something is picked, rather than
+   * defaulting to the first option the way a native select does. A native one displays
+   * "Hardware" while having reported nothing to anybody, so the form shows a choice
+   * that was never recorded; here what is on screen is always what was handed over.
+   */
+  const controlled = value !== undefined
+  const [internal, setInternal] = useState('')
+  const current = controlled ? String(value ?? '') : internal
   const selected = options.find((o) => o.value === current)
 
   const [open, setOpen] = useState(false)
@@ -163,6 +181,8 @@ const Select: React.FC<SelectProps> = ({
 
   const commit = (opt: Opt) => {
     if (opt.disabled) return
+    // Remembered here when nobody above is remembering it for us.
+    if (!controlled) setInternal(opt.value)
     // `type` is included because handlers shared with inputs branch on it to spot
     // checkboxes; without it the read is undefined and the branch is merely luckily
     // false. A native select reports select-one, so that is what this reports.

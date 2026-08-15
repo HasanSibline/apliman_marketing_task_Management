@@ -72,6 +72,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Issue Category</label>
             <Select 
+              value={metadata.it_category ?? ''}
               onChange={(e) => handleMetadataChange('it_category', e.target.value)}
               className="select-field w-full text-sm"
             >
@@ -101,6 +102,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Type of Document</label>
             <Select 
+              value={metadata.hr_doc_type ?? ''}
               onChange={(e) => handleMetadataChange('hr_doc_type', e.target.value)}
               className="select-field w-full text-sm"
             >
@@ -156,6 +158,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">System Environment</label>
             <Select 
+              value={metadata.environment ?? ''}
               onChange={(e) => handleMetadataChange('environment', e.target.value)}
               className="select-field w-full text-sm"
             >
@@ -168,6 +171,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
           <div>
             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Severity</label>
             <Select 
+              value={metadata.severity ?? ''}
               onChange={(e) => handleMetadataChange('severity', e.target.value)}
               className="select-field w-full text-sm"
             >
