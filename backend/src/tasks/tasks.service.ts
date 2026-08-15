@@ -619,6 +619,54 @@ export class TasksService {
       },
     });
 
+    /**
+     * Carry the tick across to the mirror task.
+     *
+     * A subtask assigned to somebody is written twice: once as a Subtask, and once as
+     * a Task of type SUBTASK linked back through subtaskId, so it appears on that
+     * person's own board. Only the Subtask was ever updated. The mirror stayed open
+     * forever, which is why a task showing 5 of 5 subtasks complete still had five
+     * rows counted as open and a hundred and forty days overdue.
+     *
+     * linkedTask was already being fetched here and simply never used.
+     *
+     * The end phase is looked up rather than assumed, because completion is read from
+     * three places in this app and a row that sets completedAt without moving phase
+     * reads as finished to one check and unfinished to another.
+     */
+    if (subtask.linkedTask) {
+      const endPhase = subtask.linkedTask.workflowId
+        ? await this.prisma.phase.findFirst({
+            where: { workflowId: subtask.linkedTask.workflowId, isEndPhase: true },
+            select: { id: true },
+          })
+        : null;
+
+      const startPhase = subtask.linkedTask.workflowId
+        ? await this.prisma.phase.findFirst({
+            where: { workflowId: subtask.linkedTask.workflowId, isStartPhase: true },
+            select: { id: true },
+          })
+        : null;
+
+      await this.prisma.task.update({
+        where: { id: subtask.linkedTask.id },
+        data: updated.isCompleted
+          ? {
+              completedAt: updated.completedAt ?? new Date(),
+              phase: 'COMPLETED' as any,
+              ...(endPhase ? { currentPhaseId: endPhase.id } : {}),
+            }
+          : {
+              // Un-ticking has to undo all of it. Clearing completedAt but leaving the
+              // task parked in its end phase is exactly the split that caused this.
+              completedAt: null,
+              phase: 'IN_PROGRESS' as any,
+              ...(startPhase ? { currentPhaseId: startPhase.id } : {}),
+            },
+      });
+    }
+
     // Send notifications when subtask is completed
     // Subtask completion is what gives a task partial credit, so the key result
     // moves the moment a subtask is ticked rather than only when the whole task ends.
