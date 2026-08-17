@@ -679,7 +679,12 @@ const TicketDetailPage: React.FC = () => {
                       onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                       className="select-field w-full text-xs"
                     >
-                      {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS', 'RESOLVED', 'CANCELLED'].map(s => (
+                      {/* Closing is not an edit. Resolving and cancelling each ask a
+                          question and record the answer, so they are actions with their
+                          own dialogs rather than values in a form that also renames the
+                          title. Offering them here sent the whole edit through the
+                          generic update, which skips the question. */}
+                      {['PENDING_REC_MGR', 'OPEN', 'IN_PROGRESS'].map(s => (
                         <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
                       ))}
                     </Select>
