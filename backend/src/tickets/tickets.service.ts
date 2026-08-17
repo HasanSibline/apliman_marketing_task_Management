@@ -425,11 +425,21 @@ export class TicketsService {
         );
 
         const written: string = response.data?.note?.trim() ?? '';
-        // Same two guards as the day brief: a model can restate its instructions, and
-        // one writing about the reader rather than to them has missed the point.
+
+        /**
+         * One guard here, not the two the day brief uses.
+         *
+         * A model restating its instructions is still worth catching. Requiring the
+         * word "you" is not: the day brief is addressed to somebody about their own
+         * day, so writing about them instead is a real defect, but a note saying
+         * "This goes to IT, and TKT-1001 asked the same thing" is good writing that
+         * happens to need no pronoun. That check was copied across without asking
+         * whether it fit, and it quietly threw away usable notes — the composed
+         * fallback it fell back to contains no "you" either, so the standard was one
+         * this very method could not meet.
+         */
         const echoes = /^(write|create|generate|compose|draft|summari[sz]e|produce)\b/i.test(written);
-        const notSpokenToThem = written.length > 0 && !/\byou(r|rs)?\b/i.test(written);
-        if (written && !echoes && !notSpokenToThem) {
+        if (written && !echoes) {
           note = written;
           aiWritten = true;
         }
