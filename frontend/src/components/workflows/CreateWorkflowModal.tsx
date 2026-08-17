@@ -54,6 +54,12 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   const [users, setUsers] = useState<User[]>([])
   const [departments, setDepartments] = useState<any[]>([])
   const [teams, setTeams] = useState<any[]>([])
+  /** The phase awaiting a destination for its tasks, while the dialog is open. */
+  const [rehoming, setRehoming] = useState<{ phase: PhaseData; index: number; count: number } | null>(null)
+  /** Removed phase id → where its tasks go. Sent with the update. */
+  const [reassign, setReassign] = useState<Record<string, string>>({})
+  /** The destination chosen in the dialog, before it is confirmed. */
+  const [rehomeTarget, setRehomeTarget] = useState('')
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -222,6 +228,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
           isDefault: formData.isDefault,
           ...scope,
           phases,
+          reassign,
         })
         toast.success(`${formData.name} saved`)
       } else {
@@ -294,12 +301,51 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     ])
   }
 
+  /**
+   * Removing a phase, asking first when there is work in it.
+   *
+   * A phase holding tasks cannot simply vanish: the tasks would be left pointing at
+   * nothing, which reads as neither started nor finished everywhere in the app. So the
+   * count is shown and a destination is chosen, here, while the person still has the
+   * context to choose sensibly. Deciding at submit time, or worse being refused then,
+   * means re-deriving what they were doing several clicks later.
+   */
   const removePhase = (index: number) => {
     if (phases.length <= 2) {
-      toast.error('Workflow must have at least 2 phases')
+      toast.error('A workflow needs at least two phases')
       return
     }
+
+    const phase = phases[index]
+    const taskCount = phaseTaskCount(phase)
+
+    if (taskCount > 0) {
+      // Cleared each time, so removing a second phase does not open on the destination
+      // chosen for the first and let it be confirmed without being read.
+      setRehomeTarget('')
+      setRehoming({ phase, index, count: taskCount })
+      return
+    }
+
     setPhases(phases.filter((_, i) => i !== index))
+  }
+
+  /** How many tasks sit in a phase, from the counts the server sent with the workflow. */
+  const phaseTaskCount = (phase: PhaseData): number => {
+    if (!phase.id || !workflow?.phases) return 0
+    const live = workflow.phases.find((p: any) => p.id === phase.id)
+    return live?._count?.tasks ?? 0
+  }
+
+  /** Confirmed removal: record where the work goes, then drop the phase. */
+  const confirmRehome = (targetPhaseId: string) => {
+    if (!rehoming) return
+    const { phase, index } = rehoming
+    if (phase.id) {
+      setReassign((prev) => ({ ...prev, [phase.id as string]: targetPhaseId }))
+    }
+    setPhases((prev) => prev.filter((_, i) => i !== index))
+    setRehoming(null)
   }
 
   const updatePhase = (index: number, field: keyof PhaseData, value: any) => {
@@ -325,7 +371,11 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     updatePhase(phaseIndex, 'allowedUserIds', [])
   }
 
+  /** Phases that will survive, so the picker cannot offer one that is also going. */
+  const rehomeTargets = phases.filter((p) => p.id !== rehoming?.phase.id && p.name.trim())
+
   return (
+    <>
     <FormDialog
       isOpen={isOpen}
       onClose={onClose}
@@ -653,6 +703,66 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
       </div>
     </FormDialog>
+
+    {/* Where the work goes. Outside the form dialog so it lands on top of it: both
+        portal to the body, and nested it would be clipped by the form's scrolling
+        body. */}
+    <FormDialog
+      isOpen={!!rehoming}
+      onClose={() => setRehoming(null)}
+      width="sm"
+      title={`Remove ${rehoming?.phase.name || 'this phase'}?`}
+      description={
+        rehoming
+          ? `${rehoming.count} ${rehoming.count === 1 ? 'task is' : 'tasks are'} in it. Choose where they go, and they move when you save.`
+          : undefined
+      }
+      icon={
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30">
+          <TrashIcon className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+        </div>
+      }
+      footer={
+        <>
+          <button type="button" onClick={() => setRehoming(null)} className="btn-secondary">
+            Keep the phase
+          </button>
+          <button
+            type="button"
+            onClick={() => rehomeTarget && confirmRehome(rehomeTarget)}
+            disabled={!rehomeTarget}
+            className="btn-primary"
+          >
+            Move and remove
+          </button>
+        </>
+      }
+    >
+      <div>
+        <label htmlFor="rehome-target" className="form-label">
+          Move the work to
+        </label>
+        <Select
+          id="rehome-target"
+          value={rehomeTarget}
+          onChange={(e) => setRehomeTarget(e.target.value)}
+          className="select-field"
+        >
+          <option value="">Choose a phase…</option>
+          {rehomeTargets.map((p) => (
+            <option key={p.id ?? p.name} value={p.id ?? ''} disabled={!p.id}>
+              {p.name}
+              {!p.id ? ' (save this phase first)' : ''}
+            </option>
+          ))}
+        </Select>
+        <p className="form-hint">
+          Nothing is deleted until you save, and the tasks keep everything else: their
+          owner, dates and comments are untouched.
+        </p>
+      </div>
+    </FormDialog>
+    </>
   )
 }
 

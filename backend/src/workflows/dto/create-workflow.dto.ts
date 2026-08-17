@@ -89,5 +89,15 @@ export class CreateWorkflowDto {
   @ValidateNested({ each: true })
   @Type(() => CreatePhaseDto)
   phases: CreatePhaseDto[];
+
+  /**
+   * Where the tasks go when a phase is removed: removed phase id → surviving phase id.
+   *
+   * Only read on update, and only for phases that actually hold tasks. An untyped
+   * object because the keys are ids rather than a fixed shape; the service validates
+   * every entry against the phases that are surviving.
+   */
+  @IsOptional()
+  reassign?: Record<string, string>;
 }
 

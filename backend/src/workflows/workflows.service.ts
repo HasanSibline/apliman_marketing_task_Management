@@ -195,7 +195,11 @@ export class WorkflowsService {
         phases: {
           orderBy: { order: 'asc' },
           include: {
-            transitionsFrom: { 
+            // How much work sits in each phase. The editor needs this before anyone
+            // removes one: "delete this phase" and "delete this phase and rehome seven
+            // tasks" are different decisions, and only one of them can be made blind.
+            _count: { select: { tasks: true } },
+            transitionsFrom: {
               include: { 
                 toPhase: true 
               } 
@@ -257,7 +261,7 @@ export class WorkflowsService {
     // Phases first, so a refused phase change leaves the whole edit untouched rather
     // than applying the name and colour and then failing.
     if (dto.phases) {
-      await this.reconcilePhases(id, dto.phases);
+      await this.reconcilePhases(id, dto.phases, (dto as any).reassign ?? {});
     }
 
     const workflow = await this.prisma.workflow.update({
@@ -304,7 +308,12 @@ export class WorkflowsService {
    * Order comes from array position, so dragging a phase in the editor is a reorder
    * here.
    */
-  private async reconcilePhases(workflowId: string, incoming: any[]) {
+  private async reconcilePhases(
+    workflowId: string,
+    incoming: any[],
+    /** Phase being removed → phase its tasks move to. Collected by the editor. */
+    reassign: Record<string, string> = {},
+  ) {
     if (incoming.length < 2) {
       throw new BadRequestException('A workflow needs at least two phases.');
     }
@@ -317,14 +326,34 @@ export class WorkflowsService {
     const keptIds = new Set(incoming.map((p) => p.id).filter(Boolean));
     const doomed = existing.filter((p) => !keptIds.has(p.id));
 
+    /**
+     * Work in a removed phase has to go somewhere, and the caller says where.
+     *
+     * Refusing outright was the first version, and it left somebody with a workflow
+     * they could not correct and no way forward. Deleting anyway is worse: currentPhaseId
+     * is optional, so the database would null it and hand back tasks in no phase at all,
+     * which reads as neither started nor finished to every check in the app.
+     *
+     * So the third option, which is the only honest one: the tasks move. The editor
+     * shows the count and asks where, and this refuses only when it was not told.
+     */
     const inUse = doomed.filter((p) => p._count.tasks > 0);
-    if (inUse.length > 0) {
-      const names = inUse
+    const homeless = inUse.filter((p) => !reassign[p.id]);
+    if (homeless.length > 0) {
+      const names = homeless
         .map((p) => `${p.name} (${p._count.tasks} ${p._count.tasks === 1 ? 'task' : 'tasks'})`)
         .join(', ');
-      throw new BadRequestException(
-        `Move the work out first: ${names} still ${inUse.length === 1 ? 'has tasks in it' : 'have tasks in them'}.`,
-      );
+      throw new BadRequestException(`Say where the work should go first: ${names}.`);
+    }
+
+    // A destination that is itself being removed would strand the tasks one step later.
+    for (const phase of inUse) {
+      const target = reassign[phase.id];
+      if (!keptIds.has(target)) {
+        throw new BadRequestException(
+          `${phase.name} cannot move its tasks into a phase that is also being removed.`,
+        );
+      }
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -354,6 +383,15 @@ export class WorkflowsService {
         } else {
           await tx.phase.create({ data: { ...data, workflowId } });
         }
+      }
+
+      // Tasks are rehomed before their old phase disappears, so no row is ever
+      // momentarily pointing at nothing.
+      for (const phase of inUse) {
+        await tx.task.updateMany({
+          where: { currentPhaseId: phase.id },
+          data: { currentPhaseId: reassign[phase.id] },
+        });
       }
 
       if (doomed.length > 0) {
