@@ -140,6 +140,11 @@ export class TicketsController {
     return this.ticketsService.addComment(id, req.user.id, comment, req.user.companyId);
   }
 
+  @Patch(':id/cancel')
+  cancel(@Param('id') id: string, @Body() body: { reason?: string }, @Request() req) {
+    return this.ticketsService.cancel(id, req.user.id, req.user.companyId, body?.reason);
+  }
+
   @Patch(':id/resolve')
   resolve(
     @Param('id') id: string,

@@ -294,8 +294,16 @@ export class TicketsService {
         const denominator = Math.min(mine.size, theirs.size) || 1;
         return { ticket: t, score: shared / denominator, shared };
       })
-      // Two shared meaningful words is the floor. One is a coincidence.
-      .filter((s) => s.shared >= 2 && s.score >= 0.5)
+      /**
+       * The floor scales with how many words there are to share.
+       *
+       * A flat "two shared words" made short titles unmatchable: a request called
+       * "test" has one meaningful word, so shared could never reach two and the check
+       * reported every repeat of it as new. Two remains the floor for a title with
+       * enough words to have two, and a one-word title has to match that one word
+       * outright, which the score threshold already demands.
+       */
+      .filter((s) => s.shared >= Math.min(2, mine.size) && s.score >= 0.5)
       .sort((a, b) => b.score - a.score)
       .slice(0, 3);
 
@@ -654,6 +662,65 @@ export class TicketsService {
     }
   }
 
+  /**
+   * Stop a ticket that is not going to happen, and say why.
+   *
+   * Distinct from reject, which is a decision on a request awaiting approval. This is
+   * abandoning one at any point: the requester changed their mind, it was raised twice,
+   * it stopped mattering. The reason is required for the same purpose in both cases —
+   * somebody about to raise it again is shown it.
+   *
+   * The requester may cancel their own, and so may anyone who could act on it. Needing
+   * an admin to withdraw your own request is how tickets get left open instead.
+   */
+  async cancel(id: string, userId: string, companyId: string, reason?: string) {
+    const ticket = (await this.findOne(id, companyId)) as any;
+
+    const actor = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN', 'ADMIN'].includes(actor?.role ?? '');
+    const isRequester = ticket.requesterId === userId;
+    const isAssignee =
+      ticket.assigneeId === userId ||
+      ticket.assignments?.some((a: any) => a.userId === userId);
+
+    if (!isAdmin && !isRequester && !isAssignee) {
+      throw new ForbiddenException('Only the person who raised this, or someone working it, can cancel it.');
+    }
+
+    if (['RESOLVED', 'CANCELLED'].includes(ticket.status)) {
+      throw new BadRequestException('This ticket is already closed.');
+    }
+
+    const why = (reason ?? '').trim();
+    if (why.length < 5) {
+      throw new BadRequestException('Say why this is being cancelled, briefly.');
+    }
+
+    await this.addSystemComment(id, userId, 'Cancelled', companyId);
+    await this.addComment(id, userId, why, companyId, false);
+
+    const updated = await this.prisma.ticket.update({
+      where: { id },
+      data: { status: TicketStatus.CANCELLED, cancellationReason: why },
+    });
+
+    // The requester hears about it unless they are the one who did it.
+    if (ticket.requesterId !== userId) {
+      await this.notifications.createNotification({
+        userId: ticket.requesterId,
+        ticketId: id,
+        type: 'TICKET_REJECTED',
+        title: 'Request cancelled',
+        message: `${ticket.ticketNumber} was cancelled. Reason: ${why}`,
+      });
+    }
+
+    return updated;
+  }
+
   async reject(id: string, userId: string, companyId: string, reason?: string) {
     const ticket = await this.findOne(id, companyId) as any;
 
@@ -986,6 +1053,28 @@ export class TicketsService {
 
     if (data.receiverDeptId === null || data.receiverDeptId === '') {
       throw new BadRequestException('A receiver department is mandatory. Select a new one before removing.');
+    }
+
+    /**
+     * Closing a ticket does not happen through here.
+     *
+     * Two status dropdowns on the detail page could set RESOLVED or CANCELLED straight
+     * through this generic update, which skipped the endpoints that ask how it was
+     * resolved or why it was cancelled. The note is the entire point of asking, and a
+     * closing route that quietly does not ask is the one everybody ends up using.
+     *
+     * Refused here rather than fixed at the two dropdowns, because the next screen that
+     * PATCHes a status would skip it the same way.
+     */
+    if (data.status && data.status !== ticket.status) {
+      if (data.status === 'RESOLVED') {
+        throw new BadRequestException(
+          'Use Mark resolved, so the fix is recorded for whoever hits this next.',
+        );
+      }
+      if (data.status === 'CANCELLED') {
+        throw new BadRequestException('Use Cancel, so the reason is recorded.');
+      }
     }
 
     // If receiver department changed, update the receiver manager too

@@ -216,8 +216,10 @@ const TicketDetailPage: React.FC = () => {
         toast.error('Request declined')
         fetchTicketDetails()
       } else if (type === 'cancel') {
-        await api.patch(`/tickets/${ticketId}`, { status: 'CANCELLED', metadata: { ...ticket.metadata, cancelReason: reason } })
-        toast.error('Ticket Aborted')
+        // Its own endpoint, so the reason lands on the ticket where the pre-flight
+        // check reads it. Buried in metadata it was invisible to everything.
+        await api.patch(`/tickets/${ticketId}/cancel`, { reason })
+        toast.success('Cancelled, and the reason is recorded')
         fetchTicketDetails()
       } else if (type === 'resolve') {
         await api.patch(`/tickets/${ticketId}/resolve`, { resolutionNote: reason })
@@ -548,6 +550,32 @@ const TicketDetailPage: React.FC = () => {
                   onChange={async (e) => {
                     const val = e.target.value;
                     if (val === 'CANCELLED') { handleCancel(); return; }
+
+                    // Closing asks a question first. The server refuses these two
+                    // through the generic update anyway; routing them to the dialog
+                    // here means the person gets the question rather than the refusal.
+                    if (val === 'RESOLVED') {
+                      setActionModal({
+                        isOpen: true,
+                        type: 'resolve',
+                        title: 'How did you resolve this?',
+                        description:
+                          'Whoever hits this next sees your answer before they raise their own ticket, so it may save them the request entirely.',
+                        requireReason: true,
+                      })
+                      return
+                    }
+                    if (val === 'CANCELLED') {
+                      setActionModal({
+                        isOpen: true,
+                        type: 'cancel',
+                        title: 'Cancel this ticket?',
+                        description:
+                          'Anyone about to raise the same request is shown why this one was stopped.',
+                        requireReason: true,
+                      })
+                      return
+                    }
 
                     try {
                       const res = await api.patch(`/tickets/${ticketId}`, { status: val })
