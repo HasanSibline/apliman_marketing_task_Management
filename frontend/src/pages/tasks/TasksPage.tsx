@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   PlusIcon,
   MagnifyingGlassIcon,
@@ -43,6 +44,7 @@ const TasksPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { tasks: apiTasks, isLoading, filters } = useAppSelector((state) => state.tasks)
   const { user } = useAppSelector((state) => state.auth)
+  const navigate = useNavigate()
 
   const tasks = useMemo(
     () => apiTasks.map((t) => ({ ...t, createdById: t.createdBy?.id || '' })) as Task[],
@@ -78,7 +80,20 @@ const TasksPage: React.FC = () => {
 
   // Work in nobody's quarter is the easiest to lose: it appears on no quarter page
   // and nothing else surfaces it. The API supports quarterId=null; this exposes it.
-  const [scope, setScope] = useState<'all' | 'active' | 'backlog'>('all')
+  const [scope, setScope] = useState<'all' | 'active' | 'backlog' | 'history'>('all')
+  /** History only. Managers see the team's by default; this narrows it to themselves. */
+  const [mineOnly, setMineOnly] = useState(false)
+
+  /**
+   * Whether this person's list contains anybody else's work.
+   *
+   * The server already restricts an employee to their own tasks, so for them the
+   * toggle would filter a list down to itself. Reviewing what the team shipped is the
+   * main reason anyone opens History, so it stays off by default for those who can.
+   */
+  const canSeeOthers = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN', 'MANAGER'].includes(
+    user?.role ?? '',
+  )
 
   useEffect(() => {
     const scoped =
@@ -104,10 +119,46 @@ const TasksPage: React.FC = () => {
     dispatch(fetchTasks({ ...filters, ...scoped, limit: 10000 }))
   }
 
-  const visible = useMemo(
-    () => (workflowId ? tasks.filter((t) => t.workflow?.id === workflowId) : tasks),
-    [tasks, workflowId],
-  )
+  /**
+   * When finished work stops being current.
+   *
+   * The board had no bound on its Completed column, so it accumulated every task the
+   * company ever finished and eventually showed mostly archive. Fourteen days is the
+   * span in which "did we ship that?" is still a live question; past it, the answer is
+   * history and belongs somewhere you go on purpose.
+   *
+   * Ageing rather than a Close button people press: a manual step gets forgotten, and a
+   * board that is only tidy when everybody remembers is a board that is never tidy.
+   * Nothing moves, nothing is marked, nothing is destroyed. This is a view.
+   */
+  const RECENT_DAYS = 14
+
+  const isAged = (task: Task) => {
+    if (taskStage(task) !== 'COMPLETED') return false
+    // Finished but with no completion date recorded is old work from before that was
+    // written, so it belongs in history rather than sitting on the board forever.
+    if (!task.completedAt) return true
+    return Date.now() - new Date(task.completedAt).getTime() > RECENT_DAYS * 86_400_000
+  }
+
+  const mine = (task: Task) =>
+    task.assignedToId === user?.id ||
+    task.createdById === user?.id ||
+    task.assignments?.some((a: any) => a.userId === user?.id)
+
+  const visible = useMemo(() => {
+    let list = workflowId ? tasks.filter((t) => t.workflow?.id === workflowId) : tasks
+
+    if (scope === 'history') {
+      list = list.filter(isAged)
+      if (mineOnly) list = list.filter(mine)
+    } else {
+      // Aged work leaves the board. It is still one click away under History.
+      list = list.filter((t) => !isAged(t))
+    }
+
+    return list
+  }, [tasks, workflowId, scope, mineOnly, user?.id])
 
   const byStage = useMemo(() => {
     const groups: Record<TaskStage, Task[]> = { TODO: [], IN_PROGRESS: [], COMPLETED: [] }
@@ -284,6 +335,7 @@ const TasksPage: React.FC = () => {
             { key: 'all', label: 'All' },
             { key: 'active', label: 'This quarter' },
             { key: 'backlog', label: 'Not scheduled' },
+            { key: 'history', label: 'History' },
           ] as const).map((option) => (
             <button
               key={option.key}
@@ -299,6 +351,24 @@ const TasksPage: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {/* Only in History, and only for people who see more than their own work.
+            An employee already sees nothing but their own, so the toggle would filter
+            a list to itself and read as broken. */}
+        {scope === 'history' && canSeeOthers && (
+          <button
+            type="button"
+            onClick={() => setMineOnly((v) => !v)}
+            aria-pressed={mineOnly}
+            className={`rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors ${
+              mineOnly
+                ? 'border-primary-500 bg-primary-50 text-primary-700 dark:bg-primary-900/25 dark:text-primary-300'
+                : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300'
+            }`}
+          >
+            Mine only
+          </button>
+        )}
 
         <Select
           aria-label="Assigned to"
@@ -377,14 +447,24 @@ const TasksPage: React.FC = () => {
       ) : visible.length === 0 ? (
         <EmptyState
           icon={ClipboardDocumentListIcon}
-          title={activeFilters > 0 ? 'Nothing matches those filters' : 'No tasks here yet'}
+          title={
+            scope === 'history'
+              ? 'Nothing here yet'
+              : activeFilters > 0
+                ? 'Nothing matches those filters'
+                : 'No tasks here yet'
+          }
           description={
-            activeFilters > 0
-              ? 'Widen the search, or clear the filters to see everything again.'
-              : 'A task is a piece of work. Create one to get the board started.'
+            // History fills itself over time, so offering "create a task" here would
+            // answer a question nobody asked.
+            scope === 'history'
+              ? `Work moves here on its own once it has been finished for ${RECENT_DAYS} days. Until then it stays on the board.`
+              : activeFilters > 0
+                ? 'Widen the search, or clear the filters to see everything again.'
+                : 'A task is a piece of work. Create one to get the board started.'
           }
           action={
-            activeFilters > 0 ? (
+            scope === 'history' ? undefined : activeFilters > 0 ? (
               <button onClick={clearFilters} className="btn-secondary">Clear filters</button>
             ) : (
               <button onClick={() => setShowCreateModal(true)} className="btn-primary">
@@ -394,6 +474,45 @@ const TasksPage: React.FC = () => {
             )
           }
         />
+      ) : scope === 'history' ? (
+        /* ── History ──────────────────────────────────────────────────────
+           A list, not three columns. Everything here is finished, so a board
+           with two permanently empty columns would be two thirds of nothing,
+           and nothing here is draggable because there is nowhere to drag it. */
+        <div className="surface divide-y divide-gray-100 dark:divide-gray-700">
+          {visible
+            .slice()
+            .sort((a, b) => {
+              const at = a.completedAt ? new Date(a.completedAt).getTime() : 0
+              const bt = b.completedAt ? new Date(b.completedAt).getTime() : 0
+              return bt - at // most recently finished first
+            })
+            .map((task) => (
+              <button
+                key={task.id}
+                onClick={() => navigate(`/tasks/${task.id}`)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40"
+              >
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
+                <span className="w-[5.5rem] shrink-0 truncate text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                  {task.taskNumber ?? '—'}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-sm text-gray-800 dark:text-gray-100">
+                  {task.title}
+                </span>
+                {task.workflow?.name && (
+                  <span className="hidden shrink-0 text-xs text-gray-400 sm:inline dark:text-gray-500">
+                    {task.workflow.name}
+                  </span>
+                )}
+                <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                  {task.completedAt
+                    ? new Date(task.completedAt).toLocaleDateString()
+                    : 'Date not recorded'}
+                </span>
+              </button>
+            ))}
+        </div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid gap-4 lg:grid-cols-3">
@@ -560,8 +679,19 @@ const TasksPage: React.FC = () => {
       {!isLoading && visible.length > 0 && (
         <p className="flex items-center justify-center gap-1.5 text-center text-sm text-gray-500 dark:text-gray-400">
           <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
-          {byStage.TODO.length} to do, {byStage.IN_PROGRESS.length} in progress,{' '}
-          {byStage.COMPLETED.length} completed
+          {scope === 'history' ? (
+            // The board's three-way count says nothing here, where every row is the
+            // same stage. What matters instead is how far back the list reaches.
+            <>
+              {visible.length} finished {visible.length === 1 ? 'task' : 'tasks'}
+              {mineOnly ? ', yours only' : ''}
+            </>
+          ) : (
+            <>
+              {byStage.TODO.length} to do, {byStage.IN_PROGRESS.length} in progress,{' '}
+              {byStage.COMPLETED.length} completed
+            </>
+          )}
         </p>
       )}
 
