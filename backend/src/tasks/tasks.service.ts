@@ -10,6 +10,7 @@ import { UpdateTaskDto } from './dto/update-task.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UserRole } from '../types/prisma';
 import { keyResultValue } from '../okr/okr-math';
+import { whyNotUsable } from '../workflows/workflow-access';
 
 @Injectable()
 export class TasksService {
@@ -45,7 +46,13 @@ export class TasksService {
       // Get creator's company
       const creator = await this.prisma.user.findUnique({
         where: { id: creatorId },
-        select: { companyId: true, role: true },
+        // department and teams come along because the workflow guard below needs them.
+        select: {
+          companyId: true,
+          role: true,
+          departmentId: true,
+          teamMemberships: { select: { teamId: true } },
+        },
       });
 
       if (!creator?.companyId && creator?.role !== 'SUPER_ADMIN') {
@@ -96,6 +103,26 @@ export class TasksService {
         if (!workflow) {
           throw new BadRequestException('Workflow not found');
         }
+
+        /**
+         * The same rule the picker filters by, checked again here.
+         *
+         * The form only offers workflows this person may use, so reaching this branch
+         * means either a stale page or a request made directly. Either way a filter in
+         * a dropdown is a convenience, not a control, and the decision belongs where it
+         * cannot be skipped. The message names the actual reason, because "not
+         * permitted" leaves somebody with nothing to do about it.
+         */
+        const refusal = whyNotUsable(
+          {
+            role: creator.role,
+            departmentId: creator.departmentId,
+            teamIds: (creator as any).teamMemberships?.map((m: any) => m.teamId) ?? [],
+          },
+          workflow,
+        );
+        if (refusal) throw new ForbiddenException(refusal);
+
         taskType = workflow.taskType;
       } else {
         // AI task type detection

@@ -21,6 +21,11 @@ export interface Workflow {
   isDefault: boolean
   color: string
   icon?: string
+  /** Null or absent means the whole company can use it. */
+  departmentId?: string | null
+  department?: { id: string; name: string } | null
+  /** Empty means the whole department. Only meaningful alongside a departmentId. */
+  teamIds?: string[]
   createdById: string
   createdBy?: {
     id: string

@@ -32,6 +32,8 @@ interface User {
 }
 
 interface PhaseData {
+  /** Present on a phase that already exists; absent on one being added. */
+  id?: string
   name: string
   description: string
   allowedUserIds: string[]
@@ -50,12 +52,18 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
   const [isLoading, setIsLoading] = useState(false)
   const [users, setUsers] = useState<User[]>([])
+  const [departments, setDepartments] = useState<any[]>([])
+  const [teams, setTeams] = useState<any[]>([])
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     taskType: '',
     isDefault: false,
     color: '#3B82F6',
+    /** Empty means the whole company, which is what every existing workflow is. */
+    departmentId: '',
+    /** Empty means the whole department. Only meaningful with a department set. */
+    teamIds: [] as string[],
   })
 
   const [phases, setPhases] = useState<PhaseData[]>([
@@ -88,6 +96,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       loadUsers()
+      loadScopeOptions()
     }
   }, [isOpen])
 
@@ -101,8 +110,37 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       taskType: workflow.taskType ?? '',
       isDefault: !!workflow.isDefault,
       color: workflow.color ?? '#3B82F6',
+      departmentId: workflow.departmentId ?? '',
+      teamIds: workflow.teamIds ?? [],
     })
+
+    // Phases are editable now, so the editor opens on the real ones rather than the
+    // three defaults a new workflow starts with.
+    if (Array.isArray(workflow.phases)) {
+      setPhases(
+        [...workflow.phases]
+          .sort((a: any, b: any) => a.order - b.order)
+          .map((p: any) => ({
+            id: p.id,
+            name: p.name ?? '',
+            description: p.description ?? '',
+            allowedUserIds: p.allowedUsers ?? [],
+            autoAssignUserId: p.autoAssignUserId ?? '',
+            requiresApproval: !!p.requiresApproval,
+            color: p.color ?? '#6B7280',
+          })),
+      )
+    }
   }, [isOpen, workflow])
+
+  // Both fail quietly to empty lists. Without departments the scope picker offers only
+  // "whole company", which is the behaviour this feature replaced and a safe place to
+  // land rather than a blocked form.
+  const loadScopeOptions = async () => {
+    const [depts, tms] = await Promise.allSettled([usersApi.getDepartments(), usersApi.getTeams()])
+    if (depts.status === 'fulfilled') setDepartments(Array.isArray(depts.value) ? depts.value : [])
+    if (tms.status === 'fulfilled') setTeams(Array.isArray(tms.value) ? tms.value : [])
+  }
 
   const loadUsers = async () => {
     try {
@@ -155,10 +193,22 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     }
 
     // Only a new workflow defines its phases here. An edit leaves them alone, so the
-    // two-phase minimum is not its business.
-    if (!isEditing && phases.length < 2) {
+    // Phases are editable in both modes now, so the minimum applies to both.
+    if (phases.length < 2) {
       toast.error('A workflow needs at least two phases')
       return
+    }
+
+    if (phases.some((p) => !p.name.trim())) {
+      toast.error('Every phase needs a name')
+      return
+    }
+
+    // Teams only mean something inside a department, and sending them without one
+    // would be a restriction the server drops silently.
+    const scope = {
+      departmentId: formData.departmentId || null,
+      teamIds: formData.departmentId ? formData.teamIds : [],
     }
 
     try {
@@ -170,10 +220,12 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
           description: formData.description,
           color: formData.color,
           isDefault: formData.isDefault,
+          ...scope,
+          phases,
         })
         toast.success(`${formData.name} saved`)
       } else {
-        await workflowsApi.create({ ...formData, phases })
+        await workflowsApi.create({ ...formData, ...scope, phases })
         toast.success(`${formData.name} created`)
       }
 
@@ -197,6 +249,8 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       taskType: '',
       isDefault: false,
       color: '#3B82F6',
+      departmentId: '',
+      teamIds: [],
     })
     setPhases([
       {
@@ -385,12 +439,82 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
                       </span>
                     </label>
                   </div>
+
+                  {/* ── Who can use it ──────────────────────────────────────────
+                      Restricts who may pick this workflow when starting a task. It
+                      deliberately does not hide tasks: work stays visible to whoever
+                      it is assigned to, whatever workflow it uses. */}
+                  <div className="space-y-3 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <div>
+                      <label htmlFor="wf-department" className="form-label">
+                        Who can use this
+                      </label>
+                      <Select
+                        id="wf-department"
+                        value={formData.departmentId}
+                        onChange={(e) =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            departmentId: e.target.value,
+                            // Teams belong to the department that was just replaced, so
+                            // keeping them would narrow the new one to teams from the old.
+                            teamIds: [],
+                          }))
+                        }
+                        className="select-field"
+                      >
+                        <option value="">Everyone in the company</option>
+                        {departments.map((d: any) => (
+                          <option key={d.id} value={d.id}>
+                            {d.name} only
+                          </option>
+                        ))}
+                      </Select>
+                      <p className="form-hint">
+                        Leave this on the whole company unless a department owns this kind of work.
+                      </p>
+                    </div>
+
+                    {formData.departmentId && teams.length > 0 && (
+                      <div>
+                        <span className="form-label">Narrow to teams</span>
+                        <div className="max-h-40 space-y-1.5 overflow-y-auto rounded-lg border border-gray-200 p-2.5 dark:border-gray-700">
+                          {teams.map((t: any) => {
+                            const on = formData.teamIds.includes(t.id)
+                            return (
+                              <label key={t.id} className="flex cursor-pointer items-center gap-2 rounded p-1 hover:bg-gray-50 dark:hover:bg-gray-700">
+                                <input
+                                  type="checkbox"
+                                  checked={on}
+                                  onChange={() =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      teamIds: on
+                                        ? prev.teamIds.filter((id) => id !== t.id)
+                                        : [...prev.teamIds, t.id],
+                                    }))
+                                  }
+                                  className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:border-gray-600"
+                                />
+                                <span className="text-sm text-gray-700 dark:text-gray-200">{t.name}</span>
+                              </label>
+                            )
+                          })}
+                        </div>
+                        <p className="form-hint">
+                          {formData.teamIds.length === 0
+                            ? 'None selected, so everyone in the department can use it.'
+                            : `Only ${formData.teamIds.length} ${formData.teamIds.length === 1 ? 'team' : 'teams'} can use it.`}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Phases. Hidden while editing: the update endpoint changes the
-                    workflow's own fields and never its phases, so showing the editor
-                    would take changes and quietly discard them. */}
-                <div className={isEditing ? 'hidden' : ''}>
+                {/* Phases, editable in both modes. The update endpoint reconciles them
+                    now: it updates what stayed, adds what is new, and removes what went,
+                    refusing only to delete a phase that still has tasks in it. */}
+                <div>
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium text-gray-900 dark:text-white">Workflow Phases</h3>
                     <button

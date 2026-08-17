@@ -66,6 +66,7 @@ model Department {
   manager   User?    @relation("DepartmentManager", fields: [managerId], references: [id])
   tickets   Ticket[] @relation("ReceiverDepartment")
   users     User[]   @relation("UserDepartment")
+  workflows Workflow[]
 
   @@unique([companyId, name])
   @@map("departments")
@@ -462,12 +463,22 @@ model Workflow {
   isDefault   Boolean  @default(false)
   color       String   @default("#3B82F6")
   icon        String?
+  /// Which department this workflow belongs to. Null means the whole company, which
+  /// is what every workflow created before this field was added is, so existing setups
+  /// keep working untouched.
+  departmentId String?
+  /// Narrows it further to particular teams inside that department. Empty means the
+  /// whole department. Ids rather than a join table, matching Phase.allowedUsers and
+  /// Department.ticketCategories: the list is short, and a deleted team simply stops
+  /// matching, which is the harmless outcome.
+  teamIds     String[] @default([])
   createdById String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   phases      Phase[]
   tasks       Task[]
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  department  Department? @relation(fields: [departmentId], references: [id])
   createdBy   User     @relation("WorkflowCreator", fields: [createdById], references: [id])
 
   @@unique([name, companyId])

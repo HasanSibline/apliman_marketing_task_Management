@@ -67,6 +67,24 @@ export class CreateWorkflowDto {
   @IsString()
   color?: string;
 
+  /**
+   * The department this workflow belongs to. Omit or null for the whole company, which
+   * is what every workflow made before this field existed is.
+   */
+  @IsOptional()
+  @IsString()
+  departmentId?: string | null;
+
+  /**
+   * Teams inside that department allowed to use it. Empty means the whole department.
+   * Meaningless without a departmentId, and ignored in that case rather than rejected,
+   * so a half-filled form does not fail on a field the person cannot see the point of.
+   */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  teamIds?: string[];
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CreatePhaseDto)

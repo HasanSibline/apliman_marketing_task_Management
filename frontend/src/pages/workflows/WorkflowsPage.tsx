@@ -146,6 +146,16 @@ const WorkflowsPage: React.FC = () => {
                         {workflow.taskType?.replace(/_/g, ' ').toLowerCase() || 'Any work'}
                         {workflow.isDefault && ' · used by default'}
                       </p>
+                      {/* Who may pick it, said on the card. A restriction nobody can see
+                          without opening the editor is a restriction people forget is
+                          there, and then cannot explain. */}
+                      <p className="mt-1 text-xs font-medium text-primary-600 dark:text-primary-400">
+                        {!workflow.departmentId
+                          ? 'Everyone in the company'
+                          : workflow.teamIds?.length
+                            ? `${workflow.department?.name ?? 'One department'} · ${workflow.teamIds.length} ${workflow.teamIds.length === 1 ? 'team' : 'teams'}`
+                            : `${workflow.department?.name ?? 'One department'} only`}
+                      </p>
                     </div>
                   </div>
 

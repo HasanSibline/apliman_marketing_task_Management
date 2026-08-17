@@ -204,6 +204,12 @@ export const usersApi = {
     return response.data
   },
 
+  /** Teams in this company, for narrowing a workflow below department level. */
+  getTeams: async (): Promise<any[]> => {
+    const response = await api.get('/teams')
+    return response.data
+  },
+
   getById: async (id: string): Promise<any> => {
     const response = await api.get(`/users/${id}`)
     return response.data
