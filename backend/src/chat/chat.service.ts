@@ -1095,27 +1095,9 @@ export class ChatService {
       let aiResponse = await this.callAiChatService(chatPayload, deadline);
 
       // A company on a free provider tier hits per-minute limits routinely, and one
-      // chat message costs two upstream calls (this one plus context learning). The
-      // quota breaker only diverts to the platform key after several strikes, so
-      // without this retry the user sees "quota exceeded" while a working platform
-      // key sits unused. Retry once, immediately, on the platform credential.
-      if (this.isRateLimited(aiResponse) && aiCredential.companyId !== 'platform') {
-        const platform = await this.aiService.getPlatformAiCredential();
-        if (platform && platform.apiKey !== aiApiKey) {
-          this.logger.warn(
-            `Company key for ${company.name} was rate limited, retrying this message on the platform key.`,
-          );
-          aiResponse = await this.callAiChatService(
-            {
-              ...chatPayload,
-              api_key: platform.apiKey,
-              provider: platform.provider,
-              model: platform.model ?? undefined,
-            },
-            deadline,
-          );
-        }
-      }
+      // The platform-key retry that used to live here is gone with the platform key
+      // itself. Falling back is the gateway's job now, across a company's own chain of
+      // providers, rather than onto a shared credential nobody in the tenant owns.
 
       // Save assistant message (Safety first: ensure content is a string)
       const assistantContent = typeof aiResponse === 'string'

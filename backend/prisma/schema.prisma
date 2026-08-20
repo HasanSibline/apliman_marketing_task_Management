@@ -36,6 +36,7 @@ model Company {
   createdBy           String?
   chatSessions        ChatSession[]
   aiUsageStats        CompanyAIUsage[]
+  aiProviders         AiProviderConfig[]
   userAIUsage         UserAIUsage[]
   settings            CompanySettings?
   departments         Department[]
@@ -241,6 +242,78 @@ model SubscriptionHistory {
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("subscription_history")
+}
+
+/// One provider a company can use, and where it sits in the fallback order.
+///
+/// Replaces the single aiApiKey/aiProvider pair on Company, which made a tenant's AI
+/// exactly as available as one free key. A company now has an ordered chain, and the
+/// gateway walks it until something answers.
+///
+/// Several rows may share a provider: that is how multiple keys for the same provider
+/// are expressed, and the gateway tries each before moving on to the next provider.
+model AiProviderConfig {
+  id            String    @id @default(uuid())
+  companyId     String
+  /// groq | anthropic | gemini | openai
+  provider      String
+  /// Null uses the adapter's default for that provider.
+  model         String?
+  /// Encrypted with ENCRYPTION_KEY, exactly like Company.aiApiKey. Never returned raw.
+  encryptedKey  String
+  /// A name the admin recognises, since one provider may have several keys.
+  label         String?
+  /// 1 is tried first. Ties break on createdAt so the order is always defined.
+  priority      Int       @default(100)
+  enabled       Boolean   @default(true)
+
+  /// The paid safety net: only reached once every ordinary entry is exhausted, and
+  /// only while it is inside its budget.
+  isEmergency   Boolean   @default(false)
+  /// Spend ceiling per calendar month, in whole currency units. Null means no ceiling,
+  /// which is only sensible on a key that is not paid.
+  monthlyBudget Float?
+
+  /// HEALTHY | RATE_LIMITED | QUOTA_EXCEEDED | UNAVAILABLE | INVALID_KEY | DISABLED
+  status        String    @default("HEALTHY")
+  /// When a cooled-down entry may be tried again. Null means it is available now.
+  cooldownUntil DateTime?
+  /// Why it was last put out of service, for the admin to read. Never a key.
+  lastError     String?
+  lastSuccessAt DateTime?
+  failureCount  Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  usage         AiProviderUsage[]
+
+  @@index([companyId, enabled, priority])
+  @@map("ai_provider_configs")
+}
+
+/// Per day, per provider entry: what it cost and how well it behaved.
+///
+/// Aggregated rather than one row per request. A request-level log is the right shape
+/// for a data warehouse and the wrong shape for a Postgres table that grows forever.
+model AiProviderUsage {
+  id             String   @id @default(uuid())
+  configId       String
+  companyId      String
+  date           DateTime @db.Date
+  requests       Int      @default(0)
+  failures       Int      @default(0)
+  inputTokens    Int      @default(0)
+  outputTokens   Int      @default(0)
+  estimatedCost  Float    @default(0)
+  totalLatencyMs Int      @default(0)
+
+  config         AiProviderConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+
+  @@unique([configId, date])
+  @@index([companyId, date])
+  @@map("ai_provider_usage")
 }
 
 model CompanyAIUsage {

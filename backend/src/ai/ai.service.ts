@@ -93,14 +93,9 @@ export class AiService {
       select: { companyId: true },
     });
 
-    // The shared platform key keeps AI available even when a company has no key
-    // of its own, or has temporarily hit its own provider's rate limit.
-    const platform = await this.getPlatformAiCredential();
-
+    // No company, no AI. There is no shared credential to report on any more.
     if (!user?.companyId) {
-      return platform
-        ? { aiEnabled: true, quotaExhausted: false, quotaResetAt: null, provider: platform.provider, myUsage: {} }
-        : { aiEnabled: false, quotaExhausted: false, quotaResetAt: null, provider: 'none', myUsage: {} };
+      return { aiEnabled: false, quotaExhausted: false, quotaResetAt: null, provider: 'none', myUsage: {} };
     }
 
     const company = await this.prisma.company.findUnique({
@@ -142,15 +137,12 @@ export class AiService {
     }
 
     const hasCompanyKey = company.aiEnabled && !!company.aiApiKey;
-    // With a platform key configured, the company is never locked out of AI , 
-    // requests just fall through to the shared key while its own key recovers.
-    const servedByPlatform = !!platform && (!hasCompanyKey || quotaExhausted);
 
     return {
-      aiEnabled: hasCompanyKey || !!platform,
-      quotaExhausted: servedByPlatform ? false : quotaExhausted,
-      quotaResetAt: !servedByPlatform && quotaExhausted ? company.aiQuotaResetAt : null,
-      provider: servedByPlatform ? platform.provider : company.aiProvider || 'gemini',
+      aiEnabled: hasCompanyKey,
+      quotaExhausted,
+      quotaResetAt: quotaExhausted ? company.aiQuotaResetAt : null,
+      provider: company.aiProvider || 'gemini',
       myUsage,
     };
   }
@@ -299,33 +291,19 @@ export class AiService {
   }
 
   /**
-   * The platform-wide AI credential a super admin configured in Settings → AI Platform.
-   * Returns null when none is set or it is disabled.
+   * Removed: there is no platform-wide AI key any more.
+   *
+   * A shared super-admin key meant one company's traffic exhausted a quota that every
+   * other company then found missing, and a tenant could be served by a credential
+   * nobody in that tenant had configured or could see the usage of. AI is now either
+   * set up for a company or it is off, which is the only state anybody can reason
+   * about.
+   *
+   * Kept as a stub returning null so nothing that still calls it breaks while the last
+   * references are removed.
    */
-  async getPlatformAiCredential(): Promise<{ apiKey: string; provider: string; model: string | null } | null> {
-    const settings = await this.prisma.systemSettings.findUnique({
-      where: { id: 'default' },
-      select: {
-        platformAiEnabled: true,
-        platformAiProvider: true,
-        platformAiApiKey: true,
-        platformAiModel: true,
-      },
-    });
-
-    if (!settings?.platformAiEnabled || !settings.platformAiApiKey) return null;
-
-    const apiKey = this.companiesService.decryptApiKey(settings.platformAiApiKey);
-    if (!apiKey || apiKey.includes('[DECRYPTION_FAILED]')) {
-      this.logger.error('❌ Failed to decrypt the platform AI key');
-      return null;
-    }
-
-    return {
-      apiKey,
-      provider: settings.platformAiProvider || 'anthropic',
-      model: settings.platformAiModel || null,
-    };
+  async getPlatformAiCredential(): Promise<null> {
+    return null;
   }
 
   /**
@@ -355,21 +333,11 @@ export class AiService {
       select: { companyId: true, role: true, name: true },
     });
 
-    const platform = await this.getPlatformAiCredential();
-
-    // Users without a company (super admins) fall straight through to the platform key.
+    // No company means no AI. Super admins configure it for tenants; they do not
+    // borrow a shared credential of their own.
     if (!user?.companyId) {
-      if (!platform) {
-        this.logger.warn('AI requested by a user with no company and no platform key is configured');
-        return null;
-      }
-      return {
-        apiKey: platform.apiKey,
-        companyName: 'Platform',
-        provider: platform.provider,
-        companyId: 'platform',
-        model: platform.model,
-      };
+      this.logger.warn('AI requested by a user with no company. There is no platform key to fall back to.');
+      return null;
     }
 
     const company = await this.prisma.company.findUnique({
@@ -415,27 +383,13 @@ export class AiService {
       this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
     }
 
-    // The company's own key is only blocked by its own quota lockout. The shared
-    // platform key is not rate-limited per company, so it stays available.
+    // The company's own key, blocked only by its own cooldown.
     if (hasUsableCompanyKey && !company.aiQuotaExhausted) {
       return {
         apiKey: companyKey,
         companyName: company.name,
         provider: company.aiProvider || 'gemini',
         companyId: user.companyId,
-      };
-    }
-
-    if (platform) {
-      if (company.aiQuotaExhausted) {
-        this.logger.log(`Company ${company.name} is rate-limited, serving this request from the platform key.`);
-      }
-      return {
-        apiKey: platform.apiKey,
-        companyName: company.name,
-        provider: platform.provider,
-        companyId: user.companyId,
-        model: platform.model,
       };
     }
 
