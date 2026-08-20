@@ -6,9 +6,37 @@ import { firstValueFrom } from 'rxjs';
 import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 import { CompaniesService } from '../companies/companies.service';
 import { AIFeature } from '@prisma/client';
+import {
+  retryAfterSeconds,
+  cooldownFor,
+  isSameIncident,
+  STRIKE_DEBOUNCE_SECONDS,
+} from './quota-cooldown';
 
-/** How many minutes to wait before resetting quota after a rate-limit trip */
-const QUOTA_RESET_MINUTES = 60; // 1 hour for RPM limits; adjust if daily
+/**
+ * How long a rate-limit lockout lasts, when the provider does not tell us.
+ *
+ * This was an hour, which is what made AI unusable after a couple of prompts. Free
+ * tiers limit requests per *minute*: Gemini free allows about fifteen, Groq similar.
+ * That limit clears in sixty seconds, so answering it with a sixty minute lockout was
+ * sixty times longer than the thing it was protecting against, and the company spent
+ * the other fifty-nine minutes locked out of a provider that would have answered.
+ *
+ * Providers usually say how long to wait. That is honoured when present, and this is
+ * only the floor for when it is not.
+ */
+
+/**
+ * Rate-limit errors arriving closer together than this are one incident.
+ *
+ * Creating a single task fires generateContentFromAI and generateSubtasks back to
+ * back, and a chat message costs two upstream calls. On a per-minute limit those all
+ * fail together, which counted as several strikes for what the user experienced as
+ * one action. Five strikes then arrived in about two prompts, and the hour began.
+ */
+
+/** Window over which strikes accumulate before a lockout is considered. */
+const QUOTA_RESET_MINUTES = 15;
 
 /**
  * How many upstream rate-limit errors a company may hit inside QUOTA_RESET_MINUTES
@@ -27,7 +55,7 @@ export class AiService {
   private readonly aiServiceUrl: string;
 
   /** Rolling per-company rate-limit strike counter (see recordQuotaStrike). */
-  private readonly quotaStrikes = new Map<string, { count: number; windowStart: number }>();
+  private readonly quotaStrikes = new Map<string, { count: number; windowStart: number; lastAt: number }>();
 
   constructor(
     private readonly httpService: HttpService,
@@ -204,15 +232,27 @@ export class AiService {
    * previous behaviour, flag on the first 429, with a null reset for FREE_TRIAL , 
    * meant one rate-limited message permanently disabled AI for the whole company.
    */
-  private async recordQuotaStrike(companyId: string): Promise<void> {
+
+  private async recordQuotaStrike(companyId: string, retryHintSeconds?: number): Promise<void> {
     try {
       const now = Date.now();
       const windowMs = QUOTA_RESET_MINUTES * 60 * 1000;
       const entry = this.quotaStrikes.get(companyId);
+      const inWindow = entry && now - entry.windowStart < windowMs;
 
-      const strikes = entry && now - entry.windowStart < windowMs ? entry.count + 1 : 1;
-      const windowStart = entry && now - entry.windowStart < windowMs ? entry.windowStart : now;
-      this.quotaStrikes.set(companyId, { count: strikes, windowStart });
+      // One action, one strike. Creating a task fires two AI calls and a chat message
+      // fires two more; on a per-minute limit they fail together, and counting each as
+      // its own strike reached the lockout in about two prompts.
+      if (inWindow && isSameIncident(entry.lastAt, now)) {
+        this.logger.warn(
+          `AI rate limit for company ${companyId}, within ${STRIKE_DEBOUNCE_SECONDS}s of the last one. Same incident, not counted again.`,
+        );
+        return;
+      }
+
+      const strikes = inWindow ? entry.count + 1 : 1;
+      const windowStart = inWindow ? entry.windowStart : now;
+      this.quotaStrikes.set(companyId, { count: strikes, windowStart, lastAt: now });
 
       if (strikes < QUOTA_STRIKES_BEFORE_LOCKOUT) {
         this.logger.warn(
@@ -227,7 +267,11 @@ export class AiService {
       });
       if (!company || company.aiQuotaExhausted) return; // already flagged
 
-      const resetAt = new Date(windowStart + windowMs);
+      // Long enough to let the limit clear, short enough that the company is not
+      // locked out of a provider that would answer. The provider's own figure wins
+      // when it sent one.
+      const cooldownSeconds = cooldownFor(retryHintSeconds);
+      const resetAt = new Date(now + cooldownSeconds * 1000);
 
       await this.prisma.company.update({
         where: { id: companyId },
@@ -473,7 +517,7 @@ export class AiService {
       // Mark quota exhausted in DB so UI can gray out buttons
       if (isQuota) {
         const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.recordQuotaStrike(user.companyId);
+        if (user?.companyId) await this.recordQuotaStrike(user.companyId, retryAfterSeconds(error));
         throw new HttpException('AI quota exceeded. The API key has reached its usage limit. Please contact your administrator.', 429);
       }
 
@@ -535,7 +579,7 @@ export class AiService {
       const httpStatus = error.response?.status || 500;
       if (httpStatus === 429 || error.message?.includes('quota')) {
         const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.recordQuotaStrike(user.companyId);
+        if (user?.companyId) await this.recordQuotaStrike(user.companyId, retryAfterSeconds(error));
         throw new HttpException('AI quota exceeded.', 429);
       }
       return {
@@ -576,7 +620,7 @@ export class AiService {
       this.logger.error('Error summarizing text:', error.message);
       if (error.response?.status === 429 || error.message?.includes('quota')) {
         const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.recordQuotaStrike(user.companyId);
+        if (user?.companyId) await this.recordQuotaStrike(user.companyId, retryAfterSeconds(error));
       }
       return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
     }
