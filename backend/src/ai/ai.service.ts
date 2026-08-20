@@ -67,6 +67,29 @@ export class AiService {
     private readonly gateway: AiGatewayService,
   ) {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
+
+    /**
+     * Teach the gateway how to prove a key works.
+     *
+     * Registered rather than imported, because the gateway cannot depend on this
+     * service: this service already depends on it, and a circular provider is a
+     * runtime failure at startup rather than a compile error.
+     */
+    this.gateway.registerProber(async (credential) => {
+      const response = await firstValueFrom(
+        this.httpService.post(
+          `${this.aiServiceUrl}/test-ai`,
+          {
+            api_key: credential.apiKey,
+            provider: credential.provider,
+            model: credential.model ?? undefined,
+            text: 'Reply with the single word: ready',
+          },
+          { headers: this.aiServiceHeaders, timeout: 30000 },
+        ),
+      );
+      return response.data;
+    });
   }
 
   /** Authorization headers sent with every AI service request */

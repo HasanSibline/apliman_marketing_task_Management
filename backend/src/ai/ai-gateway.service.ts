@@ -322,6 +322,63 @@ export class AiGatewayService {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
+  /**
+   * Prove one entry works, by using it.
+   *
+   * Deliberately narrow: it runs the given entry and only that entry, because the point
+   * is to learn whether this key is good. Going through execute would let the chain
+   * rescue it and report success for a key that never answered.
+   *
+   * Success clears the entry's health, so testing a provider after topping up a quota
+   * also brings it back into service.
+   */
+  async testEntry(configId: string): Promise<void> {
+    const row = await this.prisma.aiProviderConfig.findUnique({ where: { id: configId } });
+    if (!row) throw new Error('That provider entry no longer exists.');
+
+    const entry: ChainEntry = {
+      id: row.id,
+      provider: row.provider,
+      model: row.model,
+      priority: row.priority,
+      enabled: true,
+      isEmergency: row.isEmergency,
+      status: 'HEALTHY',
+      createdAt: row.createdAt,
+    };
+
+    const credential = await this.credentialFor(entry, row.companyId);
+    if (!credential) throw new Error('That key could not be read. Enter it again.');
+
+    const startedAt = Date.now();
+    try {
+      await this.probe(credential);
+      await this.recordSuccess(entry, Date.now() - startedAt);
+    } catch (error: any) {
+      const verdict = classifyAiError(error);
+      await this.recordFailure(entry, verdict, error);
+      throw new Error(userFacingMessage(verdict.kind));
+    }
+  }
+
+  /**
+   * The smallest real call that proves a credential.
+   *
+   * Injected by AiService at startup rather than imported, because the gateway must not
+   * depend on the service that depends on it. Without one, a test reports that it
+   * cannot check rather than pretending the key is fine.
+   */
+  private prober?: (credential: ResolvedCredential) => Promise<unknown>;
+
+  registerProber(fn: (credential: ResolvedCredential) => Promise<unknown>): void {
+    this.prober = fn;
+  }
+
+  private async probe(credential: ResolvedCredential): Promise<unknown> {
+    if (!this.prober) throw new Error('Testing is unavailable right now.');
+    return this.prober(credential);
+  }
+
   /** What the admin dashboard reads. Never contains a key. */
   async healthFor(companyId: string) {
     const configs = await this.prisma.aiProviderConfig.findMany({

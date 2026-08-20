@@ -195,6 +195,33 @@ export class AiProvidersController {
     return this.safe(updated);
   }
 
+  /**
+   * Send one throwaway prompt through this entry, so an admin can find out a key is
+   * wrong now rather than the first time somebody needs the assistant.
+   *
+   * It goes through the gateway like everything else, which means a working entry also
+   * clears whatever cooldown it was carrying. Testing a provider and reviving it are
+   * the same act.
+   */
+  @Post(':id/test')
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
+  async test(@Param('id') id: string, @Request() req) {
+    const existing = await this.prisma.aiProviderConfig.findUnique({
+      where: { id },
+      select: { companyId: true, provider: true },
+    });
+    if (!existing) throw new BadRequestException('That provider entry no longer exists.');
+    this.scopeFor(req, existing.companyId);
+
+    try {
+      await this.gateway.testEntry(id);
+      return { ok: true, message: 'That key works.' };
+    } catch (e: any) {
+      // The classified reason, never the provider's raw text: it can quote a prompt back.
+      return { ok: false, message: e?.message ?? 'The provider did not accept that key.' };
+    }
+  }
+
   @Delete(':id')
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async remove(@Param('id') id: string, @Request() req) {

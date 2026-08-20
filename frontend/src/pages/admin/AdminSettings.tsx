@@ -7,9 +7,17 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
-import PlatformAiSettings, { PlatformAiConfig } from '@/components/admin/PlatformAiSettings';
+import AiProviderChain from '@/components/admin/AiProviderChain';
+import Select from '@/components/ui/Select';
 
-interface SystemSettings extends PlatformAiConfig {
+/**
+ * What is actually global.
+ *
+ * AI is no longer in here. A platform-wide key meant one company's traffic could
+ * exhaust a quota every other company then found missing, so providers are configured
+ * per company and this covers only the settings that genuinely apply to everybody.
+ */
+interface SystemSettings {
   maxFileSize: number;
   allowedFileTypes: string;
   sessionTimeout: number;
@@ -20,14 +28,30 @@ const AdminSettings: React.FC = () => {
     maxFileSize: 5242880, // 5MB
     allowedFileTypes: 'image/jpeg,image/png,image/webp,application/pdf',
     sessionTimeout: 480, // 8 hours
-    platformAiEnabled: false,
-    platformAiProvider: 'anthropic',
-    platformAiModel: null,
-    platformAiKeySet: false,
-    platformAiApiKey: '',
   });
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  /**
+   * Which company's AI is being configured.
+   *
+   * There is no platform-wide key any more, so this screen cannot configure "AI" in
+   * the abstract: a super admin picks the tenant whose chain they are editing.
+   */
+  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [companyId, setCompanyId] = useState('');
+
+  useEffect(() => {
+    api
+      .get('/companies')
+      .then(({ data }) => {
+        const list = Array.isArray(data) ? data : data?.companies ?? [];
+        setCompanies(list.map((c: any) => ({ id: c.id, name: c.name })));
+        // One company is the common case; picking it saves a click that has no choice in it.
+        if (list.length === 1) setCompanyId(list[0].id);
+      })
+      .catch(() => setCompanies([]));
+  }, []);
 
   useEffect(() => {
     fetchSystemSettings();
@@ -57,11 +81,6 @@ const AdminSettings: React.FC = () => {
         maxFileSize: settings.maxFileSize,
         allowedFileTypes: settings.allowedFileTypes,
         sessionTimeout: settings.sessionTimeout,
-        platformAiEnabled: settings.platformAiEnabled,
-        platformAiProvider: settings.platformAiProvider,
-        platformAiModel: settings.platformAiModel,
-        // An unchanged field still holds the mask, which the API treats as "keep".
-        platformAiApiKey: settings.platformAiApiKey,
       });
       if (data) setSettings((current) => ({ ...current, ...data }));
       toast.success('Settings saved');
@@ -153,10 +172,33 @@ const AdminSettings: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        <PlatformAiSettings
-          config={settings}
-          onChange={(next) => setSettings((current) => ({ ...current, ...next }))}
-        />
+        <div className="surface p-4">
+          <label htmlFor="ai-company" className="form-label">
+            Configure AI for
+          </label>
+          <Select
+            id="ai-company"
+            value={companyId}
+            onChange={(e) => setCompanyId(e.target.value)}
+            className="select-field sm:max-w-sm"
+          >
+            <option value="">Choose a company…</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </Select>
+          <p className="form-hint">
+            Each company has its own providers and its own keys. Nothing is shared between
+            them, so one running out of quota cannot affect another.
+          </p>
+        </div>
+
+        {companyId && (
+          <AiProviderChain
+            companyId={companyId}
+            companyName={companies.find((c) => c.id === companyId)?.name}
+          />
+        )}
 
         {settingsSections.map((section) => (
           <div key={section.title} className="bg-white dark:bg-gray-800 shadow rounded-lg">

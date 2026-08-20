@@ -598,6 +598,56 @@ export const analyticsApi = {
 }
 
 // AI API
+export const aiProvidersApi = {
+  /**
+   * A company's provider chain, with health and month-to-date spend.
+   *
+   * No key ever comes back from any of these: the server returns whether one is set
+   * and nothing more, so nothing here can leak a secret into browser memory, a network
+   * tab, or an error report.
+   */
+  list: async (companyId: string): Promise<any[]> => {
+    const response = await api.get(`/ai/providers/${companyId}`)
+    return response.data
+  },
+
+  create: async (data: {
+    companyId: string
+    provider: string
+    model?: string
+    apiKey: string
+    label?: string
+    priority?: number
+    isEmergency?: boolean
+    monthlyBudget?: number | null
+  }): Promise<any> => {
+    const response = await api.post('/ai/providers', data)
+    return response.data
+  },
+
+  update: async (id: string, data: Record<string, any>): Promise<any> => {
+    const response = await api.patch(`/ai/providers/${id}`, data)
+    return response.data
+  },
+
+  /** One live call through this entry, to find out now rather than when it is needed. */
+  test: async (id: string): Promise<{ ok: boolean; message: string }> => {
+    const response = await api.post(`/ai/providers/${id}/test`)
+    return response.data
+  },
+
+  /** Put an entry back in service without waiting out a cooldown that no longer applies. */
+  reset: async (id: string): Promise<any> => {
+    const response = await api.post(`/ai/providers/${id}/reset`)
+    return response.data
+  },
+
+  remove: async (id: string): Promise<any> => {
+    const response = await api.delete(`/ai/providers/${id}`)
+    return response.data
+  },
+}
+
 export const aiApi = {
   generateContent: async (title: string, type: string): Promise<any> => {
     const response = await api.post('/ai/generate-content', { title, type })
