@@ -4,13 +4,14 @@ import { AiService } from './ai.service';
 import { AiWarmupService } from './ai-warmup.service';
 import { AiGatewayService } from './ai-gateway.service';
 import { AiController } from './ai.controller';
+import { AiProvidersController } from './ai-providers.controller';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CompaniesModule } from '../companies/companies.module';
 import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [HttpModule, PrismaModule, forwardRef(() => CompaniesModule)],
-  controllers: [AiController],
+  controllers: [AiController, AiProvidersController],
   providers: [AiService, AiWarmupService, AiGatewayService],
   exports: [AiService, AiGatewayService],
 })

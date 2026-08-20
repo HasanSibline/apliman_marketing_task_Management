@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 import { CompaniesService } from '../companies/companies.service';
 import { AIFeature } from '@prisma/client';
+import { AiGatewayService } from './ai-gateway.service';
 import {
   retryAfterSeconds,
   cooldownFor,
@@ -63,6 +64,7 @@ export class AiService {
     private readonly prisma: PrismaService,
     @Inject(forwardRef(() => CompaniesService))
     private readonly companiesService: CompaniesService,
+    private readonly gateway: AiGatewayService,
   ) {
     this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
   }
@@ -412,84 +414,80 @@ export class AiService {
   // AI OPERATIONS (with usage tracking and quota enforcement)
   // ─────────────────────────────────────────────────────────────────────────
 
+  /**
+   * Send one AI-service call through the gateway.
+   *
+   * Every method below used to resolve a credential, post once, and treat any failure
+   * as the end of the matter. They hand the posting to the gateway now, so a rate limit
+   * on the first provider becomes an attempt on the second rather than an error the
+   * user reads, and none of them needed to learn what a provider is.
+   *
+   * The payload's api_key, provider and model are filled in per attempt, because each
+   * attempt may be a different provider entirely.
+   */
+  private async viaGateway<T>(
+    userId: string | undefined,
+    endpoint: string,
+    payload: Record<string, any>,
+    opts: { timeout?: number; feature?: AIFeature } = {},
+  ): Promise<T> {
+    if (!userId) throw new Error('User ID is required for AI features');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true },
+    });
+    if (!user?.companyId) {
+      throw new Error('AI is not enabled for your company. Ask your administrator to add a provider.');
+    }
+
+    return this.gateway.execute<T>(
+      user.companyId,
+      async (credential) => {
+        const response = await firstValueFrom(
+          this.httpService.post(
+            `${this.aiServiceUrl}${endpoint}`,
+            {
+              ...payload,
+              api_key: credential.apiKey,
+              company_name: credential.companyName,
+              provider: credential.provider,
+              model: credential.model ?? undefined,
+            },
+            { headers: this.aiServiceHeaders, timeout: opts.timeout ?? 60000 },
+          ),
+        );
+
+        if (opts.feature) {
+          this.trackUsage(userId, credential.companyId, opts.feature);
+        }
+        return response.data as T;
+      },
+      { label: endpoint.replace('/', '') },
+    );
+  }
+
   async generateContentFromAI(title: string, type: string, userId?: string): Promise<{
     description: string;
     goals: string;
     priority?: number;
     ai_provider?: string;
   }> {
-    try {
-      if (!userId) throw new Error('User ID is required for AI content generation');
+    const knowledgeSources = await this.getActiveKnowledgeSources(userId);
 
-      const companyInfo = await this.resolveAiCredential(userId);
-      if (!companyInfo) throw new Error('AI is not enabled for your company. Please ask your administrator to add an AI API key.');
+    const data = await this.viaGateway<any>(
+      userId,
+      '/generate-content',
+      { title, type, knowledge_sources: knowledgeSources },
+      { timeout: 60000, feature: AIFeature.TASK_GENERATION },
+    );
 
-      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
-          title,
-          type,
-          knowledge_sources: knowledgeSources,
-          api_key: companyInfo.apiKey,
-          company_name: companyInfo.companyName,
-          provider: companyInfo.provider,
-          model: companyInfo.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 60000,
-        }),
-      );
-
-      // Track usage after success (non-blocking)
-      this.clearQuotaStrikes(companyInfo.companyId);
-      if (companyInfo.companyId !== 'platform') {
-        this.trackUsage(userId, companyInfo.companyId, AIFeature.TASK_GENERATION);
-      }
-
-      return {
-        description: response.data.description,
-        goals: response.data.goals,
-        priority: response.data.priority,
-        ai_provider: response.data.ai_provider || 'gemini',
-      };
-    } catch (error) {
-      this.logger.error('❌ Error generating content from AI:', error.message);
-
-      const detail = error.response?.data?.detail;
-      const detailMessage = typeof detail === 'string' ? detail : detail?.message ?? JSON.stringify(detail ?? {});
-      const httpStatus = error.response?.status || 500;
-
-      const isQuota =
-        httpStatus === 429 ||
-        detailMessage?.includes('429') ||
-        error.message?.includes('quota') ||
-        detailMessage?.toLowerCase().includes('quota') ||
-        detailMessage?.toLowerCase().includes('rate limit') ||
-        detailMessage?.toLowerCase().includes('resource_exhausted');
-
-      // Mark quota exhausted in DB so UI can gray out buttons
-      if (isQuota) {
-        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.recordQuotaStrike(user.companyId, retryAfterSeconds(error));
-        throw new HttpException('AI quota exceeded. The API key has reached its usage limit. Please contact your administrator.', 429);
-      }
-
-      const isInvalidKey =
-        detailMessage?.toLowerCase().includes('api key not valid') ||
-        detailMessage?.toLowerCase().includes('api_key_invalid') ||
-        detailMessage?.toLowerCase().includes('api key expired');
-
-      if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-        throw new HttpException('AI service timed out. Please try again in a moment.', 504);
-      } else if (isInvalidKey) {
-        throw new HttpException('The AI API key is invalid or has been revoked. Please contact your administrator.', 503);
-      } else if (error.message?.includes('quota')) {
-        throw new HttpException(error.message, 429);
-      } else {
-        throw new HttpException(detailMessage || error.message || 'AI service error', httpStatus);
-      }
-    }
+    return {
+      description: data.description,
+      goals: data.goals,
+      priority: data.priority,
+      ai_provider: data.ai_provider || 'unknown',
+    };
   }
 
   async generateSubtasks(
@@ -502,40 +500,20 @@ export class AiService {
     },
     userId?: string,
   ): Promise<{ subtasks: any[]; ai_provider: string }> {
+    const knowledgeSources = await this.getActiveKnowledgeSources(userId);
+
     try {
-      const companyInfo = await this.resolveAiCredential(userId);
-      if (!companyInfo) throw new Error('AI is not enabled for your company.');
-
-      const knowledgeSources = await this.getActiveKnowledgeSources(userId);
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-subtasks`, {
-          ...data,
-          knowledgeSources,
-          api_key: companyInfo.apiKey,
-          company_name: companyInfo.companyName,
-          provider: companyInfo.provider,
-          model: companyInfo.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000,
-        }),
+      return await this.viaGateway<{ subtasks: any[]; ai_provider: string }>(
+        userId,
+        '/generate-subtasks',
+        { ...data, knowledgeSources },
+        { timeout: 45000, feature: AIFeature.SUBTASK_GENERATION },
       );
-
-      this.clearQuotaStrikes(companyInfo.companyId);
-      if (companyInfo.companyId !== 'platform') {
-        this.trackUsage(userId, companyInfo.companyId, AIFeature.SUBTASK_GENERATION);
-      }
-
-      return response.data;
-    } catch (error) {
-      this.logger.error('Error generating subtasks:', error.message);
-      const httpStatus = error.response?.status || 500;
-      if (httpStatus === 429 || error.message?.includes('quota')) {
-        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.recordQuotaStrike(user.companyId, retryAfterSeconds(error));
-        throw new HttpException('AI quota exceeded.', 429);
-      }
+    } catch (error: any) {
+      // Only reached once the gateway has exhausted every provider. A generic pair of
+      // subtasks is a worse answer than a real one and a much better answer than a
+      // failed task creation, so the task still gets made.
+      this.logger.warn(`Subtask generation fell back to a stub: ${error.message}`);
       return {
         subtasks: [
           { title: 'Planning', description: 'Plan execution', phaseName: 'Planning', suggestedRole: 'Project Manager', estimatedHours: 2 },
@@ -548,34 +526,16 @@ export class AiService {
 
   async summarizeText(text: string, maxLength: number = 150, userId?: string): Promise<string> {
     try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/summarize`, {
-          text,
-          max_length: maxLength,
-          api_key: info.apiKey,
-          provider: info.provider,
-          model: info.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000,
-        }),
+      const data = await this.viaGateway<{ summary: string }>(
+        userId,
+        '/summarize',
+        { text, max_length: maxLength },
+        { timeout: 45000, feature: AIFeature.MEETING_SUMMARY },
       );
-
-      this.clearQuotaStrikes(info.companyId);
-      if (info.companyId !== 'platform') {
-        this.trackUsage(userId, info.companyId, AIFeature.MEETING_SUMMARY);
-      }
-
-      return response.data.summary;
-    } catch (error) {
-      this.logger.error('Error summarizing text:', error.message);
-      if (error.response?.status === 429 || error.message?.includes('quota')) {
-        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) await this.recordQuotaStrike(user.companyId, retryAfterSeconds(error));
-      }
+      return data.summary;
+    } catch (error: any) {
+      // Truncation is a poor summary but an honest one, and it never fails.
+      this.logger.warn(`Summarise fell back to truncation: ${error.message}`);
       return text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
     }
   }
@@ -585,26 +545,20 @@ export class AiService {
     reasoning: string;
   }> {
     try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) return { suggestedPriority: 3, reasoning: 'AI not available.' };
-
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/analyze-priority`, {
-          title: taskTitle,
-          description: taskDescription,
-          api_key: info.apiKey,
-          provider: info.provider,
-          model: info.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000,
-        }),
+      const data = await this.viaGateway<any>(
+        userId,
+        '/analyze-priority',
+        { title: taskTitle, description: taskDescription },
+        { timeout: 45000 },
       );
-
-      return { suggestedPriority: response.data.priority, reasoning: response.data.reasoning };
-    } catch (error) {
-      this.logger.error('Error analyzing priority:', error.message);
-      return { suggestedPriority: 3, reasoning: 'Unable to analyze priority.' };
+      return {
+        suggestedPriority: data.suggested_priority ?? data.suggestedPriority ?? 3,
+        reasoning: data.reasoning ?? '',
+      };
+    } catch (error: any) {
+      // A middling priority somebody can change beats blocking the form.
+      this.logger.warn(`Priority analysis unavailable: ${error.message}`);
+      return { suggestedPriority: 3, reasoning: 'AI not available.' };
     }
   }
 
