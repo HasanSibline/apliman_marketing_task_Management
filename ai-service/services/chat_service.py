@@ -651,9 +651,11 @@ unless they ask.
             prompt += "\n=== COMPETITIVE INTELLIGENCE ===\n"
             prompt += f"Use this information to help {company_name} compete effectively:\n\n"
             
-            for source in competitor_sources[:2]:  # Limit to top 2
+            # Every competitor, for the same reason. A question about the third one
+            # cannot be answered from the first two however much of them is sent.
+            for source in competitor_sources:
                 if source.get('content'):
-                    content = source['content'][:1500]
+                    content = source['content'][:4000]
                     prompt += f"\n{source.get('name', 'Competitor')}:\n{content}\n"
                     has_competitor_content = True
                 elif source.get('description'):

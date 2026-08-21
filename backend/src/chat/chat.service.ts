@@ -8,6 +8,7 @@ import { CompaniesService } from '../companies/companies.service';
 import { MicrosoftService } from '../microsoft/microsoft.service';
 import { AiService } from '../ai/ai.service';
 import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from './dto/chat.dto';
+import { selectAcrossSources } from './knowledge-selection';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -1069,13 +1070,25 @@ export class ChatService {
       this.logger.log(`📦 Payload DTO files: ${dto.files?.length || 0}`);
       this.logger.log(`📦 Normalized files to send to AI: ${normalizedFiles.length}`);
 
+      /**
+       * Trim the knowledge to what bears on this question.
+       *
+       * The prompt builder takes the first two sources and the first 1500 characters
+       * of each, so a third competitor never arrived and anything past a few hundred
+       * words of the first two was dropped, without the reply revealing it. Selecting
+       * here means every source is represented and the parts sent are the relevant
+       * ones, on roughly the same token budget as before, which matters because that
+       * budget is what a free tier meters.
+       */
+      const relevantKnowledge = selectAcrossSources(knowledgeSources, dto.message);
+
       // Call AI service with company name
       const chatPayload = {
         message: dto.message,
         userContext: userContext.context,
         user,
         conversationHistory,
-        knowledgeSources,
+        knowledgeSources: relevantKnowledge,
         additionalContext,
         isDeepAnalysis,
         api_key: aiApiKey, // CRITICAL: Pass resolved API key (snake_case for Python)
