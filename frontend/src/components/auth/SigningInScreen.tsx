@@ -55,7 +55,12 @@ const PANELS = {
   task: { x: 3, y: 43, w: 44, aim: { x: 0.09, y: 0.34 } }, // the checkbox, not the middle
   stats: { x: 53, y: 8, w: 44, aim: { x: 0.5, y: 0.5 } },
   agenda: { x: 53, y: 41, w: 44, aim: { x: 0.5, y: 0.86 } }, // the summarise button
-  chat: { x: 3, y: 80, w: 94, aim: { x: 0.5, y: 0.5 } },
+  // y is an aim point for the pointer here, not a position. The chat lane is pinned to
+  // the bottom of the stage instead, because it is the one panel that grows upward: the
+  // answer bubble renders above the input. Positioned from the top at 80 it sat across
+  // the agenda card's summarise button on a short viewport, and simply moving it down
+  // would have pushed the input off the bottom of the screen once an answer appeared.
+  chat: { x: 3, y: 86, w: 94, aim: { x: 0.5, y: 0.5 } },
 } as const
 
 type PanelName = keyof typeof PANELS
@@ -367,6 +372,10 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
   // empty frame, so the card reads as measured-and-empty rather than broken.
   const peak = Math.max(1, ...bars.map((b) => b.value))
 
+  /** The chart row's height in pixels. Bars are sized against this, never against a
+   *  percentage of a parent that has no height of its own to take a percentage of. */
+  const TRACK_PX = 80
+
   const meetings = real.meetings ?? [
     { at: '10:00', title: 'Team stand-up' },
     { at: '13:30', title: 'Campaign review' },
@@ -632,16 +641,33 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
 
               {/* Bars grow from nothing when the pointer arrives, so the number is read
                   as being measured rather than as having always been there. */}
-              <div className="mt-4 flex h-20 items-end gap-3">
+              {/*
+                * Heights in pixels, not percentages.
+                *
+                * Each bar used to animate to a percentage height, but its parent was the
+                * auto-height column wrapping it rather than the h-20 row. A percentage of
+                * an indefinite height resolves to nothing, so every bar computed a height
+                * and then drew at zero: the card showed a headline figure, a row of
+                * labels, and a blank space where the chart belonged.
+                *
+                * TRACK_PX is the row's own height, so the arithmetic below is against a
+                * number this file controls rather than against whatever the layout
+                * happened to give the parent.
+                */}
+              <div className="mt-4 flex items-end gap-3" style={{ height: TRACK_PX }}>
                 {bars.map((b, i) => (
-                  <div key={b.label} className="flex flex-1 flex-col items-center gap-1.5">
+                  <div key={b.label} className="flex h-full flex-1 flex-col items-center justify-end gap-1.5">
+                    <span className="text-[11px] font-semibold tabular-nums text-gray-200">{b.value}</span>
                     <motion.div
-                      className="w-full rounded-t bg-gradient-to-t from-primary-600 to-primary-400"
+                      className="w-full shrink-0 rounded-t bg-gradient-to-t from-primary-600 to-primary-400"
                       initial={{ height: 0 }}
-                      animate={{ height: statsUp ? `${Math.max(8, (b.value / peak) * 100)}%` : 0 }}
+                      animate={{
+                        // A floor of 4px, so a genuine zero still reads as a measured
+                        // zero rather than as a bar that failed to draw.
+                        height: statsUp ? Math.max(4, (b.value / peak) * (TRACK_PX - 20)) : 0,
+                      }}
                       transition={{ duration: 0.5, delay: i * 0.09, ease: 'easeOut' }}
                     />
-                    <span className="text-[10px] tabular-nums text-gray-400">{b.value}</span>
                   </div>
                 ))}
               </div>
@@ -658,7 +684,10 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
             {/* ── Today's meetings, and the AI reading them ──────────────── */}
             <motion.div
               className={card}
-              style={box('agenda')}
+              // The cap is what makes the lane a lane. Everything here is positioned by
+              // percentage and sized by content, so without a ceiling this card grows
+              // with whatever it is given and walks into the assistant below it.
+              style={{ ...box('agenda'), maxHeight: '44vh', overflow: 'hidden' }}
               animate={{ borderColor: summarised ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.10)' }}
               transition={{ duration: 0.3 }}
             >
@@ -696,7 +725,7 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     transition={{ duration: 0.35 }}
-                    className="mt-2.5 overflow-hidden text-[11px] leading-relaxed text-gray-400"
+                    className="mt-2.5 line-clamp-2 overflow-hidden text-[11px] leading-relaxed text-gray-400"
                   >
                     {meetings.length} meetings, back to back after lunch.
                     {real.dueToday ? ` ${real.dueToday} due today, so the morning is the only clear run.` : ' The morning is your clear run.'}
@@ -706,7 +735,10 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
             </motion.div>
 
             {/* ── The assistant ──────────────────────────────────────────── */}
-            <div className="absolute" style={box('chat')}>
+            <div
+              className="absolute"
+              style={{ left: `${PANELS.chat.x}%`, width: `${PANELS.chat.w}%`, bottom: '5%' }}
+            >
               <AnimatePresence>
                 {answered && (
                   <motion.div

@@ -254,10 +254,17 @@ const MeetingDetailPage: React.FC = () => {
                         onClick={handleGenerateAI}
                         disabled={summarizing}
                         className={`
-                            flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg
+                            flex items-center space-x-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all
                             ${summarizing
                                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-400'
-                                : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95 shadow-indigo-200'}
+                                : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:scale-105 active:scale-95 ' +
+                                  // shadow-indigo-200 is a near-white shadow. On the light
+                                  // theme it reads as a soft lift; on the dark one it became
+                                  // a pale halo around the button, brighter than the button
+                                  // itself and brighter than anything else on the page. A
+                                  // shadow is meant to sit behind a thing, so on dark it is
+                                  // cast in the surface's own colour instead of in light.
+                                  'shadow-lg shadow-indigo-500/25 dark:shadow-xl dark:shadow-indigo-950/60'}
                         `}
                     >
                         {summarizing ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <SparklesIcon className="h-4 w-4" />}
@@ -293,9 +300,22 @@ const MeetingDetailPage: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/*
+                              * Each state carries a dark palette of its own.
+                              *
+                              * Only the third one did. The other two were bg-amber-50 and
+                              * bg-green-50 with no dark variant, so the moment a meeting had
+                              * a transcript this badge turned into a near-white block sitting
+                              * on a dark navy card, which is how the empty state came to be
+                              * the only one that looked deliberate.
+                              */}
                             <div className={`
                                 px-4 py-2 rounded-xl border flex items-center space-x-2
-                                ${isChatFallback ? 'bg-amber-50 border-amber-100 text-amber-700' : transcript ? 'bg-green-50 border-green-100 text-green-700' : 'bg-gray-50 dark:bg-gray-900/40 border-gray-100 dark:border-gray-700 text-gray-500 dark:text-gray-400'}
+                                ${isChatFallback
+                                    ? 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/25 text-amber-700 dark:text-amber-300'
+                                    : transcript
+                                      ? 'bg-green-50 dark:bg-emerald-500/10 border-green-100 dark:border-emerald-500/25 text-green-700 dark:text-emerald-300'
+                                      : 'bg-gray-50 dark:bg-white/[0.04] border-gray-100 dark:border-white/10 text-gray-500 dark:text-gray-400'}
                             `}>
                                 <div className={`h-2 w-2 rounded-full animate-pulse ${isChatFallback ? 'bg-amber-500' : transcript ? 'bg-green-500' : 'bg-gray-300'}`} />
                                 <span className="text-xs font-semibold tracking-wide leading-none mt-0.5">
