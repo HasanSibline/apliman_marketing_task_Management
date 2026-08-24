@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 import google.generativeai as genai
 from datetime import datetime
 import json
@@ -7,6 +7,9 @@ import os
 import aiohttp
 import asyncio
 from .context_learning import ContextLearningService
+# Shared with the content generator so both services report token counts under the
+# same two key names, and drop an empty report the same way.
+from .content_generator import Usage, add_usage, normalise_usage
 
 from config import get_config
 
@@ -178,15 +181,21 @@ class ChatService:
                 has_files=(has_media or has_docs) # Flag active if any asset is attached
             )
 
+            # Tokens this message costs, summed over every upstream call below. The
+            # gateway records one usage row per HTTP response, so the figure it stores
+            # has to cover the whole response rather than one call inside it.
+            usage_total: Usage = None
+            call_usage: Usage = None
+
             # Generate response via appropriate provider
             if self.provider == "anthropic":
                 # Claude reads images and PDFs natively, so attachments go through as
                 # real content blocks rather than being rejected like the text-only
                 # OpenAI-compatible providers below.
-                from .anthropic_client import generate as anthropic_generate
+                from .anthropic_client import generate_with_usage as anthropic_generate
 
                 user_prompt = f"{history_text}\n\nUser: {message}\nAura Assist:"
-                response_text = await anthropic_generate(
+                response_text, call_usage = await anthropic_generate(
                     api_key=self.api_key,
                     prompt=user_prompt,
                     system_prompt=system_prompt,
@@ -197,7 +206,7 @@ class ChatService:
                 # Groq and OpenAI share the OpenAI-compatible chat API. We flatten the
                 # prompt (it already includes any appended document text).
                 full_prompt = f"{system_prompt}\n\n{history_text}\n\nUser: {message}\nAura Assist:"
-                response_text = await self._generate_via_openai_compatible(full_prompt)
+                response_text, call_usage = await self._generate_via_openai_compatible(full_prompt)
             else:
                 # Only Gemini handles image attachments here. Groq/OpenAI text models used
                 # in this deployment don't do vision, and we never fall back to a platform key.
@@ -213,7 +222,7 @@ class ChatService:
 
                 # Primary attempt via REST (Gemini)
                 try:
-                    response_text = await self._generate_via_rest(
+                    response_text, call_usage = await self._generate_via_rest(
                         message=message,
                         system_prompt=system_prompt,
                         history_text=history_text,
@@ -227,6 +236,7 @@ class ChatService:
                     raise rest_e
                 
             response_text = response_text.strip()
+            usage_total = add_usage(usage_total, call_usage)
 
             # Use AI to intelligently extract and update context
             learned_context = None
@@ -245,11 +255,24 @@ class ChatService:
             if learned_context:
                 logger.debug(f"✅ Learned new context")
 
-            return {
+            result: Dict[str, Any] = {
                 "message": response_text,
                 "contextUsed": True,
                 "learnedContext": learned_context
             }
+
+            # Omitted, never zeroed, when the provider reported nothing: the backend
+            # reads an all-zero report as a broken measurement and prices the call from
+            # its own estimate instead, which is the better answer here.
+            #
+            # KNOWN UNDER-COUNT: the context-learning call above is a second upstream
+            # call per message and its tokens are not in this total, because
+            # ContextLearningService returns text only. Whoever gives it a usage return
+            # should add it here.
+            if usage_total:
+                result["usage"] = usage_total
+
+            return result
 
         except Exception as e:
             error_msg = str(e)
@@ -268,8 +291,11 @@ class ChatService:
                 "learnedContext": None
             }
 
-    async def _generate_via_openai_compatible(self, prompt: str) -> str:
-        """OpenAI-compatible chat API (Groq or OpenAI) with company-key rotation on 429."""
+    async def _generate_via_openai_compatible(self, prompt: str) -> Tuple[str, Usage]:
+        """OpenAI-compatible chat API (Groq or OpenAI) with company-key rotation on 429.
+
+        Returns the answer and the token counts the provider reported with it.
+        """
         url = f"{self.base_url}/chat/completions"
         payload = {
             "model": self.model_name,
@@ -291,7 +317,11 @@ class ChatService:
                     async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=30)) as response:
                         if response.status == 200:
                             data = await response.json()
-                            return data['choices'][0]['message']['content']
+                            reported = data.get('usage') or {}
+                            return (
+                                data['choices'][0]['message']['content'],
+                                normalise_usage(reported.get('prompt_tokens'), reported.get('completion_tokens')),
+                            )
                         error_text = await response.text()
                         logger.error(f"❌ {self.provider} Chat API error ({response.status}): {error_text[:200]}")
                         last_error = f"{self.provider} API failure ({response.status}): {error_text}"
@@ -318,8 +348,11 @@ class ChatService:
         history_text: str,
         files: Optional[List[Dict[str, Any]]] = None, 
         user_token: Optional[str] = None
-    ) -> str:
-        """Make a request to Gemini API via REST with multi-modal parts"""
+    ) -> Tuple[str, Usage]:
+        """Make a request to Gemini API via REST with multi-modal parts.
+
+        Returns the answer and the token counts Google reported with it.
+        """
         attempts = 0
         last_error = None
 
@@ -517,12 +550,21 @@ class ChatService:
                     async with session.post(auth_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=50)) as response:
                         if response.status == 200:
                             data = await response.json()
+                            reported = data.get('usageMetadata') or {}
+                            # A refused answer was still generated and still billed, so
+                            # both exits carry the same counts.
+                            call_usage = normalise_usage(
+                                reported.get('promptTokenCount'), reported.get('candidatesTokenCount')
+                            )
                             if data.get('candidates'):
                                 candidate = data['candidates'][0]
                                 if candidate.get('content'):
-                                    return candidate['content']['parts'][0]['text']
+                                    return candidate['content']['parts'][0]['text'], call_usage
                                 elif candidate.get('finishReason'):
-                                    return f"⚠️ Google Gemini chose not to respond due to Safety/Policy settings (Finish Reason: {candidate['finishReason']})"
+                                    return (
+                                        f"⚠️ Google Gemini chose not to respond due to Safety/Policy settings (Finish Reason: {candidate['finishReason']})",
+                                        call_usage,
+                                    )
                         
                         # Handle errors
                         try:
@@ -618,10 +660,12 @@ unless they ask.
 
 
         # Add user context (memory from past conversations)
+        # Keys ending in lastUpdated or _learnedAt are the backend's own bookkeeping about
+        # when it last refreshed this memory. They say nothing about the person.
         if user_context and len(user_context) > 0:
             prompt += "\nWhat I remember about you:\n"
             for key, value in user_context.items():
-                if key != 'lastUpdated' and value:
+                if key != 'lastUpdated' and not key.endswith('_learnedAt') and value:
                     prompt += f"- {key}: {value}\n"
 
         # Add company knowledge (COMPANY or OWN_COMPANY type)
@@ -630,9 +674,12 @@ unless they ask.
         
         if company_sources:
             prompt += f"\n=== About {company_name} ===\n"
-            for source in company_sources[:3]:  # Limit to top 3
+            # Every company source, not the first three. The backend has already trimmed
+            # each source to the passages that bear on the question, so the cap here only
+            # discarded material that selection had deliberately kept.
+            for source in company_sources:
                 if source.get('content'):
-                    content = source['content'][:2000]
+                    content = source['content'][:4000]
                     prompt += f"\n{source.get('name', 'Source')}:\n{content}\n"
                     has_company_content = True
                 elif source.get('description'):
@@ -802,6 +849,15 @@ replies; use a comma, a colon, or a full stop instead. Use "to" for ranges.
             history_text += f"{role}: {content}\n"
 
         return history_text
+
+    def learning_usage_report(self) -> Usage:
+        """What the background learning calls cost, for the endpoints that only do that.
+
+        Separate from the chat path's own accumulation: learn_from_task_history and
+        learn_about_domain_interests delegate straight to ContextLearningService and
+        never touch this instance's own counters, so reading those would report nothing.
+        """
+        return self.learning_service.usage_report()
 
     async def learn_from_task_history(
         self,

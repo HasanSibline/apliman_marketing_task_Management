@@ -2,7 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
-import { deriveObjectiveStatus, elapsedFraction, objectiveProgress, didObjectiveLand, keyResultProgress, isKeyResultMet, yearVerdict } from '../okr/okr-math';
+import { deriveObjectiveStatus, elapsedFraction, objectiveProgress, objectivePercent, didObjectiveLand, keyResultPercent, isKeyResultMet, yearVerdict } from '../okr/okr-math';
+import { realTasksOnly } from '../tasks/task-filters';
 
 /**
  * Keeps quarters and objectives honest about time.
@@ -109,7 +110,7 @@ export class OkrAutomationService {
       if (daysOver !== 1 && daysOver % 7 !== 0) continue;
 
       const openTasks = await this.prisma.task.count({
-        where: { quarterId: quarter.id, phase: { notIn: ['COMPLETED', 'ARCHIVED'] } },
+        where: realTasksOnly({ quarterId: quarter.id, phase: { notIn: ['COMPLETED', 'ARCHIVED'] } }),
       });
 
       await this.notifyCompanyAdmins(
@@ -449,7 +450,9 @@ export class OkrAutomationService {
     if (openQuarters.length === 0) return { tasksRolledOver: 0, tasksReleased: 0 };
 
     const quarterIds = openQuarters.map((q) => q.id);
-    // Read both sets before writing, while the links still point somewhere.
+    // Read both sets before writing, while the links still point somewhere. Left
+    // unfiltered on purpose: these decide what the updates below touch, so they have
+    // to reach subtask mirror rows too, or one is orphaned in a closed year.
     const [rollingOver, beingReleased] = await Promise.all([
       rolloverTaskIds.length > 0
         ? this.prisma.task.findMany({
@@ -522,11 +525,11 @@ export class OkrAutomationService {
     if (quarters.length === 0) return { quarters: [], tasks: [] };
 
     const tasks = await this.prisma.task.findMany({
-      where: {
+      where: realTasksOnly({
         companyId,
         quarterId: { in: quarters.map((q) => q.id) },
         phase: { notIn: ['COMPLETED', 'ARCHIVED'] },
-      },
+      }),
       select: {
         id: true,
         title: true,
@@ -581,12 +584,12 @@ export class OkrAutomationService {
     // Task counts per quarter, in two queries rather than one per quarter.
     const [taskTotals, taskDone] = await Promise.all([
       quarterIds.length
-        ? this.prisma.task.groupBy({ by: ['quarterId'], where: { quarterId: { in: quarterIds } }, _count: true })
+        ? this.prisma.task.groupBy({ by: ['quarterId'], where: realTasksOnly({ quarterId: { in: quarterIds } }), _count: true })
         : Promise.resolve([] as any[]),
       quarterIds.length
         ? this.prisma.task.groupBy({
             by: ['quarterId'],
-            where: { quarterId: { in: quarterIds }, phase: { in: ['COMPLETED', 'ARCHIVED'] } },
+            where: realTasksOnly({ quarterId: { in: quarterIds }, phase: { in: ['COMPLETED', 'ARCHIVED'] } }),
             _count: true,
           })
         : Promise.resolve([] as any[]),
@@ -601,7 +604,7 @@ export class OkrAutomationService {
         title: o.title,
         owner: o.ownerId ? ownerName.get(o.ownerId) ?? null : null,
         status: o.status,
-        progress: Math.round(objectiveProgress(o.keyResults) * 100),
+        progress: objectivePercent(o.keyResults),
         landed: didObjectiveLand(o.keyResults),
         keyResults: o.keyResults.map((kr) => ({
           title: kr.title,
@@ -609,7 +612,7 @@ export class OkrAutomationService {
           start: kr.startValue,
           target: kr.targetValue,
           current: Math.round(kr.currentValue * 100) / 100,
-          progress: Math.round(keyResultProgress(kr) * 100),
+          progress: keyResultPercent(kr),
           met: isKeyResultMet(kr),
         })),
       }));

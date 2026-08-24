@@ -45,7 +45,7 @@ try {
         Write-Host "  Slug: $($company.slug)" -ForegroundColor Gray
         Write-Host "  AI Enabled: $($company.aiEnabled)" -ForegroundColor $(if ($company.aiEnabled) { "Green" } else { "Yellow" })
         Write-Host "  AI Provider: $($company.aiProvider)" -ForegroundColor Gray
-        Write-Host "  AI API Key: $($company.aiApiKey)" -ForegroundColor $(if ($company.aiApiKey) { "Green" } else { "Red" })
+        Write-Host "  AI Key Set: $($company.aiApiKey -ne $null)" -ForegroundColor $(if ($company.aiApiKey) { "Green" } else { "Red" })
     }
     Write-Host ""
 } catch {
@@ -66,13 +66,10 @@ try {
     Write-Host "  Name: $($companyDetails.name)" -ForegroundColor Cyan
     Write-Host "  AI Enabled: $($companyDetails.aiEnabled)" -ForegroundColor $(if ($companyDetails.aiEnabled) { "Green" } else { "Yellow" })
     Write-Host "  AI Provider: $($companyDetails.aiProvider)" -ForegroundColor Gray
-    Write-Host "  AI API Key: $($companyDetails.aiApiKey)" -ForegroundColor $(if ($companyDetails.aiApiKey) { "Green" } else { "Red" })
-    
-    if ($companyDetails.aiApiKey) {
-        $keyLength = $companyDetails.aiApiKey.Length
-        Write-Host "  API Key Length: $keyLength characters" -ForegroundColor Gray
-        Write-Host "  API Key Preview: $($companyDetails.aiApiKey.Substring(0, [Math]::Min(20, $keyLength)))..." -ForegroundColor Gray
-    }
+    # The key itself is deliberately not printed, and is no longer returned. The API
+    # reports only whether one is set, so this script cannot echo a live credential to
+    # a terminal or a shell history.
+    Write-Host "  AI Key Set: $($companyDetails.aiKeySet)" -ForegroundColor $(if ($companyDetails.aiKeySet) { "Green" } else { "Red" })
     Write-Host ""
 } catch {
     Write-Host "❌ Failed to fetch company details: $($_.Exception.Message)" -ForegroundColor Red
@@ -101,13 +98,7 @@ if ($testUpdate -eq "y") {
             Write-Host "Verifying update..." -ForegroundColor Yellow
             $verifyDetails = Invoke-RestMethod -Uri "$BACKEND_URL/api/companies/$companyId" -Method Get -Headers $headers
             Write-Host "  AI Enabled: $($verifyDetails.aiEnabled)" -ForegroundColor $(if ($verifyDetails.aiEnabled) { "Green" } else { "Yellow" })
-            Write-Host "  AI API Key: $($verifyDetails.aiApiKey)" -ForegroundColor $(if ($verifyDetails.aiApiKey) { "Green" } else { "Red" })
-            
-            if ($verifyDetails.aiApiKey) {
-                $keyLength = $verifyDetails.aiApiKey.Length
-                Write-Host "  API Key Length: $keyLength characters" -ForegroundColor Gray
-                Write-Host "  API Key Preview: $($verifyDetails.aiApiKey.Substring(0, [Math]::Min(20, $keyLength)))..." -ForegroundColor Gray
-            }
+            Write-Host "  AI Key Set: $($verifyDetails.aiKeySet)" -ForegroundColor $(if ($verifyDetails.aiKeySet) { "Green" } else { "Red" })
             
             Write-Host ""
             Write-Host "✅ Verification successful! API key is saved and retrieved correctly." -ForegroundColor Green

@@ -102,6 +102,25 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
     scrollToBottom()
   }, [messages, isTyping, streamingMessage])
 
+  /**
+   * Nothing outlives the panel.
+   *
+   * A reply can be a minute coming and is then typed out a word at a time over several
+   * seconds more, all of it writing state. Signing out or navigating away used to leave
+   * the request running and the typing loop still going, against a component that no
+   * longer exists, holding a conversation nobody can see.
+   */
+  const alive = useRef(true)
+  const inFlight = useRef<AbortController | null>(null)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+      inFlight.current?.abort()
+      inFlight.current = null
+    }
+  }, [])
+
   // Focus input when chat opens and load data
   useEffect(() => {
     if (isOpen) {
@@ -270,6 +289,10 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
     setIsTyping(true)
     setStreamingMessage('')
 
+    inFlight.current?.abort()
+    const controller = new AbortController()
+    inFlight.current = controller
+
     try {
       const response = await api.post(
         '/chat/message',
@@ -283,7 +306,12 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
         // from a hang. The server gives up at fifty seconds and answers, so this only
         // has to outlast that answer arriving, and guarantees the indicator stops
         // either way, since a request that settles is what clears it.
-        { timeout: 65000 },
+        //
+        // quiet, because everything that can go wrong here is answered in the
+        // conversation itself. Without it the shared handler adds a second toast
+        // beside ours, and for a failure that is permanent that second toast is the
+        // one saying to try again in a moment.
+        { timeout: 65000, quiet: true, signal: controller.signal },
       )
 
       if (response.data.sessionId && !sessionId) {
@@ -300,11 +328,15 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
       let currentText = ''
 
       for (let i = 0; i < words.length; i++) {
+        // Checked each word, not once at the top: a long reply types for several
+        // seconds and the panel can be torn down anywhere inside that.
+        if (!alive.current) return
         currentText += (i > 0 ? ' ' : '') + words[i]
         setStreamingMessage(currentText)
         // Adjust speed: faster for shorter words, slower for longer
         await new Promise(resolve => setTimeout(resolve, 30 + Math.random() * 40))
       }
+      if (!alive.current) return
 
       // Add the complete message
       const assistantMessage: Message = {
@@ -322,41 +354,90 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
       })
       setStreamingMessage('')
     } catch (error: any) {
+      // Abandoned on purpose, by the teardown above. Not a failure, and there is
+      // nothing left to say it to.
+      if (error?.code === 'ERR_CANCELED' || error?.name === 'CanceledError') return
+      if (!alive.current) return
+
       console.error('Error sending message:', error)
-      
-      // Extract the actual error message from the response
-      let errorMsg = 'Failed to send message'
-      if (error.response?.data?.message) {
-        errorMsg = error.response.data.message
-      } else if (error.response?.data?.detail) {
-        errorMsg = typeof error.response.data.detail === 'string'
-          ? error.response.data.detail
-          : error.response.data.detail.message || 'AI service error'
-      } else if (error.message) {
-        errorMsg = error.message
+
+      /**
+       * What went wrong, decided from the response rather than by reading words in it.
+       *
+       * The old version searched the error text for "network" and "trouble connecting"
+       * and apologised for the connection when it found them. Everything else was
+       * shown raw, so a request that ran out of time told people "timeout of 65000ms
+       * exceeded".
+       *
+       * AI failures now arrive classified. The backend sends a `kind` alongside the
+       * message, so a state that needs an administrator can be told apart from one
+       * worth waiting out. That distinction is the whole point: a company with no
+       * provider configured would otherwise sit here retrying forever on the advice of
+       * a message that said "try again in a moment".
+       *
+       * The message itself is the server's. It is written for the reader and never
+       * names a provider, a status code or anything derived from a key, so it is shown
+       * as sent rather than reworded here.
+       */
+      const status: number | undefined = error.response?.status
+      const detail = error.response?.data?.detail
+      const serverMessage: string | undefined =
+        (typeof error.response?.data?.message === 'string' ? error.response.data.message : undefined) ||
+        (typeof detail === 'string' ? detail : undefined) ||
+        (typeof detail?.message === 'string' ? detail.message : undefined)
+
+      /** Set when the failure came from the AI layer rather than from the transport. */
+      const kind: string | undefined = error.response?.data?.kind
+
+      /**
+       * States an administrator has to clear. Retrying changes nothing, so the message
+       * must not suggest it, and the composer stays usable only because the person may
+       * still want to scroll back through what they already have.
+       */
+      const needsAnAdministrator =
+        kind === 'NOT_CONFIGURED' ||
+        kind === 'BUDGET_EXHAUSTED' ||
+        kind === 'INVALID_API_KEY' ||
+        kind === 'AUTHENTICATION_ERROR' ||
+        kind === 'ENDPOINT_NOT_FOUND'
+
+      const unexplained500 =
+        status !== undefined &&
+        status >= 500 &&
+        (!serverMessage || /^internal server error$/i.test(serverMessage.trim()))
+
+      let errorMsg: string
+      if (error.code === 'ECONNABORTED') {
+        errorMsg = 'That took longer than I could wait for. Try asking again.'
+      } else if (!error.response || error.message === 'Network Error') {
+        errorMsg = "I'm having trouble connecting right now. Please try again in a moment."
+      } else if (serverMessage && kind) {
+        // Classified by the backend, so it already says the right thing.
+        errorMsg = serverMessage
+      } else if (unexplained500) {
+        errorMsg =
+          'I could not get an answer that time. If this keeps happening, ask your administrator to check the AI settings.'
+      } else {
+        errorMsg = serverMessage || error.message || 'Failed to send message'
       }
 
-      toast.error(errorMsg)
-
-      // Determine if it's a connection/network issue vs a real (actionable) error
-      const isNetworkIssue =
-        errorMsg.toLowerCase().includes('trouble connecting') ||
-        errorMsg.toLowerCase().includes('network') ||
-        errorMsg.toLowerCase().includes('failed to send')
-
-      const displayContent = isNetworkIssue
-        ? "I'm having trouble connecting right now. Please try again in a moment."
-        : `⚠️ ${errorMsg}`
+      // A permanent state is worth leaving on screen rather than in a toast that fades.
+      if (needsAnAdministrator) {
+        toast.error(errorMsg, { duration: 8000 })
+      } else {
+        toast.error(errorMsg)
+      }
 
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: displayContent,
+        content: errorMsg,
         createdAt: new Date().toISOString(),
       }
       setMessages((prev) => [...prev, errorMessage])
     } finally {
-      setIsTyping(false)
+      if (inFlight.current === controller) inFlight.current = null
+      if (alive.current) setIsTyping(false)
     }
   }
 

@@ -7,6 +7,8 @@ import re
 import aiohttp
 import asyncio
 
+from .content_generator import Usage, add_usage, normalise_usage
+
 logger = logging.getLogger(__name__)
 
 class ContextLearningService:
@@ -17,7 +19,22 @@ class ContextLearningService:
         self.model_name = model_name
         self.provider = (provider or "gemini").lower()
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
+        # Accumulated across every call this instance makes, so the endpoint can report
+        # what the whole learning pass cost rather than what its last request did.
+        self.token_usage: Usage = None
         logger.info(f"✅ ContextLearningService initialized with {self.provider} ({model_name})")
+
+    def usage_report(self) -> Usage:
+        """Token counts for everything this instance spent, or None if unmeasured.
+
+        None rather than zeros, matching ContentGenerator: the backend reads an all-zero
+        report as a broken measurement, and its own estimate beats pricing a real call
+        at nothing.
+        """
+        return dict(self.token_usage) if self.token_usage else None
+
+    def _record(self, input_tokens, output_tokens) -> None:
+        self.token_usage = add_usage(self.token_usage, normalise_usage(input_tokens, output_tokens))
 
     async def extract_and_update_context(
         self,
@@ -335,16 +352,19 @@ JSON Response:"""
         request and always failed.
         """
         if self.provider == "anthropic":
-            from .anthropic_client import generate as anthropic_generate
+            from .anthropic_client import generate_with_usage as anthropic_generate
 
             # Background learning is best-effort: keep it cheap and short.
-            return await anthropic_generate(
+            text, usage = await anthropic_generate(
                 api_key=self.api_key,
                 prompt=prompt,
                 model=self.model_name,
                 max_tokens=1024,
                 effort="low",
             )
+            if usage:
+                self._record(usage.get("input_tokens"), usage.get("output_tokens"))
+            return text
 
         if self.provider in ("groq", "openai"):
             base_url = (
@@ -369,6 +389,8 @@ JSON Response:"""
                 ) as response:
                     if response.status == 200:
                         data = await response.json()
+                        reported = data.get("usage") or {}
+                        self._record(reported.get("prompt_tokens"), reported.get("completion_tokens"))
                         return data["choices"][0]["message"]["content"]
                     error_text = await response.text()
                     raise Exception(
@@ -400,6 +422,8 @@ JSON Response:"""
                         if response.status == 200:
                             data = await response.json()
                             if data.get('candidates') and data['candidates'][0].get('content'):
+                                meta = data.get('usageMetadata') or {}
+                                self._record(meta.get('promptTokenCount'), meta.get('candidatesTokenCount'))
                                 return data['candidates'][0]['content']['parts'][0]['text']
                         
                         if response.status == 429:
@@ -421,6 +445,8 @@ JSON Response:"""
                         if response.status == 200:
                             data = await response.json()
                             if data.get('candidates') and data['candidates'][0].get('content'):
+                                meta = data.get('usageMetadata') or {}
+                                self._record(meta.get('promptTokenCount'), meta.get('candidatesTokenCount'))
                                 return data['candidates'][0]['content']['parts'][0]['text']
                         
                         if response.status == 429:

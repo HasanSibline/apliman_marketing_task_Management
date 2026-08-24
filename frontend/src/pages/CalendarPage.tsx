@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import Calendar from '@/components/calendar/Calendar'
@@ -16,8 +16,40 @@ const CalendarPage: React.FC = () => {
     const { user } = useAppSelector((state) => state.auth)
     const [events, setEvents] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
+    /**
+     * A schedule that failed to load is not an empty schedule.
+     *
+     * The catch below raised a toast and left `events` at []. The calendar then drew
+     * a full week of empty columns, which is exactly what a genuinely clear week
+     * looks like. A toast is gone in four seconds; the empty grid stays, and it is
+     * the thing the user believes. Someone who reloaded during a backend outage was
+     * being told, in the most confident way the page has, that they had nothing on.
+     */
+    const [loadError, setLoadError] = useState(false)
+
+    /**
+     * Which fetch is still current, and whether the last one already complained.
+     *
+     * Three separate things call fetchSchedule: mount, a 30 second poll, and a
+     * WebSocket status change. None of them coordinated, so a poll that started
+     * earlier could land after the refresh a user pressed and quietly put the older
+     * schedule back. The poll also toasted on every failure, so a backend outage
+     * produced a new "Could not sync your schedule" every 30 seconds for as long as
+     * the tab stayed open.
+     */
+    const requestId = useRef(0)
+    const warnedAboutFailure = useRef(false)
+    /**
+     * Read in the catch to decide whether a failure is worth a banner. It is a ref and
+     * not `events.length` because fetchSchedule is a useCallback that two effects
+     * depend on: putting a value that changes on every load into its dependency list
+     * would rebuild it after each fetch, and the mount effect would then fetch again,
+     * forever.
+     */
+    const hasEvents = useRef(false)
 
     const fetchSchedule = useCallback(async (silent = false) => {
+        const mine = ++requestId.current
         if (!silent) setLoading(true)
         try {
             const [tasksRes, ticketsRes] = await Promise.all([
@@ -53,16 +85,31 @@ const CalendarPage: React.FC = () => {
                 } catch (err: any) {
                     const errDetail = err.response?.data?.message || err.message || 'Unknown error';
                     console.error('[MS Sync] FAILED:', err.response?.data || err.message);
-                    toast.error(`Teams sync failed: ${errDetail}`, { duration: 6000 });
+                    // Silent runs are the 30s poll and the socket; they must not narrate.
+                    if (!silent) toast.error(`Teams sync failed: ${errDetail}`, { duration: 6000 });
                 }
             }
 
 
-            setEvents([...tasks, ...tickets, ...microsoftEvents]);
+            if (mine !== requestId.current) return;
+            const next = [...tasks, ...tickets, ...microsoftEvents];
+            hasEvents.current = next.length > 0;
+            setEvents(next);
+            setLoadError(false);
+            warnedAboutFailure.current = false;
         } catch (error) {
-            toast.error('Could not sync your schedule. Please refresh.');
+            if (mine !== requestId.current) return;
+            // A background poll failing while a schedule is already on screen is not
+            // worth tearing that schedule down for. The banner is for the case where
+            // there is nothing to show and no reason given.
+            if (!hasEvents.current) setLoadError(true);
+            // Said once per outage, not once per poll.
+            if (!silent || !warnedAboutFailure.current) {
+                warnedAboutFailure.current = true;
+                toast.error('Could not sync your schedule. Please refresh.');
+            }
         } finally {
-            if (!silent) setLoading(false)
+            if (!silent && mine === requestId.current) setLoading(false)
         }
     }, [user?.isMicrosoftSynced]);
 
@@ -101,8 +148,27 @@ const CalendarPage: React.FC = () => {
                         <div className="h-16 w-16 border-4 border-primary-50 dark:border-primary-900/40 rounded-full" />
                         <div className="absolute top-0 h-16 w-16 border-4 border-primary-600 rounded-full border-t-transparent animate-spin" />
                     </div>
-                    <h2 className="mt-6 text-xl font-semibold text-gray-900 dark:text-white tracking-tight">Syncing your Universe</h2>
-                    <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm font-bold tracking-wide animate-pulse">Connecting to Microsoft Graph...</p>
+                    <h2 className="mt-6 text-xl font-semibold text-gray-900 dark:text-white tracking-tight">Loading your schedule</h2>
+                    {/* Only say Microsoft when Microsoft is actually involved. Everyone
+                        else was watching a spinner blame a service they never connected. */}
+                    <p className="mt-2 text-gray-500 dark:text-gray-400 text-sm font-bold tracking-wide animate-pulse">
+                        {user?.isMicrosoftSynced ? 'Connecting to Microsoft Graph…' : 'Fetching your tasks and tickets…'}
+                    </p>
+                </div>
+            </div>
+        )
+    }
+
+    if (loadError) {
+        return (
+            <div className="flex h-[calc(100vh-140px)] items-center justify-center rounded-xl border border-gray-100 bg-white shadow-md dark:border-gray-700 dark:bg-gray-800">
+                <div className="max-w-sm p-8 text-center">
+                    <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Your schedule could not be loaded</h2>
+                    <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        The server did not answer. This is not an empty week, it is a failed request,
+                        so do not plan around it.
+                    </p>
+                    <button onClick={() => fetchSchedule(false)} className="btn-primary mt-4">Try again</button>
                 </div>
             </div>
         )

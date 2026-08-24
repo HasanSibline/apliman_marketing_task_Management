@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   CalendarDaysIcon,
@@ -105,6 +105,20 @@ const StrategyPage: React.FC = () => {
   const [creating, setCreating] = useState(false)
   const [draft, setDraft] = useState({ title: '', description: '' })
   const [reportYear, setReportYear] = useState<number>(new Date().getFullYear())
+  /**
+   * The quarter list failed to load.
+   *
+   * Without it the only state left was `quarters === []`, which rendered the "No
+   * quarters yet" empty state, complete with an "Open the first quarter" button. An
+   * admin acting on that after a dropped connection opens a duplicate cycle in a
+   * company that already has several.
+   */
+  const [quartersFailed, setQuartersFailed] = useState(false)
+  /** The same distinction as quartersFailed, for the objectives inside a quarter. */
+  const [objectivesFailed, setObjectivesFailed] = useState(false)
+
+  /** Which objectives request is still current. See loadObjectives. */
+  const objectivesRequestId = useRef(0)
 
   const selected = useMemo(() => quarters.find((q) => q.id === selectedId) ?? null, [quarters, selectedId])
 
@@ -123,17 +137,31 @@ const StrategyPage: React.FC = () => {
   }, [])
 
   const loadObjectives = useCallback(async (quarterId: string) => {
-    if (!quarterId) return setObjectives([])
+    /**
+     * Only the newest quarter's answer may land.
+     *
+     * Clicking through quarters starts a request each time, and an earlier one
+     * answering last put another quarter's objectives under the selected quarter's
+     * heading, where they could then be edited or deleted in good faith.
+     */
+    const mine = ++objectivesRequestId.current
+    if (!quarterId) {
+      setObjectives([])
+      return
+    }
     const { data } = await api.get('/objectives', { params: { quarterId } })
+    if (mine !== objectivesRequestId.current) return
     setObjectives(data ?? [])
   }, [])
 
   useEffect(() => {
     ;(async () => {
       setLoading(true)
+      setQuartersFailed(false)
       try {
         await loadQuarters()
       } catch {
+        setQuartersFailed(true)
         toast.error('Could not load quarters')
       } finally {
         setLoading(false)
@@ -142,7 +170,22 @@ const StrategyPage: React.FC = () => {
   }, [loadQuarters])
 
   useEffect(() => {
-    loadObjectives(selectedId).catch(() => toast.error('Could not load objectives'))
+    /**
+     * A failed objectives load is not a quarter with no objectives.
+     *
+     * The catch here only toasted, and the panel below then rendered "No objectives in
+     * this quarter". Two things follow from that. The reader is told something false
+     * about the quarter, and the Remove quarter button is gated on
+     * `objectives.length === 0`, so a dropped request offered to delete a quarter that
+     * may be full of them. The server refuses that, so nothing is lost, but a
+     * destructive control that exists only because a request failed should not be on
+     * the screen at all.
+     */
+    setObjectivesFailed(false)
+    loadObjectives(selectedId).catch(() => {
+      setObjectivesFailed(true)
+      toast.error('Could not load objectives')
+    })
   }, [selectedId, loadObjectives])
 
   const startCycle = async (quarter: Quarter) => {
@@ -281,6 +324,17 @@ const StrategyPage: React.FC = () => {
           years={years.length ? years : [reportYear]}
           year={reportYear}
           onYearChange={setReportYear}
+        />
+      ) : quartersFailed ? (
+        <EmptyState
+          icon={CalendarDaysIcon}
+          title="Quarters could not be loaded"
+          description="This is a problem reaching the server, not an empty plan. Nothing has been lost, and no quarter should be created to work around it."
+          action={
+            <button onClick={() => window.location.reload()} className="btn-primary">
+              Try again
+            </button>
+          }
         />
       ) : quarters.length === 0 ? (
         <EmptyState
@@ -494,7 +548,7 @@ const StrategyPage: React.FC = () => {
                       Close cycle
                     </button>
                   )}
-                  {isAdmin && selected.status === 'UPCOMING' && objectives.length === 0 && (
+                  {isAdmin && selected.status === 'UPCOMING' && objectives.length === 0 && !objectivesFailed && (
                     <button
                       onClick={() => removeQuarter(selected)}
                       disabled={busy}
@@ -575,7 +629,25 @@ const StrategyPage: React.FC = () => {
                   </form>
                 )}
 
-                {objectives.length === 0 ? (
+                {objectivesFailed ? (
+                  <EmptyState
+                    bare
+                    icon={FlagIcon}
+                    title="Objectives could not be loaded"
+                    description="This is a problem reaching the server, not an empty quarter."
+                    action={
+                      <button
+                        onClick={() => {
+                          setObjectivesFailed(false)
+                          loadObjectives(selectedId).catch(() => setObjectivesFailed(true))
+                        }}
+                        className="btn-primary"
+                      >
+                        Try again
+                      </button>
+                    }
+                  />
+                ) : objectives.length === 0 ? (
                   <EmptyState
                     bare
                     icon={FlagIcon}

@@ -34,6 +34,14 @@ export default function EditCompany() {
   const [error, setError] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  /**
+   * Whether the server already holds a key for this company.
+   *
+   * Kept separately from the masked form field, which the user can overwrite. The
+   * help text below has to distinguish "there is a key and typing replaces it" from
+   * "there is no key", and it cannot read that off the input once typing starts.
+   */
+  const [keyIsSet, setKeyIsSet] = useState(false);
 
   const [formData, setFormData] = useState<EditCompanyForm>({
     name: '',
@@ -58,6 +66,7 @@ export default function EditCompany() {
       setLoadingData(true);
       const response = await api.get(`/companies/${id}`);
       const company = response.data;
+      setKeyIsSet(!!company.aiKeySet);
 
       setFormData({
         name: company.name || '',
@@ -65,7 +74,12 @@ export default function EditCompany() {
         logo: company.logo || undefined,
         primaryColor: company.primaryColor || '#3B82F6',
         subscriptionPlan: company.subscriptionPlan || 'PRO',
-        aiApiKey: company.aiEnabled ? '******' : '', // Show masking instead of removed
+        // Drive the mask off whether a key is actually stored, not off whether AI is
+        // switched on. The two come apart: turning AI off leaves the key in place, so
+        // reading aiEnabled showed an empty box for a company that does have a key,
+        // and a masked box for one running on the platform key with none of its own.
+        // The server stopped returning the key itself and now says only aiKeySet.
+        aiApiKey: company.aiKeySet ? '******' : '',
         aiProvider: company.aiProvider || 'gemini',
         aiEnabled: company.aiEnabled || false,
         maxUsers: company.maxUsers ?? 5,
@@ -145,6 +159,13 @@ export default function EditCompany() {
     }
   };
 
+  /**
+   * True while the box holds a key the save will actually send, as opposed to the
+   * mask standing in for one already on the server.
+   */
+  const enteringKey =
+    !!formData.aiApiKey && formData.aiApiKey.trim() !== '' && formData.aiApiKey !== '******';
+
   const removeLogo = () => {
     setLogoFile(null);
     setLogoPreview(null);
@@ -191,7 +212,16 @@ export default function EditCompany() {
 
       const payload: any = {
         name: formData.name,
-        logo: logoUrl,
+        /**
+         * Empty string, not undefined, when there is no logo.
+         *
+         * `removeLogo` set this to `undefined`, and JSON.stringify drops undefined
+         * keys, so the field never reached the server: the preview disappeared, the
+         * save reported success, and the old logo was still there on the next load.
+         * The column is an optional string, and every place that renders it goes
+         * through Avatar, which falls back to initials for a falsy src.
+         */
+        logo: logoUrl ?? '',
         primaryColor: formData.primaryColor,
         subscriptionPlan: formData.subscriptionPlan,
         aiProvider: formData.aiProvider,
@@ -201,13 +231,25 @@ export default function EditCompany() {
         billingEmail: formData.billingEmail,
       };
 
-      // Only include aiApiKey if it was changed
+      // The checkbox has to travel with the rest of the form. It was rendered, bound
+      // and then never sent, so unticking "Enable AI Features" and saving reported
+      // success and changed nothing.
+      payload.aiEnabled = formData.aiEnabled;
+
+      /**
+       * Only include aiApiKey if it was actually typed. The mask is a placeholder for
+       * a key held on the server, and sending it back would store the literal stars.
+       *
+       * `payload.aiEnabled = true` used to follow this line and quietly overwrite the
+       * checkbox six lines above, so an admin who unticked "Enable AI Features" and
+       * pasted a key in the same visit got AI switched on with nothing on screen
+       * saying so. The server sets the flag itself when a key arrives
+       * (CompaniesService.update), so the client repeating it added nothing but the
+       * surprise. The form now disables the checkbox while a key is being entered,
+       * which states the same rule where the person can see it.
+       */
       if (formData.aiApiKey && formData.aiApiKey.trim() && formData.aiApiKey !== '******') {
         payload.aiApiKey = formData.aiApiKey;
-        payload.aiEnabled = true;
-      } else if (!formData.aiApiKey) {
-        // If they clear the field entirely, maybe disable AI?
-        // (Depends on your logic, but we'll leave it as is or handle it)
       }
 
       await api.patch(`/companies/${id}`, payload);
@@ -407,16 +449,28 @@ export default function EditCompany() {
 
             <div className="space-y-4">
               <div>
+                {/*
+                  The server switches AI on whenever a key arrives, so a ticked-off
+                  checkbox submitted alongside a new key was never going to be honoured.
+                  Showing that rule here, before the save, is the difference between a
+                  constraint and a surprise.
+                */}
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
                     name="aiEnabled"
-                    checked={formData.aiEnabled}
+                    checked={enteringKey ? true : formData.aiEnabled}
+                    disabled={enteringKey}
                     onChange={handleChange}
-                    className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-900"
+                    className="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 disabled:opacity-60 dark:bg-gray-900"
                   />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-200">Enable AI Features</span>
                 </label>
+                {enteringKey && (
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Saving a key switches AI on. Clear the key box to change this.
+                  </p>
+                )}
               </div>
 
               <div>
@@ -430,13 +484,23 @@ export default function EditCompany() {
                   onChange={handleChange}
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="Leave empty to use the platform key"
+                  placeholder={keyIsSet ? 'A key is already saved' : 'Paste an AI key for this company'}
                   className="input-field font-mono"
                 />
+                {/*
+                  This used to say that leaving the box empty falls back to "the platform
+                  key from Settings, AI Platform". There is no platform key any more, and
+                  leaving the box empty does not remove a key that is already stored: the
+                  save simply omits the field. Both halves of that sentence were wrong,
+                  and the second one was the kind of wrong that makes somebody believe
+                  they have revoked a credential.
+                */}
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  Leave this empty and the company uses the platform key from Settings &rarr; AI Platform.
-                  Add a key here only to bill this company's AI usage separately. Multiple comma-separated
-                  keys fail over automatically when one hits its rate limit.
+                  {keyIsSet
+                    ? 'A key is already saved for this company. Typing here replaces it; leaving the box empty keeps it. Emptying the box does not remove it.'
+                    : 'Without a key this company cannot use AI. Multiple comma-separated keys fail over automatically when one hits its rate limit.'}
+                  {' '}Entering a key switches AI on for this company, so the checkbox above is
+                  fixed while there is one in the box.
                 </p>
               </div>
 

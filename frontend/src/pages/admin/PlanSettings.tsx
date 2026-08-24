@@ -25,6 +25,15 @@ interface Plan {
 const PlanSettings: React.FC = () => {
     const [plans, setPlans] = useState<Plan[]>([]);
     const [loading, setLoading] = useState(true);
+    /**
+     * A failed load is not a platform with no plans.
+     *
+     * The catch raised a toast and left `plans` empty, so once the toast faded the
+     * page was a heading, an "Add New Plan" button and nothing else. There was no way
+     * to tell that from a genuinely empty platform, and no way to retry short of
+     * reloading the page.
+     */
+    const [loadError, setLoadError] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [currentPlan, setCurrentPlan] = useState<Partial<Plan>>({});
 
@@ -35,9 +44,14 @@ const PlanSettings: React.FC = () => {
     const fetchPlans = async () => {
         try {
             setLoading(true);
+            setLoadError(false);
             const response = await api.get('/plans');
-            setPlans(response.data);
+            // Guarded because the body went straight into state and is then mapped over.
+            // An envelope on the other end would white-screen the route.
+            setPlans(Array.isArray(response.data) ? response.data : response.data?.plans ?? []);
         } catch (error) {
+            setLoadError(true);
+            setPlans([]);
             toast.error('Failed to load plans');
         } finally {
             setLoading(false);
@@ -120,6 +134,27 @@ const PlanSettings: React.FC = () => {
                     </button>
                 </div>
             </div>
+
+            {loadError && (
+                <div className="mb-6 rounded-lg border border-error-200 bg-error-50 p-6 text-center dark:border-error-900/40 dark:bg-error-900/20">
+                    <h3 className="text-sm font-medium text-error-800 dark:text-error-300">
+                        Plans could not be loaded
+                    </h3>
+                    <p className="mt-1 text-sm text-error-700 dark:text-error-300">
+                        The server did not answer. The plans that exist are unaffected, so do not
+                        recreate them from here.
+                    </p>
+                    <button onClick={fetchPlans} className="btn-primary mt-3">Try again</button>
+                </div>
+            )}
+
+            {!loadError && plans.length === 0 && (
+                <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                        No subscription plans have been created yet.
+                    </p>
+                </div>
+            )}
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {plans.map((plan) => (

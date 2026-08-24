@@ -1,14 +1,11 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma } from '@prisma/client';
-import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
-import { Inject, forwardRef } from '@nestjs/common';
-import { CompaniesService } from '../companies/companies.service';
+import { Prisma, AIFeature } from '@prisma/client';
 import { MicrosoftService } from '../microsoft/microsoft.service';
 import { AiService } from '../ai/ai.service';
 import { SendMessageDto, CreateSessionDto, UpdateContextDto, ChatQueryDto } from './dto/chat.dto';
 import { selectAcrossSources } from './knowledge-selection';
+import { mergeRemembered, shouldLearnDomain } from './context-memory';
 
 import { ConfigService } from '@nestjs/config';
 
@@ -32,25 +29,15 @@ function ordinal(n: number): string {
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  private readonly aiServiceUrl: string;
-
+  // No AI service URL or auth header here any more. Every AI call this service makes
+  // goes through AiService.callAiService, which owns the address, the header and the
+  // per-attempt credential.
   constructor(
     private prisma: PrismaService,
-    private httpService: HttpService,
     private configService: ConfigService,
     private microsoftService: MicrosoftService,
-    @Inject(forwardRef(() => CompaniesService))
-    private companiesService: CompaniesService,
     private aiService: AiService,
-  ) {
-    this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
-  }
-
-  /** Authorization headers sent with every AI service request */
-  private get aiServiceHeaders(): Record<string, string> {
-    const secret = this.configService.get<string>('AI_SERVICE_SECRET', '');
-    return secret ? { Authorization: `Bearer ${secret}` } : {};
-  }
+  ) {}
 
   /**
    * A short, true thing to say to this person right now.
@@ -719,8 +706,7 @@ export class ChatService {
     let aiWritten = false;
 
     try {
-      const credential = await this.aiService.resolveAiCredential(userId);
-      if (credential) {
+      {
         /**
          * Counts, not titles.
          *
@@ -762,19 +748,17 @@ export class ChatService {
          * brief. The instructions live in the AI service now, and only counts cross the
          * wire.
          */
-        const response = await this.httpService.axiosRef.post(
-          `${this.aiServiceUrl}/daily-brief`,
+        const data = await this.aiService.callAiService<any>(
+          userId,
+          '/daily-brief',
           {
             firstName: user?.name?.split(' ')[0] ?? 'there',
             facts,
             max_length: 400,
-            api_key: credential.apiKey,
-            provider: credential.provider,
-            model: credential.model ?? undefined,
           },
-          { headers: this.aiServiceHeaders, timeout: 20000 },
+          { timeout: 20000 },
         );
-        const written: string = response.data?.brief?.trim() ?? '';
+        const written: string = data?.brief?.trim() ?? '';
 
         /**
          * Reject a brief that is describing itself.
@@ -917,9 +901,11 @@ export class ChatService {
         continue;
       }
 
-      // If both are arrays, merge and deduplicate
+      // If both are arrays, merge and deduplicate.
+      // A Set was used here and deduplicated nothing, because these arrays hold objects
+      // and a Set compares those by reference. See context-memory.ts.
       if (Array.isArray(value) && Array.isArray(merged[key])) {
-        merged[key] = [...new Set([...merged[key], ...value])];
+        merged[key] = mergeRemembered(merged[key], value);
       }
       // If both are objects, merge recursively
       else if (
@@ -995,21 +981,11 @@ export class ChatService {
         throw new Error('Your account is not associated with a company. Please contact support.');
       }
 
-      // Resolve the credential through the shared resolver: the company's own key
-      // first, then the platform-wide key a super admin configured.
-      const aiCredential = await this.aiService.resolveAiCredential(userId);
-
-      if (!aiCredential) {
-        throw new Error(
-          'AI is not enabled for your company. Please ask your administrator to add an AI API key, ' +
-            'or configure a platform key in Settings → AI Platform.',
-        );
-      }
-
-      const aiApiKey = aiCredential.apiKey;
-      const company = { name: aiCredential.companyName, aiProvider: aiCredential.provider };
-
-      this.logger.log(`🏢 Company: ${company.name}, Provider: ${aiCredential.provider}`);
+      // No credential is resolved here any more. Chat goes through the provider chain
+      // like everything else, so the key, the provider and the model are chosen per
+      // attempt by the gateway. This method used to resolve one company key itself,
+      // which is why the chain's priority order, cooldowns and usage figures applied
+      // to every AI feature except the one people actually use.
 
       // Get knowledge sources (COMPANY-SPECIFIC ONLY)
       const knowledgeSources = await this.prisma.knowledgeSource.findMany({
@@ -1028,7 +1004,7 @@ export class ChatService {
         },
       });
 
-      this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for company ${company.name}`);
+      this.logger.log(`📚 Found ${knowledgeSources.length} knowledge sources for company ${userCompanyId}`);
       knowledgeSources.forEach(ks => {
         this.logger.log(`  - ${ks.name} (${ks.type}): ${ks.content ? `${ks.content.length} chars` : 'NO CONTENT'}`);
       });
@@ -1082,7 +1058,8 @@ export class ChatService {
        */
       const relevantKnowledge = selectAcrossSources(knowledgeSources, dto.message);
 
-      // Call AI service with company name
+      // api_key, provider and model are deliberately absent: the gateway fills them in
+      // per attempt, because each attempt may be a different provider entirely.
       const chatPayload = {
         message: dto.message,
         userContext: userContext.context,
@@ -1091,26 +1068,30 @@ export class ChatService {
         knowledgeSources: relevantKnowledge,
         additionalContext,
         isDeepAnalysis,
-        api_key: aiApiKey, // CRITICAL: Pass resolved API key (snake_case for Python)
-        provider: aiCredential.provider || 'gemini',
-        model: aiCredential.model ?? undefined, // platform key may pin a model
-        companyName: company.name, // CRITICAL: Pass actual company name
         files: normalizedFiles, // Pass absolute URL files for multimodal support
         userToken, // Pass user's access token for file fetching
       };
 
-      // One deadline for everything this message may cost upstream. Each call used to
-      // carry its own budget, so a message that fell back to the platform key could
-      // spend two full budgets back to back and outlive the browser's own patience,
-      // which throws away the work and shows a network error instead of an answer.
-      const deadline = Date.now() + ChatService.CHAT_BUDGET_MS;
-
-      let aiResponse = await this.callAiChatService(chatPayload, deadline);
-
-      // A company on a free provider tier hits per-minute limits routinely, and one
-      // The platform-key retry that used to live here is gone with the platform key
-      // itself. Falling back is the gateway's job now, across a company's own chain of
-      // providers, rather than onto a shared credential nobody in the tenant owns.
+      // The retry loop that used to live in callAiChatService is gone. It was a fourth
+      // copy of retry, error classification and "is this credential broken" logic, and
+      // it walked one key rather than the chain, so a rate limit ended the message
+      // instead of moving to the next provider. CHAT_ATTEMPT_TIMEOUT_MS still bounds a
+      // single attempt; how many attempts are worth making is the gateway's call.
+      const aiResponse = await this.aiService.callAiService<any>(
+        userId,
+        '/chat',
+        chatPayload,
+        {
+          timeout: ChatService.CHAT_ATTEMPT_TIMEOUT_MS,
+          // Somebody is watching this one, so the whole walk is bounded, not just each
+          // attempt. Without it a four-provider chain of hanging connections could run
+          // for minutes and answer to a browser that gave up long before.
+          deadlineMs: ChatService.CHAT_BUDGET_MS,
+          feature: AIFeature.CHAT,
+          unboundedBody: true,
+          companyNameField: 'companyName',
+        },
+      );
 
       // Save assistant message (Safety first: ensure content is a string)
       const assistantContent = typeof aiResponse === 'string'
@@ -1437,17 +1418,16 @@ export class ChatService {
     }
 
     // Fetch referenced tasks (SAME COMPANY ONLY)
-    if (taskRefs.length > 0) {
-      const codes = taskRefs.filter(r => r.startsWith('TSK-'));
-      const ticketCodes = taskRefs.filter(r => r.startsWith('TKT-'));
-      const slugs = taskRefs.filter(r => !r.includes('-'));
+    const taskCodes = taskRefs.filter(r => r.startsWith('TSK-'));
+    const taskSlugs = taskRefs.filter(r => !r.includes('-'));
 
+    if (taskCodes.length > 0 || taskSlugs.length > 0) {
       const tasks = await this.prisma.task.findMany({
         where: {
           companyId: user.companyId,
           OR: [
-            ...(codes.length > 0 ? [{ taskNumber: { in: codes } }] : []),
-            ...(slugs.length > 0 ? slugs.map(ref => ({ title: { contains: ref, mode: Prisma.QueryMode.insensitive } })) : []),
+            ...(taskCodes.length > 0 ? [{ taskNumber: { in: taskCodes } }] : []),
+            ...(taskSlugs.map(ref => ({ title: { contains: ref, mode: Prisma.QueryMode.insensitive } }))),
           ],
         },
         include: {
@@ -1469,37 +1449,39 @@ export class ChatService {
           comment: c.comment.substring(0, 500) + (c.comment.length > 500 ? '...' : '')
         })) || []
       }));
+    }
 
-      // Always fetch referenced tickets (TKT-1001 or #TKT-1001)
-      const allTicketRefs = [...new Set([...ticketRefs, ...taskRefs.filter(r => r.startsWith('TKT-'))])];
+    // Tickets resolve on their own. This block used to sit inside the task branch, so
+    // "what is the status of #TKT-1042?" named no task, fetched no ticket, and the model
+    // answered confidently about a ticket it had never been shown.
+    const allTicketRefs = [...new Set([...ticketRefs, ...taskRefs.filter(r => r.startsWith('TKT-'))])];
 
-      if (allTicketRefs.length > 0) {
-        const tickets = await this.prisma.ticket.findMany({
-          where: {
-            companyId: user.companyId,
-            ticketNumber: { in: allTicketRefs },
-          },
-          include: {
-            requester: { select: { name: true } },
-            receiverDept: { select: { name: true } },
-            assignee: { select: { name: true } },
-            comments: {
-              where: { isSystem: false },
-              take: 10, // Increased from 3
-              orderBy: { createdAt: 'desc' },
-              select: { comment: true, user: { select: { name: true } } }
-            }
-          },
-        });
-        context.referencedTickets = tickets.map(t => ({
-          ...t,
-          description: t.description?.substring(0, 2000) + (t.description?.length > 2000 ? '...' : ''),
-          comments: t.comments.map(c => ({
-            ...c,
-            comment: c.comment.substring(0, 1000) + (c.comment.length > 1000 ? '...' : '')
-          }))
-        }));
-      }
+    if (allTicketRefs.length > 0) {
+      const tickets = await this.prisma.ticket.findMany({
+        where: {
+          companyId: user.companyId,
+          ticketNumber: { in: allTicketRefs },
+        },
+        include: {
+          requester: { select: { name: true } },
+          receiverDept: { select: { name: true } },
+          assignee: { select: { name: true } },
+          comments: {
+            where: { isSystem: false },
+            take: 10, // Increased from 3
+            orderBy: { createdAt: 'desc' },
+            select: { comment: true, user: { select: { name: true } } }
+          }
+        },
+      });
+      context.referencedTickets = tickets.map(t => ({
+        ...t,
+        description: t.description?.substring(0, 2000) + (t.description?.length > 2000 ? '...' : ''),
+        comments: t.comments.map(c => ({
+          ...c,
+          comment: c.comment.substring(0, 1000) + (c.comment.length > 1000 ? '...' : '')
+        }))
+      }));
     }
 
     // NEW: Fetch recent Microsoft meeting transcripts for context
@@ -1528,144 +1510,26 @@ export class ChatService {
   }
 
   /**
-   * How long the whole attempt may take, in milliseconds.
+   * How long the whole message may take, across every provider the chain tries.
    *
-   * This was ninety-five seconds, which is long enough to be indistinguishable from
-   * the thing being broken. Waiting is only worth doing while it is likely to end in
-   * an answer; past that it is just a slower way of saying no. Fifty seconds covers a
-   * retry after a provider refuses a burst, and covers a service that was asleep when
-   * the first attempt woke it, which is the case the warm-up ping already makes rare.
+   * Waiting is only worth doing while it is likely to end in an answer; past that it is
+   * a slower way of saying no. Fifty seconds covers a retry after a provider refuses a
+   * burst, and covers a service that was asleep when the first attempt woke it.
    */
   private static readonly CHAT_BUDGET_MS = 50_000;
 
-  /** Waits between attempts. Short, since a rate limit usually clears in seconds. */
-  private static readonly CHAT_BACKOFF_MS = [2_500, 5_000];
-
   /**
    * Per attempt. Long enough for a real answer including images, short enough that a
-   * silent connection leaves room to try once more inside the budget.
+   * silent connection leaves room for the gateway to try the next provider.
+   *
+   * The backoff table and the retry loop that used to sit beside these are gone. They
+   * were a fourth copy of retry and error classification, and they walked a single key
+   * rather than the chain, so a rate limit ended the message instead of moving to the
+   * next provider. The gateway owns all of that now, and it is the only copy that also
+   * knows about cooldowns, priority and usage. The budget above stayed, because the
+   * gateway had no notion of a person waiting.
    */
   private static readonly CHAT_ATTEMPT_TIMEOUT_MS = 22_000;
-
-  private sleep(ms: number) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  /**
-   * Ask the AI service, and keep asking while it is worth asking.
-   *
-   * Most of what went wrong here was temporary and the user was told about it as
-   * though it were permanent. A sleeping service takes the better part of a minute to
-   * wake, and the request that wakes it is the one that fails. A free provider tier
-   * refuses a burst and accepts the same message seconds later. In both cases the
-   * honest thing is to wait and try again, not to hand back an apology the person can
-   * do nothing with, and least of all one about quotas and API keys.
-   *
-   * So retryable failures are retried until the budget runs out, and only a genuinely
-   * permanent problem is reported. Bad credentials are permanent and worth saying
-   * plainly, because someone can act on them. Everything else gets the time it needs.
-   */
-  private async callAiChatService(data: any, deadline?: number) {
-    const endBy = deadline ?? Date.now() + ChatService.CHAT_BUDGET_MS;
-    let lastDetail = 'Unknown error';
-    let attempt = 0;
-
-    for (;;) {
-      // Never start an attempt with less time left than it needs to mean anything.
-      const remaining = endBy - Date.now();
-      if (remaining < 3_000) {
-        this.logger.warn(`AI chat out of time before attempt ${attempt + 1}`);
-        break;
-      }
-
-      try {
-        const response = await firstValueFrom(
-          this.httpService.post(`${this.aiServiceUrl}/chat`, data, {
-            headers: this.aiServiceHeaders,
-            // Whichever is sooner: a normal attempt, or what is left of the deadline.
-            timeout: Math.min(ChatService.CHAT_ATTEMPT_TIMEOUT_MS, remaining),
-            maxBodyLength: Infinity,
-            maxContentLength: Infinity,
-          }),
-        );
-        if (attempt > 0) {
-          this.logger.log(`AI chat succeeded on attempt ${attempt + 1}`);
-        }
-        return response.data;
-      } catch (error: any) {
-        const statusCode = error.response?.status;
-        const detail = error.response?.data?.detail;
-        lastDetail = detail
-          ? typeof detail === 'string'
-            ? detail
-            : JSON.stringify(detail)
-          : error.message || 'Unknown error';
-
-        // Credentials are the one thing waiting cannot fix, and the one thing an
-        // admin can. Said plainly, immediately, rather than retried into a timeout.
-        const isAuthProblem =
-          statusCode === 401 ||
-          statusCode === 403 ||
-          lastDetail.includes('API_KEY_INVALID') ||
-          lastDetail.includes('API key not valid');
-
-        if (isAuthProblem) {
-          this.logger.error(`AI chat rejected the credential: ${lastDetail}`);
-          return {
-            message:
-              '⚠️ The AI key for your company is not being accepted. Please check it in company settings.',
-            contextUsed: false,
-            learnedContext: null,
-          };
-        }
-
-        const isConnectionProblem =
-          error.code === 'ECONNREFUSED' ||
-          error.code === 'ENOTFOUND' ||
-          error.code === 'ECONNRESET' ||
-          error.code === 'ECONNABORTED' ||
-          error.code === 'ETIMEDOUT' ||
-          error.message?.includes('timeout') ||
-          error.message?.includes('connect');
-
-        const isBusy =
-          statusCode === 429 ||
-          statusCode >= 500 ||
-          /quota|rate limit|429|overloaded|unavailable/i.test(lastDetail);
-
-        const worthRetrying = isConnectionProblem || isBusy;
-        const wait = ChatService.CHAT_BACKOFF_MS[
-          Math.min(attempt, ChatService.CHAT_BACKOFF_MS.length - 1)
-        ];
-
-        // Only retry if what is left covers the wait and a worthwhile attempt after
-        // it. Starting one the deadline will cut short spends the time and returns
-        // nothing for it.
-        const roomToTryAgain = Date.now() + wait + 8_000 <= endBy;
-
-        if (!worthRetrying || !roomToTryAgain) {
-          this.logger.error(`AI chat gave up after ${attempt + 1} attempt(s): ${lastDetail}`);
-          break;
-        }
-
-        this.logger.warn(
-          `AI chat attempt ${attempt + 1} failed (${lastDetail}); retrying in ${wait}ms`,
-        );
-        await this.sleep(wait);
-        attempt++;
-      }
-    }
-
-    // Out of time. Nothing here names quotas or keys: it is not the reader's problem
-    // to solve, and the detail is in the logs and on the AI status page for the people
-    // who can act on it.
-    return {
-      message:
-        "That one is taking longer than it should. I have kept trying and not got there yet, so please send it again in a moment.",
-      contextUsed: false,
-      learnedContext: null,
-    };
-  }
 
   /**
    * Generate a session title from the first message
@@ -1748,35 +1612,22 @@ export class ChatService {
         },
       });
 
-      // Call AI service to learn from tasks
-      // Every learning call needs the company's own credential, exactly like the
-      // chat call does. Sent without one, the AI service answered "AI is not
-      // configured for your company" every single time and the error was swallowed
-      // by the catch below, so this feature has never once run.
-      const credential = await this.aiService.resolveAiCredential(userId);
-      if (!credential) return null;
-
-      const aiResponse = await this.httpService.axiosRef.post(
-        `${this.aiServiceUrl}/learn-from-tasks`,
-        {
-          userContext: userContext.context,
-          completedTasks,
-          activeTasks,
-          api_key: credential.apiKey,
-          provider: credential.provider,
-          model: credential.model ?? undefined,
-        },
-        {
-          headers: this.aiServiceHeaders,
-          timeout: 30000
-        }
+      // Through the chain, like every other AI call. This once posted with no
+      // credential at all, so the AI service answered "AI is not configured for your
+      // company" every time and the catch below swallowed it, which is why the
+      // feature had never run.
+      const data = await this.aiService.callAiService<any>(
+        userId,
+        '/learn-from-tasks',
+        { userContext: userContext.context, completedTasks, activeTasks },
+        { timeout: 30000 },
       );
 
       // Update user context with learned insights
-      if (aiResponse.data?.learnedContext) {
-        await this.updateUserContext(userId, aiResponse.data.learnedContext);
+      if (data?.learnedContext) {
+        await this.updateUserContext(userId, data.learnedContext);
         this.logger.log(`✅ Learned from task history for user ${userId}`);
-        return aiResponse.data.learnedContext;
+        return data.learnedContext;
       }
 
       return null;
@@ -1788,44 +1639,50 @@ export class ChatService {
 
   /**
    * Track domain-specific questions to learn user interests
+   *
+   * The learning pass used to fire on every message from the third one onward, which
+   * doubled what a chat message costs upstream for a conclusion that had not changed
+   * since the previous message. It is now rate limited by shouldLearnDomain, and it is
+   * not awaited: the reply has already been written and saved by the time this runs.
    */
   async trackDomainQuestion(userId: string, message: string) {
     try {
       const userContext = await this.getUserContext(userId);
-      const context = userContext.context as any;
+      const context = (userContext.context as any) ?? {};
 
       // Detect domain topics (generic company/industry terms)
       const domains = ['company', 'competitor', 'service', 'product', 'feature'];
       const messageLower = message.toLowerCase();
 
       for (const domain of domains) {
-        if (messageLower.includes(domain)) {
-          // Track question
-          const questionsKey = `${domain}_questions`;
-          const questions = context[questionsKey] || [];
-          questions.push({
-            question: message,
-            timestamp: new Date().toISOString(),
-          });
+        if (!messageLower.includes(domain)) continue;
 
-          // Keep only last 10 questions per domain
-          const recentQuestions = questions.slice(-10);
+        const questionsKey = `${domain}_questions`;
+        const learnedAtKey = `${domain}_learnedAt`;
 
-          await this.updateUserContext(userId, {
-            [questionsKey]: recentQuestions,
-          });
+        const recentQuestions = mergeRemembered(context[questionsKey] ?? [], [
+          { question: message, timestamp: new Date().toISOString() },
+        ]);
 
-          // If enough questions accumulated, trigger learning
-          if (recentQuestions.length >= 3) {
-            await this.learnDomainInterests(
-              userId,
-              domain,
-              recentQuestions.map(q => q.question)
-            );
-          }
+        const learnNow = shouldLearnDomain(recentQuestions.length, context[learnedAtKey]);
 
-          break; // Only track for first matched domain
+        await this.updateUserContext(userId, {
+          [questionsKey]: recentQuestions,
+          // Stamped when the attempt is dispatched, not when it succeeds. Otherwise a
+          // provider that is down licenses a fresh attempt on every single message,
+          // which is the behaviour the interval exists to stop.
+          ...(learnNow ? { [learnedAtKey]: new Date().toISOString() } : {}),
+        });
+
+        if (learnNow) {
+          void this.learnDomainInterests(
+            userId,
+            domain,
+            recentQuestions.map((q: any) => q.question),
+          );
         }
+
+        break; // Only track for first matched domain
       }
     } catch (error) {
       this.logger.error(`Error tracking domain question: ${error.message}`);
@@ -1843,27 +1700,19 @@ export class ChatService {
     try {
       const userContext = await this.getUserContext(userId);
 
-      const credential = await this.aiService.resolveAiCredential(userId);
-      if (!credential) return;
-
-      const aiResponse = await this.httpService.axiosRef.post(
-        `${this.aiServiceUrl}/learn-domain-interests`,
+      const data = await this.aiService.callAiService<any>(
+        userId,
+        '/learn-domain-interests',
         {
           domainTopic: domain,
           userQuestions: questions,
           existingKnowledge: userContext.context,
-          api_key: credential.apiKey,
-          provider: credential.provider,
-          model: credential.model ?? undefined,
         },
-        {
-          headers: this.aiServiceHeaders,
-          timeout: 30000
-        }
+        { timeout: 30000 },
       );
 
-      if (aiResponse.data?.learnedInterests) {
-        await this.updateUserContext(userId, aiResponse.data.learnedInterests);
+      if (data?.learnedInterests) {
+        await this.updateUserContext(userId, data.learnedInterests);
         this.logger.log(`✅ Learned ${domain} interests for user ${userId}`);
       }
     } catch (error) {

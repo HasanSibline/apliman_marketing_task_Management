@@ -4,6 +4,18 @@ import { ConfigService } from '@nestjs/config';
 import * as XLSX from 'xlsx';
 import { UserRole } from '../types/prisma';
 import { taskStage, TASK_STAGE_LABEL } from '../tasks/task-stage';
+import { realTasksOnly } from '../tasks/task-filters';
+import {
+  PhasePartition,
+  TaskBucket,
+  averageCompletionRate,
+  bucketWhere,
+  completionRate,
+  notCompletedWhere,
+  partitionPhaseIds,
+  reconcileBuckets,
+} from './task-buckets';
+import { trendPeriods } from './trend-periods';
 
 // This is a simplified version that provides basic analytics while the workflow system is integrated
 
@@ -31,68 +43,69 @@ export class AnalyticsService {
     return user?.companyId || null;
   }
 
-  // Helper method to get completed tasks (temporary workaround)
-  private async getCompletedTasksCount(whereClause: any = {}) {
-    // Get tasks in "Completed" or "Published" phases
-    const completedPhases = await this.prisma.phase.findMany({
-      where: {
-        OR: [
-          { name: { contains: 'Completed' } },
-          { name: { contains: 'Published' } },
-          { name: { contains: 'Done' } },
-          { isEndPhase: true },
-        ],
-      },
-      select: { id: true },
+  /**
+   * Every phase in scope, split into terminal, middle and starting.
+   *
+   * Scoped by company through the workflow, which is the only route there is: a phase
+   * carries no companyId of its own, it belongs to a workflow and the workflow belongs
+   * to a company. A previous attempt at this scoping put `companyId` directly on the
+   * phase where-clause, which is not a column on that model and made Prisma reject the
+   * query outright, so the dashboard failed for every user who was not a super admin.
+   *
+   * A null companyId means a super admin looking across all tenants, and then the
+   * phase list is deliberately global to match the task counts it is paired with.
+   */
+  private async loadPhasePartition(companyId?: string | null): Promise<PhasePartition> {
+    const phases = await this.prisma.phase.findMany({
+      where: companyId ? { workflow: { companyId } } : {},
+      select: { id: true, isStartPhase: true, isEndPhase: true },
     });
 
-    const phaseIds = completedPhases.map(p => p.id);
+    return partitionPhaseIds(phases);
+  }
+
+  /** Tasks matching `whereClause` that fall in one bucket. */
+  private countBucket(whereClause: any, bucket: TaskBucket, partition: PhasePartition) {
+    // The fragment carries its own top-level OR, so it goes under AND rather than
+    // being spread over the caller's clause where it could silently replace one.
+    const existingAnd = whereClause.AND === undefined
+      ? []
+      : Array.isArray(whereClause.AND) ? whereClause.AND : [whereClause.AND];
 
     return this.prisma.task.count({
-      where: {
+      where: realTasksOnly({
         ...whereClause,
-        currentPhaseId: { in: phaseIds.length > 0 ? phaseIds : ['none'] },
-      },
+        AND: [...existingAnd, bucketWhere(bucket, partition)],
+      }),
     });
   }
 
-  // Helper method to get in-progress tasks (temporary workaround)
-  private async getInProgressTasksCount(whereClause: any = {}) {
-    const inProgressPhases = await this.prisma.phase.findMany({
-      where: {
-        AND: [
-          { isStartPhase: false },
-          { isEndPhase: false },
-        ],
-      },
-      select: { id: true },
-    });
+  /**
+   * All three buckets for one set of tasks, guaranteed to add up to `total`.
+   *
+   * The three used to be independent queries with three different ideas of what a
+   * phase means, so they overlapped and left gaps. They now come from one partition,
+   * and the reconcile step is a tripwire: it should never have anything to do.
+   */
+  private async countBuckets(whereClause: any, partition: PhasePartition, total: number) {
+    const [completed, inProgress, pending] = await Promise.all([
+      this.countBucket(whereClause, 'completed', partition),
+      this.countBucket(whereClause, 'inProgress', partition),
+      this.countBucket(whereClause, 'pending', partition),
+    ]);
 
-    const phaseIds = inProgressPhases.map(p => p.id);
+    const counts = reconcileBuckets(total, { completed, inProgress, pending });
 
-    return this.prisma.task.count({
-      where: {
-        ...whereClause,
-        currentPhaseId: { in: phaseIds.length > 0 ? phaseIds : [] },
-      },
-    });
-  }
+    if (counts.unaccounted !== 0) {
+      // Pending absorbs the difference so the chart still adds up, but a partition
+      // that does not partition is a defect and has to leave a trace.
+      this.logger.warn(
+        `Task buckets did not partition ${total} tasks (${JSON.stringify(whereClause)}): ` +
+        `${counts.unaccounted} unaccounted for`,
+      );
+    }
 
-  // Helper method to get pending tasks (temporary workaround)
-  private async getPendingTasksCount(whereClause: any = {}) {
-    const startPhases = await this.prisma.phase.findMany({
-      where: { isStartPhase: true },
-      select: { id: true },
-    });
-
-    const phaseIds = startPhases.map(p => p.id);
-
-    return this.prisma.task.count({
-      where: {
-        ...whereClause,
-        currentPhaseId: { in: phaseIds.length > 0 ? phaseIds : [] },
-      },
-    });
+    return counts;
   }
 
   async getDashboardStats(userId: string) {
@@ -132,28 +145,32 @@ export class AnalyticsService {
         },
       }),
       this.prisma.task.count({
-        where: globalFilter,
+        where: realTasksOnly(globalFilter),
       }),
     ]);
 
-    // Get completed, in-progress and pending tasks using global company-wide filter (Command View)
-    const completedTasks = await this.getCompletedTasksCount(globalFilter);
-    const inProgressTasks = await this.getInProgressTasksCount(globalFilter);
-    const pendingTasks = await this.getPendingTasksCount(globalFilter);
+    // Completed, In progress and Pending partition exactly the set that totalTasks
+    // counted, using the global company-wide filter (Command View). The frontend
+    // stacks them in a bar and a pie, so anything less than a partition draws a chart
+    // that contradicts the total printed beside it.
+    const phasePartition = await this.loadPhasePartition(companyId);
+    const {
+      completed: completedTasks,
+      inProgress: inProgressTasks,
+      pending: pendingTasks,
+    } = await this.countBuckets(globalFilter, phasePartition, totalTasks);
 
-    // Get overdue tasks
+    // Overdue is "past its due date and not finished", and it now says so with the
+    // same rule the buckets use. It used to say `currentPhaseId: { notIn: endPhases }`,
+    // which Prisma renders as a negation that drops rows where the column is NULL, so
+    // a task with no phase could be a year late and never appear here.
     const now = new Date();
     const overdueTasks = await this.prisma.task.count({
-      where: {
+      where: realTasksOnly({
         ...globalFilter,
         dueDate: { lt: now },
-        currentPhaseId: {
-          notIn: await this.prisma.phase.findMany({
-            where: { isEndPhase: true },
-            select: { id: true },
-          }).then(phases => phases.map(p => p.id))
-        },
-      },
+        AND: [notCompletedWhere(phasePartition)],
+      }),
     });
 
     // Get tasks by phase
@@ -161,7 +178,7 @@ export class AnalyticsService {
       where: { workflow: { ...baseFilter } },
       include: {
         _count: {
-          select: { tasks: { where: roleFilter } }, 
+          select: { tasks: { where: realTasksOnly(roleFilter) } },
         },
         workflow: { select: { name: true, color: true } },
       },
@@ -177,7 +194,7 @@ export class AnalyticsService {
 
     // Get recent tasks
     const recentTasks = await this.prisma.task.findMany({
-      where: globalFilter, // Everyone can see recent company tickets in the hub
+      where: realTasksOnly(globalFilter), // Everyone can see recent company tickets in the hub
       orderBy: { createdAt: 'desc' },
       take: 5,
       include: {
@@ -191,11 +208,6 @@ export class AnalyticsService {
     });
 
     // Get top performers (ALWAYS company-wide, even for non-admins)
-    const completedPhaseIdsForPerformers = await this.prisma.phase.findMany({
-      where: { isEndPhase: true, ...(companyId ? { workflow: { companyId } } : {}) },
-      select: { id: true },
-    }).then(phases => phases.map(p => p.id));
-
     const topPerformers = await this.prisma.user.findMany({
       where: { 
         status: { not: 'RETIRED' },
@@ -208,40 +220,33 @@ export class AnalyticsService {
         email: true,
         avatar: true,
         position: true,
-        _count: { select: { assignedTasks: true } },
+        _count: { select: { assignedTasks: { where: realTasksOnly() } } },
       },
       orderBy: { assignedTasks: { _count: 'desc' } },
     });
 
-    // Re-score by completed tasks for a meaningful ranking
+    // Re-score by completed tasks for a meaningful ranking. Same rule as the Completed
+    // KPI above, so the leaderboard column and the headline count cannot disagree
+    // about the same person's finished work.
     const performersWithCompletions = await Promise.all(
       topPerformers.map(async (u) => {
-        const completed = await this.prisma.task.count({
-          where: { assignedToId: u.id, currentPhaseId: { in: completedPhaseIdsForPerformers } },
-        });
+        const completed = await this.countBucket({ assignedToId: u.id }, 'completed', phasePartition);
         return { ...u, completedTasks: completed };
       })
     );
     const topPerformersRanked = performersWithCompletions
       .sort((a, b) => b.completedTasks - a.completedTasks);
 
-    // Get tasks completed this week
+    // Get tasks completed this week. The end-phase list here was global, so one
+    // tenant's week included every other tenant's finished work.
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const completedPhaseIds = await this.prisma.phase.findMany({
-      where: { isEndPhase: true },
-      select: { id: true },
-    }).then(phases => phases.map(p => p.id));
 
-    const tasksCompletedThisWeek = await this.prisma.task.count({
-      where: {
-        ...globalFilter,
-        currentPhaseId: { in: completedPhaseIds },
-        updatedAt: { gte: oneWeekAgo },
-      },
-    });
-
-    const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    const tasksCompletedThisWeek = await this.countBucket(
+      { ...globalFilter, updatedAt: { gte: oneWeekAgo } },
+      'completed',
+      phasePartition,
+    );
 
     return {
       totalUsers,
@@ -251,7 +256,7 @@ export class AnalyticsService {
       inProgressTasks,
       pendingTasks,
       overdueTasks,
-      completionRate,
+      completionRate: completionRate(completedTasks, totalTasks),
       tasksByPhase: tasksByPhaseFormatted,
       recentTasks: recentTasks.map(task => ({
         id: task.id,
@@ -290,27 +295,10 @@ export class AnalyticsService {
   async getUserAnalytics(userId: string, timeRange?: string) {
     this.logger.debug(`getUserAnalytics userId=${userId} range=${timeRange}`);
 
-    // Calculate date range based on timeRange parameter
-    let dateFrom = new Date();
-    let weeks = 4; // Default for chart
-
-    switch (timeRange) {
-      case 'week':
-        dateFrom.setDate(dateFrom.getDate() - 7);
-        weeks = 1;
-        break;
-      case 'month':
-        dateFrom.setMonth(dateFrom.getMonth() - 1);
-        weeks = 4;
-        break;
-      case 'year':
-        dateFrom.setFullYear(dateFrom.getFullYear() - 1);
-        weeks = 12; // Show last 12 months
-        break;
-      default:
-        dateFrom.setMonth(dateFrom.getMonth() - 1); // Default to month
-        weeks = 4;
-    }
+    // How many buckets the trend chart gets. There was also a `dateFrom` here,
+    // computed four different ways and then never read by anything; the buckets below
+    // carry their own bounds.
+    const periodCount = timeRange === 'week' ? 1 : timeRange === 'year' ? 12 : 4;
 
     // Get user details
     const user = await this.prisma.user.findUnique({
@@ -334,96 +322,64 @@ export class AnalyticsService {
       totalCreatedTasks,
     ] = await Promise.all([
       this.prisma.task.count({
-        where: {
-          assignedToId: userId,
-        },
+        where: realTasksOnly({ assignedToId: userId }),
       }),
       this.prisma.task.count({
-        where: {
-          createdById: userId,
-        },
+        where: realTasksOnly({ createdById: userId }),
       }),
     ]);
 
-    const completedTasks = await this.getCompletedTasksCount({
-      assignedToId: userId,
-    });
+    // Scoped to the user's own company, so the phase lists this user's counts are
+    // measured against are their tenant's and nobody else's.
+    const phasePartition = await this.loadPhasePartition(await this.getUserCompanyId(userId));
 
-    const inProgressTasks = await this.getInProgressTasksCount({
-      assignedToId: userId,
-    });
+    const {
+      completed: completedTasks,
+      inProgress: inProgressTasks,
+      pending: pendingTasks,
+    } = await this.countBuckets({ assignedToId: userId }, phasePartition, totalAssignedTasks);
 
     const performanceTrend = [];
-    for (let i = weeks - 1; i >= 0; i--) {
-      const periodStart = new Date();
-      const periodEnd = new Date();
-      let label = '';
-
-      if (timeRange === 'year') {
-        periodStart.setMonth(periodStart.getMonth() - i - 1);
-        periodStart.setDate(1);
-        periodStart.setHours(0, 0, 0, 0);
-
-        periodEnd.setMonth(periodEnd.getMonth() - i);
-        periodEnd.setDate(0); 
-        periodEnd.setHours(23, 59, 59, 999);
-
-        label = periodStart.toLocaleString('default', { month: 'short', year: 'numeric' });
-      } else {
-        periodStart.setDate(periodStart.getDate() - (i * 7 + 7));
-        periodStart.setHours(0, 0, 0, 0);
-
-        periodEnd.setDate(periodEnd.getDate() - (i * 7));
-        periodEnd.setHours(23, 59, 59, 999);
-
-        label = `Week ${weeks - i}`;
-      }
-
+    for (const period of trendPeriods(new Date(), timeRange, periodCount)) {
       const assignedInPeriod = await this.prisma.task.count({
-        where: {
+        where: realTasksOnly({
           assignedToId: userId,
           createdAt: {
-            gte: periodStart,
-            lte: periodEnd,
+            gte: period.start,
+            lte: period.end,
           },
-        },
+        }),
       });
 
-      const completedPhaseIds = await this.prisma.phase.findMany({
-        where: { isEndPhase: true },
-        select: { id: true },
-      }).then(phases => phases.map(p => p.id));
-
-      const completedInPeriod = await this.prisma.task.count({
-        where: {
+      // The end-phase list used to be re-fetched inside this loop, twelve times over
+      // for a year, and it ignored the completion signals the KPI above reads.
+      const completedInPeriod = await this.countBucket(
+        {
           assignedToId: userId,
-          currentPhaseId: { in: completedPhaseIds },
-          updatedAt: {
-            gte: periodStart,
-            lte: periodEnd,
-          },
+          updatedAt: { gte: period.start, lte: period.end },
         },
-      });
+        'completed',
+        phasePartition,
+      );
 
       performanceTrend.push({
-        date: label,
+        date: period.label,
         completed: completedInPeriod,
         assigned: assignedInPeriod,
       });
     }
 
+    // The same three numbers the stats block returns. This list used to recompute
+    // Pending with its own copy of `total - completed - inProgress`, clamped here and
+    // unclamped there, so the chart and the counter beside it could disagree.
     const tasksByStatus = [
       { name: 'Completed', value: completedTasks },
       { name: 'In Progress', value: inProgressTasks },
-      // Clamped: a negative remainder means the three counts disagree, and rendering
-      // that as a missing slice hides the disagreement rather than surfacing it.
-      { name: 'Pending', value: Math.max(0, totalAssignedTasks - completedTasks - inProgressTasks) },
+      { name: 'Pending', value: pendingTasks },
     ].filter(item => item.value > 0);
 
     const recentTasks = await this.prisma.task.findMany({
-      where: {
-        assignedToId: userId,
-      },
+      where: realTasksOnly({ assignedToId: userId }),
       orderBy: { updatedAt: 'desc' },
       take: 5,
       select: {
@@ -444,8 +400,8 @@ export class AnalyticsService {
         totalCreatedTasks,
         completedTasks,
         inProgressTasks,
-        pendingTasks: totalAssignedTasks - completedTasks - inProgressTasks,
-        completionRate: totalAssignedTasks > 0 ? Math.round((completedTasks / totalAssignedTasks) * 100) : 0,
+        pendingTasks,
+        completionRate: completionRate(completedTasks, totalAssignedTasks),
       },
       performanceTrend,
       tasksByStatus,
@@ -481,41 +437,49 @@ export class AnalyticsService {
       },
     });
 
+    // Loaded once for the whole team. It used to be re-read inside the per-member
+    // count, which fetched every phase on the platform once per person.
+    const phasePartition = await this.loadPhasePartition(companyId);
+
     const teamStats = await Promise.all(
       users.map(async (user) => {
         const [assignedTasks, completedTasks] = await Promise.all([
-          this.prisma.task.count({ where: { assignedToId: user.id } }), 
-          this.getCompletedTasksCount({ assignedToId: user.id }), 
+          this.prisma.task.count({ where: realTasksOnly({ assignedToId: user.id }) }),
+          this.countBucket({ assignedToId: user.id }, 'completed', phasePartition),
         ]);
 
         return {
           ...user,
           assignedTasks,
           completedTasks,
-          completionRate: assignedTasks > 0 ? Math.round((completedTasks / assignedTasks) * 100) : 0,
+          completionRate: completionRate(completedTasks, assignedTasks),
         };
       })
     );
 
-    const totalTasks = teamStats.reduce((sum, member) => sum + member.assignedTasks, 0);
-    const totalCompleted = teamStats.reduce((sum, member) => sum + member.completedTasks, 0);
-    const averageCompletionRate = teamStats.length > 0
-      ? Math.round(teamStats.reduce((sum, member) => sum + member.completionRate, 0) / teamStats.length)
-      : 0;
+    /**
+     * Every real task in the company, which is what a card labelled "Total Tasks"
+     * has to mean.
+     *
+     * This was the sum of the per-member assigned counts, so it silently dropped every
+     * unassigned task and every task belonging to a retired member, and could never
+     * match the same number on the dashboard. The member sum is still returned, under
+     * a name that says what it actually is.
+     */
+    const totalTasks = await this.prisma.task.count({ where: realTasksOnly(companyFilter) });
+    const assignedTasks = teamStats.reduce((sum, member) => sum + member.assignedTasks, 0);
 
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const completedPhaseIds = await this.prisma.phase.findMany({
-      where: { isEndPhase: true },
-      select: { id: true },
-    }).then(phases => phases.map(p => p.id));
+    // Company-scoped on purpose. This used to carry no company filter at all, so a
+    // team's "completed this week" counted every tenant's finished work.
+    const tasksCompletedThisWeek = await this.countBucket(
+      { ...companyFilter, updatedAt: { gte: oneWeekAgo } },
+      'completed',
+      phasePartition,
+    );
 
-    const tasksCompletedThisWeek = await this.prisma.task.count({
-      where: {
-        currentPhaseId: { in: completedPhaseIds },
-        updatedAt: { gte: oneWeekAgo },
-      },
-    });
+    const teamCompletionRate = averageCompletionRate(teamStats);
 
     return {
       teamMembers: teamStats,
@@ -524,11 +488,13 @@ export class AnalyticsService {
       summary: {
         totalTeamMembers: users.length,
         totalTasks,
-        averageCompletionRate,
-        teamPerformance: averageCompletionRate,
+        /** The old totalTasks: how much of the above is on somebody's plate. */
+        assignedTasks,
+        averageCompletionRate: teamCompletionRate,
+        teamPerformance: teamCompletionRate,
         tasksCompletedThisWeek,
       },
-      totalTimeSpent: 0, 
+      totalTimeSpent: 0,
     };
   }
 
@@ -536,8 +502,12 @@ export class AnalyticsService {
     const companyId = await this.getUserCompanyId(userId);
     const companyFilter = companyId ? { companyId } : {};
 
+    // The export is an analytics artefact, not a database dump: counting its rows has
+    // to give the same total the dashboard shows, or the discrepancy this filter
+    // exists to remove simply reappears in a spreadsheet. The Task Type column below
+    // still earns its place, since GENERAL, SOCIAL_MEDIA and COORDINATION remain.
     const tasks = await this.prisma.task.findMany({
-      where: companyFilter,
+      where: realTasksOnly(companyFilter),
       include: {
         createdBy: { select: { name: true, email: true } },
         assignedTo: { select: { name: true, email: true } },
@@ -552,8 +522,11 @@ export class AnalyticsService {
       'Description': task.description,
       'Task Type': task.taskType,
       'Priority': task.priority,
-      'Current Phase': task.currentPhase.name,
-      'Workflow': task.workflow.name,
+      // Both relations are optional on Task, and dereferencing them threw the whole
+      // export away the moment one row had no workflow. strictNullChecks is off, so
+      // the compiler never said so.
+      'Current Phase': task.currentPhase?.name || 'No phase',
+      'Workflow': task.workflow?.name || 'No workflow',
       'Created By': task.createdBy.name,
       'Assigned To': task.assignedTo?.name || 'Unassigned',
       'Created At': task.createdAt.toISOString(),

@@ -14,8 +14,15 @@ const initialState: TimeTrackingState = {
   taskTimes: {},
 }
 
-// Load from localStorage if available
-const loadFromStorage = (): TimeTrackingState => {
+/**
+ * Restore the timers this browser was last running.
+ *
+ * Called once, to seed the store, rather than handed to createSlice as its initial
+ * state. That distinction is the whole point: with the restored object as the slice's
+ * initial state, emptying the store at the end of a session handed the next person to
+ * sign in on this machine the previous one's timers straight back.
+ */
+export const restoreTimeTracking = (): TimeTrackingState => {
   try {
     const stored = localStorage.getItem('timeTracking')
     if (stored) {
@@ -51,9 +58,18 @@ const loadFromStorage = (): TimeTrackingState => {
   return initialState
 }
 
+/** Forget this browser's timers entirely. Sign-out calls it; nothing else should. */
+export const clearTimeTrackingStorage = () => {
+  try {
+    localStorage.removeItem('timeTracking')
+  } catch {
+    /* private mode, nothing was stored to begin with */
+  }
+}
+
 const timeTrackingSlice = createSlice({
   name: 'timeTracking',
-  initialState: loadFromStorage(),
+  initialState,
   reducers: {
     startTimer: (state, action: PayloadAction<string>) => {
       // If another task was running, pause it first

@@ -17,6 +17,16 @@ interface KeyResult {
     startValue: number
     targetValue: number
     currentValue: number
+    /**
+     * Sent by the backend, already rounded to a whole percent.
+     *
+     * Not computed here. Progress is measured from startValue, not as a share of
+     * targetValue, and every local copy of that arithmetic got it wrong: a key result
+     * starting at 80 on the way to 100 read 80% before any work was done, a "reduce to
+     * zero" goal was pinned at 0% forever, and dividing by a zero target rendered NaN.
+     * One formula, in okr-math.ts, and the server does the sum.
+     */
+    progress: number
 }
 
 interface Objective {
@@ -88,10 +98,9 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
         const allKrs: any[] = []
         filteredObjectives.forEach(o => {
             o.keyResults?.forEach(kr => {
-                const pct = kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0
                 allKrs.push({
                     name: kr.title.length > 20 ? kr.title.substring(0, 20) + '...' : kr.title,
-                    Progress: Math.min(Math.round(pct), 100),
+                    Progress: kr.progress,
                     Objective: o.title
                 })
             })
@@ -136,7 +145,7 @@ export default function ObjectiveAnalyticsDashboard({ objectives }: { objectives
                         Current: kr.currentValue,
                         Target: kr.targetValue,
                         Unit: kr.unit,
-                        Progress: kr.targetValue > 0 ? Math.round((kr.currentValue / kr.targetValue) * 100) + '%' : '0%'
+                        Progress: kr.progress + '%'
                     })
                 })
             })

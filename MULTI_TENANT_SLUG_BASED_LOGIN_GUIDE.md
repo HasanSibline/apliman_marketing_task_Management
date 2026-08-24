@@ -138,7 +138,7 @@ if (user.companyId !== company.id) {
 1. Go to: `https://your-domain.com/admin/login`
 2. Enter:
    - Email: `superadmin@apliman.com`
-   - Password: `SuperAdmin123!` (or from `SUPER_ADMIN_PASSWORD` env var)
+   - Password: the value of the `SUPER_ADMIN_PASSWORD` environment variable
 3. Click "Sign In"
 
 **Expected Result:**

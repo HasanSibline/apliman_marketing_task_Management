@@ -31,6 +31,41 @@ export const formatAssetUrl = (path: string | null | undefined): string => {
   return `${baseUrl}${cleanPath}`;
 }
 
+declare module 'axios' {
+  export interface AxiosRequestConfig {
+    /**
+     * This caller reports its own failures, so the shared handler below stays silent.
+     *
+     * Without it a request whose component already explains what went wrong raises a
+     * second, vaguer toast beside the first, and for a permanent failure that second
+     * toast is the one telling people to try again in a moment.
+     */
+    quiet?: boolean
+  }
+}
+
+/**
+ * Endpoints where a 401 is an answer rather than an expired session.
+ *
+ * A wrong password and a wrong current password both come back 401. The old handler
+ * treated every one of them as the session ending and reloaded the whole document,
+ * which threw away the toast that would have said what was wrong: the login page
+ * blinked and told you nothing.
+ */
+const SELF_HANDLED_401 = ['/auth/login', '/auth/refresh', '/auth/logout', '/auth/change-password']
+
+/**
+ * Broadcast when a request is refused with a token the app still believed in.
+ *
+ * A DOM event rather than a direct dispatch, because this module is imported by the
+ * store's own slices and importing the store back would close the cycle. App.tsx
+ * listens and clears the session; the route guards do the navigating from there.
+ */
+export const UNAUTHORIZED_EVENT = 'auth:unauthorized'
+
+/** Concurrent requests all fail together when a token expires; the session ends once. */
+let sessionEndAnnounced = false
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -56,17 +91,36 @@ api.interceptors.request.use(
 
 // Response interceptor for error handling
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // A reply means the token was accepted, so the next expiry is a new event.
+    sessionEndAnnounced = false
+    return response
+  },
   (error) => {
+    const url: string = error.config?.url ?? ''
+    const quiet: boolean = error.config?.quiet === true
+
+    if (error.response?.status === 401 && !SELF_HANDLED_401.some((path) => url.startsWith(path))) {
+      localStorage.removeItem('token')
+      // Cleared in place rather than by reloading the document. A reload discarded
+      // everything the person had typed, fired once per concurrent 401, and took the
+      // explanation with it. There is no refresh-and-retry to attempt here: the
+      // backend guards /auth/refresh with the same token that was just refused, so a
+      // session that has expired can only be replaced by signing in again.
+      if (!sessionEndAnnounced) {
+        sessionEndAnnounced = true
+        window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT))
+      }
+      return Promise.reject(error)
+    }
+
+    if (quiet) {
+      return Promise.reject(error)
+    }
+
     if (error.code === 'ECONNABORTED') {
       // Timeout error
       toast.error('Request timed out. The server might be starting up, please try again in a moment.')
-    } else if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      // Force reload to trigger route guards and clear Redux state
-      window.location.reload()
-      // Don't redirect here - let route guards handle the redirect
-      // This prevents incorrect redirects (e.g. company users to /login instead of /{slug}/login)
     } else if (error.response?.status >= 500) {
       toast.error('Server error. Please try again later.')
     } else if (error.message === 'Network Error') {
@@ -492,7 +546,10 @@ export const filesApi = {
       formData.append('files', file)
     })
 
-    const response = await api.post(`/files/upload/${taskId}`, formData, {
+    // /files/task/:taskId, not /files/upload/:taskId. The old path collided with
+    // /files/upload/:folder, which is registered first, so every task upload was
+    // rejected as an invalid destination folder.
+    const response = await api.post(`/files/task/${taskId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

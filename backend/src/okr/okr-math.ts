@@ -56,12 +56,26 @@ export function keyResultValue(kr: KeyResultRange, tasks: TaskProgressInput[]): 
 /**
  * How far a key result has come, from 0 to 1.
  *
- * A zero-width range (start equal to target) cannot be expressed as a ratio, so it
- * is treated as met once the current value reaches the target.
+ * Measured across the range someone actually committed to, start to target, not as a
+ * share of the target. Those are only the same thing when the start is zero, and the
+ * difference is not cosmetic: a key result that begins at 80 on the way to 100 has
+ * done none of its work, and reading it as 80% of the target announces four fifths of
+ * a job nobody has started.
+ *
+ * Dividing by a signed range also makes a decreasing goal work with no special case.
+ * Reducing escalations from 100 to 20 has a range of -20 - -100 = -80, and at 60 the
+ * numerator is -40, so progress is 0.5 and rises as the number falls. Anything that
+ * guards on `targetValue > 0` instead cannot express that goal at all, and pins
+ * "reduce to zero" at zero forever.
+ *
+ * A zero-width range (start equal to target) carries no direction, so the only honest
+ * reading is "hold this number": met at the target and nowhere else. Treating it as
+ * met at or above the target scored a reduce-to-zero goal that had climbed to five as
+ * complete.
  */
 export function keyResultProgress(kr: KeyResultRange): number {
   const range = kr.targetValue - kr.startValue;
-  if (range === 0) return kr.currentValue >= kr.targetValue ? 1 : 0;
+  if (range === 0) return kr.currentValue === kr.targetValue ? 1 : 0;
   return clamp01((kr.currentValue - kr.startValue) / range);
 }
 
@@ -69,6 +83,23 @@ export function keyResultProgress(kr: KeyResultRange): number {
 export function objectiveProgress(keyResults: KeyResultRange[]): number {
   if (keyResults.length === 0) return 0;
   return keyResults.reduce((sum, kr) => sum + keyResultProgress(kr), 0) / keyResults.length;
+}
+
+/**
+ * The same numbers as whole percentages, for the screens that show one.
+ *
+ * Progress is a fraction everywhere inside this file, and the conversion to a
+ * percentage happens once, here, at the edge. It used to be written out at each call
+ * site, and five of those copies drifted into a different formula entirely, so the
+ * dashboard, the cycle page and the year report disagreed about the same objective.
+ * Anything that needs a percentage calls one of these two.
+ */
+export function keyResultPercent(kr: KeyResultRange): number {
+  return Math.round(keyResultProgress(kr) * 100);
+}
+
+export function objectivePercent(keyResults: KeyResultRange[]): number {
+  return Math.round(objectiveProgress(keyResults) * 100);
 }
 
 /** A key result counts as met at 99.9%, which absorbs floating point drift. */

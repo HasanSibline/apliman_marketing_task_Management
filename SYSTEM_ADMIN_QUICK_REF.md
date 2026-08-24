@@ -14,7 +14,7 @@
 ### **System Administrator Credentials:**
 ```
 Email: superadmin@apliman.com
-Password: SuperAdmin123!
+Password: the value of SUPER_ADMIN_PASSWORD
 Company: NONE (companyId = NULL)
 Role: SUPER_ADMIN
 ```
@@ -144,7 +144,7 @@ WHERE companyId IS NULL;
 ### **Login as System Administrator:**
 1. Go to `/login`
 2. Email: `superadmin@apliman.com`
-3. Password: `SuperAdmin123!`
+3. Password: the value of `SUPER_ADMIN_PASSWORD`
 4. You'll see "Companies" menu item 🏢
 5. Click to access `/super-admin/companies`
 
@@ -223,7 +223,7 @@ VALUES (
   'system-admin-id',
   'superadmin@apliman.com',
   'System Administrator',
-  '$2b$10$hashedpassword', -- Hash "SuperAdmin123!"
+  '$2b$10$hashedpassword', -- Hash of the configured SUPER_ADMIN_PASSWORD
   'SUPER_ADMIN',
   NULL, -- MUST BE NULL!
   'System Administrator',

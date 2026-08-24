@@ -74,13 +74,28 @@ const ProfilePage: React.FC = () => {
     })
   }, [user?.id, user?.name, user?.email, user?.position])
 
+  /**
+   * This form's own in-flight flag.
+   *
+   * The submit button was wired to `isLoading` off the auth slice, which only the
+   * login, getMe and changePassword thunks ever set. This save calls
+   * `usersApi.updateProfile` directly and never touches redux, so the button never
+   * disabled and never said "Updating", and stayed clickable for the whole request.
+   * The shared flag was wrong in the other direction too: submitting the password
+   * form disabled this button, on a form that was not being submitted.
+   */
+  const [savingProfile, setSavingProfile] = useState(false)
+
   const onProfileSubmit = async (data: ProfileFormData) => {
+    setSavingProfile(true)
     try {
       const updatedUser = await usersApi.updateProfile(data)
       dispatch(updateUser(updatedUser))
       toast.success('Profile updated successfully!')
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to update profile')
+    } finally {
+      setSavingProfile(false)
     }
   }
 
@@ -315,10 +330,10 @@ const ProfilePage: React.FC = () => {
             <div className="flex justify-end">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={savingProfile}
                 className="btn-primary"
               >
-                {isLoading ? 'Updating...' : 'Update Profile'}
+                {savingProfile ? 'Updating…' : 'Update Profile'}
               </button>
             </div>
           </form>

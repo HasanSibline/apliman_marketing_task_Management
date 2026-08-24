@@ -67,10 +67,11 @@ export class AiController {
   @ApiOperation({ summary: 'Summarize text using AI' })
   @ApiResponse({ status: 200, description: 'Text summarized successfully' })
   @UseGuards(JwtAuthGuard)
-  async summarizeText(@Body() summarizeTextDto: SummarizeTextDto) {
+  async summarizeText(@Body() summarizeTextDto: SummarizeTextDto, @Request() request: any) {
     const summary = await this.aiService.summarizeText(
       summarizeTextDto.text,
       summarizeTextDto.maxLength,
+      request.user.id,
     );
     
     return {
@@ -85,10 +86,11 @@ export class AiController {
   @ApiOperation({ summary: 'Analyze task priority using AI' })
   @ApiResponse({ status: 200, description: 'Priority analyzed successfully' })
   @UseGuards(JwtAuthGuard)
-  async analyzePriority(@Body() analyzePriorityDto: AnalyzePriorityDto) {
+  async analyzePriority(@Body() analyzePriorityDto: AnalyzePriorityDto, @Request() request: any) {
     const analysis = await this.aiService.analyzePriority(
       analyzePriorityDto.title,
       analyzePriorityDto.description,
+      request.user.id,
     );
     
     return analysis;
@@ -98,11 +100,12 @@ export class AiController {
   @ApiOperation({ summary: 'Check task completeness using AI' })
   @ApiResponse({ status: 200, description: 'Completeness checked successfully' })
   @UseGuards(JwtAuthGuard)
-  async checkCompleteness(@Body() checkCompletenessDto: CheckCompletenessDto) {
+  async checkCompleteness(@Body() checkCompletenessDto: CheckCompletenessDto, @Request() request: any) {
     const analysis = await this.aiService.checkTaskCompleteness(
       checkCompletenessDto.description,
       checkCompletenessDto.goals,
       checkCompletenessDto.phase,
+      request.user.id,
     );
     
     return analysis;
@@ -112,8 +115,8 @@ export class AiController {
   @ApiOperation({ summary: 'Generate performance insights using AI' })
   @ApiResponse({ status: 200, description: 'Insights generated successfully' })
   @UseGuards(JwtAuthGuard)
-  async generateInsights(@Body() analyticsData: PerformanceInsightsDto) {
-    const insights = await this.aiService.generatePerformanceInsights(analyticsData);
+  async generateInsights(@Body() analyticsData: PerformanceInsightsDto, @Request() request: any) {
+    const insights = await this.aiService.generatePerformanceInsights(analyticsData, request.user.id);
     return insights;
   }
 
@@ -159,9 +162,9 @@ export class AiController {
   @ApiOperation({ summary: 'Detect task type using AI' })
   @ApiResponse({ status: 200, description: 'Task type detected successfully' })
   @UseGuards(JwtAuthGuard)
-  async detectTaskType(@Body() data: { title: string }) {
+  async detectTaskType(@Body() data: { title: string }, @Request() request: any) {
     try {
-      const result = await this.aiService.detectTaskType(data.title);
+      const result = await this.aiService.detectTaskType(data.title, request.user.id);
       return result;
     } catch (error) {
       this.logger.error('Error detecting task type:', error);

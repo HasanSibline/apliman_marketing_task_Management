@@ -23,7 +23,23 @@ interface Company {
   createdAt: string;
   adminEmail?: string;
   adminName?: string;
-  _count?: { users: number; tasks: number };
+  /**
+   * Where the per-company counts actually live.
+   *
+   * `GET /companies` builds this and then sets `_count: undefined` on the way out
+   * (companies.service.findAll), so reading `_count` gave undefined at every site and
+   * the optional chaining turned that into a confident zero. Every row of the table
+   * showed 0 users and 0 tasks, and the Total Users tile summed zeroes.
+   */
+  stats?: {
+    usersCount: number;
+    tasksCount: number;
+    workflowsCount: number;
+    chatSessionsCount: number;
+    aiMessagesCount: number;
+    aiTokensUsed: number;
+    aiCost: number;
+  };
 }
 
 
@@ -324,7 +340,15 @@ export default function SuperAdminDashboard() {
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl">{error}</div>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+            <span>{error}</span>
+            <button
+              onClick={fetchCompanies}
+              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-semibold hover:bg-red-100 dark:border-red-800 dark:hover:bg-red-900/50"
+            >
+              Try again
+            </button>
+          </div>
         )}
 
         {/* Stats */}
@@ -334,7 +358,7 @@ export default function SuperAdminDashboard() {
             { label: 'Active', value: companies.filter(c => c.subscriptionStatus === 'ACTIVE').length, color: 'text-green-600 dark:text-green-400' },
             { label: 'Trial', value: companies.filter(c => c.subscriptionStatus === 'TRIAL').length, color: 'text-blue-600 dark:text-blue-400' },
             { label: 'Suspended', value: companies.filter(c => !c.isActive || c.subscriptionStatus === 'SUSPENDED').length, color: 'text-red-600 dark:text-red-400' },
-            { label: 'Total Users', value: companies.reduce((a, c) => a + (c._count?.users || 0), 0), color: 'text-indigo-600 dark:text-indigo-400' },
+            { label: 'Total Users', value: companies.reduce((a, c) => a + (c.stats?.usersCount || 0), 0), color: 'text-indigo-600 dark:text-indigo-400' },
             { label: 'AI Enabled', value: companies.filter(c => c.aiEnabled).length, color: 'text-primary-600 dark:text-primary-400' },
           ].map(s => (
             <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-100 dark:border-gray-700">
@@ -380,8 +404,20 @@ export default function SuperAdminDashboard() {
 
                       {/* Admin */}
                       <td className="px-5 py-4 whitespace-nowrap">
-                        <p className="text-sm text-gray-800 dark:text-gray-100">{company.adminName ?? ', '}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{company.adminEmail ?? ', '}</p>
+                        {/* The server returns null here for a company with no COMPANY_ADMIN,
+                            and this rendered a bare ", " in the column where a person's name
+                            and login address belong: the remains of a placeholder character
+                            that a find and replace removed. Say what is actually the case,
+                            because "this company has nobody administering it" is exactly the
+                            thing a super admin is scanning this table for. */}
+                        {company.adminName ? (
+                          <>
+                            <p className="text-sm text-gray-800 dark:text-gray-100">{company.adminName}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{company.adminEmail}</p>
+                          </>
+                        ) : (
+                          <p className="text-sm italic text-gray-400 dark:text-gray-500">No admin assigned</p>
+                        )}
                       </td>
 
                       {/* Plan */}
@@ -400,12 +436,12 @@ export default function SuperAdminDashboard() {
 
                       {/* Users */}
                       <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
-                        {company._count?.users ?? 0}
+                        {company.stats?.usersCount ?? 0}
                       </td>
 
                       {/* Tasks */}
                       <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
-                        {company._count?.tasks ?? 0}
+                        {company.stats?.tasksCount ?? 0}
                       </td>
 
                       {/* AI */}
@@ -459,7 +495,11 @@ export default function SuperAdminDashboard() {
             </table>
           </div>
 
-          {companies.length === 0 && !loading && (
+          {/* Gated on `error` as well as on emptiness. The banner above already says
+              the load failed, and this used to render directly underneath it offering
+              to create the platform's first company, on a platform whose companies had
+              simply not arrived. */}
+          {companies.length === 0 && !loading && !error && (
             <div className="text-center py-16">
               <p className="text-4xl mb-3">🏢</p>
               <p className="text-gray-500 dark:text-gray-400 font-medium mb-4">No companies yet</p>

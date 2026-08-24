@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { CheckIcon } from '@heroicons/react/24/outline'
+import { pushEscapeLayer } from './dialogChrome'
 
 /**
  * The Aura dropdown, list included.
@@ -82,6 +83,13 @@ interface SelectProps {
   style?: React.CSSProperties
   children?: React.ReactNode
   'aria-label'?: string
+  /**
+   * For the common case: a <label htmlFor> already names this control. A button is a
+   * labelable element, so that association holds, but a caller with a heading or a
+   * span doing the naming needs to point at it, and there was no way to.
+   */
+  'aria-labelledby'?: string
+  'aria-describedby'?: string
 }
 
 const Select: React.FC<SelectProps> = ({
@@ -95,6 +103,8 @@ const Select: React.FC<SelectProps> = ({
   style,
   children,
   'aria-label': ariaLabel,
+  'aria-labelledby': ariaLabelledBy,
+  'aria-describedby': ariaDescribedBy,
 }) => {
   const options = readOptions(children)
 
@@ -131,6 +141,16 @@ const Select: React.FC<SelectProps> = ({
   const listRef = useRef<HTMLUListElement>(null)
   const typed = useRef({ term: '', at: 0 })
   const listId = useId()
+  // Framer animates in JavaScript, so the stylesheet's prefers-reduced-motion block
+  // cannot reach it. Asked here and folded into the transition instead.
+  const stillness = useReducedMotion()
+
+  const close = useCallback(() => {
+    setOpen(false)
+    // The list is a portal on the far side of the document. Without this the keyboard
+    // is left on a node that has just been removed, which drops it back to the body.
+    triggerRef.current?.focus()
+  }, [])
 
   const place = useCallback(() => {
     const el = triggerRef.current
@@ -156,6 +176,21 @@ const Select: React.FC<SelectProps> = ({
     }
   }, [open, place])
 
+  /**
+   * Escape belongs to the list while the list is open, and to the dialog behind it
+   * otherwise.
+   *
+   * Handling it on the trigger was not enough. Every dialog listens for Escape on
+   * `document` in the capture phase, which runs before the key has reached the
+   * trigger at all, so the form closed first and the dropdown went with it; the
+   * stopPropagation below never got a turn. Claiming a layer makes the dialog stand
+   * down for as long as the list is open.
+   */
+  useEffect(() => {
+    if (!open) return
+    return pushEscapeLayer(close)
+  }, [open, close])
+
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => {
@@ -172,6 +207,13 @@ const Select: React.FC<SelectProps> = ({
     const i = options.findIndex((o) => o.value === current)
     setActive(i >= 0 ? i : 0)
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Options can change while the list is open, and an index left pointing past the
+  // end makes aria-activedescendant reference an id that is no longer in the
+  // document, which a screen reader reads as nothing at all.
+  useEffect(() => {
+    if (open && active > options.length - 1) setActive(Math.max(0, options.length - 1))
+  }, [open, active, options.length])
 
   // Keep the highlighted row in view when arrowing past the edge of the list.
   useEffect(() => {
@@ -211,9 +253,11 @@ const Select: React.FC<SelectProps> = ({
 
     switch (e.key) {
       case 'Escape':
+        // Normally handled by the escape layer above, which sees the key first. This
+        // stands behind it for the case where the list is open without one.
         e.preventDefault()
-        e.stopPropagation() // or a dialog behind this would close along with the list
-        setOpen(false)
+        e.stopPropagation()
+        close()
         return
       case 'ArrowDown':
         e.preventDefault()
@@ -271,6 +315,8 @@ const Select: React.FC<SelectProps> = ({
         aria-activedescendant={open && options[active] ? `${listId}-${active}` : undefined}
         aria-haspopup="listbox"
         aria-label={ariaLabel}
+        aria-labelledby={ariaLabelledBy}
+        aria-describedby={ariaDescribedBy}
         aria-required={required}
         style={style}
         // select-field carries the well and the chevron; this only has to add the
@@ -291,10 +337,15 @@ const Select: React.FC<SelectProps> = ({
               ref={listRef}
               id={listId}
               role="listbox"
-              initial={{ opacity: 0, y: box.drop ? -4 : 4 }}
+              // The list is a portal at the end of the body, nowhere near the label
+              // that names the trigger, so it has to carry the name itself or it is
+              // announced as an anonymous list of options.
+              aria-label={ariaLabel}
+              aria-labelledby={ariaLabel ? undefined : ariaLabelledBy}
+              initial={stillness ? false : { opacity: 0, y: box.drop ? -4 : 4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: box.drop ? -4 : 4 }}
-              transition={{ duration: 0.12 }}
+              exit={stillness ? { opacity: 1 } : { opacity: 0, y: box.drop ? -4 : 4 }}
+              transition={{ duration: stillness ? 0 : 0.12 }}
               style={{
                 position: 'fixed',
                 top: box.drop ? box.top : undefined,
@@ -342,7 +393,15 @@ const Select: React.FC<SelectProps> = ({
               })}
 
               {options.length === 0 && (
-                <li className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
+                // An element with no role inside a listbox is not exposed, so this
+                // read as an empty list and the sentence explaining why was lost. As
+                // a disabled option it is announced and still cannot be chosen.
+                <li
+                  role="option"
+                  aria-disabled="true"
+                  aria-selected={false}
+                  className="px-3 py-6 text-center text-sm text-gray-500 dark:text-gray-400"
+                >
                   Nothing to choose from yet.
                 </li>
               )}

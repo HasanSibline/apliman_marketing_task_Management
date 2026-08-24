@@ -51,7 +51,10 @@ try {
             Write-Host "  Slug: $($companyResponse.slug)" -ForegroundColor White
             Write-Host "  AI Enabled: $($companyResponse.aiEnabled)" -ForegroundColor White
             
-            if ($companyResponse.aiApiKey) {
+            # aiEnabled, not aiApiKey. /companies/my-company has never selected the
+            # key column, so this check was always false, and the endpoint would not
+            # return a key now in any case: a provider key goes in and never comes out.
+            if ($companyResponse.aiEnabled) {
                 Write-Host "  AI Key: Present ✅" -ForegroundColor Green
             } else {
                 Write-Host "  AI Key: Missing ❌" -ForegroundColor Red

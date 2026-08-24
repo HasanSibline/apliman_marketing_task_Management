@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { 
   ChartBarIcon, 
   UsersIcon, 
@@ -44,6 +44,18 @@ const AdminAnalytics: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  /** Which scope request is still current. See fetchStats. */
+  const requestId = useRef(0);
+  /**
+   * Set when the current scope failed to load.
+   *
+   * Without it, a failed switch to a company fell back to whatever was already in
+   * state: the previous company's figures, or the platform totals, under the newly
+   * chosen company's name. Numbers attributed to the wrong customer is the one thing
+   * this page cannot do.
+   */
+  const [loadError, setLoadError] = useState(false);
+
   useEffect(() => {
     api
       .get('/companies')
@@ -56,11 +68,22 @@ const AdminAnalytics: React.FC = () => {
   }, [companyId]);
 
   const fetchStats = async () => {
+    /**
+     * Only the newest scope may write.
+     *
+     * Switching company in the picker starts a request each time. Without this, an
+     * earlier company's slower answer landing last put its numbers on screen under
+     * the name of the company now selected, which is the one mistake this page must
+     * never make.
+     */
+    const mine = ++requestId.current;
     setLoading(true);
+    setLoadError(false);
     try {
       const { data } = await api.get('/companies/platform-stats', {
         params: companyId ? { companyId } : undefined,
       });
+      if (mine !== requestId.current) return;
       if (data?.scope === 'company') {
         setCompanyStats(data);
       } else {
@@ -68,10 +91,13 @@ const AdminAnalytics: React.FC = () => {
         setStats(data);
       }
     } catch (error) {
+      if (mine !== requestId.current) return;
       console.error('Error fetching stats:', error);
+      setCompanyStats(null);
+      setLoadError(true);
       toast.error(companyId ? 'Failed to load company statistics' : 'Failed to load platform statistics');
     } finally {
-      setLoading(false);
+      if (mine === requestId.current) setLoading(false);
     }
   };
 
@@ -155,9 +181,11 @@ const AdminAnalytics: React.FC = () => {
         <div>
           <h1 className="page-title">Analytics</h1>
           <p className="page-subtitle">
-            {companyStats
-              ? `Activity inside ${companyStats.company?.name ?? 'this company'}.`
-              : 'Totals across every company on the platform.'}
+            {loadError
+              ? 'These figures are unavailable right now.'
+              : companyStats
+                ? `Activity inside ${companyStats.company?.name ?? 'this company'}.`
+                : 'Totals across every company on the platform.'}
           </p>
         </div>
 
@@ -177,7 +205,16 @@ const AdminAnalytics: React.FC = () => {
         </div>
       </div>
 
-      {companyStats ? (
+      {loadError ? (
+        <div className="surface p-12 text-center">
+          <ExclamationTriangleIcon className="mx-auto mb-3 h-10 w-10 text-yellow-500" aria-hidden="true" />
+          <p className="font-medium text-gray-900 dark:text-white">Statistics could not be loaded</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Nothing is shown rather than the previous scope's figures under this one's name.
+          </p>
+          <button onClick={fetchStats} className="btn-primary mt-4">Try again</button>
+        </div>
+      ) : companyStats ? (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { name: 'People', value: companyStats.totalUsers, sub: `${companyStats.activeUsers} active` },
@@ -225,7 +262,7 @@ const AdminAnalytics: React.FC = () => {
       </div>
       )}
 
-      {!companyStats && (
+      {!companyStats && !loadError && (
       <div className="mt-8 bg-white dark:bg-gray-800 shadow rounded-lg p-6">
         <h2 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Subscription Status Breakdown</h2>
         <div className="space-y-4">
@@ -261,6 +298,10 @@ const AdminAnalytics: React.FC = () => {
       </div>
       )}
 
+      {/* Only true of the platform-wide view. In company scope this note sat directly
+          beneath one tenant's figures claiming they covered every company, which is a
+          false statement about the numbers immediately above it. */}
+      {!companyStats && !loadError && (
       <div className="mt-6 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg p-4">
         <div className="flex">
           <div className="flex-shrink-0">
@@ -270,13 +311,14 @@ const AdminAnalytics: React.FC = () => {
             <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">Analytics Note</h3>
             <div className="mt-2 text-sm text-blue-700 dark:text-blue-300">
               <p>
-                These statistics are calculated in real-time across all companies. 
-                For detailed company-specific analytics, visit individual company pages.
+                These statistics cover every company on the platform. Pick a company above
+                to see its figures on their own.
               </p>
             </div>
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 };

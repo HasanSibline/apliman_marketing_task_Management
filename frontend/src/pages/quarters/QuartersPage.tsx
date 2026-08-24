@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useLayoutEffect } from 'react'
+import React, { useEffect, useState, useRef, useMemo, useLayoutEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -31,9 +31,20 @@ interface Quarter {
     startDate: string
     endDate: string
     status: 'UPCOMING' | 'ACTIVE' | 'CLOSED'
-    totalTasks: number
-    completedTasks: number
-    objectivesCount: number
+    /**
+     * Optional, because `GET /quarters` does not send them.
+     *
+     * The list endpoint returns the quarter's own columns plus `readiness` and
+     * `ending`; the task and objective counts exist only on `GET /quarters/:id`.
+     * They were declared as required here, so the compiler was satisfied while every
+     * card on the shelf printed an empty Tasks figure, an empty Goals figure and a
+     * flat "0% Completion" for cycles that were well underway. Marking them optional
+     * makes the gap visible at every use, and the card now says it does not know
+     * rather than asserting zero.
+     */
+    totalTasks?: number
+    completedTasks?: number
+    objectivesCount?: number
 }
 
 interface Task {
@@ -54,6 +65,15 @@ const STATUS_CONFIG = {
     ACTIVE: { label: 'Active', bg: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300', dot: 'bg-green-500' },
     CLOSED: { label: 'Closed', bg: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200', dot: 'bg-gray-400' },
 }
+
+/**
+ * How many standby tasks one page holds.
+ *
+ * It was the literal 5, written into the request limit and into three separate
+ * ceiling calculations. Changing the limit would have left the pager confidently
+ * offering pages that do not exist.
+ */
+const BACKLOG_PAGE_SIZE = 5
 
 const QUARTER_NAMES = ['Q1', 'Q2', 'Q3', 'Q4']
 
@@ -168,15 +188,20 @@ function CloseQuarterModal({
                 rolloverTaskIds: Array.from(selected),
                 nextQuarterId: nextQuarterId || undefined,
             })
-            // Say what happens next rather than just confirming the close. Closing
-            // does not start the following quarter: an admin does that with Start
-            // Cycle when the team is ready.
-            toast.success(
-                data?.nextQuarter
-                    ? `Quarter closed. ${data.nextQuarter.name} ${data.nextQuarter.year} is ready to start.`
-                    : 'Quarter closed. Create the next quarter when you are ready.',
-                { duration: 6000 },
-            )
+            /**
+             * The server's own account of what it just did.
+             *
+             * This used to compose its own sentence ending "is ready to start", on the
+             * assumption that closing never starts the successor. That assumption is
+             * wrong: QuartersService.close does start it in some cases and says so, in
+             * both `message` and `nextQuarter.started`. So an admin whose next quarter
+             * had just gone live was told it was waiting for them, and would go looking
+             * for a Start Cycle button on a cycle that was already running.
+             *
+             * strategy/CloseCycleModal, the newer twin of this dialog, already reads
+             * `data.message`. This one was left behind.
+             */
+            toast.success(data?.message ?? 'Quarter closed.', { duration: 6000 })
             onClosed()
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Failed to close quarter')
@@ -274,6 +299,13 @@ const QuartersPage: React.FC = () => {
     const [backlogTasks, setBacklogTasks] = useState<Task[]>([])
     const [backlogPage, setBacklogPage] = useState(1)
     const [backlogTotal, setBacklogTotal] = useState(0)
+    /** A failed standby load, told apart from a genuinely clear standby list. */
+    const [backlogFailed, setBacklogFailed] = useState(false)
+    /** A failed cycles load, told apart from a company with no cycles yet. */
+    const [quartersFailed, setQuartersFailed] = useState(false)
+    /** Stamps the standby fetch so an older page cannot land after a newer one. */
+    const backlogRequestId = useRef(0)
+    const backlogPages = Math.max(1, Math.ceil(backlogTotal / BACKLOG_PAGE_SIZE))
     
     const [loading, setLoading] = useState(true)
     const [showCreate, setShowCreate] = useState(false)
@@ -306,7 +338,11 @@ const QuartersPage: React.FC = () => {
             if (!urlYear && availableYears.length > 0 && !availableYears.includes(selectedYear)) {
                 updateYearSelection(availableYears[0])
             }
+            setQuartersFailed(false)
         } catch {
+            // Without this the shelf, the year folders and the vault all render empty
+            // and a four second toast is the only evidence that anything went wrong.
+            setQuartersFailed(true)
             toast.error('Failed to load strategy cycles')
         } finally {
             setLoading(false)
@@ -314,11 +350,33 @@ const QuartersPage: React.FC = () => {
     }
 
     const fetchBacklog = async () => {
+        /**
+         * Only the newest page may write.
+         *
+         * This refetches on every backlogPage change with nothing tying a response to
+         * the page that asked for it, so clicking Next twice quickly could settle on
+         * page one's rows under the heading "Page 3".
+         */
+        const mine = ++backlogRequestId.current
         try {
-            const { data } = await api.get(`/tasks?quarterId=null&page=${backlogPage}&limit=5`)
-            setBacklogTasks(data.tasks)
-            setBacklogTotal(data.pagination.total)
-        } catch { /* silent */ }
+            const { data } = await api.get(`/tasks?quarterId=null&page=${backlogPage}&limit=${BACKLOG_PAGE_SIZE}`)
+            if (mine !== backlogRequestId.current) return
+            // Defended because the table below maps straight over this. A response
+            // without a `tasks` array stored undefined, and the next render threw and
+            // took the whole page down rather than just the standby panel.
+            setBacklogTasks(Array.isArray(data?.tasks) ? data.tasks : [])
+            setBacklogTotal(data?.pagination?.total ?? 0)
+            setBacklogFailed(false)
+        } catch {
+            /**
+             * It used to be `catch { /* silent *\/ }`. The standby panel then rendered
+             * "No tasks on standby. Your inbox is clear." about a request that never
+             * answered, which is the single most reassuring sentence on the page and
+             * was being produced by a failure.
+             */
+            if (mine !== backlogRequestId.current) return
+            setBacklogFailed(true)
+        }
     }
 
     const openCloseModal = async (quarter: Quarter) => {
@@ -349,16 +407,32 @@ const QuartersPage: React.FC = () => {
     }
 
     // Role-based visibility
-    const filteredQuarters = quarters.filter(q => isAdmin || q.status !== 'UPCOMING')
-    
-    // Group quarters by year
-    const quartersByYear = filteredQuarters.reduce((acc, q) => {
-        if (!acc[q.year]) acc[q.year] = []
-        acc[q.year].push(q)
-        return acc
-    }, {} as Record<number, Quarter[]>)
+    const filteredQuarters = useMemo(
+        () => quarters.filter(q => isAdmin || q.status !== 'UPCOMING'),
+        [quarters, isAdmin],
+    )
 
-    const years = Object.keys(quartersByYear).map(Number).sort((a, b) => b - a)
+    // Group quarters by year
+    const quartersByYear = useMemo(
+        () => filteredQuarters.reduce((acc, q) => {
+            if (!acc[q.year]) acc[q.year] = []
+            acc[q.year].push(q)
+            return acc
+        }, {} as Record<number, Quarter[]>),
+        [filteredQuarters],
+    )
+
+    /**
+     * Memoised because two effects below list it as a dependency.
+     *
+     * Built inline it was a new array on every render, so the resize listener was
+     * removed and re-added, and the auto-select effect re-ran, every time anything on
+     * the page changed rather than when the set of years actually did.
+     */
+    const years = useMemo(
+        () => Object.keys(quartersByYear).map(Number).sort((a, b) => b - a),
+        [quartersByYear],
+    )
 
     const isYearCompleted = (year: number) => {
         const yearQuarters = quartersByYear[year] || []
@@ -659,10 +733,28 @@ const QuartersPage: React.FC = () => {
                                 </div>
                             </div>
 
+                            {/* The cycles list failing left the shelf, the year folders and this
+                                grid all rendering empty, with a four second toast as the only
+                                evidence. An empty strategy hub is a statement about the company. */}
+                            {quartersFailed && (
+                                <div className="mb-6 rounded-xl border border-error-200 bg-error-50 p-4 text-sm text-error-800 dark:border-error-900/40 dark:bg-error-900/20 dark:text-error-300">
+                                    Strategy cycles could not be loaded, so this hub is empty for a reason that
+                                    has nothing to do with your cycles.{' '}
+                                    <button onClick={fetchQuarters} className="font-semibold underline">Try again</button>
+                                </div>
+                            )}
+
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {quartersByYear[selectedYear]?.map(q => {
                                     const cfg = STATUS_CONFIG[q.status];
-                                    const progress = q.totalTasks > 0 ? Math.round((q.completedTasks / q.totalTasks) * 100) : 0;
+                                    // Shown only when the counts really arrived. See the Quarter
+                                    // interface: the list endpoint does not carry them, and "0%"
+                                    // for a cycle that is half done is a worse answer than
+                                    // pointing at the cycle page.
+                                    const counted = q.totalTasks
+                                    const progress = counted && counted > 0
+                                        ? Math.round(((q.completedTasks ?? 0) / counted) * 100)
+                                        : 0;
                                     return (
                                         <motion.div 
                                             whileHover={{ y: -4 }}
@@ -679,26 +771,37 @@ const QuartersPage: React.FC = () => {
                                             </div>
                                             
                                             <div className="space-y-5">
-                                                <div>
-                                                    <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
-                                                        <span>Completion</span>
-                                                        <span className="text-primary-700 dark:text-primary-300">{progress}%</span>
-                                                    </div>
-                                                    <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-50 dark:border-gray-700 shadow-inner">
-                                                        <div className={`h-full rounded-full transition-all duration-1000 ${progress === 100 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }} />
-                                                    </div>
-                                                </div>
+                                                {typeof counted === 'number' ? (
+                                                    <>
+                                                        <div>
+                                                            <div className="flex items-center justify-between text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                                                                <span>Completion</span>
+                                                                <span className="text-primary-700 dark:text-primary-300">{progress}%</span>
+                                                            </div>
+                                                            <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden border border-gray-50 dark:border-gray-700 shadow-inner">
+                                                                <div className={`h-full rounded-full transition-all duration-1000 ${progress === 100 ? 'bg-green-500' : 'bg-primary-600'}`} style={{ width: `${progress}%` }} />
+                                                            </div>
+                                                        </div>
 
-                                                <div className="flex items-center justify-between pt-2 border-t border-gray-200/50">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-base font-semibold text-gray-900 dark:text-white leading-none">{q.totalTasks}</span>
-                                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Tasks</span>
+                                                        <div className="flex items-center justify-between pt-2 border-t border-gray-200/50">
+                                                            <div className="flex flex-col">
+                                                                <span className="text-base font-semibold text-gray-900 dark:text-white leading-none">{counted}</span>
+                                                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Tasks</span>
+                                                            </div>
+                                                            <div className="flex flex-col text-right">
+                                                                <span className="text-base font-semibold text-gray-900 dark:text-white leading-none">{q.objectivesCount ?? 0}</span>
+                                                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Goals</span>
+                                                            </div>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="pt-2 border-t border-gray-200/50">
+                                                        <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
+                                                            {new Date(q.startDate).toLocaleDateString()} to {new Date(q.endDate).toLocaleDateString()}
+                                                        </p>
+                                                        <p className="text-xs font-bold text-gray-400 tracking-wide mt-1">Open the cycle for its tasks and goals</p>
                                                     </div>
-                                                    <div className="flex flex-col text-right">
-                                                        <span className="text-base font-semibold text-gray-900 dark:text-white leading-none">{q.objectivesCount}</span>
-                                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mt-1">Goals</span>
-                                                    </div>
-                                                </div>
+                                                )}
                                             </div>
 
                                             {/* Lock Overlay for Upcoming (Strategic Lock) */}
@@ -783,7 +886,14 @@ const QuartersPage: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-                                {backlogTasks.length === 0 ? (
+                                {backlogFailed ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-error-600 dark:text-error-400">
+                                            Standby could not be loaded. This is not an empty list.{' '}
+                                            <button onClick={fetchBacklog} className="underline">Try again</button>
+                                        </td>
+                                    </tr>
+                                ) : backlogTasks.length === 0 ? (
                                     <tr>
                                         <td colSpan={4} className="px-6 py-12 text-center text-sm font-medium text-gray-500 dark:text-gray-400 italic">No tasks on standby. Your inbox is clear.</td>
                                     </tr>
@@ -829,9 +939,9 @@ const QuartersPage: React.FC = () => {
                     </div>
 
                     {/* Standby Pagination */}
-                    {backlogTotal > 5 && (
+                    {backlogTotal > BACKLOG_PAGE_SIZE && (
                         <div className="p-4 bg-gray-50/50 dark:bg-gray-900/40 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Page {backlogPage} of {Math.ceil(backlogTotal / 5)}</span>
+                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Page {backlogPage} of {backlogPages}</span>
                             <div className="flex gap-2">
                                 <button 
                                     disabled={backlogPage === 1}
@@ -841,7 +951,7 @@ const QuartersPage: React.FC = () => {
                                     Previous
                                 </button>
                                 <button 
-                                    disabled={backlogPage >= Math.ceil(backlogTotal / 5)}
+                                    disabled={backlogPage >= backlogPages}
                                     onClick={() => setBacklogPage(p => p + 1)}
                                     className="px-3 py-1.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-bold text-gray-600 dark:text-gray-300 disabled:opacity-30 hover:bg-gray-50 dark:hover:bg-gray-700 transition"
                                 >

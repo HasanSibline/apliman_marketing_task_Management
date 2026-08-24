@@ -6,6 +6,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { Prisma } from '@prisma/client';
 import { UserRole, UserStatus } from '../types/prisma';
+import { realTasksOnly, EXCLUDE_SUBTASKS } from '../tasks/task-filters';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -106,8 +107,8 @@ export class UsersService {
         lastActiveAt: true,
         _count: {
           select: {
-            assignedTasks: true,
-            createdTasks: true,
+            assignedTasks: { where: EXCLUDE_SUBTASKS },
+            createdTasks: { where: EXCLUDE_SUBTASKS },
           },
         },
       },
@@ -313,10 +314,10 @@ export class UsersService {
 
     const [assignedTasks, createdTasks] = await Promise.all([
       this.prisma.task.count({
-        where: { assignedToId: id },
+        where: realTasksOnly({ assignedToId: id }),
       }),
       this.prisma.task.count({
-        where: { createdById: id },
+        where: realTasksOnly({ createdById: id }),
       }),
     ]);
 

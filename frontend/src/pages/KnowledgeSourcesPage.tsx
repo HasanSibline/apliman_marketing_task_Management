@@ -14,6 +14,53 @@ import api from '@/services/api';
 import toast from 'react-hot-toast';
 import Select from '@/components/ui/Select'
 
+/**
+ * Turns a failed scrape into something worth reading.
+ *
+ * Scraping runs through the AI service, so these calls can fail for reasons no amount
+ * of retrying will fix: no provider configured, a budget spent, a key the provider
+ * rejects. Both handlers here used to throw the response away and toast a fixed
+ * "Failed to scrape knowledge source", while the shared axios interceptor added its
+ * own "please try again in a moment" on top for anything 5xx. So the two things on
+ * screen were a message that said nothing and a message that said the wrong thing,
+ * and the one sentence that would have told an administrator what to go and fix was
+ * the one that got dropped.
+ *
+ * Same shape as the ladder in components/chat/AuraAssist.tsx. The server writes these
+ * messages for the reader, so they are shown as sent rather than reworded here.
+ */
+function describeScrapeFailure(error: any, fallback: string) {
+  const kind: string | undefined = error?.response?.data?.kind
+  const detail = error?.response?.data?.detail
+  const serverMessage: string | undefined =
+    (typeof error?.response?.data?.message === 'string' ? error.response.data.message : undefined) ||
+    (typeof detail === 'string' ? detail : undefined) ||
+    (typeof detail?.message === 'string' ? detail.message : undefined)
+
+  /** States that need someone with access to settings. Never say "try again" for these. */
+  const permanent =
+    kind === 'NOT_CONFIGURED' ||
+    kind === 'BUDGET_EXHAUSTED' ||
+    kind === 'INVALID_API_KEY' ||
+    kind === 'AUTHENTICATION_ERROR' ||
+    kind === 'ENDPOINT_NOT_FOUND'
+
+  let message: string
+  if (error?.code === 'ECONNABORTED') {
+    message = 'That took longer than the server would wait. Try one source at a time.'
+  } else if (!error?.response || error?.message === 'Network Error') {
+    message = 'Could not reach the server. Please try again in a moment.'
+  } else if (serverMessage && kind) {
+    message = serverMessage
+  } else {
+    message = serverMessage || fallback
+  }
+
+  // A state only an administrator can clear is worth leaving on screen long enough
+  // to read and act on, rather than for the four seconds a toast normally lasts.
+  return { message, permanent }
+}
+
 interface KnowledgeSource {
   id: string;
   name: string;
@@ -35,9 +82,27 @@ interface KnowledgeSource {
 }
 
 export default function KnowledgeSourcesPage() {
-  const [companyName, setCompanyName] = useState('Your Company');
+  /**
+   * Null while unknown, and never guessed.
+   *
+   * This used to start at the literal string "Your Company" and keep it when the
+   * lookup failed. That string is not only in the subtitle: it is the type badge on
+   * every source the company owns, and the label of an option in the create form. So
+   * a failed lookup put a placeholder where a real company name goes, in a spot where
+   * it reads exactly like data.
+   */
+  const [companyName, setCompanyName] = useState<string | null>(null);
   const [sources, setSources] = useState<KnowledgeSource[]>([]);
   const [loading, setLoading] = useState(true);
+  /**
+   * A failed list request is not an empty list.
+   *
+   * The catch below wrote to the console and nowhere else, so the page rendered "No
+   * Knowledge Sources" with an "Add First Source" button. Someone whose sources
+   * failed to load was told they had none and invited to recreate them, which is how
+   * you end up with a duplicate of every source the company already had.
+   */
+  const [loadError, setLoadError] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingSource, setEditingSource] = useState<KnowledgeSource | null>(null);
   const [scraping, setScraping] = useState<string | null>(null);
@@ -61,20 +126,28 @@ export default function KnowledgeSourcesPage() {
     try {
       // Fetch current user's company information
       const response = await api.get('/companies/my-company');
-      setCompanyName(response.data.name || 'Your Company');
+      setCompanyName(response.data?.name || null);
     } catch (error) {
       console.error('Error fetching company name:', error);
-      // Keep default "Your Company"
+      // Left null. The render says "your company" in lower case, as a description
+      // rather than as a name, wherever this would have gone.
     }
   };
 
   const fetchSources = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const response = await api.get('/knowledge-sources');
-      setSources(response.data);
+      // The endpoint returns a bare array today. Guarded because the raw body went
+      // straight into state and every read below is a .length or a .map on it, so an
+      // envelope on the other end would white-screen the route rather than show one
+      // wrong number.
+      setSources(Array.isArray(response.data) ? response.data : response.data?.sources ?? []);
     } catch (error) {
       console.error('Error fetching knowledge sources:', error);
+      setLoadError(true);
+      setSources([]);
     } finally {
       setLoading(false);
     }
@@ -130,12 +203,15 @@ export default function KnowledgeSourcesPage() {
   const handleScrape = async (id: string) => {
     try {
       setScraping(id);
-      await api.post(`/knowledge-sources/${id}/scrape`);
-      toast.success('Source scraped successfully');
+      // quiet, so the interceptor's generic "try again later" does not land on top of
+      // the specific reason below.
+      await api.post(`/knowledge-sources/${id}/scrape`, undefined, { quiet: true });
+      toast.success('Source scraped');
       fetchSources();
     } catch (error) {
       console.error('Error scraping knowledge source:', error);
-      toast.error('Failed to scrape knowledge source');
+      const { message, permanent } = describeScrapeFailure(error, 'Could not scrape that source.');
+      toast.error(message, permanent ? { duration: 8000 } : undefined);
     } finally {
       setScraping(null);
     }
@@ -144,18 +220,23 @@ export default function KnowledgeSourcesPage() {
   const handleScrapeAll = async () => {
     try {
       setScrapingAll(true);
-      const response = await api.post('/knowledge-sources/scrape-all');
-      if (response.data.failed === 0) {
-        toast.success(`Scraping complete: All sources successful!`);
+      const response = await api.post('/knowledge-sources/scrape-all', undefined, { quiet: true });
+      // Defaulted, because the counts were read straight off the body and a shape
+      // change reported "undefined successful, undefined failed" as if it were news.
+      const successful = response.data?.successful ?? 0;
+      const failed = response.data?.failed ?? 0;
+      if (failed === 0) {
+        toast.success(`Scraped ${successful} source${successful === 1 ? '' : 's'}.`);
       } else {
-        toast(`Scraping complete: ${response.data.successful} successful, ${response.data.failed} failed`, {
+        toast(`Scraped ${successful}, failed on ${failed}. The failures are listed on the cards below.`, {
           icon: '📊',
         });
       }
       fetchSources();
     } catch (error) {
       console.error('Error scraping all sources:', error);
-      toast.error('Failed to scrape sources');
+      const { message, permanent } = describeScrapeFailure(error, 'Could not scrape the sources.');
+      toast.error(message, permanent ? { duration: 8000 } : undefined);
     } finally {
       setScrapingAll(false);
     }
@@ -201,7 +282,8 @@ export default function KnowledgeSourcesPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Knowledge Sources</h1>
             <p className="text-gray-600 dark:text-gray-300 mt-2">
-              Manage {companyName} and competitor URLs for enhanced AI content generation
+              Manage {companyName ?? 'your company'} and competitor URLs that Aura draws on when it
+              writes.
             </p>
           </div>
           <div className="flex gap-3">
@@ -228,18 +310,30 @@ export default function KnowledgeSourcesPage() {
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
           </div>
+        ) : loadError ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
+            <AlertCircle className="w-16 h-16 text-error-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              Your sources could not be loaded
+            </h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">
+              The server did not answer. Anything already saved is still there, so do not add
+              it again from here.
+            </p>
+            <button onClick={fetchSources} className="btn-primary">Try again</button>
+          </div>
         ) : sources.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
             <Globe className="w-16 h-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No Knowledge Sources</h3>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No knowledge sources yet</h3>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Add your first knowledge source to enhance AI content generation
+              A knowledge source is a page Aura reads before it writes for you.
             </p>
             <button
               onClick={() => setShowModal(true)}
               className="px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
-              Add First Source
+              Add first source
             </button>
           </div>
         ) : (
@@ -261,7 +355,7 @@ export default function KnowledgeSourcesPage() {
                             : 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300'
                         }`}
                       >
-                        {source.type === 'OWN_COMPANY' ? companyName : 'COMPETITOR'}
+                        {source.type === 'OWN_COMPANY' ? companyName ?? 'OUR COMPANY' : 'COMPETITOR'}
                       </span>
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -295,7 +389,10 @@ export default function KnowledgeSourcesPage() {
                       {source.content && (
                         <span>Content: {source.content.length} characters</span>
                       )}
-                      <span>Created by: {source.createdBy.name}</span>
+                      {/* Optional because it is a join. A source whose author has since been
+                          deleted used to throw here, inside the map, and take the whole
+                          page down rather than one line of one card. */}
+                      <span>Created by: {source.createdBy?.name ?? 'Unknown'}</span>
                     </div>
 
                     {source.scrapingError && (
@@ -383,7 +480,7 @@ export default function KnowledgeSourcesPage() {
                       className="select-field w-full"
                       required
                     >
-                      <option value="OWN_COMPANY">{companyName}</option>
+                      <option value="OWN_COMPANY">{companyName ?? 'Our company'}</option>
                       <option value="COMPETITOR">Competitor</option>
                     </Select>
                   </div>
@@ -409,7 +506,11 @@ export default function KnowledgeSourcesPage() {
                       min="1"
                       max="5"
                       value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
+                      // An empty box parses to NaN, which React then sets as the input's
+                      // value and the field stops accepting typing altogether.
+                      onChange={(e) =>
+                        setFormData({ ...formData, priority: Number.parseInt(e.target.value, 10) || 3 })
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                       required
                     />

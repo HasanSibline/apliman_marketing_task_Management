@@ -4,6 +4,7 @@ import {
   score,
   selectRelevant,
   selectAcrossSources,
+  allocateBudget,
 } from './knowledge-selection';
 
 describe('terms', () => {
@@ -84,6 +85,17 @@ describe('selectRelevant', () => {
     expect(selectRelevant(short, 'who do you sell to', 1500)).toBe(short);
   });
 
+  /** The gap marker is six characters and used to be charged as two. */
+  it('stays inside the budget even when it marks gaps', () => {
+    const doc = Array.from({ length: 40 }, (_, i) =>
+      i % 2 === 0 ? `Pricing fact ${i}.` : `Office trivia ${i}.`,
+    ).join('\n\n');
+
+    for (const budget of [40, 80, 160, 320]) {
+      expect(selectRelevant(doc, 'pricing', budget).length).toBeLessThanOrEqual(budget);
+    }
+  });
+
   it('marks where it skipped, so extracts are not read as continuous prose', () => {
     const doc = [
       'Pricing is per seat.',
@@ -151,5 +163,65 @@ describe('selectAcrossSources', () => {
     const before = original.content;
     selectAcrossSources([original], 'alpha', 200);
     expect(original.content).toBe(before);
+  });
+
+  /**
+   * The 400-character floor meant twenty sources carried 8000 characters against a
+   * stated 4000 budget, and thirty carried 12000. The budget has to be a ceiling.
+   */
+  it('holds the total budget however many sources there are', () => {
+    for (const count of [1, 3, 10, 20, 50]) {
+      const sources = Array.from({ length: count }, (_, i) => ({
+        name: `S${i}`,
+        content: long(`word${i}`),
+      }));
+
+      const total = selectAcrossSources(sources, 'offering detail', 4000)
+        .reduce((sum, s) => sum + s.content!.length, 0);
+
+      expect(total).toBeLessThanOrEqual(4000);
+    }
+  });
+
+  it('still sends something from every source when there are many of them', () => {
+    const sources = Array.from({ length: 20 }, (_, i) => ({
+      name: `S${i}`,
+      content: long(`word${i}`),
+    }));
+
+    for (const s of selectAcrossSources(sources, 'offering detail', 4000)) {
+      expect(s.content!.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('spends the budget on the long sources when the short ones cannot use it', () => {
+    const shortOne = 'We sell to telecom operators.';
+    const sources = [{ name: 'A', content: shortOne }, { name: 'B', content: long('bravo') }];
+
+    const trimmed = selectAcrossSources(sources, 'bravo offering', 1000);
+    expect(trimmed[0].content).toBe(shortOne);
+    // An even split would have capped B at 500; the unused remainder goes to B instead.
+    expect(trimmed[1].content!.length).toBeGreaterThan(500);
+  });
+});
+
+describe('allocateBudget', () => {
+  it('splits evenly when every source wants more than its share', () => {
+    expect(allocateBudget([1000, 1000, 1000], 300)).toEqual([100, 100, 100]);
+  });
+
+  it('gives a short source only what it needs and the rest to the others', () => {
+    expect(allocateBudget([10, 1000, 1000], 300)).toEqual([10, 145, 145]);
+  });
+
+  it('never hands out more than the budget', () => {
+    for (const count of [1, 2, 7, 20, 100]) {
+      const shares = allocateBudget(new Array(count).fill(5000), 4000);
+      expect(shares.reduce((a, b) => a + b, 0)).toBeLessThanOrEqual(4000);
+    }
+  });
+
+  it('leaves nothing on the table when everything fits', () => {
+    expect(allocateBudget([100, 200], 4000)).toEqual([100, 200]);
   });
 });

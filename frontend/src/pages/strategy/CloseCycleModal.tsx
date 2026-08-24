@@ -48,6 +48,16 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
   const [nextQuarterId, setNextQuarterId] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  /**
+   * The task list failed to load, or arrived incomplete.
+   *
+   * Either way this dialog cannot be used, because the one thing it does is decide
+   * the fate of tasks it is showing you. With an empty list it rendered "Every task
+   * in this quarter is finished. Nothing needs a decision." and left Close enabled,
+   * and Close then posted `rolloverTaskIds: []`, which releases every unfinished task
+   * in the quarter from its cycle. The dialog exists to prevent exactly that.
+   */
+  const [listUnusable, setListUnusable] = useState<'failed' | 'truncated' | null>(null)
 
   // Only quarters that can still receive work, earliest first: carrying tasks into
   // a closed one would hide them immediately, and the cycle that follows this one is
@@ -72,15 +82,26 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
       .get('/tasks', { params: { quarterId: quarter.id, limit: 500 } })
       .then(({ data }) => {
         if (cancelled) return
-        const list: TaskRow[] = (data?.tasks ?? data ?? []).filter(
+        const returned = data?.tasks ?? data ?? []
+        const list: TaskRow[] = returned.filter(
           (t: any) => !['COMPLETED', 'ARCHIVED'].includes(t.phase),
         )
         setTasks(list)
+        // The limit above is a request, not a guarantee, and the endpoint pages.
+        // A quarter with more tasks than one page holds would show a partial list,
+        // and every task past the page boundary would be released on close without
+        // ever having been on screen to untick.
+        const total = data?.pagination?.total
+        if (typeof total === 'number' && total > returned.length) setListUnusable('truncated')
         // Default to carrying everything: losing work silently is the failure mode
         // worth designing against, so opting out is the deliberate act.
         setSelected(new Set(list.map((t) => t.id)))
       })
-      .catch(() => { if (!cancelled) toast.error('Could not load this quarter\'s tasks') })
+      .catch(() => {
+        if (cancelled) return
+        setListUnusable('failed')
+        toast.error('Could not load this quarter\'s tasks')
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [quarter.id])
@@ -151,6 +172,18 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
               {[0, 1, 2].map((i) => (
                 <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
               ))}
+            </div>
+          ) : listUnusable ? (
+            <div className="py-6 text-center">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {listUnusable === 'failed'
+                  ? "This quarter's tasks could not be loaded"
+                  : 'This quarter holds more tasks than could be listed here'}
+              </p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Closing is blocked until every unfinished task can be shown, because anything
+                missing from this list would be released from the quarter without you seeing it.
+              </p>
             </div>
           ) : tasks.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-600 dark:text-gray-400">
@@ -223,7 +256,7 @@ const CloseCycleModal: React.FC<Props> = ({ quarter, quarters, onCancel, onClose
 
           <div className="flex justify-end gap-3">
             <button onClick={onCancel} className="btn-secondary">Cancel</button>
-            <button onClick={submit} disabled={saving || loading} className="btn-primary">
+            <button onClick={submit} disabled={saving || loading || listUnusable !== null} className="btn-primary">
               {saving ? <ArrowPathIcon className="mr-2 h-4 w-4 animate-spin" /> : <LockClosedIcon className="mr-2 h-4 w-4" />}
               Close quarter
             </button>

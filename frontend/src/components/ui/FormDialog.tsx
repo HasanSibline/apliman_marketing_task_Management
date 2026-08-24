@@ -1,6 +1,6 @@
 import React from 'react'
 import { createPortal } from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import useDialogChrome from './dialogChrome'
 
@@ -115,6 +115,17 @@ const FormDialog: React.FC<FormDialogProps> = ({
 
   const panelRef = useDialogChrome({ isOpen, onDismiss: dismiss })
 
+  // The dialog is named by the heading a sighted reader sees, not by a copy of that
+  // string in an aria-label: one title, one place to change it, and no chance of the
+  // two drifting apart.
+  const baseId = React.useId()
+  const titleId = `${baseId}-title`
+  const descriptionId = `${baseId}-description`
+
+  // Framer animates in JavaScript. The stylesheet's prefers-reduced-motion rules
+  // reach CSS transitions and keyframes only, so the panel has to ask for itself.
+  const stillness = useReducedMotion()
+
   const body = (
     <>
       <div className={`min-h-0 flex-1 overflow-y-auto ${flush ? '' : 'px-6 py-5'}`}>{children}</div>
@@ -153,8 +164,11 @@ const FormDialog: React.FC<FormDialogProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: stillness ? 0 : 0.18 }}
             onClick={dismiss}
+            // Decoration and a dismiss target for a pointer. Escape and the close
+            // button are what a keyboard uses, so there is nothing here to announce.
+            aria-hidden="true"
             className={`absolute inset-0 ${
               backdrop === 'heavy' ? 'bg-gray-950/75 backdrop-blur-lg' : 'bg-gray-950/60 backdrop-blur-[2px]'
             }`}
@@ -164,11 +178,15 @@ const FormDialog: React.FC<FormDialogProps> = ({
             ref={panelRef}
             role="dialog"
             aria-modal="true"
-            aria-label={title}
-            initial={{ opacity: 0, scale: 0.97, y: 12 }}
+            aria-labelledby={titleId}
+            aria-describedby={description ? descriptionId : undefined}
+            // Says the panel is mid-save, so a screen reader has a reason for the
+            // controls having gone quiet rather than reading them as broken.
+            aria-busy={busy || undefined}
+            initial={stillness ? false : { opacity: 0, scale: 0.97, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 8 }}
-            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            exit={stillness ? { opacity: 1 } : { opacity: 0, scale: 0.97, y: 8 }}
+            transition={{ duration: stillness ? 0 : 0.2, ease: [0.4, 0, 0.2, 1] }}
             className={`relative flex max-h-[calc(100vh-3rem)] w-full flex-col overflow-hidden rounded-2xl ${
               bare
                 ? ''
@@ -180,13 +198,23 @@ const FormDialog: React.FC<FormDialogProps> = ({
                 bare ? '' : 'border-b border-gray-200 dark:border-gray-700'
               }`}
             >
-              {icon && <div className="mt-0.5 flex-shrink-0">{icon}</div>}
+              {icon && (
+                <div aria-hidden="true" className="mt-0.5 flex-shrink-0">
+                  {icon}
+                </div>
+              )}
               <div className="min-w-0 flex-1">
-                <h2 className={`text-base font-semibold ${bare ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
+                <h2
+                  id={titleId}
+                  className={`text-base font-semibold ${bare ? 'text-white' : 'text-gray-900 dark:text-white'}`}
+                >
                   {title}
                 </h2>
                 {description && (
-                  <p className={`mt-1 text-sm ${bare ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}>
+                  <p
+                    id={descriptionId}
+                    className={`mt-1 text-sm ${bare ? 'text-gray-300' : 'text-gray-500 dark:text-gray-400'}`}
+                  >
                     {description}
                   </p>
                 )}

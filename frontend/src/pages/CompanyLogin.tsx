@@ -39,13 +39,36 @@ const CompanyLogin: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Apply the company's brand colour to this page as soon as we know it.
+  /**
+   * Apply the company's brand colour to this page as soon as we know it, and put it
+   * back on the way out.
+   *
+   * `applyBrandColor` writes --color-primary-* onto documentElement, which is global
+   * to the tab. With no cleanup, one tenant's brand colour followed the visitor to
+   * /admin/login and to the generic sign-in page, so the wrong company's colour was
+   * the frame around somebody else's login form. It takes a falsy argument
+   * specifically to reset, which is what the teardown does.
+   */
   useEffect(() => {
-    if (company?.primaryColor) applyBrandColor(company.primaryColor);
+    if (!company?.primaryColor) return
+    applyBrandColor(company.primaryColor);
+    return () => applyBrandColor(null);
   }, [company?.primaryColor]);
 
-  // Fetch company branding on mount
+  // Fetch company branding on mount, and again whenever the slug in the URL changes.
   useEffect(() => {
+    /**
+     * Only the newest slug may write.
+     *
+     * This effect re-runs on the same component instance when the route param
+     * changes, and it had no cleanup at all. A slow answer for /login/acme landing
+     * after /login/globex repainted the page with acme's name, logo and brand colour
+     * under globex's URL, and `handleSubmit` then checks the signed-in user against
+     * `company?.id`, so it would reject a perfectly valid globex account as "not
+     * associated with this company".
+     */
+    let stale = false
+
     const fetchCompanyBranding = async () => {
       if (!slug) {
         setError('Invalid company URL');
@@ -55,7 +78,17 @@ const CompanyLogin: React.FC = () => {
 
       try {
         const response = await api.get(`/public/companies/by-slug/${slug}`);
+        if (stale) return;
         const companyData = response.data;
+
+        // A 200 with nothing in it used to fall straight through to the login form
+        // with `company` still null and no error set, and every sign-in attempt then
+        // failed with the misleading "not associated with this company".
+        if (!companyData) {
+          setError('Company not found. Please check the URL.');
+          setCompanyLoading(false);
+          return;
+        }
 
         // Check if company is active
         if (!companyData.isActive) {
@@ -73,14 +106,19 @@ const CompanyLogin: React.FC = () => {
 
         setCompany(companyData);
       } catch (err: any) {
+        if (stale) return;
         console.error('Failed to fetch company:', err);
         setError(err.response?.data?.message || 'Company not found. Please check the URL.');
       } finally {
-        setCompanyLoading(false);
+        if (!stale) setCompanyLoading(false);
       }
     };
 
     fetchCompanyBranding();
+
+    return () => {
+      stale = true;
+    };
   }, [slug]);
 
   const handleSubmit = async (e: FormEvent) => {

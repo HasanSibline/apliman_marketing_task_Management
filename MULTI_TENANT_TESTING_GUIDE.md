@@ -32,7 +32,7 @@ After migration, a new System Administrator is created:
 
 **System Administrator (Manages All Companies):**
 - **Email:** `superadmin@apliman.com`
-- **Password:** `SuperAdmin123!`
+- **Password:** the value of `SUPER_ADMIN_PASSWORD`
 - **Company:** NONE (exists outside all companies)
 - **Role:** SUPER_ADMIN
 - ⚠️ **CHANGE THIS PASSWORD IMMEDIATELY!**
@@ -67,7 +67,7 @@ python start.py
 
 3. **Login with System Administrator credentials:**
    - Email: `superadmin@apliman.com`
-   - Password: `SuperAdmin123!`
+   - Password: the value of `SUPER_ADMIN_PASSWORD`
    - **You are NOT part of any company!**
 
 ---
@@ -521,7 +521,7 @@ After starting your servers:
 
 ### **Super Admin (System):**
 - Email: `superadmin@apliman.com`
-- Password: `SuperAdmin123!`
+- Password: the value of `SUPER_ADMIN_PASSWORD`
 - Company: **NONE** (outside all companies)
 
 ### **Apliman Company Admin:**

@@ -4,6 +4,7 @@ import {
   orderChain,
   selectCandidates,
   explainEmptyChain,
+  emptyChainCode,
   ChainEntry,
 } from './provider-chain';
 
@@ -148,5 +149,44 @@ describe('explainEmptyChain', () => {
   it('says how long until the first provider frees up', () => {
     const cooling = [entry({ cooldownUntil: new Date(NOW.getTime() + 45_000) })];
     expect(explainEmptyChain(cooling, NOW)).toMatch(/45s/);
+  });
+});
+
+/**
+ * The same reasoning as explainEmptyChain, in a form the gateway can branch on: two of
+ * these states are permanent until an administrator acts and one clears by itself, and
+ * the user-facing message has to tell them apart.
+ */
+describe('emptyChainCode', () => {
+  it('names each reason separately', () => {
+    expect(emptyChainCode([], NOW)).toBe('NOT_CONFIGURED');
+    expect(emptyChainCode([entry({ enabled: false })], NOW)).toBe('ALL_DISABLED');
+    expect(emptyChainCode([entry({ status: 'INVALID_KEY' })], NOW)).toBe('ALL_KEYS_REJECTED');
+    expect(
+      emptyChainCode([entry({ isEmergency: true, monthlyBudget: 1, spentThisMonth: 5 })], NOW),
+    ).toBe('BUDGET_EXHAUSTED');
+    expect(emptyChainCode([entry({ cooldownUntil: new Date(NOW.getTime() + 45_000) })], NOW)).toBe(
+      'ALL_COOLING',
+    );
+  });
+
+  it('agrees with the sentence the log prints, because they are the same decision', () => {
+    const cases: ChainEntry[][] = [
+      [],
+      [entry({ enabled: false })],
+      [entry({ status: 'INVALID_KEY' })],
+      [entry({ monthlyBudget: 1, spentThisMonth: 5 })],
+      [entry({ cooldownUntil: new Date(NOW.getTime() + 45_000) })],
+      [entry({ status: 'INVALID_KEY' }), entry({ id: 'e2', cooldownUntil: new Date(NOW.getTime() + 10_000) })],
+    ];
+    const expected = [
+      'no providers configured',
+      'every provider is disabled',
+      'every configured key was rejected by its provider',
+      'the only remaining providers are over their monthly budget',
+      'every provider is cooling down',
+      'no provider is currently available',
+    ];
+    cases.forEach((c, i) => expect(explainEmptyChain(c, NOW)).toContain(expected[i]));
   });
 });

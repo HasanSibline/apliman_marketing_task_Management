@@ -7,11 +7,12 @@ from datetime import datetime
 import psutil
 import os
 import asyncio
-import aiohttp
 from config import get_config
 from services.content_generator import ContentGenerator
 from services.web_scraper import WebScraper
 from services.chat_service import ChatService
+from services.priority_analyzer import PriorityAnalyzer
+from services.completeness_checker import CompletenessChecker
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 import traceback
@@ -42,21 +43,48 @@ app.add_middleware(
 # ── Auth helper ──────────────────────────────────────────────────────────────
 _bearer_scheme = HTTPBearer(auto_error=False)
 
+_LOCAL_DEV_ENVIRONMENTS = {"development", "testing"}
+
 def require_service_token(
     credentials: HTTPAuthorizationCredentials = Security(_bearer_scheme),
 ):
     """Validate the AI_SERVICE_SECRET bearer token on protected endpoints."""
     expected = os.getenv("AI_SERVICE_SECRET", "")
     if not expected:
-        # Secret not configured, allow in dev so the service still works locally
-        logger.warning("AI_SERVICE_SECRET is not set; endpoint is unauthenticated")
-        return
+        if config.ENVIRONMENT in _LOCAL_DEV_ENVIRONMENTS:
+            # Convenience for `npm run dev`, where nobody wants to set a shared secret.
+            logger.warning("AI_SERVICE_SECRET is not set; endpoint is unauthenticated (dev only)")
+            return
+        # Fail closed. A missing or misspelled secret in production would otherwise
+        # silently turn every protected endpoint into a public one.
+        logger.error("AI_SERVICE_SECRET is not set; refusing requests")
+        raise HTTPException(
+            status_code=503,
+            detail="AI service is misconfigured: AI_SERVICE_SECRET is not set.",
+        )
     if credentials is None or credentials.credentials != expected:
         raise HTTPException(status_code=401, detail="Invalid or missing service token")
 
 # Initialize services
 content_generator = ContentGenerator()
 web_scraper = WebScraper()
+# Both hold nothing per-request, so one instance each is shared. Neither touches an
+# API key, so unlike ContentGenerator they are not rebuilt per company.
+priority_analyzer = PriorityAnalyzer()
+completeness_checker = CompletenessChecker()
+
+
+def with_usage(payload: Dict[str, Any], usage: Optional[Dict[str, int]]) -> Dict[str, Any]:
+    """Attach the provider's token counts to a response, or leave the key off.
+
+    The backend prices a call from `usage` when it is there and from its own estimate
+    when it is not, so a provider that reported nothing must send nothing. Zeros would
+    be worse than silence: the backend would have to read them as a call that cost
+    nothing, and no call costs nothing.
+    """
+    if usage:
+        payload["usage"] = usage
+    return payload
 
 
 def resolve_api_key(provided_key: str | None, endpoint_name: str) -> str:
@@ -148,87 +176,27 @@ async def keepalive():
         "message": "AI service is awake and running"
     }
 
-@app.get("/api-keys-status")
+@app.get("/api-keys-status", dependencies=[Depends(require_service_token)])
 async def api_keys_status():
-    """Check status of all configured API keys"""
+    """Report whether environment API keys are configured.
+
+    Deliberately does no network I/O and returns no key material. This used to make a
+    live Gemini call per key and echo a key prefix, which let anyone with the public
+    URL burn provider quota and learn part of a credential.
+    """
     try:
         api_keys = config.get_api_keys()
-        if not api_keys:
-            return {
-                "status": "error",
-                "message": "No API keys configured",
-                "keys_count": 0
-            }
-        
-        keys_status = []
-        for i, key in enumerate(api_keys):
-            key_preview = f"{key[:6]}..."
-            
-            # Try a simple test request with this key
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{config.GEMINI_MODEL}:generateContent"
-            headers = {
-                'Content-Type': 'application/json',
-                'X-goog-api-key': key
-            }
-            payload = {
-                "contents": [{
-                    "parts": [{
-                        "text": "test"
-                    }]
-                }]
-            }
-            
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=5)) as response:
-                        if response.status == 200:
-                            keys_status.append({
-                                "index": i,
-                                "preview": key_preview,
-                                "status": "active",
-                                "message": "Working"
-                            })
-                        elif response.status == 429:
-                            error_text = await response.text()
-                            keys_status.append({
-                                "index": i,
-                                "preview": key_preview,
-                                "status": "quota_exceeded",
-                                "message": "Quota exceeded",
-                                "error": error_text[:200]
-                            })
-                        else:
-                            error_text = await response.text()
-                            keys_status.append({
-                                "index": i,
-                                "preview": key_preview,
-                                "status": "error",
-                                "message": f"HTTP {response.status}",
-                                "error": error_text[:200]
-                            })
-            except Exception as e:
-                keys_status.append({
-                    "index": i,
-                    "preview": key_preview,
-                    "status": "error",
-                    "message": "Request failed",
-                    "error": str(e)[:200]
-                })
-        
-        active_count = sum(1 for k in keys_status if k["status"] == "active")
-        
         return {
-            "status": "ok" if active_count > 0 else "degraded",
+            "status": "ok" if api_keys else "not_configured",
             "keys_count": len(api_keys),
-            "active_keys": active_count,
-            "keys": keys_status
         }
     except Exception as e:
         logger.error(f"Error checking API keys status: {e}")
         return {
             "status": "error",
-            "message": str(e)
+            "message": "Unable to read API key configuration",
         }
+
 
 class TestAiRequest(BaseModel):
     api_key: str
@@ -247,15 +215,15 @@ async def test_ai(request: TestAiRequest):
     """
     try:
         generator = ContentGenerator(request.api_key, provider=request.provider, model=request.model)
-        reply = await generator._make_request(request.text)
+        reply, _usage = await generator._make_request(request.text)
 
-        return {
+        return with_usage({
             "status": "success",
             "timestamp": datetime.utcnow().isoformat(),
             "ai_provider": generator.provider,
             "model": generator.model,
             "reply": (reply or "").strip()[:200],
-        }
+        }, generator.usage_report())
     except Exception as e:
         logger.error(f"AI test failed: {e}")
         raise HTTPException(
@@ -299,13 +267,15 @@ async def generate_content(request: GenerateContentRequest):
         goals = await temp_generator.generate_goals(request.title)
         priority = await temp_generator.analyze_priority(request.title, description)
         
-        return {
+        # Three provider calls above, one response here, so the counts are the sum of
+        # all three rather than the last one.
+        return with_usage({
             "ai_provider": temp_generator.provider,
             "model": temp_generator.model,
             "description": description,
             "goals": goals,
             "priority": priority
-        }
+        }, temp_generator.usage_report())
     except HTTPException:
         raise
     except Exception as e:
@@ -333,7 +303,7 @@ async def summarize(request: SummarizeRequest):
         api_key_to_use = resolve_api_key(request.api_key, "summarize")
         temp_generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
         summary = await temp_generator.summarize_text(request.text, request.max_length)
-        return {"summary": summary}
+        return with_usage({"summary": summary}, temp_generator.usage_report())
     except Exception as e:
         logger.error(f"Summarization failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -360,7 +330,7 @@ async def daily_brief(request: DailyBriefRequest):
         api_key_to_use = resolve_api_key(request.api_key, "daily-brief")
         generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
         brief = await generator.write_daily_brief(request.firstName, request.facts, request.max_length)
-        return {"brief": brief}
+        return with_usage({"brief": brief}, generator.usage_report())
     except Exception as e:
         logger.error(f"Daily brief failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -385,7 +355,7 @@ async def ticket_check(request: TicketCheckRequest):
         api_key_to_use = resolve_api_key(request.api_key, "ticket-check")
         generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
         note = await generator.write_ticket_note(request.draftTitle, request.facts, request.max_length)
-        return {"note": note}
+        return with_usage({"note": note}, generator.usage_report())
     except Exception as e:
         logger.error(f"Ticket check failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -471,11 +441,11 @@ async def detect_task_type(request: dict):
         temp_generator = ContentGenerator(api_key_to_use, provider=provider, model=request.get("model"))
         task_type = await temp_generator.detect_task_type(title)
         
-        return {
+        return with_usage({
             "task_type": task_type,
             "ai_provider": "gemini",
             "gemini_model": config.GEMINI_MODEL
-        }
+        }, temp_generator.usage_report())
     except Exception as e:
         logger.error(f"Task type detection failed: {str(e)}")
         logger.error(traceback.format_exc())
@@ -513,13 +483,130 @@ async def generate_subtasks(request: dict):
             title, task_type, description, workflow_phases, available_users
         )
         
-        return {
+        return with_usage({
             "ai_provider": "gemini",
             "gemini_model": config.GEMINI_MODEL,
             "subtasks": subtasks
-        }
+        }, temp_generator.usage_report())
     except Exception as e:
         logger.error(f"Subtask generation failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=str(e))
+
+class AnalyzePriorityRequest(BaseModel):
+    title: str
+    description: Optional[str] = ""
+    company_name: Optional[str] = None  # Sent by the gateway with every call; unused here
+    api_key: Optional[str] = None  # Company-specific API key
+    provider: Optional[str] = "gemini"  # Selected AI provider
+    model: Optional[str] = None  # Optional model override (set by the platform key)
+
+@app.post("/analyze-priority", dependencies=[Depends(require_service_token)])
+async def analyze_priority(request: AnalyzePriorityRequest):
+    """Suggest a priority level for a task, and say why.
+
+    The provider does the judging and PriorityAnalyzer only reads its answer. That split
+    matters because the backend routes this endpoint through the provider chain: a
+    failure has to arrive there as a provider failure so the chain can fail over. If this
+    caught a dead key and returned the local keyword score instead, every call would look
+    like a success and the chain would never learn the key was dead.
+    """
+    try:
+        if not request.title:
+            raise HTTPException(status_code=400, detail="Title required")
+
+        api_key_to_use = resolve_api_key(request.api_key, "analyze-priority")
+        temp_generator = ContentGenerator(api_key_to_use, provider=request.provider, model=request.model)
+
+        description = request.description or ""
+        prompt = f"""
+        Rate the priority of this task on a scale of 1 to 5.
+
+        Title: {request.title}
+        Description: {description}
+
+        Weigh how urgent it is, how much other work waits on it, the impact of doing it,
+        and how much it matters to the business.
+
+        5 = critical, needs action now
+        4 = high, important and on a short timeline
+        3 = medium, the standard case
+        2 = low, can be scheduled freely
+        1 = minimal, nice to have
+
+        Answer in exactly two lines and nothing else:
+        Priority: <a single digit from 1 to 5>
+        Reasoning: <one sentence saying why>
+        """
+
+        response, _usage = await temp_generator._make_request(prompt)
+        result = priority_analyzer.parse_model_response(request.title, description, response)
+
+        return with_usage({
+            "suggested_priority": result["priority"],
+            "reasoning": result["reasoning"],
+            "confidence": result["confidence"],
+            "ai_provider": temp_generator.provider,
+            "model": temp_generator.model
+        }, temp_generator.usage_report())
+    except HTTPException:
+        # A company with no key configured raises 400 above. Re-raised rather than
+        # restated as a provider error below, because the chain reads 5xx as "try the
+        # next provider" and there is no provider that fixes a missing key.
+        raise
+    except Exception as e:
+        logger.error(f"Priority analysis failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        # 502 with the provider's own words kept intact, so the backend's classifier in
+        # ai-error.ts can still tell a rate limit from a revoked key. Never 404 or 405:
+        # it reads those as this service being undeployed and stops the chain dead.
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "status": "error",
+                "message": str(e),
+                "ai_provider": request.provider
+            }
+        )
+
+class CheckCompletenessRequest(BaseModel):
+    description: Optional[str] = ""
+    goals: Optional[str] = ""
+    phase: Optional[str] = ""  # The backend's TaskPhase enum, e.g. TODO or IN_PROGRESS
+    company_name: Optional[str] = None  # Sent by the gateway with every call; unused here
+    api_key: Optional[str] = None  # Company-specific API key
+    provider: Optional[str] = "gemini"  # Selected AI provider
+    model: Optional[str] = None  # Optional model override (set by the platform key)
+
+@app.post("/check-completeness", dependencies=[Depends(require_service_token)])
+async def check_completeness(request: CheckCompletenessRequest):
+    """Score how well a task's description covers its goals for the phase it sits in.
+
+    Scored locally with no provider call. The question is whether one piece of text
+    covers another and whether a fixed per-phase checklist is met, which a model would
+    answer more slowly, at a cost per task, and differently each time it was asked. The
+    key is still resolved so that a company without AI configured is refused here in the
+    same words as everywhere else, rather than this one endpoint quietly working while
+    the rest of the assistant is switched off.
+    """
+    try:
+        resolve_api_key(request.api_key, "check-completeness")
+
+        result = await completeness_checker.check(
+            request.description or "",
+            request.goals or "",
+            request.phase or ""
+        )
+
+        return {
+            "completeness_score": result["completeness_score"],
+            "suggestions": result["suggestions"],
+            "is_complete": result["is_complete"]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Completeness check failed: {str(e)}")
         logger.error(traceback.format_exc())
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -551,26 +638,28 @@ async def generate_performance_insights(request: dict):
         # Use temp generator for insight generation with company key
         provider = request.get("provider", "gemini")
         temp_generator = ContentGenerator(api_key_to_use, provider=provider, model=request.get("model"))
-        response = await temp_generator._make_request(prompt)
+        response, _usage = await temp_generator._make_request(prompt)
+        usage = temp_generator.usage_report()
         
         # Try to parse as JSON, fallback to structured response
         try:
             import json
             parsed_response = json.loads(response)
-            return {
+            return with_usage({
                 "insights": parsed_response.get("insights", ["Performance analysis completed"]),
                 "recommendations": parsed_response.get("recommendations", ["Continue monitoring performance"]),
                 "trends": parsed_response.get("trends", ["Data analysis in progress"]),
                 "ai_provider": "gemini"
-            }
+            }, usage)
         except json.JSONDecodeError:
-            # Fallback if response isn't valid JSON
-            return {
+            # Fallback if response isn't valid JSON. The call was made and billed either
+            # way, so the counts travel with the fallback shape too.
+            return with_usage({
                 "insights": [response[:200] + "..." if len(response) > 200 else response],
                 "recommendations": ["Review the insights above for actionable steps"],
                 "trends": ["Continue monitoring for patterns"],
                 "ai_provider": "gemini"
-            }
+            }, usage)
             
     except Exception as e:
         logger.error(f"Error generating performance insights: {e}")
@@ -606,11 +695,13 @@ async def learn_from_tasks(request: LearnFromTasksRequest):
             active_tasks=request.activeTasks
         )
         
-        return {
+        # ai_provider was hardcoded to gemini here and reported the wrong provider for
+        # every company not on it.
+        return with_usage({
             "success": True,
             "learnedContext": learned_context,
-            "ai_provider": "gemini"
-        }
+            "ai_provider": request.provider or "gemini"
+        }, temp_chat_service.learning_usage_report())
     except Exception as e:
         logger.error(f"Learning from tasks failed: {e}")
         raise HTTPException(
@@ -642,11 +733,11 @@ async def learn_domain_interests(request: LearnDomainInterestsRequest):
             existing_knowledge=request.existingKnowledge
         )
         
-        return {
+        return with_usage({
             "success": True,
             "learnedInterests": learned_interests,
-            "ai_provider": "gemini"
-        }
+            "ai_provider": request.provider or "gemini"
+        }, temp_chat_service.learning_usage_report())
     except Exception as e:
         logger.error(f"Learning domain interests failed: {e}")
         raise HTTPException(

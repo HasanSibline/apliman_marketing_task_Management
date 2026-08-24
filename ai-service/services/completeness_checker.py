@@ -12,8 +12,21 @@ class CompletenessChecker:
     def __init__(self):
         self.vectorizer = TfidfVectorizer(stop_words='english', max_features=1000)
         
-        # Phase completion requirements
+        # Phase completion requirements.
+        #
+        # Keys are the backend's TaskPhase enum. TODO and REJECTED were missing, and TODO
+        # is the default every task is created in, so the most common phase in the product
+        # was scoring the neutral 0.5 that an unrecognised phase gets and then being judged
+        # against the 0.7 threshold meant for phases nobody had listed either.
         self.phase_requirements = {
+            'TODO': {
+                'min_score': 0.3,
+                'required_elements': ['description', 'goals']
+            },
+            'REJECTED': {
+                'min_score': 0.3,
+                'required_elements': ['description', 'goals']
+            },
             'PENDING_APPROVAL': {
                 'min_score': 0.3,
                 'required_elements': ['description', 'goals']
@@ -202,6 +215,14 @@ class CompletenessChecker:
         
         # Phase-specific suggestions
         phase_suggestions = {
+            'TODO': [
+                "Spell out what finishing this task actually looks like",
+                "Add specific acceptance criteria"
+            ],
+            'REJECTED': [
+                "Address the reason this was sent back before resubmitting",
+                "Make the description say what changed since the last attempt"
+            ],
             'PENDING_APPROVAL': [
                 "Ensure task description clearly outlines the requirements",
                 "Add specific acceptance criteria"
@@ -248,6 +269,8 @@ class CompletenessChecker:
         """Determine if task should be considered complete"""
         # Phase-specific completion thresholds
         phase_thresholds = {
+            'TODO': 0.3,
+            'REJECTED': 0.3,
             'PENDING_APPROVAL': 0.3,
             'APPROVED': 0.4,
             'ASSIGNED': 0.5,

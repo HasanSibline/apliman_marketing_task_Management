@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -72,17 +72,28 @@ const QuarterCalendar = ({ tasks, startDate, endDate }: { tasks: Task[]; startDa
     const { firstDay, daysInMonth } = getDays(viewDate)
     const monthTasks = tasks.filter(t => t.dueDate && new Date(t.dueDate).getMonth() === viewDate.getMonth() && new Date(t.dueDate).getFullYear() === viewDate.getFullYear())
 
-    const nextMonth = () => {
-        const next = new Date(viewDate)
-        next.setMonth(next.getMonth() + 1)
-        if (next <= end) setViewDate(next)
+    /**
+     * Step a whole calendar month, built from year and month rather than mutated.
+     *
+     * `setMonth` keeps the day of the month, and rolls forward when the target month
+     * is too short for it. A quarter starting on 31 January opened the calendar on the
+     * 31st, and pressing Next asked for 31 February, which JavaScript turns into 3
+     * March: February was skipped entirely and could not be reached in either
+     * direction. Anchoring on day 1 removes the overflow, and the grid only ever uses
+     * the month and year anyway.
+     */
+    const stepMonth = (delta: number) => {
+        const candidate = new Date(viewDate.getFullYear(), viewDate.getMonth() + delta, 1)
+        // Compared against the quarter's own months, not its exact dates, or a quarter
+        // ending mid-month hid the month it ends in.
+        const monthsFrom = (a: Date, b: Date) =>
+            (a.getFullYear() - b.getFullYear()) * 12 + (a.getMonth() - b.getMonth())
+        if (monthsFrom(candidate, start) < 0 || monthsFrom(candidate, end) > 0) return
+        setViewDate(candidate)
     }
 
-    const prevMonth = () => {
-        const prev = new Date(viewDate)
-        prev.setMonth(prev.getMonth() - 1)
-        if (prev >= start) setViewDate(prev)
-    }
+    const nextMonth = () => stepMonth(1)
+    const prevMonth = () => stepMonth(-1)
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-[32px] border border-gray-100 dark:border-gray-700 overflow-hidden shadow-lg shadow-gray-200/50">
@@ -166,20 +177,28 @@ const QuarterDetailPage: React.FC = () => {
     const [loading, setLoading] = useState(true)
     const [activeTab, setActiveTab] = useState<'overview' | 'objectives' | 'tasks' | 'calendar'>('overview')
 
+    /** Which quarter request may still write. See fetchDetail. */
+    const requestId = useRef(0)
+
     useEffect(() => {
         fetchDetail()
     }, [id])
 
     const fetchDetail = async () => {
+        // Moving between quarters starts a request each time, and an earlier one
+        // answering last put the wrong cycle's tasks under the current cycle's heading.
+        const mine = ++requestId.current
         setLoading(true)
         try {
             const { data } = await api.get(`/quarters/${id}`)
+            if (mine !== requestId.current) return
             setQuarter(data)
         } catch {
+            if (mine !== requestId.current) return
             toast.error('Failed to load quarter details')
             navigate('/quarters')
         } finally {
-            setLoading(false)
+            if (mine === requestId.current) setLoading(false)
         }
     }
 

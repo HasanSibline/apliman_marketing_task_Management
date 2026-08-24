@@ -8,6 +8,7 @@ import {
   XCircleIcon,
   FunnelIcon,
   MagnifyingGlassIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 import { tasksApi } from '@/services/api'
 import { useAppSelector } from '@/hooks/redux'
@@ -23,6 +24,15 @@ const ApprovalsPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedWorkflow, setSelectedWorkflow] = useState<string>('')
   const [workflows, setWorkflows] = useState<any[]>([])
+  /**
+   * The approvals request failed.
+   *
+   * Worth its own state because of what the empty state claims: a green tick and
+   * "All caught up!". Telling an approver there is nothing waiting, when the truth is
+   * that nobody could ask, is a confident wrong answer to the one question this page
+   * answers, and work sits unapproved because of it.
+   */
+  const [loadError, setLoadError] = useState(false)
 
   const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN'
 
@@ -48,6 +58,7 @@ const ApprovalsPage: React.FC = () => {
   const loadPendingApprovals = async () => {
     try {
       setLoading(true)
+      setLoadError(false)
       // Fetch actual approval requests from the database
       const approvals = await tasksApi.getPendingApprovals()
       
@@ -63,6 +74,7 @@ const ApprovalsPage: React.FC = () => {
       setTasks(tasksWithApprovals)
     } catch (error) {
       console.error('Failed to load pending approvals:', error)
+      setLoadError(true)
       toast.error('Failed to load pending approvals')
     } finally {
       setLoading(false)
@@ -147,15 +159,38 @@ const ApprovalsPage: React.FC = () => {
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      ) : filteredTasks.length === 0 ? (
+      ) : loadError ? (
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center">
-          <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">All caught up!</h3>
+          <ExclamationTriangleIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Approvals could not be loaded</h3>
           <p className="text-gray-600 dark:text-gray-300">
-            {tasks.length === 0 
-              ? 'No tasks are currently pending approval' 
-              : 'No tasks match your current filters'}
+            This does not mean there is nothing waiting. Try again before assuming the queue is clear.
           </p>
+          <button onClick={loadPendingApprovals} className="btn-primary mt-4">Try again</button>
+        </div>
+      ) : filteredTasks.length === 0 ? (
+        /* The heading used to say "All caught up!" over a paragraph reading "No tasks
+           match your current filters", which is the page congratulating you on a queue
+           it has just told you it is not showing you. The icon said the same thing.
+           A filter hiding everything is not an empty queue. */
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-12 text-center">
+          {tasks.length === 0 ? (
+            <>
+              <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">All caught up!</h3>
+              <p className="text-gray-600 dark:text-gray-300">No tasks are currently pending approval.</p>
+            </>
+          ) : (
+            <>
+              <FunnelIcon className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                Nothing matches those filters
+              </h3>
+              <p className="text-gray-600 dark:text-gray-300">
+                {tasks.length} {tasks.length === 1 ? 'approval is' : 'approvals are'} waiting behind them.
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="space-y-4">
@@ -179,7 +214,10 @@ const ApprovalsPage: React.FC = () => {
                     </button>
                     <p className="text-sm text-gray-600 dark:text-gray-300 mt-1 line-clamp-2">{task.description}</p>
                   </div>
-                  {task.priority && task.priority >= 8 && (
+                  {/* Priority runs 1 to 5 everywhere in this app, so a >= 8 test could
+                      never fire and the badge was dead. 4 and 5 are the two the rest of
+                      the UI treats as urgent. */}
+                  {task.priority && task.priority >= 4 && (
                     <span className="ml-4 px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs font-medium rounded-full">
                       High Priority
                     </span>

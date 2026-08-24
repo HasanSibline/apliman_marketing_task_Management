@@ -27,6 +27,18 @@ export interface KeyResult {
   startValue: number
   targetValue: number
   currentValue: number
+  /**
+   * Sent by the backend, already rounded to a whole percent.
+   *
+   * `objectives.service.ts` attaches `keyResultPercent(kr)` to every key result it
+   * returns. It was not declared here, so this file worked it out again, and the two
+   * disagreed on the case that matters most: for a zero-width range (start equal to
+   * target, which is how "hold at zero" and "reduce to zero" are written) the local
+   * copy said met at `currentValue >= targetValue`, so an escalation count that had
+   * climbed from 0 to 5 rendered 100% and a green tick here while every other screen
+   * in the app read it as 0%.
+   */
+  progress?: number
 }
 
 export interface Objective {
@@ -58,10 +70,16 @@ const STATUS: Record<string, { label: string; className: string }> = {
   CANCELLED: { label: 'Cancelled', className: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200' },
 }
 
+/**
+ * The server's percent for a key result.
+ *
+ * The arithmetic lives in `okr-math.ts` and nowhere else. This function does not
+ * calculate; it reads, and clamps only because a bar cannot be drawn past its track.
+ * A key result that arrived without the field renders as 0 rather than guessing,
+ * which is visible and fixable, unlike a second formula quietly diverging.
+ */
 export function krProgress(kr: KeyResult): number {
-  const range = kr.targetValue - kr.startValue
-  if (range === 0) return kr.currentValue >= kr.targetValue ? 100 : 0
-  return Math.min(100, Math.max(0, Math.round(((kr.currentValue - kr.startValue) / range) * 100)))
+  return Math.min(100, Math.max(0, Math.round(kr.progress ?? 0)))
 }
 
 export function objProgress(o: Objective): number {
@@ -80,6 +98,8 @@ const ObjectiveCard: React.FC<{
   const [openKr, setOpenKr] = useState<string | null>(null)
   const [tasks, setTasks] = useState<Record<string, LinkedTask[]>>({})
   const [loadingTasks, setLoadingTasks] = useState<string | null>(null)
+  /** Which key results' task lists failed to load, so the panel can say so. */
+  const [taskLoadFailed, setTaskLoadFailed] = useState<Record<string, boolean>>({})
   const [addingKr, setAddingKr] = useState(false)
   const [editingKr, setEditingKr] = useState<string | null>(null)
   const [form, setForm] = useState(blankKr)
@@ -91,12 +111,23 @@ const ObjectiveCard: React.FC<{
   const toggleTasks = async (krId: string) => {
     if (openKr === krId) return setOpenKr(null)
     setOpenKr(krId)
+    // Reopening after a failure has to retry rather than sit on the cached miss.
     if (tasks[krId]) return
     setLoadingTasks(krId)
     try {
       const { data } = await api.get(`/objectives/key-results/${krId}/tasks`)
       setTasks((t) => ({ ...t, [krId]: data.tasks ?? [] }))
+      setTaskLoadFailed((f) => ({ ...f, [krId]: false }))
     } catch {
+      /**
+       * Recorded, because "never loaded" and "loaded and empty" render as opposite
+       * claims. With nothing written to `tasks[krId]`, the panel below fell through
+       * to "No tasks are linked, so this stays at its starting value" and said it
+       * about a request that failed. That is a statement about the objective, made
+       * on no evidence, on the screen people use to decide whether an objective is
+       * being worked on.
+       */
+      setTaskLoadFailed((f) => ({ ...f, [krId]: true }))
       toast.error('Could not load the tasks behind this key result')
     } finally {
       setLoadingTasks(null)
@@ -233,6 +264,11 @@ const ObjectiveCard: React.FC<{
                   <div className="mt-3 border-t border-gray-200 pt-3 dark:border-gray-700">
                     {loadingTasks === kr.id ? (
                       <div className="h-10 animate-pulse rounded bg-gray-100 dark:bg-gray-700" />
+                    ) : taskLoadFailed[kr.id] ? (
+                      <p className="text-sm text-error-700 dark:text-error-400">
+                        The linked tasks could not be loaded, so this panel cannot say what is behind
+                        this key result. Close and reopen it to try again.
+                      </p>
                     ) : !rows || rows.length === 0 ? (
                       <p className="text-sm text-amber-700 dark:text-amber-400">
                         No tasks are linked, so this stays at its starting value. Link a task to this key

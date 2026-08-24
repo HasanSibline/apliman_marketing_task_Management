@@ -12,6 +12,7 @@ import type { Subtask, Task } from '@/types/task'
 import { usersApi, tasksApi } from '@/services/api'
 import toast from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
+import useDialogChrome from '@/components/ui/dialogChrome'
 
 interface SubtaskDetailModalProps {
   subtask: Subtask
@@ -47,7 +48,49 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
   const isAdmin = currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'ADMIN'
   const isAssignedUser = subtask.linkedTask?.assignedToId === currentUser?.id
 
+  // This has to sit above the early returns below. It used to live under them,
+  // so the number of hooks changed from render to render and React threw.
+  useEffect(() => {
+    if (!isOpen || !subtask.linkedTask) return
+
+    let cancelled = false
+
+    const loadUsers = async () => {
+      try {
+        const data: any = await usersApi.getAll()
+        const userList = Array.isArray(data) ? data : (data.users || [])
+        // The modal can be closed while this is in flight.
+        if (!cancelled) setUsers(userList)
+      } catch (error) {
+        console.error('Failed to load users:', error)
+      }
+    }
+
+    loadUsers()
+
+    // Always reset, including to nothing. Setting these only when the subtask
+    // had a value left the previous subtask's person ticked on an unassigned
+    // one, and Update Assignment would then hand it to them.
+    setSelectedUsers(subtask.linkedTask.assignedToId ? [subtask.linkedTask.assignedToId] : [])
+    setSelectedPhase(subtask.linkedTask.currentPhase?.id || '')
+
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, subtask])
+
   // Handle case where subtask is not linked to a task
+  /**
+   * Borrowed from FormDialog rather than reimplemented.
+   *
+   * This is a hand-rolled modal: it had no focus trap, no Escape, no scroll lock and
+   * left the page behind it reachable by Tab and by a screen reader. Converting all
+   * 565 lines to FormDialog is a bigger change than it is worth, but the behaviour is
+   * already a hook, so it costs one call and one ref. The Escape layering means a
+   * Select opened inside this modal still closes its own list first.
+   */
+  const panelRef = useDialogChrome({ isOpen, onDismiss: onClose })
+
   if (!isOpen) return null
 
   if (!subtask.linkedTask) {
@@ -63,6 +106,10 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
               className="fixed inset-0 bg-black bg-opacity-50"
             />
             <motion.div
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={subtask.title}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
@@ -161,30 +208,6 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
     )
   }
 
-  useEffect(() => {
-    if (isOpen) {
-      loadUsers()
-      // Initialize selected users from subtask
-      if (subtask.linkedTask?.assignedToId) {
-        setSelectedUsers([subtask.linkedTask.assignedToId])
-      }
-      // Initialize selected phase
-      if (subtask.linkedTask?.currentPhase?.id) {
-        setSelectedPhase(subtask.linkedTask.currentPhase.id)
-      }
-    }
-  }, [isOpen, subtask])
-
-  const loadUsers = async () => {
-    try {
-      const data: any = await usersApi.getAll()
-      const userList = Array.isArray(data) ? data : (data.users || [])
-      setUsers(userList)
-    } catch (error) {
-      console.error('Failed to load users:', error)
-    }
-  }
-
   const toggleUserSelection = (userId: string) => {
     setSelectedUsers(prev => 
       prev.includes(userId) 
@@ -228,7 +251,11 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
       await tasksApi.moveToPhase(subtask.linkedTask.id, selectedPhase)
       
       // If moving to completed phase, auto-check the subtask
-      const newPhase = task.workflow?.phases.find(p => p.id === selectedPhase)
+      // Optional all the way down, as it is where availablePhases is built below. A
+      // workflow that arrived without its phases threw here instead, after the move
+      // had already succeeded on the server, so the catch reported "Failed to update
+      // phase" for a phase change that had in fact gone through.
+      const newPhase = task.workflow?.phases?.find(p => p.id === selectedPhase)
       if (newPhase?.name.toLowerCase().includes('complet') || newPhase?.isEndPhase) {
         if (!subtask.isCompleted) {
           await tasksApi.toggleSubtaskComplete(task.id, subtask.id)
@@ -277,6 +304,10 @@ const SubtaskDetailModal: React.FC<SubtaskDetailModalProps> = ({
             
             {/* Modal */}
             <motion.div
+              ref={panelRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={subtask.title}
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}

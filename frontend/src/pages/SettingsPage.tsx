@@ -33,12 +33,34 @@ const cards = [
 
 export default function SettingsPage() {
   const [company, setCompany] = useState<MyCompany | null>(null)
+  /**
+   * Loading and failed are told apart, because the badges below are not decoration.
+   *
+   * There was no loading flag at all, and the catch set `company` to null, which is
+   * the same value the page starts on. Both states then rendered the same card:
+   * "Your Company" with a neutral "AI Off" pill. That pill is a statement about the
+   * reader's subscription, and a dropped request was making it, confidently, to
+   * companies that have AI switched on.
+   */
+  const [state, setState] = useState<'loading' | 'ready' | 'failed'>('loading')
 
   useEffect(() => {
+    let cancelled = false
     api
       .get('/companies/my-company')
-      .then((res) => setCompany(res.data))
-      .catch(() => setCompany(null))
+      .then((res) => {
+        if (cancelled) return
+        setCompany(res.data ?? null)
+        setState(res.data ? 'ready' : 'failed')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setCompany(null)
+        setState('failed')
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
@@ -53,19 +75,35 @@ export default function SettingsPage() {
           </div>
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-bold text-gray-900 dark:text-white truncate">
-              {company?.name || 'Your Company'}
+              {company?.name ?? (state === 'failed' ? 'Your workspace' : ' ')}
             </h2>
             <div className="flex flex-wrap items-center gap-2 mt-1">
-              {company?.subscriptionPlan && <Badge tone="primary">{company.subscriptionPlan}</Badge>}
-              {company?.subscriptionStatus && (
-                <Badge tone={company.subscriptionStatus === 'ACTIVE' ? 'success' : 'warning'}>
-                  {company.subscriptionStatus}
-                </Badge>
+              {state === 'loading' && (
+                <span className="text-sm text-gray-500 dark:text-gray-400">Loading your plan…</span>
               )}
-              <Badge tone={company?.aiEnabled ? 'success' : 'neutral'}>
-                <SparklesIcon className="h-3.5 w-3.5 mr-1" />
-                AI {company?.aiEnabled ? `On · ${company.aiProvider || 'gemini'}` : 'Off'}
-              </Badge>
+              {state === 'failed' && (
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  Your plan and AI status could not be loaded.
+                </span>
+              )}
+              {state === 'ready' && (
+                <>
+                  {company?.subscriptionPlan && <Badge tone="primary">{company.subscriptionPlan}</Badge>}
+                  {company?.subscriptionStatus && (
+                    <Badge tone={company.subscriptionStatus === 'ACTIVE' ? 'success' : 'warning'}>
+                      {company.subscriptionStatus}
+                    </Badge>
+                  )}
+                  {/* The provider is named only when the server names it. This used to
+                      fall back to the literal "gemini", so a company whose provider
+                      field came back empty was told, specifically and checkably, that
+                      it was running on a provider nobody had chosen. */}
+                  <Badge tone={company?.aiEnabled ? 'success' : 'neutral'}>
+                    <SparklesIcon className="h-3.5 w-3.5 mr-1" />
+                    AI {company?.aiEnabled ? (company.aiProvider ? `on · ${company.aiProvider}` : 'on') : 'off'}
+                  </Badge>
+                </>
+              )}
             </div>
           </div>
         </div>

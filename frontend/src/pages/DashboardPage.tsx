@@ -23,7 +23,7 @@ import { quartersApi } from '@/services/api'
 const DashboardPage: React.FC = () => {
   const dispatch = useAppDispatch()
   const { user } = useAppSelector((state) => state.auth)
-  const { dashboard, isLoading } = useAppSelector((state) => state.analytics)
+  const { dashboard, isLoading, error: dashboardError } = useAppSelector((state) => state.analytics)
   const { phaseCount } = useAppSelector((state) => state.tasks)
   const { teamMembers: presenceTeamMembers } = useAppSelector((state) => state.presence)
   const [activeQuarter, setActiveQuarter] = useState<any>(null)
@@ -109,6 +109,16 @@ const DashboardPage: React.FC = () => {
 
   const topPerformers = dashboard?.topPerformers || []
 
+  /**
+   * Whether the four headline numbers are real.
+   *
+   * Every tile reads `dashboard?.totalTasks || 0`, so a failed analytics request
+   * rendered four confident zeros and a leaderboard captioned "Waiting for data".
+   * Nothing on the page said the request had failed, and the slice had recorded that
+   * it did. Zero is a number a manager will act on, and this one was invented.
+   */
+  const statsAreReal = !!dashboard
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -181,6 +191,24 @@ const DashboardPage: React.FC = () => {
       </div>
 
       <DayBriefDialog isOpen={isDayBriefOpen} onClose={() => setIsDayBriefOpen(false)} />
+
+      {/* A zero nobody measured is worse than no number at all. Every tile below
+          reads `dashboard?.x || 0`, so without this the page presented a failed
+          request as a company with nothing in it. */}
+      {!statsAreReal && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-sm text-error-800 dark:border-error-900/40 dark:bg-error-900/20 dark:text-error-300">
+          <span>
+            {dashboardError ?? 'The server did not answer.'} The figures below are placeholders, not
+            your numbers.
+          </span>
+          <button
+            onClick={() => dispatch(fetchDashboardAnalytics())}
+            className="rounded-lg border border-error-300 px-3 py-1.5 font-semibold hover:bg-error-100 dark:border-error-800 dark:hover:bg-error-900/40"
+          >
+            Try again
+          </button>
+        </div>
+      )}
 
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -275,7 +303,12 @@ const DashboardPage: React.FC = () => {
                const rankLabels = ['Leader', 'Top 2', 'Top 3'];
                 return (
                   <div 
-                    key={index} 
+                    /* Keyed by the person, not by rank. The leaderboard is re-sorted
+                       by completed tasks on every refresh, so index keys made React
+                       reuse the first row's DOM for whoever moved into first place:
+                       the avatars and the rank medals stayed put while the names
+                       under them changed. */
+                    key={performer.id ?? performer.email ?? index} 
                     className={`flex items-center justify-between p-4 rounded-xl transition-all group border
                       ${isTopThree ? `${rankGradients[index]} text-white border-white/20` : 'bg-gray-50 dark:bg-gray-900/40 text-gray-900 dark:text-gray-100 hover:bg-white dark:hover:bg-gray-700 hover:border-gray-200 dark:hover:border-gray-600 border-transparent transition-colors'}`}
                   >
@@ -313,9 +346,11 @@ const DashboardPage: React.FC = () => {
              })}
 
              {topPerformers.length === 0 && (
-                <div className="h-full flex flex-col items-center justify-center py-20 grayscale opacity-20">
-                   <ChartBarIcon className="h-16 w-16 mb-4" />
-                   <p className="text-xs font-semibold tracking-wide">Waiting for data</p>
+                <div className="flex h-full flex-col items-center justify-center py-20 text-center">
+                   <ChartBarIcon className={`mb-4 h-16 w-16 ${statsAreReal ? 'text-gray-300 dark:text-gray-600' : 'text-error-400'}`} />
+                   <p className="text-xs font-semibold tracking-wide text-gray-500 dark:text-gray-400">
+                      {statsAreReal ? 'Nobody has completed anything yet' : 'This could not be loaded'}
+                   </p>
                 </div>
              )}
           </div>

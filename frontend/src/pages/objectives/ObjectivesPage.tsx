@@ -5,7 +5,6 @@ import { motion } from 'framer-motion'
 import {
     PlusIcon,
     XMarkIcon,
-    PencilIcon,
     TrashIcon,
     ChevronDownIcon,
     ChevronUpIcon,
@@ -31,6 +30,16 @@ interface KeyResult {
     startValue: number
     targetValue: number
     currentValue: number
+    /**
+     * Sent by the backend, already rounded to a whole percent.
+     *
+     * Not computed here. Progress is measured from startValue, not as a share of
+     * targetValue, and every local copy of that arithmetic got it wrong: a key result
+     * starting at 80 on the way to 100 read 80% before any work was done, a "reduce to
+     * zero" goal was pinned at 0% forever, and dividing by a zero target rendered NaN.
+     * One formula, in okr-math.ts, and the server does the sum.
+     */
+    progress: number
 }
 
 interface Objective {
@@ -73,39 +82,33 @@ function ProgressRing({ pct, size = 56, stroke = 5 }: { pct: number; size?: numb
 }
 
 // ─── Key Result bar ───────────────────────────────────────────────────────────
-function KRBar({ kr, onUpdate, canEdit }: { kr: KeyResult; onUpdate: (id: string, val: number) => void; canEdit: boolean }) {
-    const [editing, setEditing] = useState(false)
-    const [val, setVal] = useState(kr.currentValue)
-    const pct = kr.targetValue > 0 ? Math.min(Math.round((kr.currentValue / kr.targetValue) * 100), 100) : 0
-
-    const save = () => {
-        onUpdate(kr.id, val)
-        setEditing(false)
-    }
+/**
+ * The current value is read here, never typed.
+ *
+ * This row used to carry a pencil that opened a number box and PATCHed
+ * `{ currentValue }` back. The server drops that field on the floor
+ * (ObjectivesService.update: "currentValue is derived from the linked tasks and their
+ * subtasks, never set by hand"), so the request returned 200, the refetch that
+ * followed painted the unchanged number straight back into the row, and the person
+ * was left to conclude their edit had been refused for a reason nobody would give.
+ *
+ * The two other places that show a key result, ObjectiveDetailPage and
+ * strategy/ObjectiveCard, were both converted to read-only with a sentence saying
+ * where the number comes from. This one was missed.
+ */
+function KRBar({ kr }: { kr: KeyResult }) {
+    const pct = kr.progress
 
     return (
         <div className="space-y-1.5">
             <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-700 dark:text-gray-200">{kr.title}</span>
-                <div className="flex items-center gap-2">
-                    {editing ? (
-                        <>
-                            <input type="number" value={val} onChange={e => setVal(+e.target.value)}
-                                className="w-20 text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-primary-500" />
-                            <button onClick={save} className="text-xs text-primary-600 dark:text-primary-400 font-medium hover:text-primary-700">Save</button>
-                            <button onClick={() => setEditing(false)} className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300">Cancel</button>
-                        </>
-                    ) : (
-                        <>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">{kr.currentValue} / {kr.targetValue} {kr.unit}</span>
-                            <span className={`text-xs font-bold ${pct >= 100 ? 'text-green-700' : pct >= 50 ? 'text-primary-700' : 'text-gray-700 dark:text-gray-200'}`}>{pct}%</span>
-                            {canEdit && (
-                                <button onClick={() => setEditing(true)} className="text-gray-500 dark:text-gray-400 hover:text-primary-600 transition">
-                                    <PencilIcon className="h-3.5 w-3.5" />
-                                </button>
-                            )}
-                        </>
-                    )}
+                <div
+                    className="flex items-center gap-2"
+                    title="Progress follows the tasks linked to this key result. It is not typed in."
+                >
+                    <span className="text-xs text-gray-500 dark:text-gray-400">{kr.currentValue} / {kr.targetValue} {kr.unit}</span>
+                    <span className={`text-xs font-bold ${pct >= 100 ? 'text-green-700' : pct >= 50 ? 'text-primary-700' : 'text-gray-700 dark:text-gray-200'}`}>{pct}%</span>
                 </div>
             </div>
             <div className="h-1.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -180,6 +183,128 @@ function CreateObjectiveModal({
     )
 }
 
+// ─── Expandable Row Component ───────────────────────────────────────────
+/**
+ * Declared at module scope on purpose.
+ *
+ * This used to live inside ObjectivesPage, which made it a brand new component type
+ * on every render of the page. React cannot tell that the new type is the same
+ * component, so it threw every row away and built it again: an expanded row snapped
+ * shut, and a half-typed key result was lost, the moment anything else on the page
+ * changed. Changing a filter did it. So did the refetch after saving a key result,
+ * which is the one time you are most likely to have a row open.
+ */
+interface ExpanderRowProps {
+    obj: Objective
+    canEdit: boolean
+    onDelete: (id: string) => void
+    onAddKR: (objId: string, form: { title: string; unit: string; startValue: number; targetValue: number }) => void
+}
+
+const ExpanderRow = ({ obj, canEdit, onDelete, onAddKR }: ExpanderRowProps) => {
+    const navigate = useNavigate();
+    const [expanded, setExpanded] = useState(false);
+    const [addingKR, setAddingKR] = useState(false);
+    const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 });
+    const cfg = STATUS_CFG[obj.status];
+
+    const handleAddKR = () => {
+        onAddKR(obj.id, krForm);
+        setAddingKR(false);
+        setKrForm({ title: '', unit: 'number', startValue: 0, targetValue: 100 });
+    };
+
+    return (
+        <>
+            <motion.tr 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group border-b border-gray-100 dark:border-gray-700"
+            >
+                <td className="px-6 py-4 cursor-pointer" onClick={() => navigate(`/objectives/${obj.id}`)}>
+                    <div className="flex items-center gap-4">
+                        <div className="relative shrink-0 w-10">
+                            <ProgressRing pct={obj.progress} size={40} stroke={4} />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{obj.progress}%</span>
+                            </div>
+                        </div>
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{obj.title}</div>
+                            {obj.description && <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{obj.description}</div>}
+                        </div>
+                    </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
+                    {obj.quarter ? (
+                        <span className="font-medium">{obj.quarter.name} {obj.quarter.year}</span>
+                    ) : (
+                        <span className="text-gray-500 dark:text-gray-400 italic">No Quarter</span>
+                    )}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
+                        {cfg.label}
+                    </span>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <button onClick={(e) => { e.stopPropagation(); setExpanded(p => !p); }} className="flex items-center gap-1 font-medium hover:text-primary-600 transition-colors">
+                        {expanded ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
+                        {obj.keyResults.length} KR{obj.keyResults.length !== 1 ? 's' : ''}
+                    </button>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-3">
+                        {canEdit && (
+                            <button onClick={() => onDelete(obj.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-600 transition-colors" title="Delete Objective">
+                                <TrashIcon className="h-4 w-4" />
+                            </button>
+                        )}
+                        <button onClick={() => navigate(`/objectives/${obj.id}`)} className="text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-colors">
+                            <ChevronRightIcon className="h-5 w-5" />
+                        </button>
+                    </div>
+                </td>
+            </motion.tr>
+            {(expanded || (canEdit && obj.keyResults.length === 0)) && (
+                <tr className="bg-gray-50/50 dark:bg-gray-900/40">
+                    <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100 dark:border-gray-700">
+                        <div className="pl-14 pr-8 space-y-3">
+                            {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-2">Key Results</h4>}
+                            {obj.keyResults.map(kr => (
+                                <KRBar key={kr.id} kr={kr} />
+                            ))}
+                            {canEdit && !addingKR && (
+                                <button onClick={() => setAddingKR(true)} className="flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium pt-1">
+                                    <PlusIcon className="h-3.5 w-3.5" /> {obj.keyResults.length === 0 ? 'Add first key result' : 'Add key result'}
+                                </button>
+                            )}
+                            {addingKR && (
+                                <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 mt-2 space-y-2 shadow-sm">
+                                    <input placeholder="Key result title" value={krForm.title} onChange={e => setKrForm(p => ({ ...p, title: e.target.value }))} className="input-field text-sm" />
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <input type="number" placeholder="Start" value={krForm.startValue} onChange={e => setKrForm(p => ({ ...p, startValue: +e.target.value }))} className="input-field text-sm" />
+                                        <input type="number" placeholder="Target" value={krForm.targetValue} onChange={e => setKrForm(p => ({ ...p, targetValue: +e.target.value }))} className="input-field text-sm" />
+                                        <Select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))} className="select-field text-sm">
+                                            <option value="number">Number</option>
+                                            <option value="percent">%</option>
+                                            <option value="currency">$</option>
+                                        </Select>
+                                    </div>
+                                    <div className="flex gap-2 pt-1">
+                                        <button onClick={handleAddKR} className="btn-primary text-xs py-1.5 px-3">Add</button>
+                                        <button onClick={() => setAddingKR(false)} className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </td>
+                </tr>
+            )}
+        </>
+    );
+};
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 const ObjectivesPage: React.FC = () => {
     const { user } = useAppSelector(state => state.auth)
@@ -193,11 +318,20 @@ const ObjectivesPage: React.FC = () => {
     const [filterQuarter, setFilterQuarter] = useState('')
     const [filterStatus, setFilterStatus] = useState('')
     const [viewMode, setViewMode] = useState<'list' | 'analytics'>('list')
+    /**
+     * A failed load is not an empty company.
+     *
+     * The catch below only raised a toast, which is gone in four seconds, and the page
+     * then rendered "No objectives yet. Create your first objective" over the top of a
+     * company that has forty of them. Someone acting on that would file duplicates.
+     */
+    const [loadError, setLoadError] = useState(false)
 
     useEffect(() => { fetchAll() }, [])
 
     const fetchAll = async () => {
         setLoading(true)
+        setLoadError(false)
         try {
             // Two lists on purpose: the filter must still reach closed quarters so
             // history is browsable, while the create form must not offer them, since
@@ -210,16 +344,12 @@ const ObjectivesPage: React.FC = () => {
             setObjectives(objs)
             setQuarters(qs)
             setSelectableQuarters(selectable)
-        } catch { toast.error('Failed to load') }
+        } catch {
+            setLoadError(true)
+            toast.error('Failed to load')
+        }
         finally { setLoading(false) }
     }
-
-    const updateKR = async (krId: string, currentValue: number) => {
-        try {
-            await api.patch(`/objectives/key-results/${krId}`, { currentValue });
-            fetchAll();
-        } catch { toast.error('Failed to update Key Result'); }
-    };
 
     const addKR = async (objId: string, form: any) => {
         try {
@@ -251,118 +381,21 @@ const ObjectivesPage: React.FC = () => {
         return true
     })
 
+    /**
+     * Counted over what the table below is actually showing.
+     *
+     * These were counted over every objective while the table showed the filtered
+     * ones, so filtering to a single quarter left a row of numbers describing a set
+     * the user could not see: "Total 40" sitting directly above four rows.
+     */
     const stats = {
-        total: objectives.length,
-        onTrack: objectives.filter(o => o.status === 'ON_TRACK').length,
-        atRisk: objectives.filter(o => o.status === 'AT_RISK').length,
-        completed: objectives.filter(o => o.status === 'COMPLETED').length,
-        avgProgress: objectives.length > 0 ? Math.round(objectives.reduce((s, o) => s + o.progress, 0) / objectives.length) : 0,
+        total: filtered.length,
+        onTrack: filtered.filter(o => o.status === 'ON_TRACK').length,
+        atRisk: filtered.filter(o => o.status === 'AT_RISK').length,
+        completed: filtered.filter(o => o.status === 'COMPLETED').length,
+        avgProgress: filtered.length > 0 ? Math.round(filtered.reduce((s, o) => s + o.progress, 0) / filtered.length) : 0,
     }
 
-    // ─── Expandable Row Component ───────────────────────────────────────────
-    const ExpanderRow = ({ obj }: { obj: Objective }) => {
-        const navigate = useNavigate();
-        const [expanded, setExpanded] = useState(false);
-        const [addingKR, setAddingKR] = useState(false);
-        const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 });
-        const cfg = STATUS_CFG[obj.status];
-
-        const handleAddKR = () => {
-            addKR(obj.id, krForm);
-            setAddingKR(false);
-            setKrForm({ title: '', unit: 'number', startValue: 0, targetValue: 100 });
-        };
-
-        return (
-            <>
-                <motion.tr 
-                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors group border-b border-gray-100 dark:border-gray-700"
-                >
-                    <td className="px-6 py-4 cursor-pointer" onClick={() => navigate(`/objectives/${obj.id}`)}>
-                        <div className="flex items-center gap-4">
-                            <div className="relative shrink-0 w-10">
-                                <ProgressRing pct={obj.progress} size={40} stroke={4} />
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-xs font-bold text-gray-700 dark:text-gray-200">{obj.progress}%</span>
-                                </div>
-                            </div>
-                            <div className="min-w-0">
-                                <div className="text-sm font-bold text-gray-900 dark:text-white truncate">{obj.title}</div>
-                                {obj.description && <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-xs">{obj.description}</div>}
-                            </div>
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
-                        {obj.quarter ? (
-                            <span className="font-medium">{obj.quarter.name} {obj.quarter.year}</span>
-                        ) : (
-                            <span className="text-gray-500 dark:text-gray-400 italic">No Quarter</span>
-                        )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold ${cfg.bg} ${cfg.text}`}>
-                            <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                            {cfg.label}
-                        </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                        <button onClick={(e) => { e.stopPropagation(); setExpanded(p => !p); }} className="flex items-center gap-1 font-medium hover:text-primary-600 transition-colors">
-                            {expanded ? <ChevronUpIcon className="h-4 w-4" /> : <ChevronDownIcon className="h-4 w-4" />}
-                            {obj.keyResults.length} KR{obj.keyResults.length !== 1 ? 's' : ''}
-                        </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-3">
-                            {canEdit && (
-                                <button onClick={() => deleteObjective(obj.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-600 transition-colors" title="Delete Objective">
-                                    <TrashIcon className="h-4 w-4" />
-                                </button>
-                            )}
-                            <button onClick={() => navigate(`/objectives/${obj.id}`)} className="text-gray-500 dark:text-gray-400 hover:text-primary-600 transition-colors">
-                                <ChevronRightIcon className="h-5 w-5" />
-                            </button>
-                        </div>
-                    </td>
-                </motion.tr>
-                {(expanded || (canEdit && obj.keyResults.length === 0)) && (
-                    <tr className="bg-gray-50/50 dark:bg-gray-900/40">
-                        <td colSpan={5} className="px-6 py-4 text-sm border-b border-gray-100 dark:border-gray-700">
-                            <div className="pl-14 pr-8 space-y-3">
-                                {obj.keyResults.length > 0 && <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-2">Key Results</h4>}
-                                {obj.keyResults.map(kr => (
-                                    <KRBar key={kr.id} kr={kr} canEdit={canEdit} onUpdate={updateKR} />
-                                ))}
-                                {canEdit && !addingKR && (
-                                    <button onClick={() => setAddingKR(true)} className="flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium pt-1">
-                                        <PlusIcon className="h-3.5 w-3.5" /> {obj.keyResults.length === 0 ? 'Add first key result' : 'Add key result'}
-                                    </button>
-                                )}
-                                {addingKR && (
-                                    <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-gray-200 dark:border-gray-700 mt-2 space-y-2 shadow-sm">
-                                        <input placeholder="Key result title" value={krForm.title} onChange={e => setKrForm(p => ({ ...p, title: e.target.value }))} className="input-field text-sm" />
-                                        <div className="grid grid-cols-3 gap-2">
-                                            <input type="number" placeholder="Start" value={krForm.startValue} onChange={e => setKrForm(p => ({ ...p, startValue: +e.target.value }))} className="input-field text-sm" />
-                                            <input type="number" placeholder="Target" value={krForm.targetValue} onChange={e => setKrForm(p => ({ ...p, targetValue: +e.target.value }))} className="input-field text-sm" />
-                                            <Select value={krForm.unit} onChange={e => setKrForm(p => ({ ...p, unit: e.target.value }))} className="select-field text-sm">
-                                                <option value="number">Number</option>
-                                                <option value="percent">%</option>
-                                                <option value="currency">$</option>
-                                            </Select>
-                                        </div>
-                                        <div className="flex gap-2 pt-1">
-                                            <button onClick={handleAddKR} className="btn-primary text-xs py-1.5 px-3">Add</button>
-                                            <button onClick={() => setAddingKR(false)} className="btn-secondary text-xs py-1.5 px-3">Cancel</button>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </td>
-                    </tr>
-                )}
-            </>
-        );
-    };
 
     return (
         <div className="space-y-6">
@@ -403,7 +436,11 @@ const ObjectivesPage: React.FC = () => {
             </div>
 
             {viewMode === 'analytics' ? (
-                <ObjectiveAnalyticsDashboard objectives={filtered} />
+                /* Every objective, not the filtered set. The list view's filters are not
+                   rendered in this view, and the dashboard carries its own quarter
+                   picker that reads "All Quarters"; handing it a pre-filtered list made
+                   that label lie about a filter the user could no longer see or clear. */
+                <ObjectiveAnalyticsDashboard objectives={objectives} />
             ) : (
                 <>
                     {/* Stats row */}
@@ -439,6 +476,15 @@ const ObjectivesPage: React.FC = () => {
                     {/* Objectives Table */}
                     {loading ? (
                         <div className="flex justify-center py-12"><div className="spinner h-8 w-8" /></div>
+                    ) : loadError ? (
+                        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                            <ExclamationTriangleIcon className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
+                            <p className="text-gray-900 dark:text-white font-medium">Objectives could not be loaded</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                This is a problem reaching the server, not an empty company. Nothing has been lost.
+                            </p>
+                            <button onClick={fetchAll} className="btn-primary">Try again</button>
+                        </div>
                     ) : filtered.length === 0 ? (
                         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
                             <FlagIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
@@ -463,7 +509,13 @@ const ObjectivesPage: React.FC = () => {
                                     </thead>
                                     <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
                                         {filtered.map(obj => (
-                                            <ExpanderRow key={obj.id} obj={obj} />
+                                            <ExpanderRow
+                                                key={obj.id}
+                                                obj={obj}
+                                                canEdit={canEdit}
+                                                onDelete={deleteObjective}
+                                                onAddKR={addKR}
+                                            />
                                         ))}
                                     </tbody>
                                 </table>

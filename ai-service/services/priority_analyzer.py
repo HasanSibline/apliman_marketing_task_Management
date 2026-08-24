@@ -1,9 +1,13 @@
 import asyncio
 import logging
 import re
-from typing import Dict, Any
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
-import torch
+from typing import Dict, Any, Optional
+
+# transformers is imported inside load_model, not here. main.py imports this module at
+# boot to serve /analyze-priority, and that route never loads the local model: pulling
+# transformers (and the torch it drags in) in at import time would cost the web worker
+# hundreds of megabytes for a code path no request reaches. torch was imported here too
+# and never referenced at all.
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +37,8 @@ class PriorityAnalyzer:
             loop = asyncio.get_event_loop()
             
             def _load_model():
+                from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+
                 tokenizer = AutoTokenizer.from_pretrained(self.model_name)
                 model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name)
                 
@@ -109,6 +115,35 @@ class PriorityAnalyzer:
                 'confidence': 0.5
             }
     
+    def parse_model_response(self, title: str, description: str, response: str) -> Dict[str, Any]:
+        """Read a provider's free-text answer into a priority, a reason and a confidence.
+
+        Public because /analyze-priority lets the provider do the judging rather than the
+        local model this class was originally built around. The parsing, the 1-5 clamp
+        and the keyword read that covers an unusable answer all live here so the route
+        stays a route.
+        """
+        full_text = f"Title: {title}\nDescription: {description}"
+        rule_based_priority = self._rule_based_analysis(full_text)
+        model_priority = self._extract_priority_from_response(response)
+
+        if model_priority is None:
+            # The provider answered, it just did not put a number in the answer. The
+            # keyword score is a real reading of the task rather than a stand-in for a
+            # failed call, so this is not an error and must not be raised as one.
+            logger.warning("Provider answer carried no priority level; using the keyword score")
+            priority = rule_based_priority
+            model_reasoning = ""
+        else:
+            priority = min(max(model_priority, 1), 5)
+            model_reasoning = self._extract_reasoning_from_response(response)
+
+        return {
+            'priority': priority,
+            'reasoning': self._generate_reasoning(title, description, priority, model_reasoning),
+            'confidence': self._calculate_confidence(rule_based_priority, model_priority)
+        }
+
     def _rule_based_analysis(self, text: str) -> int:
         """Rule-based priority analysis using keywords"""
         text_lower = text.lower()
@@ -186,8 +221,13 @@ class PriorityAnalyzer:
             'reasoning': reasoning
         }
     
-    def _extract_priority_from_response(self, response: str) -> int:
-        """Extract priority number from AI response"""
+    def _extract_priority_from_response(self, response: str) -> Optional[int]:
+        """Extract priority number from AI response, or None if it carries no number.
+
+        None rather than a silent 3, because a caller cannot otherwise tell a model that
+        judged the task medium from a model whose answer had no number in it at all, and
+        those two deserve different treatment.
+        """
         # Look for patterns like "Priority: 4" or "priority level 3"
         priority_patterns = [
             r'priority:?\s*(\d)',
@@ -207,9 +247,9 @@ class PriorityAnalyzer:
         digits = re.findall(r'\b([1-5])\b', response)
         if digits:
             return int(digits[0])
-        
-        return 3  # Default medium priority
-    
+
+        return None
+
     def _extract_reasoning_from_response(self, response: str) -> str:
         """Extract reasoning from AI response"""
         # Look for reasoning after keywords
@@ -218,16 +258,19 @@ class PriorityAnalyzer:
             r'explanation:?\s*(.+?)(?:\n|$)',
             r'because:?\s*(.+?)(?:\n|$)'
         ]
-        
+
         for pattern in reasoning_patterns:
-            match = re.search(pattern, response.lower())
+            # Matched case-insensitively rather than against response.lower(), because
+            # the group is what the reader sees. Searching the lowered copy returned the
+            # lowered text, so every sentence came back with no capitals in it.
+            match = re.search(pattern, response, re.IGNORECASE)
             if match:
                 return match.group(1).strip()
-        
+
         # If no specific reasoning found, return the whole response (cleaned)
         return response.strip()[:200]  # Limit length
     
-    def _calculate_confidence(self, rule_priority: int, ai_priority: int = None) -> float:
+    def _calculate_confidence(self, rule_priority: int, ai_priority: Optional[int] = None) -> float:
         """Calculate confidence score based on agreement between methods"""
         if ai_priority is None:
             return 0.7  # Medium confidence for rule-based only
@@ -275,7 +318,11 @@ class PriorityAnalyzer:
             if any(word in text_lower for word in ['enhancement', 'improvement']):
                 reasoning_parts.append("Identified as enhancement/improvement")
         
-        return ". ".join(reasoning_parts) + "."
+        # Each part is trimmed of its own full stop before the joiner adds one back. The
+        # provider's sentence arrives already punctuated, so without this the reader sees
+        # "until this ships..".
+        cleaned = [re.sub(r'[.\s]+$', '', part) for part in reasoning_parts if part.strip()]
+        return ". ".join(cleaned) + "."
     
     def get_model_info(self) -> dict:
         """Get information about the priority analyzer"""

@@ -48,13 +48,19 @@ class Config:
     CACHE_TTL = int(os.getenv("CACHE_TTL", 3600))  # seconds
     
     # AI Model Configuration
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash")
+    # gemini-2.0-flash was shut down by Google on 2026-06-01, and this default is the
+    # live fallback for every provider entry that pins no model of its own, so calls
+    # were going to a model that no longer exists. gemini-2.5-flash is Google's
+    # documented replacement.
+    # NEXT RETIREMENT: gemini-2.5-flash goes the same way on 2026-10-16, successor
+    # gemini-3.5-flash. Moving is not automatic, 3.5-flash costs roughly fifteen times
+    # as much per token, so the owner decides when the bill changes, not this file.
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
     GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
     # Claude. Requests may override this per-company via the platform "model" setting.
     # Use "claude-haiku-4-5" for the cheapest option.
     ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-5")
-    LEGACY_MODEL = os.getenv("LEGACY_MODEL", "gpt-3.5-turbo")  # For legacy system
 
     @classmethod
     def validate(cls):

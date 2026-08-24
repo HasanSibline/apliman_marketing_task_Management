@@ -664,12 +664,11 @@ model SystemSettings {
   allowedFileTypes String   @default("image/jpeg,image/png,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document")
   sessionTimeout   Int      @default(480)
 
-  // Platform-wide AI key. Used by every company that has no key of its own.
-  // Set by a super admin in Settings → AI Platform. Encrypted at rest.
-  platformAiEnabled  Boolean @default(false)
-  platformAiProvider String  @default("anthropic")
-  platformAiApiKey   String?
-  platformAiModel    String?
+  // The platform-wide AI key lived here and was removed deliberately: a company now
+  // either has its own provider chain or has no AI, with no shared key in between.
+  // The four platformAi columns were dropped in 20260821090000_drop_platform_ai_key,
+  // which nulls platformAiApiKey first so the stored secret does not survive in a
+  // backup taken after the drop.
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

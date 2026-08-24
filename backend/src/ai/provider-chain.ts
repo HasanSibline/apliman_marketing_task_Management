@@ -77,6 +77,40 @@ export function selectCandidates(entries: ChainEntry[], now: Date = new Date()):
 }
 
 /**
+ * Why nothing could be tried, as something the caller can branch on.
+ *
+ * The reasons are not interchangeable, and the difference is not only for the log: two
+ * of them are permanent until a human acts and one clears by itself, which is the
+ * difference between telling a user to wait a moment and telling them to go and ask
+ * their administrator.
+ */
+export type EmptyChainCode =
+  | 'NOT_CONFIGURED'
+  | 'ALL_DISABLED'
+  | 'BUDGET_EXHAUSTED'
+  | 'ALL_COOLING'
+  | 'ALL_KEYS_REJECTED'
+  | 'NONE_AVAILABLE';
+
+export function emptyChainCode(entries: ChainEntry[], now: Date = new Date()): EmptyChainCode {
+  if (entries.length === 0) return 'NOT_CONFIGURED';
+
+  const enabled = entries.filter((e) => e.enabled);
+  if (enabled.length === 0) return 'ALL_DISABLED';
+
+  const available = enabled.filter((e) => isAvailable(e, now));
+  const budgetBlocked = available.filter((e) => !withinBudget(e));
+  if (budgetBlocked.length > 0 && budgetBlocked.length === available.length) {
+    return 'BUDGET_EXHAUSTED';
+  }
+
+  if (enabled.every((e) => e.cooldownUntil && e.cooldownUntil > now)) return 'ALL_COOLING';
+  if (enabled.every((e) => e.status === 'INVALID_KEY')) return 'ALL_KEYS_REJECTED';
+
+  return 'NONE_AVAILABLE';
+}
+
+/**
  * Why nothing could be tried, for a log an engineer can act on.
  *
  * "No provider available" is true and useless. Whether every key is rate limited, or
@@ -84,26 +118,23 @@ export function selectCandidates(entries: ChainEntry[], now: Date = new Date()):
  * three different fixes.
  */
 export function explainEmptyChain(entries: ChainEntry[], now: Date = new Date()): string {
-  if (entries.length === 0) return 'no providers configured';
-
-  const enabled = entries.filter((e) => e.enabled);
-  if (enabled.length === 0) return 'every provider is disabled';
-
-  const budgetBlocked = enabled.filter((e) => isAvailable(e, now) && !withinBudget(e));
-  if (budgetBlocked.length > 0 && budgetBlocked.length === enabled.filter((e) => isAvailable(e, now)).length) {
-    return 'the only remaining providers are over their monthly budget';
+  switch (emptyChainCode(entries, now)) {
+    case 'NOT_CONFIGURED':
+      return 'no providers configured';
+    case 'ALL_DISABLED':
+      return 'every provider is disabled';
+    case 'BUDGET_EXHAUSTED':
+      return 'the only remaining providers are over their monthly budget';
+    case 'ALL_COOLING': {
+      const soonest = entries
+        .filter((e) => e.enabled && e.cooldownUntil)
+        .map((e) => e.cooldownUntil!.getTime())
+        .sort((a, b) => a - b)[0];
+      return `every provider is cooling down, the first frees up in ${Math.ceil((soonest - now.getTime()) / 1000)}s`;
+    }
+    case 'ALL_KEYS_REJECTED':
+      return 'every configured key was rejected by its provider';
+    default:
+      return 'no provider is currently available';
   }
-
-  const cooling = enabled.filter((e) => e.cooldownUntil && e.cooldownUntil > now);
-  if (cooling.length === enabled.length) {
-    const soonest = cooling
-      .map((e) => e.cooldownUntil!.getTime())
-      .sort((a, b) => a - b)[0];
-    return `every provider is cooling down, the first frees up in ${Math.ceil((soonest - now.getTime()) / 1000)}s`;
-  }
-
-  const bad = enabled.filter((e) => e.status === 'INVALID_KEY');
-  if (bad.length === enabled.length) return 'every configured key was rejected by its provider';
-
-  return 'no provider is currently available';
 }

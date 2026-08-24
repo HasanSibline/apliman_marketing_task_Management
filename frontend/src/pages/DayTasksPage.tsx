@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useAppSelector } from '@/hooks/redux'
+import { useAppDispatch, useAppSelector } from '@/hooks/redux'
+import { fetchTasks } from '@/store/slices/tasksSlice'
 import TaskListItem from '@/components/tasks/TaskListItem'
 import { ArrowLeftIcon, CalendarDaysIcon, MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 import EmptyState from '@/components/common/EmptyState'
@@ -9,15 +10,58 @@ import Select from '@/components/ui/Select'
 export default function DayTasksPage() {
     const { date } = useParams<{ date: string }>()
     const navigate = useNavigate()
+    const dispatch = useAppDispatch()
     const { tasks: allTasks, isLoading } = useAppSelector((state) => state.tasks)
+    /**
+     * Whether the fetch below actually succeeded.
+     *
+     * Filling the store fixed half of "this page lies about an empty day". The other
+     * half is here: if the fetch fails, `allTasks` is [] and the page states, as a
+     * fact, that nothing is scheduled for this date. A person planning around that is
+     * being misled by a network error.
+     *
+     * Tracked from this dispatch rather than read off `state.tasks.error`, which is
+     * shared with createTask and updateTask and so cannot answer this question.
+     */
+    const [loadError, setLoadError] = useState<string | null>(null)
 
     const [searchQuery, setSearchQuery] = useState('')
     const [selectedPhase, setSelectedPhase] = useState('ALL')
 
+    /**
+     * This page has to fill the store it reads from.
+     *
+     * It reads `state.tasks` and nothing on this route ever put anything there. The
+     * calendar it is reached from fetches into its own local state, so on a deep link,
+     * a refresh, or an arrival from the calendar, the list was empty and the page said
+     * "Nothing due this day" about a day with tasks on it. It only appeared to work if
+     * the user happened to have opened the board earlier in the same session.
+     */
+    const load = useCallback(async () => {
+        const result = await dispatch(fetchTasks({ limit: 10000 }))
+        setLoadError(
+            fetchTasks.rejected.match(result)
+                ? (result.payload as string) || 'The server did not answer.'
+                : null,
+        )
+    }, [dispatch])
+
+    useEffect(() => {
+        load()
+    }, [load])
+
     // Filter tasks exactly by the specified date string (YYYY-MM-DD or similar standard JS output)
     const dayTasksRaw = useMemo(() => {
         if (!date) return []
-        const targetDateStr = new Date(date).toDateString()
+        // Parsed as a local date, not a UTC instant. `new Date('2026-08-24')` is
+        // midnight UTC, while a task's due date is rendered with toDateString in local
+        // time, so west of UTC the two sides landed on different days and the page
+        // listed yesterday's tasks under yesterday's heading.
+        const [y, m, d] = date.split('-').map(Number)
+        const target = Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)
+            ? new Date(y, m - 1, d)
+            : new Date(date)
+        const targetDateStr = target.toDateString()
         
         return allTasks.filter(task => {
             if (!task.dueDate) return false
@@ -41,7 +85,16 @@ export default function DayTasksPage() {
         })
     }, [dayTasksRaw, searchQuery, selectedPhase])
 
-    const formattedDate = date ? new Date(date).toLocaleDateString('en-US', {
+    // Same local parse as above, so the heading and the list cannot name different days.
+    const headingDate = useMemo(() => {
+        if (!date) return null
+        const [y, m, d] = date.split('-').map(Number)
+        return Number.isFinite(y) && Number.isFinite(m) && Number.isFinite(d)
+            ? new Date(y, m - 1, d)
+            : new Date(date)
+    }, [date])
+
+    const formattedDate = headingDate ? headingDate.toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -112,6 +165,14 @@ export default function DayTasksPage() {
                             </div>
                         ))}
                     </div>
+                ) : loadError ? (
+                    <EmptyState
+                        bare
+                        icon={CalendarDaysIcon}
+                        title="This day could not be loaded"
+                        description={`${loadError} This is not an empty day, so do not plan around it.`}
+                        action={<button onClick={load} className="btn-primary">Try again</button>}
+                    />
                 ) : (
                     <EmptyState
                         bare

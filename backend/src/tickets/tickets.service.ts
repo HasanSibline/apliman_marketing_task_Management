@@ -2,31 +2,20 @@ import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestEx
 import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
-import { HttpService } from '@nestjs/axios';
-import { ConfigService } from '@nestjs/config';
 import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
 
-  private readonly aiServiceUrl: string;
-
+  // The AI service URL and its auth header used to be held here, because this service
+  // posted to /ticket-check itself. It goes through AiService.callAiService now, which
+  // owns the address, the header and the credential, so none of it belongs here.
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
-    private httpService: HttpService,
-    private configService: ConfigService,
     private aiService: AiService,
-  ) {
-    this.aiServiceUrl = this.configService.get<string>('AI_SERVICE_URL', 'http://localhost:8001');
-  }
-
-  /** Authorization headers sent with every AI service request. */
-  private get aiServiceHeaders(): Record<string, string> {
-    const secret = this.configService.get<string>('AI_SERVICE_SECRET', '');
-    return secret ? { Authorization: `Bearer ${secret}` } : {};
-  }
+  ) {}
 
   /**
    * Close a ticket, and record how.
@@ -397,8 +386,7 @@ export class TicketsService {
     let aiWritten = false;
 
     try {
-      const credential = await this.aiService.resolveAiCredential(userId);
-      if (credential) {
+      {
         const facts = [
           `Department receiving it: ${dept?.name ?? 'unknown'}`,
           `Category: ${draft.category || 'none chosen'}`,
@@ -412,19 +400,17 @@ export class TicketsService {
           ),
         ].join('\n');
 
-        const response = await this.httpService.axiosRef.post(
-          `${this.aiServiceUrl}/ticket-check`,
-          {
-            draftTitle: title,
-            facts,
-            api_key: credential.apiKey,
-            provider: credential.provider,
-            model: credential.model ?? undefined,
-          },
-          { headers: this.aiServiceHeaders, timeout: 15000 },
+        // Through the chain, like every other AI call. This used to resolve a single
+        // company key of its own, so a rate limit here was the end of the matter
+        // rather than an attempt on the next provider.
+        const data = await this.aiService.callAiService<any>(
+          userId,
+          '/ticket-check',
+          { draftTitle: title, facts },
+          { timeout: 15000 },
         );
 
-        const written: string = response.data?.note?.trim() ?? '';
+        const written: string = data?.note?.trim() ?? '';
 
         /**
          * One guard here, not the two the day brief uses.

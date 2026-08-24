@@ -2,6 +2,8 @@ import {
   taskFraction,
   keyResultValue,
   keyResultProgress,
+  keyResultPercent,
+  objectivePercent,
   isKeyResultMet,
   didObjectiveLand,
   objectiveProgress,
@@ -113,9 +115,55 @@ describe('keyResultProgress and completion', () => {
     expect(keyResultProgress({ startValue: 0, targetValue: 100, currentValue: -20 })).toBe(0);
   });
 
-  it('treats a zero-width range as met only once the target is reached', () => {
+  it('treats a zero-width range as met only at the target, in either direction', () => {
     expect(keyResultProgress({ startValue: 5, targetValue: 5, currentValue: 4 })).toBe(0);
     expect(keyResultProgress({ startValue: 5, targetValue: 5, currentValue: 5 })).toBe(1);
+    // "Hold escalations at zero" that has climbed to five is not complete. Reading a
+    // zero-width range as met at or above the target scored exactly that as done.
+    expect(keyResultProgress({ startValue: 0, targetValue: 0, currentValue: 5 })).toBe(0);
+    expect(keyResultProgress({ startValue: 0, targetValue: 0, currentValue: 0 })).toBe(1);
+  });
+
+  it('measures from the start, not as a share of the target', () => {
+    // The formula this replaced ignored startValue, so a key result that had not
+    // been touched yet announced 80% of its work already done.
+    expect(keyResultProgress({ startValue: 80, targetValue: 100, currentValue: 80 })).toBe(0);
+    expect(keyResultProgress({ startValue: 80, targetValue: 100, currentValue: 90 })).toBe(0.5);
+    expect(keyResultProgress({ startValue: 80, targetValue: 100, currentValue: 100 })).toBe(1);
+  });
+
+  describe('a decreasing goal, where the target sits below the start', () => {
+    const reducing = { startValue: 100, targetValue: 20 };
+
+    it('rises as the number falls', () => {
+      expect(keyResultProgress({ ...reducing, currentValue: 100 })).toBe(0);
+      expect(keyResultProgress({ ...reducing, currentValue: 60 })).toBe(0.5);
+      expect(keyResultProgress({ ...reducing, currentValue: 20 })).toBe(1);
+    });
+
+    it('clamps a value past the target and one that went the wrong way', () => {
+      expect(keyResultProgress({ ...reducing, currentValue: 5 })).toBe(1);
+      expect(keyResultProgress({ ...reducing, currentValue: 140 })).toBe(0);
+    });
+
+    it('can express "reduce to zero", which a target-share formula cannot', () => {
+      // Guarding on targetValue > 0 pinned this at 0% however much work was done.
+      const toZero = { startValue: 40, targetValue: 0 };
+      expect(keyResultProgress({ ...toZero, currentValue: 40 })).toBe(0);
+      expect(keyResultProgress({ ...toZero, currentValue: 10 })).toBe(0.75);
+      expect(keyResultProgress({ ...toZero, currentValue: 0 })).toBe(1);
+      expect(isKeyResultMet({ ...toZero, currentValue: 0 })).toBe(true);
+    });
+
+    it('never reports a negative fraction, which would drag an objective below zero', () => {
+      // The formula this replaced clamped the top but not the bottom, so one key
+      // result sliding backwards pulled its objective's average under 0%.
+      const objective = [
+        { startValue: 0, targetValue: 100, currentValue: -500 },
+        { startValue: 0, targetValue: 100, currentValue: 100 },
+      ];
+      expect(objectiveProgress(objective)).toBe(0.5);
+    });
   });
 
   it('treats a hair under target as met, but not a real shortfall', () => {
@@ -159,6 +207,45 @@ describe('objectiveProgress', () => {
 
   it('is zero with no key results', () => {
     expect(objectiveProgress([])).toBe(0);
+  });
+});
+
+describe('the percentage helpers every screen goes through', () => {
+  it('rounds a fraction to a whole percentage', () => {
+    expect(keyResultPercent({ startValue: 0, targetValue: 3, currentValue: 1 })).toBe(33);
+    expect(keyResultPercent({ startValue: 0, targetValue: 3, currentValue: 2 })).toBe(67);
+    expect(objectivePercent([{ startValue: 0, targetValue: 3, currentValue: 1 }])).toBe(33);
+  });
+
+  it('never leaves a percentage outside 0..100', () => {
+    expect(keyResultPercent({ startValue: 0, targetValue: 100, currentValue: 400 })).toBe(100);
+    expect(keyResultPercent({ startValue: 0, targetValue: 100, currentValue: -400 })).toBe(0);
+    expect(objectivePercent([{ startValue: 0, targetValue: 100, currentValue: -400 }])).toBe(0);
+  });
+
+  it('reports no key results as zero rather than as not a number', () => {
+    expect(objectivePercent([])).toBe(0);
+  });
+
+  it('rounds the average once, not each key result before averaging', () => {
+    // Rounding per key result and then averaging drifts: 33 + 33 + 33 over 3 is 33,
+    // where the honest answer is the mean of the fractions.
+    const krs = [
+      { startValue: 0, targetValue: 3, currentValue: 1 },
+      { startValue: 0, targetValue: 3, currentValue: 2 },
+    ];
+    expect(objectivePercent(krs)).toBe(50);
+  });
+
+  // The bug that started this: Strategy and the year report disagreed about the same
+  // objective because each carried its own copy of the arithmetic.
+  it('agrees with the fraction it is derived from', () => {
+    const krs = [
+      { startValue: 80, targetValue: 100, currentValue: 85 },
+      { startValue: 100, targetValue: 0, currentValue: 30 },
+    ];
+    expect(objectivePercent(krs)).toBe(Math.round(objectiveProgress(krs) * 100));
+    expect(objectivePercent(krs)).toBe(48);
   });
 });
 

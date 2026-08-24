@@ -55,6 +55,9 @@ const SubtaskList: React.FC<SubtaskListProps> = ({ taskId, subtasks, onSubtasksU
     e.preventDefault()
     
     if (!newSubtask.trim()) return
+    // The field and the button both go quiet while this runs, so Enter cannot get back
+    // in, but a second submit here would file the same subtask twice.
+    if (submitting) return
 
     setSubmitting(true)
     try {

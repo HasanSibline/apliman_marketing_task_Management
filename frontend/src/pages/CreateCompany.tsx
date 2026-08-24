@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   UsersIcon,
   ClipboardDocumentCheckIcon,
@@ -25,10 +25,22 @@ function CredentialsModal({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
+  /**
+   * The "Copied" tick clears itself after two seconds. Held in a ref so that closing
+   * the dialog cancels it: this modal is unmounted by its own Close button, so
+   * copying and then closing fired setCopied on a component that no longer exists,
+   * and rapid clicks stacked timers where an earlier one would clear a later tick.
+   */
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+  }, []);
+
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopied(label);
-    setTimeout(() => setCopied(null), 2000);
+    if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    copiedTimer.current = setTimeout(() => setCopied(null), 2000);
   };
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -770,7 +782,10 @@ export default function CreateCompany() {
                       <div key={label} className="flex flex-col border-b border-gray-50 dark:border-gray-700 pb-2">
                         <span className="text-gray-500 dark:text-gray-400 text-xs font-bold uppercase tracking-tight">{label}</span>
                         <span className={`truncate ${weight ?? 'font-bold'} ${color ?? 'text-gray-800 dark:text-gray-100'} ${required && !value ? 'text-red-500' : ''}`}>
-                          {value || (required ? '⚠ REQUIRED' : ', ')}
+                          {/* An em dash removed by find and replace left a bare ", " as
+                              the placeholder for an optional field, which reads as a
+                              typo rather than as "nothing here". */}
+                          {value || (required ? '⚠ REQUIRED' : 'Not set')}
                         </span>
                       </div>
                     ))}

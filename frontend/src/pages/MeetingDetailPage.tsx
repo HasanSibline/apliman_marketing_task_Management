@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react'
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -17,6 +17,21 @@ import api from '@/services/api'
 import toast from 'react-hot-toast'
 import { format } from 'date-fns'
 
+
+/**
+ * `format` from date-fns throws a RangeError on an invalid date, and these calls sit
+ * at the top of the render tree with no error boundary under them. The guards here
+ * used to test only that the field was present, so any non-empty string Graph could
+ * not parse turned the whole page white rather than one line grey.
+ *
+ * The absent case also read as a bare ", " on screen, which is what is left of an em
+ * dash after a find and replace. Say what is actually missing instead.
+ */
+const safeFormat = (value: string | undefined | null, pattern: string, absent: string) => {
+    if (!value) return absent
+    const d = new Date(value)
+    return Number.isNaN(d.getTime()) ? absent : format(d, pattern)
+}
 
 // Color palette for speakers, cycles through if > 5 unique speakers
 const SPEAKER_PALETTES = [
@@ -92,20 +107,44 @@ const MeetingDetailPage: React.FC = () => {
 
     const [transcriptLoading, setTranscriptLoading] = useState(false)
 
+    /**
+     * Which meeting the page is currently asking about.
+     *
+     * Graph is slow and its latency varies a lot, so opening one meeting and then
+     * another could easily land the first answer last, leaving one meeting's details
+     * and another's transcript on screen together under a single URL. Nothing tied a
+     * response back to the id that asked for it.
+     *
+     * It doubles as the unmount guard: the ref stops matching once this page is gone,
+     * so a request still in the air cannot write state or fire a navigation into
+     * whatever the user opened next.
+     */
+    const currentId = useRef<string | undefined>(id)
+    useEffect(() => {
+        currentId.current = id
+        return () => {
+            currentId.current = undefined
+        }
+    }, [id])
+
     const loadMeetingData = useCallback(async () => {
         setLoading(true)
 
         // ── Step 1: Load meeting details (critical, navigate away if this fails)
         try {
             const detailsRes = await api.get(`/microsoft/details/${id}`)
+            if (currentId.current !== id) return
             setMeeting(detailsRes.data)
+            setLoading(false)
         } catch (error: any) {
+            if (currentId.current !== id) return
             const msg = error.response?.data?.message || error.message
             toast.error(`Could not load meeting: ${msg}`)
+            // No `finally` clearing the spinner after this: it ran after `navigate`
+            // had already started tearing the route down, which is a write to a
+            // component on its way out for no benefit.
             navigate('/calendar')
             return
-        } finally {
-            setLoading(false)
         }
 
         // ── Step 2: Load transcript (non-critical, show message if not available)
@@ -116,6 +155,7 @@ const MeetingDetailPage: React.FC = () => {
         setTranscriptLoading(true)
         try {
             const transcriptRes = await api.get(`/microsoft/transcripts/${id}`)
+            if (currentId.current !== id) return
             const { transcript: t, message, isChat, error: tErr } = transcriptRes.data
             setTranscript(t || null)
             setIsChatFallback(!!isChat)
@@ -123,6 +163,7 @@ const MeetingDetailPage: React.FC = () => {
                 setTranscriptMsg(message || tErr || 'No transcript available for this meeting.')
             }
         } catch (error: any) {
+            if (currentId.current !== id) return
             const msg = error.response?.data?.message || error.message
             const isPermission = msg?.toLowerCase().includes('forbidden') ||
                                   msg?.toLowerCase().includes('authorization') ||
@@ -133,7 +174,7 @@ const MeetingDetailPage: React.FC = () => {
                     : 'Transcript could not be loaded. The meeting may not have been transcribed.'
             )
         } finally {
-            setTranscriptLoading(false)
+            if (currentId.current === id) setTranscriptLoading(false)
         }
     }, [id])
 
@@ -239,14 +280,14 @@ const MeetingDetailPage: React.FC = () => {
                                 <div className="flex items-center space-x-6 pt-4 text-xs font-bold text-gray-500 dark:text-gray-400">
                                     <div className="flex items-center space-x-2">
                                         <CalendarIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
-                                        <span>{meeting?.start ? format(new Date(meeting.start), 'EEEE, MMMM do, yyyy') : ', '}</span>
+                                        <span>{safeFormat(meeting?.start, 'EEEE, MMMM do, yyyy', 'Date not recorded')}</span>
                                     </div>
                                     <div className="flex items-center space-x-2">
                                         <ClockIcon className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                                         <span>
-                                            {meeting?.start ? format(new Date(meeting.start), 'h:mm a') : ', '}
+                                            {safeFormat(meeting?.start, 'h:mm a', 'Start not recorded')}
                                             {' to '}
-                                            {meeting?.end ? format(new Date(meeting.end), 'h:mm a') : ', '}
+                                            {safeFormat(meeting?.end, 'h:mm a', 'end not recorded')}
                                         </span>
                                     </div>
                                 </div>
@@ -258,7 +299,13 @@ const MeetingDetailPage: React.FC = () => {
                             `}>
                                 <div className={`h-2 w-2 rounded-full animate-pulse ${isChatFallback ? 'bg-amber-500' : transcript ? 'bg-green-500' : 'bg-gray-300'}`} />
                                 <span className="text-xs font-semibold tracking-wide leading-none mt-0.5">
-                                    {isChatFallback ? 'Chat History' : transcript ? 'Live Transcription' : 'No Transcript'}
+                                    {transcriptLoading
+                                        ? 'Checking'
+                                        : isChatFallback
+                                          ? 'Chat History'
+                                          : transcript
+                                            ? 'Live Transcription'
+                                            : 'No Transcript'}
                                 </span>
                             </div>
                         </div>
@@ -272,10 +319,19 @@ const MeetingDetailPage: React.FC = () => {
                                 <div className="w-16 h-16 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 flex items-center justify-center">
                                     <DocumentTextIcon className="h-8 w-8 text-gray-300" />
                                 </div>
+                                {/* The verdict waits for the request. `setLoading(false)` fires as
+                                    soon as the details land, while the transcript is still on its way,
+                                    so this panel used to state flatly that there was no transcript for
+                                    the whole time one was being fetched, and then produce one. */}
                                 <div className="text-center">
-                                    <p className="text-sm font-bold text-gray-500 dark:text-gray-400">No transcript yet</p>
+                                    <p className="text-sm font-bold text-gray-500 dark:text-gray-400">
+                                        {transcriptLoading ? 'Looking for a transcript…' : 'No transcript yet'}
+                                    </p>
                                     <p className="text-xs text-gray-300 mt-1 max-w-xs leading-relaxed">
-                                        {transcriptMsg || 'Transcripts appear here after the meeting ends and Microsoft processes them.'}
+                                        {transcriptLoading
+                                            ? 'Microsoft can take a while to release one after a meeting ends.'
+                                            : transcriptMsg ||
+                                              'Transcripts appear here after the meeting ends and Microsoft processes them.'}
                                     </p>
                                 </div>
                                 <button
@@ -335,8 +391,11 @@ const MeetingDetailPage: React.FC = () => {
                         <div className="space-y-3">
                             {(meeting?.attendees || []).length === 0 ? (
                                 <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">No attendees listed</p>
-                            ) : meeting.attendees.map((person: any, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between">
+                            ) : /* Keyed by identity. Graph reorders this list between polls and
+                                   membership changes, so an index key grafted one person's
+                                   presence badge onto another person's row. */
+                            (meeting?.attendees ?? []).map((person: any, idx: number) => (
+                                <div key={person.email ?? person.id ?? `attendee-${idx}`} className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
                                         <div className="relative">
                                             <img

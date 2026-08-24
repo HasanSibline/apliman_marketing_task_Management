@@ -48,14 +48,26 @@ export function useAiStatus(): AiStatus {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  /** Guards every setState behind an await, so a poll in flight at unmount is inert. */
+  const alive = useRef(true);
+  useEffect(() => {
+    alive.current = true;
+    return () => {
+      alive.current = false;
+    };
+  }, []);
+
   const fetchStatus = useCallback(async () => {
     try {
-      const response = await api.get('/ai/quota-status');
-      setStatus(response.data);
+      const response = await api.get('/ai/quota-status', { quiet: true });
+      if (alive.current) setStatus(response.data);
     } catch {
-      // If the endpoint fails, don't block the UI, assume AI is enabled
+      // If the endpoint fails, don't block the UI, assume AI is enabled. Quiet on
+      // purpose: this is a background poll nobody asked for, and a cold backend
+      // raising a toast every sixty seconds is noise about a state the UI already
+      // shows.
     } finally {
-      setIsLoading(false);
+      if (alive.current) setIsLoading(false);
     }
   }, []);
 
@@ -86,12 +98,26 @@ export function useAiStatus(): AiStatus {
     };
   }, [status.quotaExhausted, status.quotaResetAt, fetchStatus]);
 
-  // Polling
+  // Polling. Nothing goes out while the tab is in the background: the answer is only
+  // ever used to label a control nobody can see, and the backend sleeps on Render, so
+  // a forgotten tab was paying to keep it awake once a minute all day. Coming back to
+  // the tab asks immediately, so what is on screen is never the stale value.
   useEffect(() => {
+    const poll = () => {
+      if (!document.hidden) fetchStatus();
+    };
+
     fetchStatus();
-    pollRef.current = setInterval(fetchStatus, POLL_INTERVAL_MS);
+    pollRef.current = setInterval(poll, POLL_INTERVAL_MS);
+
+    const onVisible = () => {
+      if (!document.hidden) fetchStatus();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [fetchStatus]);
 

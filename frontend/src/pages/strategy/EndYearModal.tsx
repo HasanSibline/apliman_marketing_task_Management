@@ -48,6 +48,16 @@ const EndYearModal: React.FC<Props> = ({ year, onCancel, onClosed }) => {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  /**
+   * The open-tasks read failed, so nothing here can be trusted.
+   *
+   * On failure `quarters` and `tasks` both stayed empty, which rendered "Every quarter
+   * in {year} is already closed" over a year that was still running, and left the
+   * confirm button live. Confirming then posted `rolloverTaskIds: []`, releasing every
+   * unfinished task in the year from its quarter. The dialog's whole job is to make
+   * that a choice, so it must refuse to act when it cannot see what it is acting on.
+   */
+  const [loadFailed, setLoadFailed] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -61,7 +71,11 @@ const EndYearModal: React.FC<Props> = ({ year, onCancel, onClosed }) => {
         // Carrying is the default, so a release is something a person chose.
         setSelected(new Set(list.map((t) => t.id)))
       })
-      .catch(() => { if (!cancelled) toast.error('Could not read what is still open') })
+      .catch(() => {
+        if (cancelled) return
+        setLoadFailed(true)
+        toast.error('Could not read what is still open')
+      })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [year])
@@ -139,6 +153,16 @@ const EndYearModal: React.FC<Props> = ({ year, onCancel, onClosed }) => {
               {[0, 1, 2].map((i) => (
                 <div key={i} className="h-12 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-700" />
               ))}
+            </div>
+          ) : loadFailed ? (
+            <div className="py-6 text-center">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                What is still open in {year} could not be read
+              </p>
+              <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                Ending the year is blocked until it can. Otherwise every unfinished task would be
+                released from its quarter without appearing in this list first.
+              </p>
             </div>
           ) : quarters.length === 0 ? (
             <p className="py-6 text-center text-sm text-gray-600 dark:text-gray-400">
@@ -241,7 +265,7 @@ const EndYearModal: React.FC<Props> = ({ year, onCancel, onClosed }) => {
 
           <div className="flex justify-end gap-3">
             <button onClick={onCancel} className="btn-secondary">Cancel</button>
-            <button onClick={submit} disabled={saving || loading} className="btn-primary">
+            <button onClick={submit} disabled={saving || loading || loadFailed} className="btn-primary">
               {saving ? (
                 <ArrowPathIcon className="mr-2 h-4 w-4 animate-spin" />
               ) : (

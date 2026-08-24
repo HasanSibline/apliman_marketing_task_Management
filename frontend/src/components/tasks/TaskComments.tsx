@@ -51,12 +51,25 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
     loadUsers()
   }, [])
 
+  /**
+   * Preview URLs are released when this component goes away, and only then.
+   *
+   * The cleanup used to depend on previewUrls, which means it ran on every change to
+   * the list rather than on unmount: attaching a second image revoked the first one's
+   * URL, and the thumbnail that had been there a moment ago turned into a broken image
+   * while the file itself was still attached and still uploaded.
+   *
+   * The ref is what makes an empty dependency array safe here: the effect closes over
+   * it once and still sees the current list when it finally runs.
+   */
+  const previewUrlsRef = useRef<string[]>([])
+  previewUrlsRef.current = previewUrls
+
   useEffect(() => {
-    // Cleanup preview URLs on unmount
     return () => {
-      previewUrls.forEach(url => URL.revokeObjectURL(url))
+      previewUrlsRef.current.forEach(url => URL.revokeObjectURL(url))
     }
-  }, [previewUrls])
+  }, [])
 
   const loadUsers = async () => {
     try {
@@ -199,6 +212,10 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
 
     setAttachedImages(prev => [...prev, ...newImages])
     setPreviewUrls(prev => [...prev, ...newPreviews])
+
+    // Cleared so the same image can be attached again after being removed. Left as it
+    // was, the input fires no change event for a file it is already holding.
+    e.target.value = ''
   }
 
   const removeImage = (index: number) => {
@@ -435,8 +452,11 @@ const TaskComments: React.FC<TaskCommentsProps> = ({ taskId, comments, onComment
             {/* Image Previews */}
             {previewUrls.length > 0 && (
               <div className="mb-2 flex flex-wrap gap-2">
+                {/* Keyed by the blob URL, which is unique per file: keyed by index,
+                    removing the first of three shuffled the images under their own
+                    DOM nodes. */}
                 {previewUrls.map((url, index) => (
-                  <div key={index} className="relative group">
+                  <div key={url} className="relative group">
                     <img
                       src={url}
                       alt={`Preview ${index + 1}`}
@@ -592,6 +612,10 @@ const CommentImage: React.FC<{ imageId: string; mimeType: string; index: number 
   const [error, setError] = useState(false)
 
   useEffect(() => {
+    // A comment list is refreshed and re-rendered constantly, so this fetch regularly
+    // outlives the row that started it.
+    let live = true
+
     const fetchImage = async () => {
       try {
         setIsLoading(true)
@@ -600,14 +624,16 @@ const CommentImage: React.FC<{ imageId: string; mimeType: string; index: number 
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
         })
-        
+
         if (!response.ok) throw new Error('Failed to load image')
-        
+
         const data = await response.json()
+        if (!live) return
         setImageData(data.data) // This is the base64 data URL
         setIsLoading(false)
       } catch (err) {
         console.error('Error loading image:', err)
+        if (!live) return
         setError(true)
         setIsLoading(false)
       }
@@ -615,6 +641,10 @@ const CommentImage: React.FC<{ imageId: string; mimeType: string; index: number 
 
     if (imageId) {
       fetchImage()
+    }
+
+    return () => {
+      live = false
     }
   }, [imageId])
 

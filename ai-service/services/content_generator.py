@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 import os
 from dotenv import load_dotenv
 import asyncio
@@ -14,6 +14,50 @@ class ContentGeneratorError(Exception):
     """Custom exception for ContentGenerator errors"""
     pass
 
+
+# Every provider names its two token counts differently, and the backend prices from
+# exactly one pair of names. Both helpers live here rather than in each provider path
+# so the "no zeros" rule below is stated once. chat_service imports them for the same
+# reason.
+Usage = Optional[Dict[str, int]]
+
+
+def normalise_usage(input_tokens: Any, output_tokens: Any) -> Usage:
+    """Rename one provider's token counts to the pair the backend reads.
+
+    Returns None when the provider told us nothing usable. The backend rejects an
+    all-zero report as "not a measurement" and falls back to its own estimate, so
+    saying nothing is better than saying zero: zero would price a real call at $0.
+    """
+    try:
+        counted_in = int(input_tokens or 0)
+        counted_out = int(output_tokens or 0)
+    except (TypeError, ValueError):
+        return None
+
+    if counted_in <= 0 and counted_out <= 0:
+        return None
+
+    return {"input_tokens": max(counted_in, 0), "output_tokens": max(counted_out, 0)}
+
+
+def add_usage(total: Usage, addition: Usage) -> Usage:
+    """Add one call's tokens to a running total for the current HTTP response.
+
+    The gateway records one usage row per response, not per upstream call, so an
+    endpoint that talks to the provider three times has to report the sum or the cost
+    it stores will only cover part of what was spent.
+    """
+    if not addition:
+        return total
+    if not total:
+        return dict(addition)
+
+    return {
+        "input_tokens": total["input_tokens"] + addition["input_tokens"],
+        "output_tokens": total["output_tokens"] + addition["output_tokens"],
+    }
+
 class ContentGenerator:
     def __init__(self, api_key: Optional[str] = None, provider: str = "gemini", model: Optional[str] = None):
         self.config = get_config()
@@ -24,6 +68,9 @@ class ContentGenerator:
         self.provided_api_key = api_key  # Store the provided API key
         self.provider = provider.lower()
         self.model_override = model  # Set by the platform key, if it pins a model
+        # Tokens spent by every provider call this instance has made. One instance is
+        # built per HTTP request, so this total is exactly what that response covers.
+        self.token_usage: Usage = None
 
         if self.provider == "anthropic":
             self._initialize_anthropic()
@@ -242,17 +289,30 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
 """
         return system_prompt
 
-    async def _make_request(self, prompt: str) -> str:
-        """Make a request to the appropriate AI API"""
-        if self.api_type == "anthropic":
-            return await self._make_anthropic_request(prompt)
-        if self.api_type in ("groq", "openai"):
-            return await self._make_openai_compatible_request(prompt)
-        return await self._make_gemini_request(prompt)
+    def usage_report(self) -> Usage:
+        """Token counts for everything this instance has spent, or None if unmeasured.
 
-    async def _make_anthropic_request(self, prompt: str) -> str:
+        None is deliberate: an endpoint omits the key entirely rather than sending
+        zeros, because the backend reads zeros as a broken measurement and its own
+        estimate is better than a $0 price on a call that was not free.
+        """
+        return dict(self.token_usage) if self.token_usage else None
+
+    async def _make_request(self, prompt: str) -> Tuple[str, Usage]:
+        """Make a request to the appropriate AI API, returning text and token counts"""
+        if self.api_type == "anthropic":
+            text, usage = await self._make_anthropic_request(prompt)
+        elif self.api_type in ("groq", "openai"):
+            text, usage = await self._make_openai_compatible_request(prompt)
+        else:
+            text, usage = await self._make_gemini_request(prompt)
+
+        self.token_usage = add_usage(self.token_usage, usage)
+        return text, usage
+
+    async def _make_anthropic_request(self, prompt: str) -> Tuple[str, Usage]:
         """Make a request to Claude with the same company-specific system prompt."""
-        from .anthropic_client import generate as anthropic_generate, AnthropicProviderError
+        from .anthropic_client import generate_with_usage as anthropic_generate, AnthropicProviderError
 
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
         is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
@@ -269,7 +329,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             # already knows how to classify.
             raise ContentGeneratorError(str(e))
 
-    async def _make_openai_compatible_request(self, prompt: str) -> str:
+    async def _make_openai_compatible_request(self, prompt: str) -> Tuple[str, Usage]:
         """Make a request to an OpenAI-compatible chat API (Groq or OpenAI)."""
         url = f"{self.base_url}/chat/completions"
         
@@ -299,7 +359,11 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                 async with session.post(url, headers=headers, json=payload) as response:
                     if response.status == 200:
                         data = await response.json()
-                        return data['choices'][0]['message']['content']
+                        reported = data.get('usage') or {}
+                        return (
+                            data['choices'][0]['message']['content'],
+                            normalise_usage(reported.get('prompt_tokens'), reported.get('completion_tokens')),
+                        )
                     else:
                         error_text = await response.text()
                         logger.error(f"❌ {self.provider} API error ({response.status}): {error_text}")
@@ -312,7 +376,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             logger.error(f"❌ {self.provider} request failed: {str(e)}")
             raise ContentGeneratorError(f"{self.provider} request failed: {str(e)}")
 
-    async def _make_gemini_request(self, prompt: str) -> str:
+    async def _make_gemini_request(self, prompt: str) -> Tuple[str, Usage]:
         """Make a request to Gemini API with dynamic company-specific system prompt"""
         url = f"{self.base_url}/models/{self.model}:generateContent"
         
@@ -356,8 +420,12 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                             # Success! Log which key worked
                             if attempts > 0:
                                 logger.info(f"✅ Request succeeded with fallback API key (index {self.current_key_index})")
-                            
-                            return data['candidates'][0]['content']['parts'][0]['text']
+
+                            reported = data.get('usageMetadata') or {}
+                            return (
+                                data['candidates'][0]['content']['parts'][0]['text'],
+                                normalise_usage(reported.get('promptTokenCount'), reported.get('candidatesTokenCount')),
+                            )
                         
                         # Handle quota/rate limit errors (429)
                         elif response.status == 429:
@@ -484,7 +552,9 @@ EXAMPLE FORMAT:
 
 Respond with ONLY the plain text description, nothing else."""
 
-            description = await self._make_request(prompt)
+            # _make_request has already added this call's tokens to self.token_usage,
+            # which main.py reads once per response, so the counts are dropped here.
+            description, _usage = await self._make_request(prompt)
             
             if not description:
                 raise ContentGeneratorError("Gemini returned empty response")
@@ -575,7 +645,7 @@ EXAMPLE FORMAT:
 
 Respond with ONLY the bullet points, nothing else."""
 
-            goals = await self._make_request(prompt)
+            goals, _usage = await self._make_request(prompt)
             
             if not goals:
                 raise ContentGeneratorError("Gemini returned empty response")
@@ -622,7 +692,7 @@ Respond with ONLY the bullet points, nothing else."""
             Reply with ONLY a single number (1-5) representing the priority level.
             """
 
-            response = await self._make_request(prompt)
+            response, _usage = await self._make_request(prompt)
             
             # Extract number from response
             priority_str = response.strip()
@@ -666,7 +736,7 @@ Respond with ONLY the bullet points, nothing else."""
             Reply with ONLY the task type name (e.g., "SOCIAL_MEDIA_POST")
             """
 
-            response = await self._make_request(prompt)
+            response, _usage = await self._make_request(prompt)
             task_type = response.strip().upper().replace(" ", "_")
             
             valid_types = [
@@ -749,7 +819,7 @@ Generate 3-6 subtasks as JSON array ONLY:
 Make each description actionable and detailed. The assigned person should know exactly what to do.
 Respond with ONLY the JSON array, no other text."""
 
-            response = await self._make_request(prompt)
+            response, _usage = await self._make_request(prompt)
             
             try:
                 # Extract JSON from response
@@ -807,7 +877,7 @@ Respond with ONLY the JSON array, no other text."""
             Reply with the brief itself and nothing else.
             """
 
-            brief = await self._make_request(prompt)
+            brief, _usage = await self._make_request(prompt)
             return brief.strip()[:max_length]
 
         except Exception as e:
@@ -857,7 +927,7 @@ Respond with ONLY the JSON array, no other text."""
             Reply with the note itself and nothing else.
             """
 
-            note = await self._make_request(prompt)
+            note, _usage = await self._make_request(prompt)
             return note.strip()[:max_length]
 
         except Exception as e:
@@ -882,7 +952,7 @@ Respond with ONLY the JSON array, no other text."""
             Respond with ONLY the summary text.
             """
             
-            summary = await self._make_request(prompt)
+            summary, _usage = await self._make_request(prompt)
             return summary.strip()[:max_length]
             
         except Exception as e:

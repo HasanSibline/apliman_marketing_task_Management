@@ -24,7 +24,7 @@
 ### 1.1 System Admin Authentication
 | Test ID | Test Case | Steps | Expected Result | Status | Notes |
 |---------|-----------|-------|----------------|--------|-------|
-| SA-AUTH-001 | Admin login with valid credentials | 1. Navigate to `/admin/login`<br>2. Enter: `superadmin@apliman.com`<br>3. Enter password: `SuperAdmin123!`<br>4. Click Sign In | Successfully logged in, redirected to `/admin/companies` | ⏳ Pending | |
+| SA-AUTH-001 | Admin login with valid credentials | 1. Navigate to `/admin/login`<br>2. Enter: `superadmin@apliman.com`<br>3. Enter password: the value of `SUPER_ADMIN_PASSWORD`<br>4. Click Sign In | Successfully logged in, redirected to `/admin/companies` | ⏳ Pending | |
 | SA-AUTH-002 | Admin login with invalid credentials | 1. Navigate to `/admin/login`<br>2. Enter wrong email/password<br>3. Click Sign In | Error message displayed, no login | ⏳ Pending | |
 | SA-AUTH-003 | Company user cannot access admin portal | 1. Navigate to `/admin/login`<br>2. Use company admin credentials<br>3. Click Sign In | Error: "Access denied. This portal is for System Administrators only" | ⏳ Pending | |
 | SA-AUTH-004 | Admin logout | 1. Login as admin<br>2. Click logout | Logged out, redirected to `/admin/login` | ⏳ Pending | |

@@ -38,7 +38,14 @@ import { UserRole } from '../types/prisma';
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Post('upload/:folder?')
+  /**
+   * Two explicit paths rather than one optional parameter.
+   *
+   * `upload/:folder?` was the old spelling. Express 5, which arrived with NestJS 11,
+   * uses path-to-regexp v8 and rejects the `?` suffix outright: the app did not serve
+   * a 404, it threw during route registration and never finished booting.
+   */
+  @Post(['upload', 'upload/:folder'])
   @UseInterceptors(FileInterceptor('file'))
   @ApiOperation({ summary: 'Upload a single file (logo, avatar, etc.) to a specific folder' })
   @ApiConsumes('multipart/form-data')
@@ -67,7 +74,16 @@ export class FilesController {
     return this.filesService.uploadSingleFile(file, req.user.id, folder);
   }
 
-  @Post('upload/:taskId')
+  /**
+   * `task/:taskId`, not `upload/:taskId`, which is what this used to be.
+   *
+   * That path could never be reached. `upload/:folder` is registered above it and
+   * matches the same shape, so every task upload was handled as a folder upload, the
+   * task id failed the safeFolders check, and the caller got "Invalid destination
+   * folder" for a request that had nothing to do with folders. Two routes cannot share
+   * one shape and both work; this one now mirrors the GET beneath it.
+   */
+  @Post('task/:taskId')
   @UseInterceptors(FilesInterceptor('files', 10))
   @ApiOperation({ summary: 'Upload files to a task' })
   @ApiConsumes('multipart/form-data')

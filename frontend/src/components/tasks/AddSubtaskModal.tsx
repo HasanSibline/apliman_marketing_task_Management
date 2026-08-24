@@ -14,7 +14,7 @@ interface AddSubtaskModalProps {
     assignedToId?: string
     estimatedHours?: number
     phaseId?: string
-  }) => void
+  }) => void | Promise<void>
   availablePhases: Array<{ id: string; name: string; color: string }>
 }
 
@@ -39,15 +39,38 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
   const [users, setUsers] = useState<User[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // The caller builds availablePhases with `?.phases || []`, so it is a brand
+  // new array on every parent render. Depending on the array itself refired a
+  // GET /users each time the parent re-rendered; depend on the id instead.
+  const firstPhaseId = availablePhases[0]?.id || ''
+
   useEffect(() => {
     if (isOpen) {
       loadUsers()
-      // Set default phase to first phase
-      if (availablePhases.length > 0 && !phaseId) {
-        setPhaseId(availablePhases[0].id)
-      }
     }
-  }, [isOpen, availablePhases])
+  }, [isOpen])
+
+  // Emptied on every open. The dialog is mounted for the life of the page rather than
+  // created per open, so without this, adding one subtask and pressing Add again showed
+  // the previous subtask's title, owner and hours still filled in, and the quickest way
+  // through the form was to submit the same thing twice.
+  useEffect(() => {
+    if (!isOpen) return
+    setTitle('')
+    setDescription('')
+    setAssignedToId('')
+    setEstimatedHours('')
+    setPhaseId(firstPhaseId)
+  }, [isOpen])
+
+  useEffect(() => {
+    // The parent may still be loading the workflow when this opens, so the first phase
+    // can arrive after the reset above. Functional, because the reset in the effect
+    // beside this one has not been applied to `phaseId` yet at this point.
+    if (isOpen && firstPhaseId) {
+      setPhaseId((prev) => prev || firstPhaseId)
+    }
+  }, [isOpen, firstPhaseId])
 
   const loadUsers = async () => {
     try {
@@ -65,24 +88,25 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
       return
     }
 
+    if (isSubmitting) return
     setIsSubmitting(true)
     try {
-      onAdd({
+      // Awaited. It used not to be, and onAdd returns a promise: the flag went up and
+      // down in the same tick, so the button was never actually disabled and a second
+      // click filed the subtask twice.
+      await onAdd({
         title: title.trim(),
         description: description.trim(),
         assignedToId: assignedToId || undefined,
         estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
         phaseId: phaseId || undefined,
       })
-      
-      // Reset form
-      setTitle('')
-      setDescription('')
-      setAssignedToId('')
-      setEstimatedHours('')
-      setPhaseId(availablePhases[0]?.id || '')
-      toast.success('Subtask added successfully')
-      onClose()
+
+      // Closing is the caller's to do, and so is saying it worked. It is the only side
+      // that knows whether the server accepted the subtask; this dialog used to
+      // announce success and shut itself the instant it handed the work over, so a
+      // rejected create showed "Subtask added successfully" and then vanished with the
+      // typed-in text, leaving the error toast pointing at nothing.
     } catch (error) {
       toast.error('Failed to add subtask')
     } finally {
@@ -102,7 +126,10 @@ const AddSubtaskModal: React.FC<AddSubtaskModalProps> = ({
       description="A smaller piece of work under this task, with its own owner and dates."
       footer={
         <>
-          <button type="button" onClick={onClose} className="btn-secondary">
+          {/* Quiet while the subtask is on its way, for the same reason Escape and the
+              backdrop are: closing over a request in flight leaves the person with no
+              idea whether it landed, and the obvious response is to add it again. */}
+          <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>
             Cancel
           </button>
           <button

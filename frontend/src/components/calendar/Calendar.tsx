@@ -48,7 +48,7 @@ interface CalendarEvent {
 interface CalendarProps {
     events: CalendarEvent[]
     onEventClick?: (id: string, type: 'TASK' | 'TICKET' | 'MICROSOFT_EVENT') => void
-    onRefresh?: () => void
+    onRefresh?: () => void | Promise<void>
 }
 
 const PRIORITY_COLORS: Record<number, string> = {
@@ -60,6 +60,53 @@ const PRIORITY_COLORS: Record<number, string> = {
 }
 
 type ViewType = 'workWeek' | 'week' | 'day'
+
+/** Pixel height of one event block. One minute is one pixel in this grid. */
+const EVENT_HEIGHT = 75
+
+/**
+ * Places a day's events side by side instead of on top of each other.
+ *
+ * Every block in a column was positioned `left: 6px; right: 6px`, so two events at
+ * the same time occupied the identical rectangle and only the one painted last was
+ * visible. The others were not collapsed behind a "+2 more" you could open; they
+ * were simply absent, and the column looked like a truthful, quiet day.
+ *
+ * All-day work made that certain rather than merely likely. A task due on a date has
+ * no time of day, so all of them pin to the top of the column: four things due
+ * Friday drew four blocks in one place and showed one.
+ *
+ * Each event takes the leftmost lane free at its start. Lanes are counted per
+ * cluster of overlapping events, so one crowded hour does not narrow the rest of the
+ * day down to a sliver.
+ */
+function assignLanes<T>(items: { item: T; top: number }[]) {
+    const sorted = [...items].sort((a, b) => a.top - b.top)
+    const out: { item: T; top: number; lane: number; lanes: number }[] = []
+
+    let cluster: { item: T; top: number; lane: number }[] = []
+    let laneEnds: number[] = []
+    let clusterEnd = -Infinity
+
+    const flush = () => {
+        const lanes = cluster.reduce((most, c) => Math.max(most, c.lane + 1), 1)
+        for (const c of cluster) out.push({ ...c, lanes })
+        cluster = []
+        laneEnds = []
+    }
+
+    for (const entry of sorted) {
+        if (entry.top >= clusterEnd) flush()
+        let lane = laneEnds.findIndex((end) => end <= entry.top)
+        if (lane === -1) lane = laneEnds.length
+        laneEnds[lane] = entry.top + EVENT_HEIGHT
+        cluster.push({ ...entry, lane })
+        clusterEnd = Math.max(clusterEnd, entry.top + EVENT_HEIGHT)
+    }
+    flush()
+
+    return out
+}
 
 export default function Calendar({ events, onEventClick, onRefresh }: CalendarProps) {
     const navigate = useNavigate()
@@ -73,6 +120,17 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
     const [filterType, setFilterType] = useState<'all' | 'milestone' | 'tickets' | 'teams'>('all')
     const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+    // Nothing may touch state, or navigate, after the calendar has gone away.
+    const isMounted = useRef(true)
+    const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+    useEffect(() => {
+        isMounted.current = true
+        return () => {
+            isMounted.current = false
+            if (redirectTimer.current) clearTimeout(redirectTimer.current)
+        }
+    }, [])
+
     // Center scroll on business hours initially
     useEffect(() => {
         if (scrollContainerRef.current) {
@@ -82,8 +140,10 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
         }
     }, [])
 
-    const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 })
-    
+    // A fresh Date object every render meant the memo below never hit its cache and
+    // displayDays came out with a new identity each time, which defeated the point of it.
+    const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 1 }), [currentDate])
+
     const displayDays = useMemo(() => {
         if (viewType === 'day') return [currentDate]
         if (viewType === 'workWeek') return eachDayOfInterval({ start: weekStart, end: addDays(weekStart, 4) })
@@ -91,6 +151,20 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
     }, [currentDate, weekStart, viewType])
 
     const hours = Array.from({ length: 24 }, (_, i) => i)
+
+    /**
+     * The event's moment. Microsoft events carry `start`, tasks and tickets carry
+     * `dueDate`. Parsed into a local Date so the column an event lands in and the
+     * time printed on it are decided in the same timezone.
+     */
+    const getEventDate = (e: CalendarEvent): Date | null => {
+        const raw = e.dueDate || e.start
+        if (!raw) return null
+        const d = new Date(raw)
+        // An unparseable string used to become an Invalid Date, which every date
+        // comparison below silently answers false for. Treated as no date instead.
+        return Number.isNaN(d.getTime()) ? null : d
+    }
 
     const sortedEvents = useMemo(() => {
         const safeEvents = Array.isArray(events) ? events : []
@@ -124,10 +198,18 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
         setSelectedDate(new Date())
     }
 
-    const handleRefresh = () => {
+    const handleRefresh = async () => {
         setIsRefreshing(true)
-        onRefresh?.()
-        setTimeout(() => setIsRefreshing(false), 800)
+        try {
+            // Follow the actual request. This used to stop on an 800ms timer that had
+            // nothing to do with it, so a slow or failed refresh still looked finished.
+            await onRefresh?.()
+        } catch (error) {
+            // Whoever owns the refresh reports the failure; all we do here is stop spinning.
+            console.error('Calendar refresh failed:', error)
+        } finally {
+            if (isMounted.current) setIsRefreshing(false)
+        }
     }
 
     const handleMicrosoftSync = async () => {
@@ -139,15 +221,18 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
         setIsSyncing(true)
         try {
             const res = await api.get('/microsoft/auth-url')
+            if (!isMounted.current) return
             if (res.data?.url) {
                 toast('Redirecting to Microsoft login…', { duration: 3000 })
-                // Small delay so the toast is visible before navigation
-                setTimeout(() => { window.location.href = res.data.url }, 400)
+                // Small delay so the toast is visible before navigation. Held in a ref so
+                // leaving the page cancels it rather than yanking the user off somewhere else.
+                redirectTimer.current = setTimeout(() => { window.location.href = res.data.url }, 400)
             } else {
                 toast.error('Could not retrieve Microsoft auth URL. Please try again.')
                 setIsSyncing(false)
             }
         } catch (error: any) {
+            if (!isMounted.current) return
             const msg = error.response?.data?.message || error.message || 'Unknown error'
             toast.error(`Failed to initialize Microsoft sync: ${msg}`)
             setIsSyncing(false)
@@ -429,18 +514,51 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
 
                             {/* Column content */}
                             {displayDays.map((day: Date) => {
-                                // Resolve the event date: prefer dueDate, fallback to start (Microsoft events)
-                // Parse into a local Date so timezone offsets don't shift the day.
-                const getEventDate = (e: CalendarEvent): Date | null => {
-                    const raw = e.dueDate || e.start;
-                    if (!raw) return null;
-                    return new Date(raw); // JS Date always converts to local time for comparison
-                };
+                                const dayEvents = sortedEvents.filter((e: CalendarEvent) => {
+                                    const d = getEventDate(e)
+                                    return d !== null && isSameDay(d, day)
+                                })
 
-                const dayEvents = sortedEvents.filter((e: CalendarEvent) => {
-                    const d = getEventDate(e);
-                    return d !== null && isSameDay(d, day);
-                })
+                                /**
+                                 * Position is settled for the whole day before anything is drawn,
+                                 * because two events cannot be placed sensibly one at a time.
+                                 * assignLanes has to see every event at once to know how many of
+                                 * them share each moment.
+                                 */
+                                const placed = assignLanes(
+                                    dayEvents.map((event) => {
+                                        const date = getEventDate(event) as Date
+
+                                        /**
+                                         * A task due on a day has no time of day.
+                                         *
+                                         * A date picked without a clock is stored at midnight UTC, and
+                                         * this grid draws it at whatever hour that lands on locally:
+                                         * three in the morning here, which is a time nobody chose and
+                                         * nobody works. It looked like data and was an offset.
+                                         *
+                                         * Midnight UTC is treated as "no time given" and pinned to the
+                                         * top of the day instead. A meeting genuinely at midnight UTC
+                                         * loses its slot by this rule, which is the right trade: those
+                                         * are rare, and being an hour out on one is better than every
+                                         * dated task in the app claiming a working hour it never had.
+                                         */
+                                        // Judged against the column this event is actually drawn in,
+                                        // which is chosen from the local date. Deciding in UTC while
+                                        // placing locally put a task due the 12th at the top of the
+                                        // 11th for anyone west of UTC.
+                                        const allDay =
+                                            date.getHours() === 0 &&
+                                            date.getMinutes() === 0 &&
+                                            date.getSeconds() === 0
+
+                                        return {
+                                            item: { event, date, allDay },
+                                            top: allDay ? 2 : date.getHours() * 60 + date.getMinutes(),
+                                        }
+                                    }),
+                                )
+
                                 const isCurrentDay = isToday(day)
 
                                 return (
@@ -456,35 +574,11 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                             </div>
                                         )}
 
-                                        {dayEvents.map((event: CalendarEvent) => {
-                                            const date = getEventDate(event) ?? new Date(event.dueDate ?? event.start ?? Date.now())
+                                        {placed.map(({ item: { event, date, allDay }, top, lane, lanes }) => {
+                                            // Lanes are percentages of the column so the grid stays
+                                            // fluid at every width and in every view type.
+                                            const laneWidth = 100 / lanes
 
-                                            /**
-                                             * A task due on a day has no time of day.
-                                             *
-                                             * A date picked without a clock is stored at midnight UTC, and this
-                                             * grid draws it at whatever hour that lands on locally: three in the
-                                             * morning here, which is a time nobody chose and nobody works. It
-                                             * looked like data and was an offset.
-                                             *
-                                             * Midnight UTC is treated as "no time given" and pinned to the top of
-                                             * the day instead. A meeting genuinely at midnight UTC loses its slot
-                                             * by this rule, which is the right trade: those are rare, and being
-                                             * an hour out on one is better than every dated task in the app
-                                             * claiming a working hour it never had.
-                                             */
-                                            // Judged against the column this event is
-                                            // actually drawn in, which is chosen from the
-                                            // local date. Deciding in UTC while placing
-                                            // locally put a task due the 12th at the top
-                                            // of the 11th for anyone west of UTC.
-                                            const allDay =
-                                                date.getHours() === 0 &&
-                                                date.getMinutes() === 0 &&
-                                                date.getSeconds() === 0
-
-                                            const topPos = allDay ? 2 : (date.getHours() * 60) + date.getMinutes()
-                                            
                                             return (
                                                 <motion.div
                                                     key={event.id}
@@ -492,12 +586,13 @@ export default function Calendar({ events, onEventClick, onRefresh }: CalendarPr
                                                     animate={{ opacity: 1, scale: 1 }}
                                                     whileHover={{ scale: 1.01, zIndex: 10 }}
                                                     onClick={() => onEventClick?.(event.id, event.type)}
-                                                    style={{ 
+                                                    title={event.title}
+                                                    style={{
                                                         position: 'absolute',
-                                                        top: `${topPos}px`,
-                                                        height: '75px',
-                                                        left: '6px',
-                                                        right: '6px',
+                                                        top: `${top}px`,
+                                                        height: `${EVENT_HEIGHT}px`,
+                                                        left: `calc(${lane * laneWidth}% + 6px)`,
+                                                        width: `calc(${laneWidth}% - 12px)`,
                                                     }}
                                                     className={`
                                                         z-10 rounded-lg border-l-4 shadow-md p-2 cursor-pointer

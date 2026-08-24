@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   PlusIcon,
@@ -95,11 +95,34 @@ const TasksPage: React.FC = () => {
     user?.role ?? '',
   )
 
-  useEffect(() => {
+  /**
+   * Why the board is empty, when it is empty.
+   *
+   * The page read nothing about failure, so an outage rendered as "No tasks here
+   * yet" over a button inviting the user to create the first one. Everything they
+   * had was still on the server.
+   *
+   * It is tracked here rather than read from `state.tasks.error`, because that field
+   * is shared: createTask and updateTask write to it too, so a rejected save on an
+   * empty board would have been reported as a board that failed to load. The result
+   * of this dispatch is about this dispatch and nothing else.
+   */
+  const [listError, setListError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
     const scoped =
       scope === 'backlog' ? { quarterId: 'null' } : scope === 'active' ? { quarterId: 'active' } : {}
-    dispatch(fetchTasks({ ...filters, ...scoped, limit: 10000 }))
+    const result = await dispatch(fetchTasks({ ...filters, ...scoped, limit: 10000 }))
+    setListError(
+      fetchTasks.rejected.match(result)
+        ? (result.payload as string) || 'The server did not answer.'
+        : null,
+    )
   }, [dispatch, filters, scope])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   useEffect(() => {
     workflowsApi.getAll().then((w) => setWorkflows(w ?? [])).catch(() => setWorkflows([]))
@@ -114,9 +137,7 @@ const TasksPage: React.FC = () => {
   }, [])
 
   const reload = () => {
-    const scoped =
-      scope === 'backlog' ? { quarterId: 'null' } : scope === 'active' ? { quarterId: 'active' } : {}
-    dispatch(fetchTasks({ ...filters, ...scoped, limit: 10000 }))
+    void load()
   }
 
   /**
@@ -146,19 +167,52 @@ const TasksPage: React.FC = () => {
     task.createdById === user?.id ||
     task.assignments?.some((a: any) => a.userId === user?.id)
 
-  const visible = useMemo(() => {
-    let list = workflowId ? tasks.filter((t) => t.workflow?.id === workflowId) : tasks
-
+  /**
+   * Everything the current view covers, before the workflow rail narrows it.
+   *
+   * Split out from `visible` so the counts on the rail can be measured against the
+   * same set of tasks the columns are drawn from. They used to be counted off the raw
+   * `tasks` list, which still holds work that ageing has moved to History and work the
+   * scope filter has excluded, so the pill on "All work" regularly read higher than
+   * the three columns underneath it summed to. Two numbers about the same board,
+   * disagreeing, a few hundred pixels apart.
+   */
+  const scoped = useMemo(() => {
     if (scope === 'history') {
-      list = list.filter(isAged)
-      if (mineOnly) list = list.filter(mine)
-    } else {
-      // Aged work leaves the board. It is still one click away under History.
-      list = list.filter((t) => !isAged(t))
+      const finished = tasks.filter(isAged)
+      return mineOnly ? finished.filter(mine) : finished
     }
+    // Aged work leaves the board. It is still one click away under History.
+    return tasks.filter((t) => !isAged(t))
+  }, [tasks, scope, mineOnly, user?.id])
 
-    return list
-  }, [tasks, workflowId, scope, mineOnly, user?.id])
+  const visible = useMemo(
+    () => (workflowId ? scoped.filter((t) => t.workflow?.id === workflowId) : scoped),
+    [scoped, workflowId],
+  )
+
+  /**
+   * Drop an optimistic move once the server has confirmed it.
+   *
+   * `moved` was written on every drag and only ever deleted when the request failed.
+   * After a successful move the entry stayed for the rest of the session, and
+   * `byStage` prefers it over whatever arrives from the server, so the reload fired
+   * on the next line was ignored for that card forever. If a colleague moved the task
+   * afterwards, or the server put it somewhere else, this board kept showing the
+   * local guess and no amount of refreshing would correct it.
+   */
+  useEffect(() => {
+    setMoved((prev) => {
+      const stillPending = Object.entries(prev).filter(([taskId, stage]) => {
+        const task = tasks.find((t) => t.id === taskId)
+        // Keep it while the server has not caught up, or while the task is not in
+        // this page of results at all.
+        return !task || taskStage(task) !== stage
+      })
+      // Same object back when nothing changed, so this cannot loop on itself.
+      return stillPending.length === Object.keys(prev).length ? prev : Object.fromEntries(stillPending)
+    })
+  }, [tasks])
 
   const byStage = useMemo(() => {
     const groups: Record<TaskStage, Task[]> = { TODO: [], IN_PROGRESS: [], COMPLETED: [] }
@@ -170,7 +224,7 @@ const TasksPage: React.FC = () => {
   }, [visible, moved])
 
   const countFor = (id: string) =>
-    id ? tasks.filter((t) => t.workflow?.id === id).length : tasks.length
+    id ? scoped.filter((t) => t.workflow?.id === id).length : scoped.length
 
   // Selection follows what is on screen. Acting on a task the filters have hidden
   // would be acting on something the person cannot see.
@@ -444,6 +498,17 @@ const TasksPage: React.FC = () => {
             <div key={i} className="h-64 animate-pulse rounded-xl bg-gray-200 dark:bg-gray-700" />
           ))}
         </div>
+      ) : listError && visible.length === 0 ? (
+        <EmptyState
+          icon={ClipboardDocumentListIcon}
+          title="Your tasks could not be loaded"
+          description={`${listError} Nothing has been lost; the board simply has nothing to draw yet.`}
+          action={
+            <button onClick={reload} className="btn-primary">
+              Try again
+            </button>
+          }
+        />
       ) : visible.length === 0 ? (
         <EmptyState
           icon={ClipboardDocumentListIcon}
@@ -495,7 +560,7 @@ const TasksPage: React.FC = () => {
               >
                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
                 <span className="w-[5.5rem] shrink-0 truncate text-xs tabular-nums text-gray-400 dark:text-gray-500">
-                  {task.taskNumber ?? '—'}
+                  {task.taskNumber ?? '-'}
                 </span>
                 <span className="min-w-0 flex-1 truncate text-sm text-gray-800 dark:text-gray-100">
                   {task.title}

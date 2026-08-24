@@ -130,10 +130,13 @@ console.log('\n═════════════════════�
 console.log('✅ DATABASE READY — MULTI-TENANT SYSTEM');
 console.log('═══════════════════════════════════════════════════');
 console.log('🚀 Starting NestJS application...\n');
+// The password is deliberately absent here. This banner goes to the deploy log on
+// every boot, and it used to print the literal default, which published a working
+// credential for the account that can reach every tenant. The password is set through
+// SUPER_ADMIN_PASSWORD and is never echoed back.
 console.log('📋 SYSTEM ADMINISTRATOR LOGIN:');
 console.log('   URL:      /admin/login');
 console.log('   Email:    superadmin@apliman.com');
-console.log('   Password: SuperAdmin123! (or from SUPER_ADMIN_PASSWORD env)');
 console.log('═══════════════════════════════════════════════════\n');
 
 try {

@@ -329,7 +329,7 @@ Response:
 
 ```
 1. Visit /admin/login (hidden URL)
-2. Enter: superadmin@apliman.com / SuperAdmin123!
+2. Enter: superadmin@apliman.com / the value of SUPER_ADMIN_PASSWORD
 3. Backend checks:
    - ✅ Credentials valid
    - ✅ Role = SUPER_ADMIN

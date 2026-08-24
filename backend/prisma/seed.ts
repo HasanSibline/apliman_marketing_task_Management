@@ -48,8 +48,25 @@ async function main() {
   console.log('✅ Standard plans seeded');
 
   // Hash password for System Admin
+  //
+  // This used to fall back to a literal, which meant the platform super admin account
+  // could end up with a password written in the repository, and the production boot
+  // banner printed that same literal into the deploy log on every start. There is no
+  // safe default for the account that can reach every tenant, so refuse to invent one.
+  //
+  // This only bites on a database with no super admin yet, because start-production.js
+  // skips the seed entirely once the account exists. An ordinary deploy is unaffected.
   const saltRounds = 12;
-  const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin123!';
+  const adminPassword = process.env.SUPER_ADMIN_PASSWORD;
+  if (!adminPassword || adminPassword.trim().length < 12) {
+    console.error(
+      '\nSUPER_ADMIN_PASSWORD is not set, or is shorter than 12 characters.\n' +
+      'The System Administrator account can reach every company on the platform,\n' +
+      'so it will not be created with a default or a weak password.\n' +
+      'Set SUPER_ADMIN_PASSWORD in the environment and run this again.\n'
+    );
+    process.exit(1);
+  }
   const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
 
   // Create System Admin (NO company association)
@@ -96,7 +113,10 @@ async function main() {
   console.log('📋 SYSTEM ADMINISTRATOR CREDENTIALS:');
   console.log('═══════════════════════════════════════════════════');
   console.log(`   Email:    ${superAdmin.email}`);
-  console.log(`   Password: ${process.env.SUPER_ADMIN_PASSWORD ? '[FROM ENV]' : 'SuperAdmin123!'}`);
+  // The branch that printed a literal password here is gone. It could no longer be
+  // reached, since the seed now exits above when SUPER_ADMIN_PASSWORD is unset, but it
+  // left a working credential written in the file for anyone reading it.
+  console.log('   Password: the value of SUPER_ADMIN_PASSWORD');
   console.log('   Login at: /admin/login');
   console.log('═══════════════════════════════════════════════════\n');
   console.log('📝 NEXT STEPS:');

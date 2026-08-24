@@ -12,6 +12,10 @@
  * budget stays roughly where it is and what fills it changes: the parts of each source
  * that bear on the question asked, rather than whichever parts happen to be first.
  *
+ * The budget is a ceiling on the whole set, not a per-source allowance. Adding a
+ * twenty-first knowledge source therefore makes each of the twenty-one a little
+ * shorter; it does not make the prompt longer.
+ *
  * Term overlap rather than embeddings. Embeddings would rank better and would need a
  * vector store, an embedding call per message, and a second thing to keep running. This
  * needs none of that, runs in under a millisecond, is identical on every run, and is a
@@ -97,6 +101,12 @@ export function score(passage: string, questionTerms: Set<string>): number {
  * back to the opening of the document. That is the old behaviour, kept deliberately for
  * the cases where selection has nothing to add.
  */
+/** Shown between chunks that were not adjacent in the source. */
+const GAP_MARKER = '\n[…]\n';
+
+/** Shown between chunks that were adjacent, so they read as continuous prose. */
+const JOIN = '\n\n';
+
 export function selectRelevant(content: string, question: string, budget = 1500): string {
   if (!content) return '';
   if (content.length <= budget) return content;
@@ -115,9 +125,13 @@ export function selectRelevant(content: string, question: string, budget = 1500)
   const picked: { text: string; index: number }[] = [];
   let used = 0;
   for (const c of ranked) {
-    if (used + c.text.length > budget) continue;
+    // Whether this chunk ends up joined or gapped is only known once everything is
+    // picked and re-sorted, so charge the longer of the two now. Charging the shorter
+    // one let the output run four characters past the budget for every gap it marked.
+    const separator = picked.length === 0 ? 0 : GAP_MARKER.length;
+    if (used + separator + c.text.length > budget) continue;
     picked.push(c);
-    used += c.text.length + 2;
+    used += separator + c.text.length;
     if (used >= budget) break;
   }
 
@@ -128,8 +142,7 @@ export function selectRelevant(content: string, question: string, budget = 1500)
   let out = '';
   let previous = -1;
   for (const c of picked) {
-    if (previous !== -1 && c.index !== previous + 1) out += '\n[…]\n';
-    else if (previous !== -1) out += '\n\n';
+    if (previous !== -1) out += c.index === previous + 1 ? JOIN : GAP_MARKER;
     out += c.text;
     previous = c.index;
   }
@@ -144,12 +157,57 @@ export interface SelectableSource {
 }
 
 /**
+ * Split a budget between sources, giving back what the short ones cannot use.
+ *
+ * A flat equal split wastes budget whenever a source is shorter than its share: that
+ * source has no use for the remainder and nobody else is offered it. So the split
+ * repeats over the sources still asking for more than an equal share, until every
+ * remaining one would take everything it is offered.
+ *
+ * The returned shares always sum to at most totalBudget. The single exception is more
+ * sources than the budget has characters, where each is given one character so that it
+ * still reaches the model at all; that needs thousands of sources to occur.
+ */
+export function allocateBudget(lengths: number[], totalBudget: number): number[] {
+  const shares = new Array<number>(lengths.length).fill(0);
+  let pending = lengths.map((_, i) => i);
+  let remaining = totalBudget;
+
+  while (pending.length > 0) {
+    const equal = Math.max(1, Math.floor(remaining / pending.length));
+    const satisfied = pending.filter((i) => lengths[i] <= equal);
+
+    if (satisfied.length === 0) {
+      for (const i of pending) shares[i] = equal;
+      break;
+    }
+
+    for (const i of satisfied) {
+      shares[i] = lengths[i];
+      remaining -= lengths[i];
+    }
+    pending = pending.filter((i) => lengths[i] > equal);
+  }
+
+  return shares;
+}
+
+/**
  * Trim a set of sources against one question, keeping every source represented.
  *
- * Every source gets a share rather than the first two taking everything, because a
- * question about a third competitor cannot be answered from the first two however much
- * of them is sent. A source with nothing relevant contributes nothing and gives its
- * share back to the others.
+ * Two guarantees, held together. Every source with content gets a share, so a question
+ * about the third competitor is answerable rather than depending on which sources happen
+ * to be stored first. And the shares sum to no more than totalBudget, so what a message
+ * costs is a property of this call rather than of how many sources the company has
+ * uploaded since.
+ *
+ * They pull against each other, and the budget wins: the share per source shrinks as
+ * sources multiply, so twenty sources against a 4000 budget get 200 characters each
+ * rather than 400 each for 8000 total. A 400-character floor used to guarantee every
+ * source a useful amount instead of a token one, but a floor turns the budget into a
+ * starting point that then grows linearly with source count, which is the one thing the
+ * budget exists to prevent. Sources shorter than their share hand back what they cannot
+ * use, so a few one-paragraph sources cost the longer ones nothing.
  */
 export function selectAcrossSources<T extends SelectableSource>(
   sources: T[],
@@ -159,10 +217,14 @@ export function selectAcrossSources<T extends SelectableSource>(
   const withContent = sources.filter((s) => s.content && s.content.trim());
   if (withContent.length === 0) return sources;
 
-  const share = Math.max(400, Math.floor(totalBudget / withContent.length));
+  const shares = allocateBudget(
+    withContent.map((s) => s.content!.length),
+    totalBudget,
+  );
 
+  let next = 0;
   return sources.map((s) => {
     if (!s.content || !s.content.trim()) return s;
-    return { ...s, content: selectRelevant(s.content, question, share) };
+    return { ...s, content: selectRelevant(s.content, question, shares[next++]) };
   });
 }

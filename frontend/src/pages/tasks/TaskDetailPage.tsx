@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { confirmDialog } from '@/components/ui/confirm'
 import { taskStage, STAGES } from '@/lib/taskStage'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -57,11 +57,52 @@ const TaskDetailPage: React.FC = () => {
   const isThisTaskTracking = timeTracking.activeTaskId === id
   const isTimerRunning = isThisTaskTracking && timeTracking.isRunning
 
-  useEffect(() => {
-    if (id) {
-      dispatch(fetchTaskById(id))
-    }
+  /**
+   * Whether what is in the store is the task this URL asked for.
+   *
+   * `currentTask` is one slot shared by every task in the app, and the fetch that
+   * fills it has no newest-response guard. Two things followed from that, and this
+   * one line answers both.
+   *
+   * The first is a race. Clicking a blocker while the current task is still loading
+   * starts a second fetch; if the first answers last it wins the slot, and the page
+   * renders task A under task B's URL, with B's Delete button wired to A's id.
+   *
+   * The second is worse, because it needs no timing at all: a failed load leaves the
+   * previous task sitting in the slot. Navigate from A to B, have B fail, and the
+   * page shows A complete with its comments and its buttons, at /tasks/B.
+   *
+   * It also does a third useful thing. `isLoading` is slice-wide, so every background
+   * refresh this page fires after a comment, a file or a subtask used to replace the
+   * whole detail view with "Loading task details..." and throw away the reader's
+   * scroll position. Now the spinner only appears when there is genuinely nothing of
+   * this task to show.
+   */
+  const showingThisTask = !!currentTask && currentTask.id === id
+
+  /**
+   * Why this task is not on screen, when it is not on screen.
+   *
+   * Tracked here rather than read from `state.tasks.error`, which is shared with
+   * createTask, updateTask and deleteTask: a rejected save would otherwise have been
+   * reported, on the next task that happened to 404, as the reason that task could
+   * not be loaded. The result of this dispatch is about this dispatch alone.
+   */
+  const [loadError, setLoadError] = useState<string | null>(null)
+
+  const loadTask = useCallback(async () => {
+    if (!id) return
+    const result = await dispatch(fetchTaskById(id))
+    setLoadError(
+      fetchTaskById.rejected.match(result)
+        ? (result.payload as string) || 'The server did not answer.'
+        : null,
+    )
   }, [dispatch, id])
+
+  useEffect(() => {
+    loadTask()
+  }, [loadTask])
 
   // Update time display in real-time
   useEffect(() => {
@@ -111,8 +152,15 @@ const TaskDetailPage: React.FC = () => {
     try {
       await tasksApi.moveToPhase(id, newPhaseId, 'Phase changed by user')
       
-      // Timer automation
-      const targetPhase = currentTask?.workflow?.phases.find(p => p.id === newPhaseId);
+      // Timer automation.
+      //
+      // `phases` is optionally chained because the payload does not always carry it,
+      // and the render below already hedges the same way. Without the `?` this threw
+      // a TypeError inside the try, one line after the move had already succeeded on
+      // the server. The catch then told the user "Failed to change phase" about a
+      // change that had gone through, and skipped the refetch, so the screen did not
+      // even show what had actually happened.
+      const targetPhase = currentTask?.workflow?.phases?.find(p => p.id === newPhaseId);
       if (targetPhase) {
         const name = targetPhase.name.toLowerCase();
         // Broader matching for "In Progress"
@@ -278,6 +326,16 @@ const TaskDetailPage: React.FC = () => {
   }
 
   useEffect(() => {
+    /**
+     * The debounce cancels pending timers, not requests already in the air.
+     *
+     * Type "mar", pause past the 300ms, then type "ket": two searches are live and
+     * whichever answers last wins. The dropdown then lists matches for a query the
+     * user has already finished editing, which looks like the search is simply wrong.
+     * `stale` closes over this effect run, so only the newest one may write.
+     */
+    let stale = false
+
     const searchTasks = async () => {
       if (searchQuery.length < 2) {
         setSearchResults([])
@@ -285,14 +343,22 @@ const TaskDetailPage: React.FC = () => {
       }
       try {
         const results = await tasksApi.getAll({ search: searchQuery, limit: 10 })
+        if (stale) return
         setSearchResults((results as any).tasks || [])
       } catch (error) {
+        if (stale) return
         console.error('Search failed:', error)
+        // Leaving the previous query's hits on screen under the new query is the one
+        // outcome worse than showing nothing.
+        setSearchResults([])
       }
     }
 
     const timer = setTimeout(searchTasks, 300)
-    return () => clearTimeout(timer)
+    return () => {
+      stale = true
+      clearTimeout(timer)
+    }
   }, [searchQuery])
 
   const handleAddSubtask = async (subtaskData: any) => {
@@ -309,7 +375,7 @@ const TaskDetailPage: React.FC = () => {
     }
   }
 
-  if (isLoading) {
+  if (!showingThisTask && isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-96">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -318,21 +384,39 @@ const TaskDetailPage: React.FC = () => {
     )
   }
 
-  if (!currentTask) {
+  if (!showingThisTask || !currentTask) {
+    /**
+     * A request that failed and a task that does not exist are different things.
+     *
+     * This screen said "The task you're looking for doesn't exist or has been
+     * deleted" for both, so a dropped connection told people their work was gone.
+     * The slice records why the fetch failed and nobody was reading it.
+     */
     return (
       <div className="text-center py-16">
         <div className="flex justify-center mb-4">
           <XCircleIcon className="h-16 w-16 text-red-500" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Task not found</h3>
-        <p className="text-gray-500 dark:text-gray-400 mb-6">The task you're looking for doesn't exist or has been deleted.</p>
-        <button
-          onClick={() => navigate('/tasks')}
-          className="btn-primary"
-        >
-          <ArrowLeftIcon className="h-4 w-4 mr-2" />
-          Back to Tasks
-        </button>
+        <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+          {loadError ? 'This task could not be loaded' : 'Task not found'}
+        </h3>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">
+          {loadError ?? "The task you're looking for doesn't exist or has been deleted."}
+        </p>
+        <div className="flex justify-center gap-3">
+          {loadError && (
+            <button onClick={loadTask} className="btn-primary">
+              Try again
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/tasks')}
+            className={loadError ? 'btn-secondary' : 'btn-primary'}
+          >
+            <ArrowLeftIcon className="h-4 w-4 mr-2" />
+            Back to Tasks
+          </button>
+        </div>
       </div>
     )
   }
@@ -567,7 +651,10 @@ const TaskDetailPage: React.FC = () => {
                   </h3>
                   {currentTask.blockedBy && currentTask.blockedBy.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2">
-                      {currentTask.blockedBy.map((dep) => (
+                      {/* A dependency whose blocker was deleted, or simply not included
+                          in this payload, used to throw on `dep.blocker.id` inside the
+                          map and white-screen the entire page rather than drop one row. */}
+                      {currentTask.blockedBy.filter((dep) => dep.blocker).map((dep) => (
                         <div
                           key={dep.id}
                           className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/30 border border-red-100 dark:border-red-900/40 rounded-lg group"
@@ -615,7 +702,8 @@ const TaskDetailPage: React.FC = () => {
                   </h3>
                   {currentTask.blocking && currentTask.blocking.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2">
-                      {currentTask.blocking.map((dep) => (
+                      {/* Same guard as Blocked By, for the same reason. */}
+                      {currentTask.blocking.filter((dep) => dep.dependent).map((dep) => (
                         <div
                           key={dep.id}
                           className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-100 dark:border-blue-900/40 rounded-lg group"

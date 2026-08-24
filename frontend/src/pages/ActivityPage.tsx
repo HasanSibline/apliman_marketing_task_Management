@@ -9,8 +9,6 @@ import {
   ArrowLeftIcon
 } from '@heroicons/react/24/outline'
 import { useNavigate } from 'react-router-dom'
-import { useAppSelector } from '@/hooks/redux'
-import toast from 'react-hot-toast'
 import EmptyState from '@/components/common/EmptyState'
 
 interface Activity {
@@ -31,7 +29,6 @@ interface Activity {
 
 const ActivityPage: React.FC = () => {
   const navigate = useNavigate()
-  const { user } = useAppSelector((state) => state.auth)
   const [activities, setActivities] = useState<Activity[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -39,60 +36,23 @@ const ActivityPage: React.FC = () => {
     loadActivities()
   }, [])
 
+  /**
+   * There is no activity feed to load, so this page invents nothing.
+   *
+   * It used to build five `mockActivities` and render them as real history:
+   * "John Doe completed the task 'Sample Task 2'", "Jane Smith added a comment to
+   * 'Sample Task 4'": people who do not work here, about tasks that do not exist,
+   * with the signed-in user's own real name on two of the five entries. Anyone
+   * reading this page believed it, because nothing on it said otherwise.
+   *
+   * No endpoint on the backend serves an activity log. Until one does, the honest
+   * screen is the one below: it says the feed is not available rather than filling
+   * the space with fiction. The rendering code is kept because it is correct and
+   * will be needed the moment a real feed exists; only the fabricated source is gone.
+   */
   const loadActivities = async () => {
-    setIsLoading(true)
-    try {
-      // For now, we'll create mock activities since we don't have a dedicated activities API
-      // In a real implementation, you'd call an API endpoint like tasksApi.getActivities()
-      const mockActivities: Activity[] = [
-        {
-          id: '1',
-          type: 'task_created',
-          user: { name: user?.name || 'You' },
-          description: 'created a new task',
-          taskTitle: 'Sample Task 1',
-          createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 minutes ago
-        },
-        {
-          id: '2',
-          type: 'task_completed',
-          user: { name: 'John Doe' },
-          description: 'completed the task',
-          taskTitle: 'Sample Task 2',
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2 hours ago
-        },
-        {
-          id: '3',
-          type: 'task_assigned',
-          user: { name: 'Admin' },
-          description: 'assigned you the task',
-          taskTitle: 'Sample Task 3',
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
-        },
-        {
-          id: '4',
-          type: 'comment_added',
-          user: { name: 'Jane Smith' },
-          description: 'added a comment to',
-          taskTitle: 'Sample Task 4',
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString() // 2 days ago
-        },
-        {
-          id: '5',
-          type: 'file_uploaded',
-          user: { name: user?.name || 'You' },
-          description: 'uploaded a file to',
-          taskTitle: 'Sample Task 5',
-          createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString() // 3 days ago
-        }
-      ]
-      setActivities(mockActivities)
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Failed to load activities'
-      toast.error(message)
-    } finally {
-      setIsLoading(false)
-    }
+    setActivities([])
+    setIsLoading(false)
   }
 
   const getActivityIcon = (type?: string) => {
@@ -192,8 +152,8 @@ const ActivityPage: React.FC = () => {
           <EmptyState
             bare
             icon={ClockIcon}
-            title="No activity yet"
-            description="Activity appears here as your team creates tasks, moves them between phases, and comments."
+            title="Activity history is not available yet"
+            description="Nothing records a company-wide activity log yet, so there is nothing to show here. Each task keeps its own history on its detail page in the meantime."
           />
         )}
       </motion.div>

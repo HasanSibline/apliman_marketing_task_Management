@@ -400,15 +400,70 @@ export class FilesService {
 
   // --- Ticket Attachments ---
 
-  async uploadTicketFiles(ticketId: string, files: Express.Multer.File[], userId: string) {
-    // Verify ticket exists
-    const ticket = await this.prisma.ticket.findFirst({
+  /**
+   * Decide whether a caller may touch a ticket's attachments.
+   *
+   * The role carried on the JWT says nothing about which tenant the caller belongs to,
+   * so the caller's company and role are read back from the database and the company is
+   * matched against the ticket: only SUPER_ADMIN is company-agnostic. Involvement
+   * mirrors TicketsService.findOne, TicketAssignment rows included, because assigneeId
+   * is deprecated and an assignee recorded only there is still an assignee.
+   *
+   * Upload, list, download and delete all route through here so the four cannot drift
+   * apart again, which is how upload ended up with no check at all.
+   */
+  private async authorizeTicketAccess(ticketId: string, userId: string) {
+    const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
+      select: {
+        id: true,
+        companyId: true,
+        requesterId: true,
+        requesterManagerId: true,
+        receiverManagerId: true,
+        assigneeId: true,
+        receiverDept: { select: { managerId: true } },
+        assignments: { select: { userId: true } },
+      },
     });
 
-    if (!ticket) {
+    if (!ticket) throw new NotFoundException('Ticket not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { companyId: true, role: true },
+    });
+
+    if (!user) throw new NotFoundException('Ticket not found');
+
+    if (user.role === 'SUPER_ADMIN') {
+      return { ticket, isAdmin: true };
+    }
+
+    // Anything short of SUPER_ADMIN is confined to its own tenant. A wrong-company
+    // ticket reads as missing rather than forbidden so the id itself gives nothing away.
+    if (!user.companyId || user.companyId !== ticket.companyId) {
       throw new NotFoundException('Ticket not found');
     }
+
+    const isAdmin = ['COMPANY_ADMIN', 'ADMIN'].includes(user.role);
+    const isInvolved =
+      ticket.requesterId === userId ||
+      ticket.requesterManagerId === userId ||
+      ticket.receiverManagerId === userId ||
+      ticket.assigneeId === userId ||
+      ticket.receiverDept?.managerId === userId ||
+      ticket.assignments.some((assignment) => assignment.userId === userId);
+
+    if (!isAdmin && !isInvolved) {
+      throw new NotFoundException('Access denied to this ticket');
+    }
+
+    return { ticket, isAdmin };
+  }
+
+  async uploadTicketFiles(ticketId: string, files: Express.Multer.File[], userId: string) {
+    await this.authorizeTicketAccess(ticketId, userId);
 
     const uploadedFiles = [];
 
@@ -440,76 +495,25 @@ export class FilesService {
     return uploadedFiles;
   }
 
-  async getTicketFiles(ticketId: string, userId: string, userRole: string) {
-    const ticket = await this.prisma.ticket.findUnique({
-      where: { id: ticketId },
-      include: {
-        attachments: { orderBy: { uploadedAt: 'desc' } },
-      },
+  // userRole is still accepted because the controller passes it, but it is deliberately
+  // unused: authorizeTicketAccess re-reads the role from the database instead.
+  async getTicketFiles(ticketId: string, userId: string, userRole?: string) {
+    await this.authorizeTicketAccess(ticketId, userId);
+
+    return this.prisma.ticketAttachment.findMany({
+      where: { ticketId },
+      orderBy: { uploadedAt: 'desc' },
     });
-
-    if (!ticket) throw new NotFoundException('Ticket not found');
-    
-    // Privacy check: only involved or admin
-    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(userRole);
-    const isInvolved = ticket.requesterId === userId || 
-                       ticket.requesterManagerId === userId || 
-                       ticket.receiverManagerId === userId || 
-                       ticket.assigneeId === userId;
-
-    if (!isAdmin && !isInvolved) {
-      // Final check: Is it the department manager of the receiver department?
-      const dept = await this.prisma.department.findUnique({
-        where: { id: ticket.receiverDeptId },
-        select: { managerId: true }
-      });
-      if (dept?.managerId !== userId) {
-        throw new NotFoundException('Access denied to this ticket files');
-      }
-    }
-
-    return ticket.attachments;
   }
 
-  async downloadTicketFile(fileId: string, userId: string, userRole: string) {
+  async downloadTicketFile(fileId: string, userId: string, userRole?: string) {
     const file = await this.prisma.ticketAttachment.findUnique({
       where: { id: fileId },
-      include: { 
-        ticket: {
-          include: {
-            receiverDept: {
-              select: { managerId: true }
-            }
-          }
-        } 
-      },
     });
 
     if (!file) throw new NotFoundException('File not found');
 
-    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(userRole);
-
-    // Allow: admin, or any user involved in the ticket
-    const isInvolved = file.ticket.requesterId === userId || 
-                       file.ticket.requesterManagerId === userId || 
-                       file.ticket.receiverManagerId === userId || 
-                       file.ticket.assigneeId === userId ||
-                       file.ticket.receiverDept?.managerId === userId;
-
-    // Also allow any user in the same company as the ticket (checked via user's companyId)
-    if (!isAdmin && !isInvolved) {
-      const user = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { companyId: true }
-      });
-      const ticketWithCompany = await this.prisma.ticket.findUnique({
-        where: { id: file.ticketId },
-        select: { companyId: true }
-      });
-      if (!user?.companyId || user.companyId !== ticketWithCompany?.companyId) {
-        throw new NotFoundException('Access denied');
-      }
-    }
+    await this.authorizeTicketAccess(file.ticketId, userId);
 
     if (file.filePath.startsWith('http')) {
       return { filePath: file.filePath, fileName: file.fileName, mimeType: file.mimeType };
@@ -525,16 +529,16 @@ export class FilesService {
   }
 
 
-  async deleteTicketFile(fileId: string, userId: string, userRole: string) {
+  async deleteTicketFile(fileId: string, userId: string, userRole?: string) {
     const file = await this.prisma.ticketAttachment.findUnique({
       where: { id: fileId },
-      include: { ticket: true },
     });
 
     if (!file) throw new NotFoundException('File not found');
 
-    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(userRole);
-    if (!isAdmin && file.ticket.requesterId !== userId) {
+    const { ticket, isAdmin } = await this.authorizeTicketAccess(file.ticketId, userId);
+
+    if (!isAdmin && ticket.requesterId !== userId) {
       throw new BadRequestException('Only requester or admins can delete attachments');
     }
 

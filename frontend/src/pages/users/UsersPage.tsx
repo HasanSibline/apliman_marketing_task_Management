@@ -28,14 +28,29 @@ type Tab = 'users' | 'departments' | 'teams'
 
 const UsersPage: React.FC = () => {
   const dispatch = useAppDispatch()
-  const { users, isLoading } = useAppSelector((state) => state.users)
+  // `error` is read as well as the list. The slice has always recorded a rejection;
+  // this page ignored it and let the empty state answer for it, so a 403 or a dropped
+  // connection was indistinguishable from a company with nobody in it.
+  const { users, isLoading, error: usersError } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
   const [activeTab, setActiveTab] = useState<Tab>('users')
   const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
-  const [companyName, setCompanyName] = useState<string>('Your Company')
+  /**
+   * Undefined until the tenant's real name arrives, and never invented.
+   *
+   * This used to start at, and fall back to, the literal "Your Company", which is then
+   * rendered as the company's name in the role column and passed into the create and
+   * edit dialogs as `${companyName} Admin`. Both of those dialogs already carry
+   * sensible fallbacks for an absent name; the placeholder defeated them.
+   *
+   * It is not a rare path either. `GET /companies/my-company` is restricted to
+   * COMPANY_ADMIN, ADMIN and EMPLOYEE, so a SUPER_ADMIN or a MANAGER on this page gets
+   * a 403 every time and reads "Your Company Admin" where a real name belongs.
+   */
+  const [companyName, setCompanyName] = useState<string | undefined>(undefined)
   
   // Confirmation dialog state
   const [actionModal, setActionModal] = useState<{
@@ -58,18 +73,28 @@ const UsersPage: React.FC = () => {
   }, [dispatch, activeTab])
 
   useEffect(() => {
+    // Nothing writes after this effect has been torn down or superseded.
+    let cancelled = false
+
     const fetchCompanyDetails = async () => {
       if (!user?.companyId) return
 
       try {
         const response = await api.get('/companies/my-company')
-        setCompanyName(response.data?.name ?? 'Your Company')
+        if (cancelled) return
+        setCompanyName(response.data?.name || undefined)
       } catch (error) {
+        // Left undefined. The two dialogs and the role label below all have a
+        // fallback for that, and a generic word is better than a wrong name.
         console.error('Failed to fetch company details:', error)
       }
     }
 
     fetchCompanyDetails()
+
+    return () => {
+      cancelled = true
+    }
   }, [user?.companyId])
 
   const handleEdit = (user: any) => {
@@ -260,6 +285,12 @@ const UsersPage: React.FC = () => {
           {isLoading ? (
             <div className="flex justify-center py-12">
               <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary-600" />
+            </div>
+          ) : usersError ? (
+            <div className="py-12 text-center">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">People could not be loaded</p>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{usersError}</p>
+              <button onClick={() => dispatch(fetchUsers({}))} className="btn-primary mt-4">Try again</button>
             </div>
           ) : users.length === 0 ? (
             <p className="py-12 text-center text-sm text-gray-500 dark:text-gray-400">No users found</p>

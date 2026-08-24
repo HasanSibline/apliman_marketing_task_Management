@@ -11,7 +11,7 @@ environment except the default model.
 
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -136,6 +136,25 @@ def _extract_text(response) -> str:
     return text
 
 
+def _extract_usage(response) -> Optional[Dict[str, int]]:
+    """Claude's own token counts, named the way the backend prices from.
+
+    None rather than zeros when Claude reported nothing: the backend treats an
+    all-zero count as no measurement at all and falls back to its own estimate, which
+    is the honest answer when we do not actually know.
+    """
+    usage = getattr(response, "usage", None)
+    input_tokens = getattr(usage, "input_tokens", None)
+    output_tokens = getattr(usage, "output_tokens", None)
+
+    if not isinstance(input_tokens, int) or not isinstance(output_tokens, int):
+        return None
+    if input_tokens <= 0 and output_tokens <= 0:
+        return None
+
+    return {"input_tokens": input_tokens, "output_tokens": output_tokens}
+
+
 async def generate(
     api_key: str,
     prompt: str,
@@ -145,7 +164,34 @@ async def generate(
     max_tokens: Optional[int] = None,
     effort: Optional[str] = None,
 ) -> str:
-    """Send one prompt to Claude and return the text response.
+    """Send one prompt to Claude and return just the text response.
+
+    Kept as the text-only door for callers that have no use for token counts, so
+    adding usage reporting did not have to change every call site at once. Callers
+    that price the call use generate_with_usage instead.
+    """
+    text, _usage = await generate_with_usage(
+        api_key=api_key,
+        prompt=prompt,
+        system_prompt=system_prompt,
+        model=model,
+        files=files,
+        max_tokens=max_tokens,
+        effort=effort,
+    )
+    return text
+
+
+async def generate_with_usage(
+    api_key: str,
+    prompt: str,
+    system_prompt: Optional[str] = None,
+    model: Optional[str] = None,
+    files: Optional[List[Dict[str, Any]]] = None,
+    max_tokens: Optional[int] = None,
+    effort: Optional[str] = None,
+) -> Tuple[str, Optional[Dict[str, int]]]:
+    """Send one prompt to Claude and return the text plus what it cost in tokens.
 
     Raises AnthropicProviderError with a message worth showing a user. Rate limits
     keep the literal "429" in the message so the NestJS layer classifies them the
@@ -177,7 +223,7 @@ async def generate(
             logger.warning(f"Claude fallback beta unavailable ({beta_error}); retrying without it.")
             response = await client.messages.create(**request)
 
-        return _extract_text(response)
+        return _extract_text(response), _extract_usage(response)
 
     except anthropic.AuthenticationError as e:
         raise AnthropicProviderError(

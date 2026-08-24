@@ -34,6 +34,7 @@ const TicketDetailPage: React.FC = () => {
   const [ticket, setTicket] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [attachments, setAttachments] = useState<any[]>([])
+  const [attachmentsError, setAttachmentsError] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [newComment, setNewComment] = useState('')
   const [users, setUsers] = useState<any[]>([])
@@ -96,14 +97,40 @@ const TicketDetailPage: React.FC = () => {
     commentsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
   }
 
+  /** Set when the people list could not be loaded, so the pickers can say so. */
+  const [peopleError, setPeopleError] = useState(false)
+  /** Same, for the department list the edit form requires. */
+  const [departmentsError, setDepartmentsError] = useState(false)
+
   const scrollToBottom = () => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
+  /**
+   * Which ticket this page is currently asking about.
+   *
+   * Four requests fire on every `ticketId` change and none was tied back to the id
+   * that asked for it. The loader only shows while `!ticket`, so once one ticket is on
+   * screen a slow answer for a previous one could repaint its title, status and
+   * description under the URL of another, and `editData` was seeded from whichever
+   * landed last, which is what the Save button then submits.
+   *
+   * It doubles as the unmount guard for the four setState calls below.
+   */
+  const currentTicketId = useRef(ticketId)
+  useEffect(() => {
+    currentTicketId.current = ticketId
+    return () => {
+      currentTicketId.current = undefined
+    }
+  }, [ticketId])
+
   const fetchTicketDetails = async () => {
+    const mine = ticketId
     setIsLoading(true)
     try {
       const res = await api.get(`/tickets/${ticketId}`)
+      if (currentTicketId.current !== mine) return
       setTicket(res.data)
       setEditData({
         title: res.data.title,
@@ -112,37 +139,56 @@ const TicketDetailPage: React.FC = () => {
         status: res.data.status
       })
     } catch (error) {
+      if (currentTicketId.current !== mine) return
       toast.error('Failed to load ticket details')
       navigate('/tickets')
     } finally {
-      setIsLoading(false)
+      if (currentTicketId.current === mine) setIsLoading(false)
     }
   }
 
+  /**
+   * People and departments failing silently is not the same as having none.
+   *
+   * Both of these used to catch into a console.error and leave their lists empty. The
+   * Invite popover and the "Assign people" select then rendered with nothing in them,
+   * which reads as "there is nobody here to invite"; the Department select in the edit
+   * form did the same, and `handleUpdateTicket` refuses to save without a department,
+   * so the form became unsubmittable for a reason it never stated.
+   */
   const fetchUsers = async () => {
     try {
       const res = await api.get('/users')
-      setUsers(res.data)
+      setUsers(Array.isArray(res.data) ? res.data : res.data?.users ?? [])
+      setPeopleError(false)
     } catch (error) {
       console.error('Failed to fetch users')
+      setPeopleError(true)
     }
   }
 
   const fetchDepartments = async () => {
     try {
       const res = await api.get('/departments')
-      setDepartments(res.data)
+      setDepartments(Array.isArray(res.data) ? res.data : res.data?.departments ?? [])
+      setDepartmentsError(false)
     } catch (error) {
       console.error('Failed to fetch departments')
+      setDepartmentsError(true)
     }
   }
 
   const fetchAttachments = async () => {
     try {
       const res = await api.get(`/files/ticket/${ticketId}`)
-      setAttachments(res.data)
+      setAttachments(Array.isArray(res.data) ? res.data : [])
+      setAttachmentsError(false)
     } catch (error) {
+      // A failed load used to fall through to the empty state, which says there is
+      // nothing attached. That is a different claim from "we could not find out", and
+      // the wrong one to make about a file somebody is looking for.
       console.error('Failed to fetch attachments')
+      setAttachmentsError(true)
     }
   }
 
@@ -432,9 +478,23 @@ const TicketDetailPage: React.FC = () => {
     (ticket.receiverDept?.managerId === user?.id) ||
     (ticket.assignments?.some((a: any) => a.userId === user?.id));
 
+  // Detaching a file is narrower than editing the ticket. The server allows it to the
+  // person who raised the ticket and to admins, and refuses everyone else, so offering
+  // the bin to every assignee and manager only produced a rejection on click.
+  const canRemoveAttachment = isAdmin || ticket.requesterId === user?.id;
+
   // Approval logic clarity
   const isRecMgrStage = ticket.status === 'PENDING_REC_MGR';
-  const canAuthoriseRec = (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || isAdmin);
+  /**
+   * Deciding is narrower than editing, and narrower than `isAdmin` above.
+   *
+   * `approveByReceiverManager` and `reject` both admit only COMPANY_ADMIN and
+   * SUPER_ADMIN among roles. Plain ADMIN was included here, so someone with that role
+   * was shown Approve and Decline on this page, was shown neither on the tickets list
+   * (which already used the two-role test), and got a 403 if they pressed either.
+   */
+  const canDecideAsRole = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
+  const canAuthoriseRec = (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || canDecideAsRole);
 
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500 max-w-7xl mx-auto">
@@ -565,17 +625,10 @@ const TicketDetailPage: React.FC = () => {
                       })
                       return
                     }
-                    if (val === 'CANCELLED') {
-                      setActionModal({
-                        isOpen: true,
-                        type: 'cancel',
-                        title: 'Cancel this ticket?',
-                        description:
-                          'Anyone about to raise the same request is shown why this one was stopped.',
-                        requireReason: true,
-                      })
-                      return
-                    }
+                    // A second CANCELLED branch used to sit here. The handler returns on
+                    // the first line above for that value, so it could never run: two
+                    // different cancel dialogs were written and only the older one was ever
+                    // reachable. Removed rather than left looking like a choice.
 
                     try {
                       const res = await api.patch(`/tickets/${ticketId}`, { status: val })
@@ -670,6 +723,15 @@ const TicketDetailPage: React.FC = () => {
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </Select>
+                  {departmentsError && (
+                    /* Saving is refused without a department, and with an empty list
+                       there is no department to choose. Without this the form is simply
+                       unsubmittable and never says why. */
+                    <p className="ml-1 text-xs text-error-600 dark:text-error-400">
+                      The department list could not be loaded, so this cannot be saved yet.{' '}
+                      <button type="button" onClick={fetchDepartments} className="underline">Try again</button>
+                    </p>
+                  )}
                 </div>
                 {isAdmin && (
                   <div className="space-y-2">
@@ -709,6 +771,12 @@ const TicketDetailPage: React.FC = () => {
                         </button>
                         <div className="absolute right-0 top-full mt-2 w-56 surface border border-gray-100 dark:border-gray-700 p-2 z-[100] opacity-0 group-focus-within:opacity-100 pointer-events-none group-focus-within:pointer-events-auto transition-all scale-95 group-focus-within:scale-100 origin-top-right">
                           <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wide mb-1.5 px-2">Add someone</p>
+                          {peopleError && (
+                            /* An empty popover reads as "there is nobody to invite". */
+                            <p className="px-2 pb-1.5 text-xs text-error-600 dark:text-error-400">
+                              The people list could not be loaded.
+                            </p>
+                          )}
                           <div className="max-h-48 overflow-y-auto space-y-0.5 pr-1 custom-scrollbar">
                             {users.filter(u => u.id !== user?.id && !ticket.assignments?.some((a: any) => a.userId === u.id)).map(u => (
                               <button
@@ -790,7 +858,9 @@ const TicketDetailPage: React.FC = () => {
                           }}
                           className="select-field w-full text-xs"
                         >
-                          <option value="">Assign people...</option>
+                          <option value="">
+                            {peopleError ? 'People could not be loaded' : 'Assign people…'}
+                          </option>
                           {/* Cross-departmental search allowed as requested */}
                           {users.map(u => (
                             <option key={u.id} value={u.id}>
@@ -877,13 +947,26 @@ const TicketDetailPage: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={() => handleDownload(att.id, att.fileName)} className="p-1.5 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"><ArrowDownTrayIcon className="h-4 w-4" /></button>
-                    {canEdit && <button onClick={() => handleDeleteAttachment(att.id)} className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"><TrashIcon className="h-4 w-4" /></button>}
+                    {canRemoveAttachment && <button onClick={() => handleDeleteAttachment(att.id)} className="p-1.5 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded-lg transition-colors"><TrashIcon className="h-4 w-4" /></button>}
                   </div>
                 </div>
               ))}
               {attachments.length === 0 && (
                 <div className="py-6 text-center border-2 border-dashed border-gray-50 dark:border-gray-700 rounded-xl">
-                  <p className="text-xs font-semibold text-gray-300">Nothing attached yet</p>
+                  {attachmentsError ? (
+                    <>
+                      <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">Could not load the attachments</p>
+                      <button
+                        type="button"
+                        onClick={fetchAttachments}
+                        className="mt-1 text-xs font-semibold text-primary-600 hover:underline dark:text-primary-400"
+                      >
+                        Try again
+                      </button>
+                    </>
+                  ) : (
+                    <p className="text-xs font-semibold text-gray-300">Nothing attached yet</p>
+                  )}
                 </div>
               )}
             </div>
@@ -895,13 +978,17 @@ const TicketDetailPage: React.FC = () => {
 
           {/* A declined ticket says so before anything else, because the reason is
               the only thing anyone opens it for. */}
-          {ticket.status === 'CANCELLED' && ticket.comments?.some((c: any) => c.comment.startsWith('Rejected:')) && (
+          {/* The trailing space matters. The thread below filters on 'Rejected: '
+                with one, and these two tested without, so a comment written as
+                "Rejected:no budget" showed both in this banner and as an ordinary
+                message in the conversation. */}
+          {ticket.status === 'CANCELLED' && ticket.comments?.some((c: any) => c.comment?.startsWith('Rejected: ')) && (
             <div className="flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 dark:border-rose-900/40 dark:bg-rose-900/20">
               <XCircleIcon className="mt-0.5 h-5 w-5 shrink-0 text-rose-600 dark:text-rose-400" />
               <div>
                 <p className="text-sm font-semibold text-rose-900 dark:text-rose-200">Declined</p>
                 <p className="mt-1 text-sm leading-relaxed text-rose-800 dark:text-rose-300">
-                  {ticket.comments.find((c: any) => c.comment.startsWith('Rejected:'))?.comment.replace('Rejected: ', '')}
+                  {ticket.comments.find((c: any) => c.comment?.startsWith('Rejected: '))?.comment.replace('Rejected: ', '')}
                 </p>
               </div>
             </div>
@@ -1029,7 +1116,10 @@ const TicketDetailPage: React.FC = () => {
                         </div>
                         <div className="min-w-0">
                           <p className="text-xs font-semibold text-gray-900 dark:text-white truncate tracking-tight">{u.name}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 font-bold tracking-wide truncate">{u.department?.name || 'External'}</p>
+                          {/* "External" is a claim about who this person is. The same condition
+                              renders as "No department" and "No Dept" elsewhere in this file,
+                              which describe missing data rather than asserting employment. */}
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-bold tracking-wide truncate">{u.department?.name ?? 'No department'}</p>
                         </div>
                       </button>
                     ))}

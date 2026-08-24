@@ -1,18 +1,11 @@
 import { Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { TasksService } from '../tasks/tasks.service';
+import { TasksService, keyResultTaskScope } from '../tasks/tasks.service';
+import { taskStage } from '../tasks/task-stage';
 import { CreateObjectiveDto } from './dto/create-objective.dto';
 import { CreateKeyResultDto, UpdateKeyResultDto } from './dto/key-result.dto';
-import { taskFraction, quarterReadiness } from '../okr/okr-math';
-
-function calcProgress(keyResults: any[]): number {
-    if (!keyResults?.length) return 0;
-    const total = keyResults.reduce((sum, kr) => {
-        const pct = kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0;
-        return sum + Math.min(pct, 100);
-    }, 0);
-    return Math.round(total / keyResults.length);
-}
+import { taskFraction, quarterReadiness, objectivePercent, keyResultPercent } from '../okr/okr-math';
+import { EXCLUDE_SUBTASKS } from '../tasks/task-filters';
 
 @Injectable()
 export class ObjectivesService {
@@ -22,9 +15,21 @@ export class ObjectivesService {
         private readonly tasksService: TasksService,
     ) { }
 
+    /**
+     * Attach the percentages, objective and per key result.
+     *
+     * The per key result one is here so nothing downstream has to work it out from
+     * start, target and current. Every screen that tried recomputed it as a share of
+     * the target, which ignores the starting value, cannot express a decreasing goal
+     * and divides by zero on a "reduce to zero" one. Sending the answer is the only
+     * way the bars on a page can agree with the headline above them.
+     */
     private withProgress(obj: any) {
-        const progress = calcProgress(obj.keyResults ?? []);
-        return { ...obj, progress };
+        const keyResults = (obj.keyResults ?? []).map((kr: any) => ({
+            ...kr,
+            progress: keyResultPercent(kr),
+        }));
+        return { ...obj, keyResults, progress: objectivePercent(keyResults) };
     }
 
 
@@ -82,6 +87,7 @@ export class ObjectivesService {
                 keyResults: true,
                 quarter: { select: { id: true, name: true, year: true } },
                 tasks: {
+                    where: EXCLUDE_SUBTASKS,
                     include: {
                         assignedTo: { select: { id: true, name: true, position: true } },
                         currentPhase: { select: { id: true, name: true, color: true } }
@@ -241,8 +247,12 @@ export class ObjectivesService {
         });
         if (!kr) throw new NotFoundException('Key result not found');
 
+        // The same row set TasksService.recalculateKeyResult rolls up, asked for in
+        // the same place, because these workings have to add up to the stored total
+        // they are explaining. They used to be two hand-written where clauses that
+        // had already drifted apart on tenant scope.
         const tasks = await this.prisma.task.findMany({
-            where: { keyResultId, companyId },
+            where: keyResultTaskScope(keyResultId, companyId),
             orderBy: { createdAt: 'desc' },
             select: {
                 id: true,
@@ -258,13 +268,13 @@ export class ObjectivesService {
         });
 
         return {
-            keyResult: kr,
+            // The percentage carried alongside the raw values, so the page showing the
+            // working does not derive its own and end up explaining a different number.
+            keyResult: { ...kr, progress: keyResultPercent(kr) },
             tasks: tasks.map((t) => {
-                const isComplete =
-                    t.completedAt !== null ||
-                    t.phase === 'COMPLETED' ||
-                    t.phase === 'ARCHIVED' ||
-                    t.currentPhase?.isEndPhase === true;
+                // Read through taskStage, as the rollup does, so "finished" means the
+                // same thing on both sides of the number being explained.
+                const isComplete = taskStage(t) === 'COMPLETED';
                 const fraction = taskFraction({ isComplete, subtasks: t.subtasks });
                 return {
                     id: t.id,

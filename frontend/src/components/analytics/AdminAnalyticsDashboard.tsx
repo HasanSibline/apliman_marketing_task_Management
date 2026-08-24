@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import {
   ChartBarIcon,
@@ -44,11 +44,28 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
   const [phaseFilter, setPhaseFilter] = useState('')
   const [workflows, setWorkflows] = useState<any[]>([])
   const [phases, setPhases] = useState<any[]>([])
+  /**
+   * A failed load and a filter that matches nothing are different screens.
+   *
+   * Both used to leave `dashboardData` null, and the empty state tells the user to
+   * widen their date range. When the server is down that advice is wrong and there is
+   * nothing they can do to act on it.
+   */
+  const [loadError, setLoadError] = useState(false)
+
+  /** Which request is allowed to write to state. See loadData. */
+  const requestId = useRef(0)
 
   useEffect(() => {
     loadData()
-    loadFiltersData()
   }, [dateRange, workflowFilter, phaseFilter])
+
+  // The workflow list does not depend on the filters, and refetching it on every
+  // keystroke in a date box fired a request per character for a list that never
+  // changes.
+  useEffect(() => {
+    loadFiltersData()
+  }, [])
 
   const loadFiltersData = async () => {
     try {
@@ -62,7 +79,17 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
   }
 
   const loadData = async () => {
+    /**
+     * Only the newest request may write.
+     *
+     * Every filter change starts a fetch, and a date input fires one per keystroke.
+     * Without this an earlier, slower answer landing after a later one repainted the
+     * dashboard with numbers for a filter the user had already moved off, and there
+     * was no way to tell from the screen which filter the figures belonged to.
+     */
+    const mine = ++requestId.current
     setIsLoading(true)
+    setLoadError(false)
     try {
       // Build query params for filtering
       const params: any = {}
@@ -80,8 +107,9 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
       console.log('tasksByPhase:', data.tasksByPhase)
       console.log('topPerformers:', data.topPerformers)
       
+      if (mine !== requestId.current) return
       setDashboardData(data)
-      
+
       // Extract unique phases from tasks
       if (data.tasksByPhase) {
         const uniquePhases = data.tasksByPhase.map((item: any) => ({
@@ -91,10 +119,15 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
         setPhases(uniquePhases)
       }
     } catch (error: any) {
+      if (mine !== requestId.current) return
       console.error('Error loading dashboard:', error)
+      setLoadError(true)
       toast.error(error.response?.data?.message || 'Failed to load analytics')
     } finally {
-      setIsLoading(false)
+      // The spinner is part of the same guard. A stale answer clearing it while the
+      // current request is still out showed an empty dashboard rather than a loading
+      // one.
+      if (mine === requestId.current) setIsLoading(false)
     }
   }
 
@@ -275,12 +308,16 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="section-title">Company overview</h2>
+        {/* Disabled until there is something to export. Both handlers read
+            dashboardData straight through, so pressing either while it was null threw
+            and reported "Failed to export" for a report that was never going to
+            exist. The PDF one also left an empty pop-up window behind. */}
         <div className="flex gap-2">
-          <button onClick={handleExportExcel} className="btn-secondary">
+          <button onClick={handleExportExcel} disabled={!dashboardData} className="btn-secondary disabled:opacity-50">
             <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
             Excel
           </button>
-          <button onClick={handleExportPDF} className="btn-secondary">
+          <button onClick={handleExportPDF} disabled={!dashboardData} className="btn-secondary disabled:opacity-50">
             <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
             PDF
           </button>
@@ -340,16 +377,48 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
 
         <div className="surface flex min-h-[320px] items-center justify-center">
           <div className="p-8 text-center">
-            <DocumentChartBarIcon className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Nothing to show</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              No tasks match these filters. Widen the date range, or clear the filters to see everything.
-            </p>
+            {loadError ? (
+              <>
+                <ExclamationCircleIcon className="mx-auto mb-4 h-12 w-12 text-error-500" />
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Analytics could not be loaded</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  The server did not answer. Nothing is wrong with your filters.
+                </p>
+                <button onClick={loadData} className="btn-primary mt-4">Try again</button>
+              </>
+            ) : (
+              <>
+                <DocumentChartBarIcon className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Nothing to show</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  No tasks match these filters. Widen the date range, or clear the filters to see everything.
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
     )
   }
+
+  /**
+   * The three buckets the server guarantees are a partition, and nothing else.
+   *
+   * Overdue used to be a fourth slice. It is not a fourth bucket: an overdue task is
+   * already counted in Pending or In progress, so the pie summed to more than the
+   * total printed on the card beside it and every percentage on it was wrong. Now
+   * that completed + inProgress + pending is exactly totalTasks server-side, adding
+   * anything to them can only break the sum. Overdue is a cut across the same tasks,
+   * so it is stated as a number under the chart instead of drawn as a slice of it.
+   *
+   * Colours are pinned to the bucket rather than taken by position, so a bucket that
+   * happens to be zero cannot shift the other two onto each other's colours.
+   */
+  const statusDistribution = [
+    { name: 'Completed', value: dashboardData.completedTasks || 0, color: COLORS[0] },
+    { name: 'In Progress', value: dashboardData.inProgressTasks || 0, color: COLORS[1] },
+    { name: 'Pending', value: dashboardData.pendingTasks || 0, color: COLORS[2] },
+  ].filter((item) => item.value > 0)
 
   return (
     <div className="space-y-6">
@@ -520,12 +589,7 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={[
-                    { name: 'Completed', value: dashboardData.completedTasks || 0 },
-                    { name: 'In Progress', value: dashboardData.inProgressTasks || 0 },
-                    { name: 'Pending', value: dashboardData.pendingTasks || 0 },
-                    { name: 'Overdue', value: dashboardData.overdueTasks || 0 },
-                  ].filter(item => item.value > 0)}
+                  data={statusDistribution}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -536,13 +600,8 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
                   stroke={chart.isDark ? '#1f2937' : '#fff'}
                   strokeWidth={2}
                 >
-                  {[
-                    { name: 'Completed', value: dashboardData.completedTasks || 0 },
-                    { name: 'In Progress', value: dashboardData.inProgressTasks || 0 },
-                    { name: 'Pending', value: dashboardData.pendingTasks || 0 },
-                    { name: 'Overdue', value: dashboardData.overdueTasks || 0 },
-                  ].filter(item => item.value > 0).map((_, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {statusDistribution.map((entry) => (
+                    <Cell key={entry.name} fill={entry.color} />
                   ))}
                 </Pie>
                 <Tooltip 
@@ -551,6 +610,9 @@ const AdminAnalyticsDashboard: React.FC<AdminAnalyticsDashboardProps> = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
+          <p className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
+            {dashboardData.overdueTasks || 0} of these are overdue.
+          </p>
         </motion.div>
       </div>
 

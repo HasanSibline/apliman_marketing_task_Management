@@ -49,7 +49,28 @@ const UserAnalytics: React.FC = () => {
    */
   const [subjectId, setSubjectId] = useState('')
   const [people, setPeople] = useState<{ id: string; name: string }[]>([])
+  /**
+   * A failed request and a person with no activity look identical otherwise.
+   *
+   * The empty state below tells you this person has done nothing this period. Saying
+   * that about a colleague because a request timed out is worse than saying nothing.
+   */
+  const [loadError, setLoadError] = useState(false)
   const subjectName = subjectId ? people.find((p) => p.id === subjectId)?.name ?? 'This person' : ''
+  /**
+   * Who the page is talking about, decided once.
+   *
+   * Every heading and every insight below was written in the first or second person,
+   * back when this page could only ever show you your own work. Now that an admin can
+   * point it at a colleague, those same words hand that colleague's figures to
+   * whoever is reading: "Excellent Work! Your completion rate is 91%" about someone
+   * else's quarter. Wrong in the flattering direction is still wrong, and it is the
+   * same defect as a page inventing history and signing your name to it.
+   */
+  const possessive = subjectName ? `${subjectName}'s` : 'My'
+  const subject = subjectName || 'You'
+  const verb = subjectName ? 'has' : 'have'
+  const verbNeg = subjectName ? 'does not' : 'do not'
 
   useEffect(() => {
     if (!isAdmin) return
@@ -68,6 +89,7 @@ const UserAnalytics: React.FC = () => {
   const loadUserAnalytics = async () => {
     const mine = ++requestId.current
     setIsLoading(true)
+    setLoadError(false)
     // Cleared up front: showing the last person's numbers under this person's name
     // is worse than showing nothing while it loads.
     setUserAnalytics(null)
@@ -87,10 +109,15 @@ const UserAnalytics: React.FC = () => {
       if (mine !== requestId.current) return
       setUserAnalytics(data)
     } catch (error: any) {
+      if (mine !== requestId.current) return
       console.error('Error loading analytics:', error)
+      setLoadError(true)
       toast.error(error.response?.data?.message || 'Failed to load user analytics')
     } finally {
-      setIsLoading(false)
+      // The guard has to cover the spinner too. An older answer arriving late used to
+      // clear it while the current request was still out, so you saw an empty dashboard
+      // rather than something loading.
+      if (mine === requestId.current) setIsLoading(false)
     }
   }
 
@@ -181,13 +208,26 @@ const UserAnalytics: React.FC = () => {
 
         <div className="surface flex min-h-[320px] items-center justify-center">
           <div className="p-8 text-center">
-            <ChartBarIcon className="mx-auto mb-4 h-12 w-12 text-gray-400" />
-            <h3 className="text-sm font-medium text-gray-900 dark:text-white">Nothing to show yet</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {subjectName
-                ? `${subjectName} has no activity in this period.`
-                : 'Your analytics will appear here once you have some activity.'}
-            </p>
+            {loadError ? (
+              <>
+                <ChartBarIcon className="mx-auto mb-4 h-12 w-12 text-error-500" />
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Analytics could not be loaded</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  The server did not answer, so there is nothing to say about this period yet.
+                </p>
+                <button onClick={loadUserAnalytics} className="btn-primary mt-4">Try again</button>
+              </>
+            ) : (
+              <>
+                <ChartBarIcon className="mx-auto mb-4 h-12 w-12 text-gray-400" />
+                <h3 className="text-sm font-medium text-gray-900 dark:text-white">Nothing to show yet</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {subjectName
+                    ? `${subjectName} has no activity in this period.`
+                    : 'Your analytics will appear here once you have some activity.'}
+                </p>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -196,15 +236,27 @@ const UserAnalytics: React.FC = () => {
 
   const stats = userAnalytics.stats || {}
 
-  // Use real data from backend
   const performanceTrend = userAnalytics.performanceTrend || []
-  
-  // Use real task status data from backend
-  const taskStatusData = userAnalytics.tasksByStatus || [
-    { name: 'Completed', value: stats.completedTasks || 0 },
-    { name: 'In Progress', value: stats.inProgressTasks || 0 },
-    { name: 'Pending', value: stats.pendingTasks || 0 },
-  ].filter((item: any) => item.value > 0)
+
+  /**
+   * The server's three buckets, and no second opinion about them.
+   *
+   * This used to fall back to rebuilding Completed / In progress / Pending out of
+   * `stats`. The server now guarantees the three add up to the total and drops the
+   * empty ones, so a local copy could only ever disagree with the counters printed
+   * on the cards above.
+   *
+   * Colours are looked up by bucket name rather than taken by position. The server
+   * omits a bucket that is zero, so a person with nothing in progress used to have
+   * Pending drawn in In-progress green, and the same colour meant a different thing
+   * on two people's pages.
+   */
+  const STATUS_COLORS: Record<string, string> = {
+    Completed: COLORS[0],
+    'In Progress': COLORS[1],
+    Pending: COLORS[2],
+  }
+  const taskStatusData: { name: string; value: number }[] = userAnalytics.tasksByStatus || []
 
   return (
     <div className="space-y-6">
@@ -321,7 +373,7 @@ const UserAnalytics: React.FC = () => {
                 {stats.totalCreatedTasks || 0}
               </h3>
               <p className="text-sm text-warning-600 dark:text-warning-400 mt-2 font-medium">
-                Tasks I created
+                {subjectName ? `Tasks ${subjectName} created` : 'Tasks I created'}
               </p>
             </div>
             <div className="h-14 w-14 bg-warning-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -340,7 +392,7 @@ const UserAnalytics: React.FC = () => {
           transition={{ delay: 0.3 }}
           className="surface p-6 border border-gray-200 dark:border-gray-700"
         >
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">My Performance Trend</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{possessive} performance trend</h3>
           <div className="h-80">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={performanceTrend}>
@@ -389,7 +441,7 @@ const UserAnalytics: React.FC = () => {
         transition={{ delay: 0.4 }}
           className="surface p-6 border border-gray-200 dark:border-gray-700"
       >
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">My Task Status</h3>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{possessive} task status</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -405,8 +457,8 @@ const UserAnalytics: React.FC = () => {
                   stroke={chart.isDark ? '#1f2937' : '#fff'}
                   strokeWidth={2}
                 >
-                  {taskStatusData.map((_: any, index: number) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  {taskStatusData.map((entry) => (
+                    <Cell key={entry.name} fill={STATUS_COLORS[entry.name] ?? COLORS[3]} />
                   ))}
                 </Pie>
               <Tooltip 
@@ -427,7 +479,7 @@ const UserAnalytics: React.FC = () => {
       >
         <div className="flex items-center gap-3 mb-6">
           <TrophyIcon className="h-8 w-8" />
-          <h3 className="text-2xl font-bold">Your Performance</h3>
+          <h3 className="text-2xl font-bold">{subjectName ? `${subjectName}'s performance` : 'Your performance'}</h3>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
@@ -441,7 +493,7 @@ const UserAnalytics: React.FC = () => {
             <div className="text-sm text-primary-100 mb-1">Tasks Created</div>
             <div className="text-4xl font-bold">{stats.totalCreatedTasks || 0}</div>
             <div className="mt-2 text-sm text-primary-200">
-              Your initiative
+              {subjectName ? 'Their initiative' : 'Your initiative'}
             </div>
           </div>
           <div>
@@ -463,15 +515,14 @@ const UserAnalytics: React.FC = () => {
         transition={{ delay: 0.6 }}
         className="surface p-6 border border-gray-200 dark:border-gray-700"
       >
-        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Personal Insights</h3>
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">{subjectName ? 'Insights' : 'Personal insights'}</h3>
         <div className="space-y-3">
           {/* Excellent Performance */}
           {stats.completionRate >= 80 && (
             <div className="p-4 bg-success-50 dark:bg-success-900/30 rounded-lg border border-success-200">
               <p className="text-sm text-success-800 dark:text-success-300">
-                <strong>🌟 Excellent Work!</strong> Your completion rate is {stats.completionRate}%. 
-                You've completed {stats.completedTasks} out of {stats.totalAssignedTasks} tasks. 
-                Keep up the outstanding performance!
+                <strong>🌟 Excellent work!</strong> {possessive} completion rate is {stats.completionRate}%.{' '}
+                {subject} {verb} completed {stats.completedTasks} of {stats.totalAssignedTasks} tasks.
               </p>
             </div>
           )}
@@ -480,8 +531,8 @@ const UserAnalytics: React.FC = () => {
           {stats.completionRate >= 60 && stats.completionRate < 80 && (
             <div className="p-4 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-200">
               <p className="text-sm text-primary-800 dark:text-primary-300">
-                <strong>👍 Good Job!</strong> Your completion rate is {stats.completionRate}%. 
-                You've completed {stats.completedTasks} tasks. Keep pushing forward!
+                <strong>👍 Good job!</strong> {possessive} completion rate is {stats.completionRate}%.{' '}
+                {subject} {verb} completed {stats.completedTasks} tasks.
               </p>
             </div>
           )}
@@ -490,9 +541,8 @@ const UserAnalytics: React.FC = () => {
           {stats.completionRate < 60 && stats.totalAssignedTasks > 0 && (
             <div className="p-4 bg-warning-50 dark:bg-warning-900/30 rounded-lg border border-warning-200">
               <p className="text-sm text-warning-800 dark:text-warning-300">
-                <strong>💪 Room for Growth!</strong> Your completion rate is {stats.completionRate}%. 
-                You have {stats.inProgressTasks} tasks in progress and {stats.pendingTasks} pending. 
-                Focus on completing your current tasks to improve your rate.
+                <strong>💪 Room for growth.</strong> {possessive} completion rate is {stats.completionRate}%.{' '}
+                {subject} {verb} {stats.inProgressTasks} in progress and {stats.pendingTasks} pending.
               </p>
             </div>
           )}
@@ -501,8 +551,8 @@ const UserAnalytics: React.FC = () => {
           {stats.totalCreatedTasks > stats.totalAssignedTasks && (
             <div className="p-4 bg-primary-50 dark:bg-primary-900/30 rounded-lg border border-primary-200">
               <p className="text-sm text-primary-800 dark:text-primary-300">
-                <strong>🚀 Great Initiative!</strong> You've created {stats.totalCreatedTasks} tasks 
-                compared to {stats.totalAssignedTasks} assigned to you. Excellent leadership and proactivity!
+                <strong>🚀 Great initiative!</strong> {subject} {verb} created {stats.totalCreatedTasks} tasks,{' '}
+                against {stats.totalAssignedTasks} assigned.
               </p>
             </div>
           )}
@@ -511,7 +561,7 @@ const UserAnalytics: React.FC = () => {
           {stats.inProgressTasks > 0 && (
             <div className="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="text-sm text-gray-800 dark:text-gray-100">
-                <strong>⚡ Currently Active:</strong> You have {stats.inProgressTasks} task{stats.inProgressTasks !== 1 ? 's' : ''} in progress. 
+                <strong>⚡ Currently active:</strong> {subject} {verb} {stats.inProgressTasks} task{stats.inProgressTasks !== 1 ? 's' : ''} in progress.
                 {stats.pendingTasks > 0 && ` ${stats.pendingTasks} task${stats.pendingTasks !== 1 ? 's are' : ' is'} still pending.`}
               </p>
             </div>
@@ -521,10 +571,9 @@ const UserAnalytics: React.FC = () => {
           {stats.totalAssignedTasks === 0 && (
             <div className="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
               <p className="text-sm text-gray-800 dark:text-gray-100">
-                <strong>📋 Getting Started:</strong> You don't have any tasks assigned yet. 
-                {stats.totalCreatedTasks > 0 
-                  ? ` However, you've created ${stats.totalCreatedTasks} task${stats.totalCreatedTasks !== 1 ? 's' : ''}!`
-                  : ' Check with your team lead for upcoming assignments.'}
+                <strong>📋 Nothing assigned yet.</strong> {subject} {verbNeg} have any tasks assigned.
+                {stats.totalCreatedTasks > 0 &&
+                  ` ${stats.totalCreatedTasks} task${stats.totalCreatedTasks !== 1 ? 's' : ''} created, though.`}
               </p>
           </div>
           )}
@@ -532,7 +581,7 @@ const UserAnalytics: React.FC = () => {
           {/* Recent Activity */}
           {userAnalytics.recentActivity && userAnalytics.recentActivity.length > 0 && (
             <div className="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg border border-gray-200 dark:border-gray-700">
-              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">📊 Recent Activity:</p>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-2">📊 Recent activity</p>
               <ul className="space-y-1 text-sm text-gray-700 dark:text-gray-200">
                 {userAnalytics.recentActivity.slice(0, 3).map((activity: any) => (
                   <li key={activity.id} className="flex items-center justify-between">

@@ -140,10 +140,23 @@ export class AiProvidersController {
   ) {
     const existing = await this.prisma.aiProviderConfig.findUnique({
       where: { id },
-      select: { companyId: true },
+      select: { companyId: true, isEmergency: true, monthlyBudget: true },
     });
     if (!existing) throw new BadRequestException('That provider entry no longer exists.');
     this.scopeFor(req, existing.companyId);
+
+    // The same rule create enforces, applied to the state this edit would leave behind.
+    // Checking only the incoming fields let the guard be walked around in two steps:
+    // promote an existing free entry to emergency without ever naming a budget, or null
+    // the budget of an entry that is already emergency. Either path ends with a paid key
+    // and no ceiling, which is the thing the create-time check exists to prevent.
+    const willBeEmergency = body.isEmergency ?? existing.isEmergency;
+    const willHaveBudget =
+      body.monthlyBudget !== undefined ? body.monthlyBudget : existing.monthlyBudget;
+
+    if (willBeEmergency && !willHaveBudget) {
+      throw new BadRequestException('An emergency provider needs a monthly budget.');
+    }
 
     const updated = await this.prisma.aiProviderConfig.update({
       where: { id },

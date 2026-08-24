@@ -22,20 +22,27 @@ The browser never talks to `ai-service` directly. Only the backend does, authent
 
 ## Gotchas
 
-### Production applies schema with `db push`, not migrations
+### Production baselines once, then runs real migrations
 
-`backend/scripts/start-production.js` runs `prisma db push --accept-data-loss` on every boot.
-Two consequences that have already bitten:
+`backend/scripts/start-production.js` used to run `prisma db push --accept-data-loss` on every
+boot. It no longer does. On a database with no migration history it syncs the schema once and
+records every existing migration as applied; after that, every deploy is a plain
+`prisma migrate deploy`.
 
-- **Migration SQL never executes in production.** A migration that includes a data fix (an
-  `UPDATE`, a backfill) silently does nothing there. Put data repairs in application code that
-  self-heals on read, not in migration files.
-- **A column removed from `schema.prisma` is dropped from production silently.** No prompt, no
-  backup.
+What this means now:
 
-Locally, the database was built with `db push` too, so `prisma migrate deploy` fails with
-**P3005**. Baseline first: `prisma migrate resolve --applied <name>` for each pre-existing
-migration, then deploy.
+- **Migration SQL does execute in production.** A data fix in a migration works. This was not
+  true before, so treat any advice about self-healing-on-read as historical.
+- **A destructive change fails loudly instead of silently.** The one-time baseline runs
+  `db push` *without* `--accept-data-loss`, so a deploy that would drop a column refuses to
+  boot rather than dropping it.
+- **The one trap left:** the baseline path marks *every* migration in the folder as applied
+  without running it. A new migration added before production has ever been baselined would be
+  skipped. Production was baselined at `8be6512`, so this only matters for a fresh database.
+
+Locally, the database was built with `db push`, so a first `prisma migrate deploy` fails with
+**P3005**. Baseline the same way: `prisma migrate resolve --applied <name>` for each
+pre-existing migration, then deploy.
 
 ### AI credentials resolve in one place
 
@@ -81,6 +88,39 @@ bulk-convert `blue-*` to `primary-*` — it would turn status badges into the br
 transitive dependency than an existing pin makes pip's resolver fail outright
 (`ResolutionImpossible`) — this broke a Render build once via `typing_extensions`. After changing
 it, run `pip install -r requirements.txt --dry-run` before pushing.
+
+### Node 20 is a floor, not a preference
+
+`engines.node` is `>=20.0.0` because NestJS 11 requires it. Render provisions from that
+field, so lowering it produces a container the app cannot boot in.
+
+### Two `npm audit` findings are accepted, deliberately
+
+Production dependencies sit at 6 advisories, down from 46. The two that remain are not
+oversights:
+
+- **`xlsx`** has a prototype-pollution and a ReDoS advisory and **no fix exists upstream**.
+  It is used only to *write* the analytics export, from rows this app already owns, so
+  neither advisory is reachable: both need attacker-controlled spreadsheet input. This
+  stops being true the moment any feature *parses* an uploaded spreadsheet. If that is
+  ever built, replace `xlsx` first.
+- **`prisma`** is flagged with `fixAvailable: prisma@6.12.0`, which is **older than the
+  6.16.2 we run**. Taking npm's advice here is a downgrade. It also flags the CLI, which
+  is build-time only.
+
+Re-check with `npm audit --omit=dev`; the dev-only noise is not worth reading.
+
+### Route paths cannot use `?`, `*` or `+`
+
+Express 5 arrived with NestJS 11 and its path parser rejects the old optional and
+wildcard suffixes. This is not a 404 at request time: the app **throws during route
+registration and never finishes booting**. `@Post('upload/:folder?')` did exactly that.
+Register an array of literal paths instead, as `files.controller.ts` now does.
+
+The same fix uncovered a second rule worth keeping: two routes on one verb cannot share
+a shape. `upload/:folder` and `upload/:taskId` are the same shape, so the first one
+registered swallowed every request meant for the second, and task file upload had been
+silently broken.
 
 ## Commands
 

@@ -11,6 +11,29 @@ import { CreateCommentDto } from './dto/create-comment.dto';
 import { UserRole } from '../types/prisma';
 import { keyResultValue } from '../okr/okr-math';
 import { whyNotUsable } from '../workflows/workflow-access';
+import { EXCLUDE_SUBTASKS } from './task-filters';
+
+/**
+ * The task rows one key result is calculated from.
+ *
+ * Two places need this set and they must not drift: `recalculateKeyResult` below
+ * turns it into the stored `currentValue`, and `ObjectivesService.getKeyResultTasks`
+ * lists the same rows so the page can show the arithmetic behind that number. They
+ * had already drifted once, on tenant scope, which meant the workings shown could
+ * not add up to the total they were explaining. So the rule lives here, once, and
+ * both ask for it rather than writing their own where clause.
+ *
+ * Scoped by company because a key result belongs to exactly one, through its
+ * objective. A row from another tenant pointing at it is broken data, and letting it
+ * move this company's number would be worse than ignoring it.
+ *
+ * Mirror rows are excluded for the usual reason (see task-filters.ts): a subtask's
+ * mirror row is not a second piece of work. Counting it would both dilute the
+ * average, since every task counts equally here, and count its parent twice.
+ */
+export function keyResultTaskScope(keyResultId: string, companyId: string) {
+  return { keyResultId, companyId, ...EXCLUDE_SUBTASKS };
+}
 
 @Injectable()
 export class TasksService {
@@ -127,7 +150,7 @@ export class TasksService {
       } else {
         // AI task type detection
         try {
-          const aiDetection = await this.aiService.detectTaskType(createTaskDto.title);
+          const aiDetection = await this.aiService.detectTaskType(createTaskDto.title, creatorId);
           taskType = aiDetection.task_type;
         } catch (error) {
           console.log('AI task type detection failed, using GENERAL:', error);
@@ -177,7 +200,7 @@ export class TasksService {
       let priority = createTaskDto.priority;
 
       if (!description || !goals || !priority) {
-        const aiContent = await this.aiService.generateContent(createTaskDto.title);
+        const aiContent = await this.aiService.generateContent(createTaskDto.title, creatorId);
         description = description || aiContent.description;
         goals = goals || aiContent.goals;
         priority = priority || aiContent.priority;
@@ -2035,16 +2058,22 @@ export class TasksService {
    *   - a task without subtasks contributes 1 when complete, otherwise 0.
    *
    * currentValue = startValue + (targetValue - startValue) x mean(task fractions)
+   *
+   * Which rows count is `keyResultTaskScope`, shared with the page that shows the
+   * working, so the two can never again disagree about what went into the number.
    */
   async recalculateKeyResult(keyResultId: string): Promise<void> {
     if (!keyResultId) return;
 
     try {
-      const kr = await this.prisma.keyResult.findUnique({ where: { id: keyResultId } });
+      const kr = await this.prisma.keyResult.findUnique({
+        where: { id: keyResultId },
+        include: { objective: { select: { companyId: true } } },
+      });
       if (!kr) return;
 
       const tasks = await this.prisma.task.findMany({
-        where: { keyResultId },
+        where: keyResultTaskScope(keyResultId, kr.objective.companyId),
         select: {
           completedAt: true,
           phase: true,
@@ -2055,12 +2084,12 @@ export class TasksService {
 
       // No linked work means no evidence of progress, so the key result sits at its
       // starting value rather than holding a stale number from tasks since removed.
+      //
+      // Completion is read through taskStage rather than spelled out again here: the
+      // page that shows these workings reads it the same way, and a fourth hand-written
+      // copy of "what counts as finished" is how the two came apart last time.
       const currentValue = keyResultValue(kr, tasks.map((t) => ({
-        isComplete:
-          t.completedAt !== null ||
-          t.phase === 'COMPLETED' ||
-          t.phase === 'ARCHIVED' ||
-          t.currentPhase?.isEndPhase === true,
+        isComplete: taskStage(t) === 'COMPLETED',
         subtasks: t.subtasks,
       })));
 

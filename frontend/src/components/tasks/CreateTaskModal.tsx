@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useState, useEffect, useRef } from 'react'
 import FormDialog from '@/components/ui/FormDialog'
-import { XMarkIcon, SparklesIcon, CogIcon, PlusIcon, TrashIcon, MapPinIcon, UserIcon, ClockIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
+import { SparklesIcon, CogIcon, PlusIcon, TrashIcon, MapPinIcon, UserIcon, ClockIcon, ArrowPathIcon } from '@heroicons/react/24/outline'
 import { useAppDispatch, useAppSelector } from '@/hooks/redux'
 import { createTask } from '@/store/slices/tasksSlice'
 import { fetchAssignableUsers } from '@/store/slices/usersSlice'
@@ -17,12 +16,42 @@ interface CreateTaskModalProps {
   onClose: () => void
 }
 
+/**
+ * A stable identity for one editable subtask row.
+ *
+ * These rows are keyed in React and they can be deleted from the middle, so the array
+ * index is the wrong key: delete the second of four and React keeps the DOM nodes and
+ * shifts the values under them, which moves the caret out of the field being typed in
+ * and into the next row's text. The id never reaches the server; handleSubmit strips it.
+ */
+let rowKeySeq = 0
+const withRowKey = (subtask: any) => ({ ...subtask, _rowKey: `st-${++rowKeySeq}` })
+
 const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) => {
   const dispatch = useAppDispatch()
   const { users } = useAppSelector((state) => state.users)
   const { user } = useAppSelector((state) => state.auth)
-  const { isLoading } = useAppSelector((state) => state.tasks)
-  const { aiEnabled, quotaExhausted, resetCountdown } = useAiStatus()
+  /**
+   * This dialog's own in-flight flag.
+   *
+   * It used to disable itself off the tasks slice's shared isLoading, which the board's
+   * list fetch also drives. Any list response landing while a create was in flight
+   * cleared the flag, re-enabled the button, and a second click filed the task twice.
+   */
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  /**
+   * The same two flags, readable synchronously.
+   *
+   * A state flag is read from the render that built the handler, so two clicks landing
+   * before React has re-rendered both see the old value. A ref is written immediately,
+   * which is what a guard against filing the same thing twice actually needs.
+   */
+  const submittingRef = useRef(false)
+  const generatingRef = useRef(false)
+  /** Whether the form is still open, for anything that outlives the request. */
+  const openRef = useRef(isOpen)
+  openRef.current = isOpen
+  const { aiEnabled, quotaExhausted, resetCountdown, refresh: refreshAiStatus } = useAiStatus()
   const aiBlocked = !aiEnabled || quotaExhausted
 
   const [workflows, setWorkflows] = useState<Workflow[]>([])
@@ -58,21 +87,40 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const [quarters, setQuarters] = useState<any[]>([])
   const [objectives, setObjectives] = useState<any[]>([])
 
-  useEffect(() => {
-    if (isOpen) {
-      dispatch(fetchAssignableUsers())
-      loadWorkflows()
-      loadMetadata()
+  /** An empty form, with the creator already on it. */
+  const blankForm = () => ({
+    title: '',
+    description: '',
+    goals: '',
+    priority: 3,
+    dueDate: '',
+    assignedToId: user?.id || '',
+    assignedUserIds: user?.id ? [user.id] : ([] as string[]),
+    workflowId: '',
+    generateSubtasks: false,
+    autoAssign: false,
+    quarterId: '',
+    objectiveId: '',
+    keyResultId: '',
+  })
 
-      // Auto-select current user as assigned
-      if (user?.id && !formData.assignedUserIds.includes(user.id)) {
-        setFormData(prev => ({
-          ...prev,
-          assignedToId: user.id, // For backward compatibility
-          assignedUserIds: [user.id] // Auto-select current user
-        }))
-      }
-    }
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Cleared on every open, not only after a successful create. The dialog is mounted
+    // for the life of the page rather than created per open, so abandoning a draft and
+    // opening it again used to show the abandoned draft, its AI subtasks and its
+    // quarter still in place.
+    setFormData(blankForm())
+    setAiGeneratedSubtasks([])
+    setAiPreview(null)
+    setShowAiPreview(false)
+    setSelectedWorkflow(null)
+    setIsSubmitting(false)
+
+    dispatch(fetchAssignableUsers())
+    loadWorkflows()
+    loadMetadata()
   }, [isOpen, dispatch, user?.id])
 
   const loadMetadata = async () => {
@@ -120,6 +168,16 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       return
     }
 
+    // Every run is two upstream calls and both are billed, so a second one is refused
+    // outright rather than left to the button's disabled state: the button is the only
+    // way in today, but the cost of being wrong about that is money.
+    //
+    // A ref, not the state flag. `isGeneratingContent` is read from the render that
+    // produced this closure, so two clicks arriving before React has re-rendered both
+    // see false and both pay. The ref is true the instant the first one starts.
+    if (generatingRef.current) return
+    generatingRef.current = true
+
     try {
       setIsGeneratingContent(true)
       setLoadingStage('🤖 AI is thinking about your task...')
@@ -154,12 +212,17 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           }))
         });
         
-        preview.subtasks = subtasksData.subtasks || []
+        preview.subtasks = (subtasksData.subtasks || []).map(withRowKey)
       }
 
       setLoadingStage('✨ Finalizing your AI-generated content...')
 
-      // Show preview modal
+      // Nothing is shown if the form was closed while this was running. A draft can be
+      // most of a minute coming, and without this the preview opened by itself over
+      // whatever page the person had moved on to, offering to apply content to a form
+      // that was no longer there.
+      if (!openRef.current) return
+
       setAiPreview(preview)
       setShowAiPreview(true)
       toast.success('🎉 AI content generated successfully!')
@@ -167,46 +230,64 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
     } catch (error: any) {
       console.error('Error generating AI content:', error)
 
-      // Resolve the most informative error message available
-      const httpStatus = error.response?.status
-      const serverMsg: string =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message ||
-        'Unknown error'
+      const httpStatus: number | undefined = error.response?.status
 
-      const isQuota =
-        httpStatus === 429 ||
-        serverMsg.toLowerCase().includes('quota') ||
-        serverMsg.toLowerCase().includes('rate limit') ||
-        serverMsg.toLowerCase().includes('resource_exhausted')
-
-      const isInvalidKey =
-        serverMsg.toLowerCase().includes('api key not valid') ||
-        serverMsg.toLowerCase().includes('api_key_invalid') ||
-        serverMsg.toLowerCase().includes('api key expired') ||
-        serverMsg.toLowerCase().includes('revoked')
-
-      if (httpStatus === 401 || serverMsg.includes('Authentication required')) {
+      if (httpStatus === 401) {
         toast.error('Session expired. Please refresh the page and log in again.')
         localStorage.removeItem('token')
         window.location.href = '/login'
-      } else if (isQuota) {
-        toast.error(
-          '⏳ AI quota exceeded. The API key has reached its usage limit. Please wait a minute and try again, or ask your administrator to upgrade the AI plan.',
-          { duration: 6000 }
-        )
-      } else if (isInvalidKey) {
-        toast.error(
-          '🔑 The AI API key is invalid or has been revoked. Please contact your administrator to update the AI settings.',
-          { duration: 6000 }
-        )
-      } else if (serverMsg.includes('not enabled') || serverMsg.includes('API key')) {
-        toast.error(serverMsg)
       } else {
-        toast.error(serverMsg || 'Failed to generate AI content. Please check your connection and try again.')
+        /**
+         * Everything else, said once and said honestly.
+         *
+         * AI failures arrive classified. The gateway sends a `kind` beside its message
+         * and a status that matches it: 503 for something passing, 400 for a prompt it
+         * refused. This used to guess at the cause instead, hunting for the word
+         * "quota" in a string that never contains it, and then print whatever it found
+         * at the reader.
+         *
+         * The distinction that matters is permanent against transient. No provider
+         * configured, an invalid key and a spent budget are all reachable here and none
+         * of them improve by waiting, so none of them may be reported as "try again in
+         * a moment"; that is a message that leaves somebody retrying a thing that will
+         * never work. Those are also worth leaving on screen longer, since the next
+         * step is finding an administrator rather than pressing the button again.
+         *
+         * The message itself is the server's. It is written for the reader and names no
+         * provider, status or key, so it is shown as sent rather than reworded here.
+         * The status endpoint is refreshed alongside, so a company that has been shut
+         * off has the button say so on the next render.
+         */
+        refreshAiStatus()
+
+        const kind: string | undefined = error.response?.data?.kind
+        const serverMsg: string | undefined =
+          typeof error.response?.data?.message === 'string' ? error.response.data.message : undefined
+
+        const needsAnAdministrator =
+          kind === 'NOT_CONFIGURED' ||
+          kind === 'BUDGET_EXHAUSTED' ||
+          kind === 'INVALID_API_KEY' ||
+          kind === 'AUTHENTICATION_ERROR' ||
+          kind === 'ENDPOINT_NOT_FOUND'
+
+        // A 500 with Nest's stock body is the one case where the server has told us
+        // nothing, so there is nothing to quote and the generic line has to carry it.
+        const unexplained =
+          !serverMsg ||
+          (httpStatus !== undefined && httpStatus >= 500 && /^internal server error$/i.test(serverMsg.trim()))
+
+        const message =
+          !error.response || error.message === 'Network Error'
+            ? 'The assistant could not be reached. Check your connection and try again.'
+            : unexplained
+              ? 'The assistant could not draft this. If it keeps failing, ask your administrator to check the AI settings, since some causes need a person rather than another attempt.'
+              : (serverMsg as string)
+
+        toast.error(message, { duration: needsAnAdministrator ? 8000 : 6000 })
       }
     } finally {
+      generatingRef.current = false
       setIsGeneratingContent(false)
       setLoadingStage('')
     }
@@ -215,17 +296,21 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   const applyAiContent = () => {
     if (!aiPreview) return
 
-    // Apply basic content
     setFormData(prev => ({
       ...prev,
+      // Typed text wins: these two are long, and overwriting a paragraph somebody
+      // wrote is not something a preview screen has permission to do.
       description: prev.description || aiPreview.description || '',
       goals: prev.goals || aiPreview.goals || '',
-      priority: prev.priority || aiPreview.priority || 3,
+      // Priority is not like the other two. It is never empty, it starts at 3, and
+      // `prev.priority || ...` therefore always kept the 3 and threw the suggestion
+      // away: the preview said Critical, Apply was pressed, and the task was filed as
+      // Normal. What the preview showed is what gets applied.
+      priority: aiPreview.priority ?? prev.priority,
     }))
 
-    // Apply subtasks
     if (aiPreview.subtasks) {
-      setAiGeneratedSubtasks(aiPreview.subtasks)
+      setAiGeneratedSubtasks(aiPreview.subtasks.map((s: any) => (s._rowKey ? s : withRowKey(s))))
     }
 
     // Close preview
@@ -249,17 +334,18 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   }
 
   const addCustomSubtask = () => {
-    setAiGeneratedSubtasks(prev => [...prev, {
+    setAiGeneratedSubtasks(prev => [...prev, withRowKey({
       title: '',
       description: '',
       phaseName: selectedWorkflow?.phases[0]?.name || '',
       suggestedRole: '',
       estimatedHours: 2,
-    }])
+    })])
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (submittingRef.current) return
 
     // Ensure the creator is always assigned to the task (especially for employees)
     const assignedUserIds = formData.assignedUserIds.length > 0
@@ -276,32 +362,27 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
       dueDate: formData.dueDate ? new Date(formData.dueDate).toISOString() : undefined,
       assignedToId: formData.assignedToId || user?.id || undefined,
       assignedUserIds: assignedUserIds.length > 0 ? assignedUserIds : undefined,
-      // Include AI-generated subtasks if any
-      aiSubtasks: aiGeneratedSubtasks.length > 0 ? aiGeneratedSubtasks : undefined,
+      // Include AI-generated subtasks if any, without the local row keys.
+      aiSubtasks:
+        aiGeneratedSubtasks.length > 0
+          ? aiGeneratedSubtasks.map(({ _rowKey, ...subtask }) => subtask)
+          : undefined,
     }
 
+    submittingRef.current = true
+    setIsSubmitting(true)
     try {
+      // The thunk uses rejectWithValue, so it never throws. A failure arrives as a
+      // rejected action and has already been reported by the thunk itself, which is
+      // why there is no catch here pretending otherwise: the one that used to be here
+      // handled a 401 that could never reach it.
       const result = await dispatch(createTask(taskData))
       if (createTask.fulfilled.match(result)) {
         toast.success('Task created successfully!')
 
         // Close modal and reset form
         onClose()
-        setFormData({
-          title: '',
-          description: '',
-          goals: '',
-          priority: 3,
-          dueDate: '',
-          assignedToId: user?.id || '', // Auto-select current user
-          assignedUserIds: user?.id ? [user.id] : [], // Auto-select current user
-          workflowId: '',
-          generateSubtasks: false,
-          autoAssign: false,
-          quarterId: '',
-          objectiveId: '',
-          keyResultId: '',
-        })
+        setFormData(blankForm())
         setAiGeneratedSubtasks([]) // Clear AI subtasks
 
         // Dispatch custom event to notify NotificationBell
@@ -309,15 +390,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
 
         // The Redux state already has the new task, no need to fetch again
       }
-    } catch (error: any) {
-      console.error('Error creating task:', error)
-      if (error.response?.status === 401) {
-        toast.error('Session expired. Please refresh the page and log in again.')
-        localStorage.removeItem('token')
-        window.location.href = '/login'
-      } else {
-        toast.error(error.response?.data?.message || 'Failed to create task')
-      }
+    } finally {
+      submittingRef.current = false
+      setIsSubmitting(false)
     }
   }
 
@@ -330,26 +405,24 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
   }
 
   return (
-    <AnimatePresence>
-      <>
+    // Both dialogs portal themselves and animate themselves. The AnimatePresence that
+    // used to wrap this pair drove nothing: its children never unmount.
+    <>
         <FormDialog
           isOpen={isOpen}
           onClose={onClose}
           onSubmit={handleSubmit}
-          busy={isLoading}
-          // The AI preview below is a sibling overlay, not a dialog of its own, so
-          // this one has to stand down while it is up.
-          dismissible={!showAiPreview}
+          busy={isSubmitting}
           width="lg"
           title="Create a task"
           description="Pick the workflow it belongs to, then fill in the rest."
           footer={
             <>
-              <button type="button" onClick={onClose} className="btn-secondary" disabled={isLoading}>
+              <button type="button" onClick={onClose} className="btn-secondary" disabled={isSubmitting}>
                 Cancel
               </button>
-              <button type="submit" className="btn-primary" disabled={isLoading}>
-                {isLoading ? (
+              <button type="submit" className="btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? (
                   <>
                     <ArrowPathIcon className="h-4 w-4 animate-spin" />
                     <span>Creating…</span>
@@ -744,7 +817,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {aiGeneratedSubtasks.map((subtask, index) => (
                         <div
-                          key={`ai-st-${index}`}
+                          key={subtask._rowKey ?? `ai-st-${index}`}
                           className="bg-gray-50 dark:bg-gray-900/40 border border-gray-200 dark:border-gray-700 rounded-lg p-4 relative group"
                         >
                           <button
@@ -837,47 +910,41 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
               </div>
         </FormDialog>
 
-      {/* AI Preview Modal */}
-      {showAiPreview && aiPreview && (
-        <div key="ai-preview-modal" className="fixed inset-0 z-[9999] overflow-y-auto">
-          <div className="flex min-h-screen items-center justify-center p-4">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black bg-opacity-50"
-              onClick={discardAiContent}
-            />
+      {/*
+        The preview is a dialog, and it is drawn as one.
 
-            {/* Preview Modal */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative w-full max-w-4xl bg-white dark:bg-gray-800 rounded-lg shadow-md max-h-[90vh] overflow-y-auto"
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                  <SparklesIcon className="h-6 w-6 mr-2 text-purple-500" />
-                  AI Generated Content Preview
-                  {aiPreview.aiProvider === 'fallback' && (
-                    <span className="ml-2 text-xs bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 px-2 py-1 rounded-full">
-                      Fallback Mode
-                    </span>
-                  )}
-                </h2>
-                <button aria-label="Close"
-                  onClick={discardAiContent}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 dark:text-gray-300 transition-colors"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
+        It used to be a bare overlay written inline here, with z-index 9999 and its own
+        backdrop, and neither did anything: the page content sits inside a stacking
+        context, so no z-index it gives itself can climb above a FormDialog portalled to
+        the body, and the dialog chrome marks everything outside the open panel `inert`.
+        So the preview rendered underneath the form, behind its backdrop, unclickable.
+        A successful draft looked like nothing at all had happened, and the work the AI
+        had just been paid for was on screen only in the sense that it was in the DOM.
 
-              {/* Preview Content */}
-              <div className="p-6 space-y-6">
+        Portalled through FormDialog it lands on top, and the shared Escape stack means
+        the key closes the preview and leaves the form standing, which is what the
+        `dismissible` flag on the form was previously trying and failing to arrange.
+      */}
+      <FormDialog
+        isOpen={showAiPreview && !!aiPreview}
+        onClose={discardAiContent}
+        width="xl"
+        title="AI generated content preview"
+        description="Nothing is applied to the form until you say so."
+        icon={<SparklesIcon className="h-6 w-6 text-purple-500" />}
+        footer={
+          <>
+            <button type="button" onClick={discardAiContent} className="btn-secondary">
+              Discard
+            </button>
+            <button type="button" onClick={applyAiContent} className="btn-primary">
+              Apply to form
+            </button>
+          </>
+        }
+      >
+        {aiPreview && (
+              <div className="space-y-6">
                 {/* Description Preview */}
                 {aiPreview.description && (
                   <div>
@@ -927,7 +994,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     </h3>
                     <div className="space-y-4">
                       {aiPreview.subtasks.map((subtask, index) => (
-                        <div key={`preview-st-${index}`} className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg border">
+                        <div key={subtask._rowKey ?? `preview-st-${index}`} className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-lg border">
                           <div className="flex items-start justify-between mb-3">
                             <h4 className="font-medium text-gray-900 dark:text-white flex-1">{subtask.title}</h4>
                             <button
@@ -1018,7 +1085,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                     {/* Add Custom Subtask Button */}
                     <button
                       onClick={() => {
-                        const newSubtask = {
+                        const newSubtask = withRowKey({
                           title: 'New Subtask',
                           description: '',
                           phaseName: selectedWorkflow?.phases[0]?.name || '',
@@ -1026,7 +1093,7 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                           suggestedUserId: '',
                           suggestedUserName: '',
                           estimatedHours: 2,
-                        }
+                        })
                         setAiPreview(prev => prev ? {
                           ...prev,
                           subtasks: [...(prev.subtasks || []), newSubtask]
@@ -1039,7 +1106,10 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   </div>
                 )}
 
-                {/* AI Provider Info */}
+                {/* Where this came from. No provider is named: which one answered is
+                    the gateway's business, and there is no single key to point at any
+                    more, so the old line telling people to set up a Google API key was
+                    advice nobody in this app can act on. */}
                 <div className={`p-4 rounded-lg ${aiPreview.aiProvider === 'fallback'
                   ? 'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200'
                   : 'bg-green-50 dark:bg-green-900/30 border border-green-200'
@@ -1047,38 +1117,22 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
                   <p className="text-sm">
                     {aiPreview.aiProvider === 'fallback' ? (
                       <>
-                        ⚠️ <strong>Fallback Mode:</strong> Using template content. Set up Google API key for AI-powered generation.
+                        <strong>Standard template:</strong> the assistant could not be
+                        reached, so this is a generic draft rather than one written for
+                        your task. Ask your administrator to check the AI settings.
                       </>
                     ) : (
                       <>
-                        ✨ <strong>AI Generated:</strong> Content created using advanced AI based on your task details.
+                        <strong>Written by the assistant</strong> from the title and
+                        workflow you chose. Read it before applying it.
                       </>
                     )}
                   </p>
                 </div>
               </div>
-
-              {/* Actions */}
-              <div className="flex items-center justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  onClick={discardAiContent}
-                  className="btn-secondary"
-                >
-                  Discard
-                </button>
-                <button
-                  onClick={applyAiContent}
-                  className="btn-primary"
-                >
-                  Apply to Form
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        </div>
         )}
-      </>
-    </AnimatePresence>
+      </FormDialog>
+    </>
   )
 }
 

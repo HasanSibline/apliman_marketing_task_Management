@@ -85,12 +85,31 @@ export default function FloatingChatButton() {
   const live = useRef({ isChatOpen, peeking, ouch, reduced })
   live.current = { isChatOpen, peeking, ouch, reduced }
 
+  /**
+   * Whether there is still a launcher to nudge.
+   *
+   * A nudge takes a request and then a second and a half of waving, and signing out
+   * unmounts this in the middle of both. Without the check the tail of that sequence
+   * arms a fresh eleven-second hide timer after the cleanup has already run, so the
+   * one timer nothing cancels is the one started after teardown.
+   */
+  const alive = useRef(true)
+  useEffect(() => {
+    alive.current = true
+    return () => {
+      alive.current = false
+    }
+  }, [])
+
   // ── Nudges ────────────────────────────────────────────────────────────────
   const fetchNudge = useCallback(async () => {
     if (silenced || live.current.isChatOpen || document.hidden) return
     try {
-      const { data } = await api.get('/chat/nudge', { timeout: 8000 })
-      if (!data?.text) return
+      // quiet, because a greeting nobody asked for must never raise a toast about
+      // itself. The shared handler otherwise announces a cold backend once every
+      // three minutes.
+      const { data } = await api.get('/chat/nudge', { timeout: 8000, quiet: true })
+      if (!alive.current || !data?.text) return
 
       // Wave first, speak second.
       //
@@ -118,8 +137,9 @@ export default function FloatingChatButton() {
         setWaving(false)
       }
 
-      // Read again, not captured: the chat may have been opened during the wave.
-      if (live.current.isChatOpen || document.hidden) return
+      // Read again, not captured: the chat may have been opened during the wave, or
+      // the launcher may not be here any more.
+      if (!alive.current || live.current.isChatOpen || document.hidden) return
 
       setNudge(data)
       clearTimeout(hideTimer.current)

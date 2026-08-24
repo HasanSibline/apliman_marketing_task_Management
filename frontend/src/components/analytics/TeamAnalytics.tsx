@@ -28,6 +28,14 @@ const TeamAnalytics: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [teamData, setTeamData] = useState<any>(null)
   const [sortBy, setSortBy] = useState<'completion' | 'assigned' | 'name'>('completion')
+  /**
+   * A failed request is not a company with no team.
+   *
+   * The catch below only raised a toast, and the page then rendered "No Team Data /
+   * Team analytics will appear here", which reads as "you have not set this up yet"
+   * to someone whose network simply dropped.
+   */
+  const [loadError, setLoadError] = useState(false)
 
   useEffect(() => {
     loadTeamAnalytics()
@@ -35,10 +43,12 @@ const TeamAnalytics: React.FC = () => {
 
   const loadTeamAnalytics = async () => {
     setIsLoading(true)
+    setLoadError(false)
     try {
       const data = await analyticsApi.getTeamAnalytics()
       setTeamData(data)
     } catch (error: any) {
+      setLoadError(true)
       toast.error(error.response?.data?.message || 'Failed to load team analytics')
     } finally {
       setIsLoading(false)
@@ -125,7 +135,10 @@ const TeamAnalytics: React.FC = () => {
           How the team is doing, and where the work is sitting.
         </p>
       </div>
-      <button onClick={handleExportTeamReport} className="btn-secondary">
+      {/* Disabled until the data is here. The handler reads teamData.summary
+          directly, so pressing this during the load threw and reported an export
+          failure for a report that had nothing to export. */}
+      <button onClick={handleExportTeamReport} disabled={!teamData} className="btn-secondary disabled:opacity-50">
         <ArrowDownTrayIcon className="mr-2 h-4 w-4" />
         Export report
       </button>
@@ -158,11 +171,25 @@ const TeamAnalytics: React.FC = () => {
 
   if (!teamData) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <UserGroupIcon className="h-16 w-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Team Data</h3>
-          <p className="text-gray-500 dark:text-gray-400">Team analytics will appear here.</p>
+      <div className="space-y-6">
+        {chrome}
+        <div className="surface flex min-h-[320px] items-center justify-center">
+          <div className="p-8 text-center">
+            {loadError ? (
+              <>
+                <UserGroupIcon className="h-16 w-16 text-error-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Team analytics could not be loaded</h3>
+                <p className="text-gray-500 dark:text-gray-400">The server did not answer. Your team data is fine.</p>
+                <button onClick={loadTeamAnalytics} className="btn-primary mt-4">Try again</button>
+              </>
+            ) : (
+              <>
+                <UserGroupIcon className="h-16 w-16 text-gray-500 dark:text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No Team Data</h3>
+                <p className="text-gray-500 dark:text-gray-400">Team analytics will appear here.</p>
+              </>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -303,7 +330,11 @@ const TeamAnalytics: React.FC = () => {
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Completion Rate by Member</h3>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={performanceComparisonData} layout="horizontal">
+              {/* layout="vertical" is what recharts calls bars that run left to right,
+                  which is what a category YAxis and a numeric XAxis describe. It said
+                  "horizontal", so the axes contradicted the layout and the chart drew
+                  as an empty panel. */}
+              <BarChart data={performanceComparisonData} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke={chart.grid} />
                 <XAxis type="number" tick={{ fontSize: 12, ...chart.tick }} />
                 <YAxis 

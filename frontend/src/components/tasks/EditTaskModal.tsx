@@ -34,8 +34,17 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
   const isAdmin = ['COMPANY_ADMIN', 'ADMIN', 'SUPER_ADMIN'].includes(user?.role ?? '')
   const isLocked = !isAdmin && task?.quarter?.status === 'UPCOMING'
 
+  /**
+   * Seeded when the dialog opens, and not again while it is open.
+   *
+   * It used to seed off the task prop alone, which was wrong in both directions. The
+   * dialog is never unmounted, so editing a task, cancelling, and opening it again
+   * showed the abandoned edits rather than what is actually saved. And the page behind
+   * refreshes the same task on a timer and after every change, so a refresh landing
+   * mid-edit replaced whatever was being typed with the server's copy.
+   */
   useEffect(() => {
-    if (task) {
+    if (isOpen && task) {
       // Collect all assigned user IDs from assignments array
       const assignedIds = task.assignments?.map((a: any) => a.userId) || []
 
@@ -51,7 +60,7 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
         keyResultId: task.keyResultId || '',
       })
     }
-  }, [task])
+  }, [isOpen, task?.id])
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,10 +84,36 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isLoading) return
     setIsLoading(true)
 
+    /**
+     * Empty pickers are sent as nothing, not as an empty string.
+     *
+     * The form's blanks are `''`, and the whole object used to be posted as it stood.
+     * The server validates the body strictly: an empty due date is not a date, so it
+     * was rejected outright with "Due date must be a valid ISO date string", and an
+     * empty quarter or objective went to the database as an id of `''`, which matches
+     * no row and fails the foreign key. Between them that is most tasks: anything with
+     * no deadline and no quarter could not be edited at all, and the message blamed a
+     * field the person had not touched.
+     */
+    const payload = {
+      title: formData.title,
+      description: formData.description,
+      goals: formData.goals,
+      priority: formData.priority,
+      assignedUserIds: formData.assignedUserIds,
+      // Omitted rather than nulled: the server reads an absent due date as "leave it
+      // alone", so there is nothing to be gained by sending an empty one.
+      ...(formData.dueDate ? { dueDate: formData.dueDate } : {}),
+      quarterId: formData.quarterId || null,
+      objectiveId: formData.objectiveId || null,
+      keyResultId: formData.keyResultId || null,
+    }
+
     try {
-      await tasksApi.update(task.id, formData)
+      await tasksApi.update(task.id, payload)
       toast.success('Task updated successfully')
       onTaskUpdated()
       onClose()
@@ -172,14 +207,20 @@ const EditTaskModal: React.FC<EditTaskModalProps> = ({ task, isOpen, onClose, on
                     <FlagIcon className="w-4 h-4 inline mr-1" />
                     Priority
                   </label>
+                  {/* Five levels, the same five the rest of the app uses. This offered
+                      three, so a task created at High or Critical opened here with the
+                      priority box blank, and any edit at all looked like it had lost
+                      the value even though the number was still being sent back. */}
                   <Select
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: parseInt(e.target.value) })}
                     className="select-field w-full"
                   >
-                    <option value={1}>Low</option>
-                    <option value={2}>Medium</option>
-                    <option value={3}>High</option>
+                    <option value={1}>1 - Low</option>
+                    <option value={2}>2 - Medium</option>
+                    <option value={3}>3 - Normal</option>
+                    <option value={4}>4 - High</option>
+                    <option value={5}>5 - Critical</option>
                   </Select>
                 </div>
 

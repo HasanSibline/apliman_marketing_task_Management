@@ -39,7 +39,17 @@ const AuthCallback: React.FC = () => {
             return
         }
 
-        // Deduplicate: if this exact code was already exchanged in this tab session, skip
+        /**
+         * Deduplicate: if this exact code was already exchanged in this tab session, skip.
+         *
+         * The lock is released again when the exchange fails. It used to be written
+         * here and never removed on any path, so a code that failed stayed marked as
+         * done: pressing back, or reloading the callback URL, took the branch above
+         * and went straight to the calendar as though the connection had been made.
+         * A failure that renders as a success is the one outcome this screen must not
+         * produce, because the user then has no reason to try again and no idea that
+         * anything went wrong.
+         */
         const lockKey = `ms_sync_${code.substring(0, 20)}`
         if (sessionStorage.getItem(lockKey)) {
             navigate('/calendar')
@@ -47,8 +57,22 @@ const AuthCallback: React.FC = () => {
         }
         sessionStorage.setItem(lockKey, '1')
 
-        // Safety timeout, prevents stuck screen if Render is cold-starting
+        /**
+         * Nothing may write state or navigate once this page is gone.
+         *
+         * Under StrictMode the effect runs twice: the first run takes the lock and
+         * fires the request, the second sees the lock and navigates away immediately.
+         * The first request then resolved into an unmounted component and fired its
+         * own `navigate('/calendar')`, pulling the user off whatever page they had
+         * reached in the meantime.
+         */
+        let live = true
+
+        // Safety timeout, prevents stuck screen if Render is cold-starting.
+        // The lock goes too: a timeout is not a connection.
         const timeout = setTimeout(() => {
+            sessionStorage.removeItem(lockKey)
+            if (!live) return
             setTimedOut(true)
             toast.error('Microsoft sync timed out. Render may be cold-starting, please try again.')
             navigate('/calendar')
@@ -59,6 +83,7 @@ const AuthCallback: React.FC = () => {
             try {
                 await api.post('/microsoft/sync', { code }, { timeout: 35000 })
                 clearTimeout(timeout)
+                if (!live) return
                 dispatch(updateUser({ isMicrosoftSynced: true }))
                 toast.success('Microsoft Calendar connected! Meetings will appear shortly.')
                 navigate('/calendar')
@@ -69,10 +94,17 @@ const AuthCallback: React.FC = () => {
 
                 // AADSTS54005 = code already redeemed = first attempt succeeded
                 if (msg.includes('54005') || msg.toLowerCase().includes('already redeemed')) {
+                    if (!live) return
                     dispatch(updateUser({ isMicrosoftSynced: true }))
                     navigate('/calendar')
                     return
                 }
+
+                // Released, so that retrying this URL genuinely retries rather than
+                // short-circuiting to a calendar that was never connected.
+                sessionStorage.removeItem(lockKey)
+
+                if (!live) return
 
                 if (err.code === 'ECONNABORTED') {
                     toast.error('Microsoft sync timed out. Please wait a moment and try again.')
@@ -85,7 +117,10 @@ const AuthCallback: React.FC = () => {
 
         exchangeCode()
 
-        return () => clearTimeout(timeout)
+        return () => {
+            live = false
+            clearTimeout(timeout)
+        }
     }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
     return (

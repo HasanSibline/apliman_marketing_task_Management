@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import FormDialog from '@/components/ui/FormDialog'
 import TicketPreflightDialog from './TicketPreflightDialog'
@@ -20,11 +20,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [type, setType] = useState('GENERAL')
   const [category, setCategory] = useState('')
 
-  // A category chosen for one department is meaningless to the next, and leaving it
-  // selected is how you send Design a purchase order.
-  useEffect(() => {
-    setCategory('')
-  }, [receiverDeptId])
   const [priority, setPriority] = useState('MEDIUM')
   const [deadline, setDeadline] = useState('')
   const [metadata, setMetadata] = useState<Record<string, any>>({})
@@ -34,6 +29,18 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   const [assigneeId, setAssigneeId] = useState('')
   const [requiresApproval, setRequiresApproval] = useState(false)
   const [approverId, setApproverId] = useState('')
+
+  // A category chosen for one department is meaningless to the next, and leaving it
+  // selected is how you send Design a purchase order.
+  //
+  // The same is true of the department-specific fields below, and they were left
+  // behind: the extra questions swap over when the department does, but the answers to
+  // the old ones stayed in state, so a ticket raised to Finance after starting one to
+  // IT carried the machine's asset tag with it.
+  useEffect(() => {
+    setCategory('')
+    setMetadata({})
+  }, [receiverDeptId])
 
   /**
    * What this department can be asked for.
@@ -87,6 +94,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <input 
               type="text" 
               placeholder="e.g. LAP-102"
+              value={metadata.asset_id ?? ''}
               onChange={(e) => handleMetadataChange('asset_id', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
@@ -117,6 +125,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <input 
               type="text" 
               placeholder="e.g. Needed for Visa"
+              value={metadata.hr_reason ?? ''}
               onChange={(e) => handleMetadataChange('hr_reason', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
@@ -134,6 +143,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <input 
               type="text" 
               placeholder="e.g. Global Tech Inc."
+              value={metadata.lead_name ?? ''}
               onChange={(e) => handleMetadataChange('lead_name', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
@@ -143,6 +153,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <input 
               type="number" 
               placeholder="10000"
+              value={metadata.deal_value ?? ''}
               onChange={(e) => handleMetadataChange('deal_value', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
@@ -193,6 +204,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <input 
               type="text" 
               placeholder="e.g. AWS Marketplace"
+              value={metadata.provider ?? ''}
               onChange={(e) => handleMetadataChange('provider', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
@@ -202,6 +214,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             <input 
               type="number" 
               placeholder="0.00"
+              value={metadata.amount ?? ''}
               onChange={(e) => handleMetadataChange('amount', e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-gray-50 dark:bg-gray-900/40 focus:bg-white dark:focus:bg-gray-700"
             />
@@ -214,9 +227,14 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
   }
 
   useEffect(() => {
-    if (isOpen) {
-      fetchDepartments()
-    }
+    if (!isOpen) return
+    // Emptied on every open, not only after a ticket is sent. This dialog stays mounted
+    // for the life of the page, so abandoning a half-written request and pressing New
+    // request again used to reopen on the abandoned one, department and all, which is
+    // one confirm away from sending something nobody meant to send.
+    resetForm()
+    setShowPreflight(false)
+    fetchDepartments()
   }, [isOpen])
 
   useEffect(() => {
@@ -268,7 +286,23 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     setShowPreflight(true)
   }
 
-  const handleSubmit = async () => {
+  /**
+   * Files the ticket. Answers whether it was actually filed.
+   *
+   * The caller needs that answer to decide whether to take the pre-flight dialog down,
+   * and `isSubmitting` cannot supply it: by the time the await resolves the flag has
+   * been put back either way.
+   *
+   * The re-entry guard is a ref rather than the state flag. State is read from the
+   * render that produced the handler, so two confirms landing before React has
+   * re-rendered both see `false` and both post. That is the whole failure this dialog
+   * exists to prevent, and a ref is written the instant the first one starts.
+   */
+  const inFlight = useRef(false)
+
+  const handleSubmit = async (): Promise<boolean> => {
+    if (inFlight.current) return false
+    inFlight.current = true
     setIsSubmitting(true)
     try {
       await api.post('/tickets', {
@@ -281,6 +315,12 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         priority,
         deadline: deadline || undefined,
         metadata,
+        // Money and vendor are columns on the ticket, not free-form metadata, and the
+        // server reads them from the top level. Sent only inside `metadata`, as they
+        // were, a purchase request arrived with no amount and no supplier on it: the
+        // person filled both in and the ticket showed neither.
+        ...(metadata.amount ? { amount: metadata.amount } : {}),
+        ...(metadata.provider ? { providerName: metadata.provider } : {}),
         requiresApproval,
         approverId: requiresApproval ? approverId : undefined
       })
@@ -288,9 +328,12 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
       resetForm()
       onSuccess()
       onClose()
+      return true
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Failed to create ticket')
+      return false
     } finally {
+      inFlight.current = false
       setIsSubmitting(false)
     }
   }
@@ -300,9 +343,11 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     setDescription('')
     setReceiverDeptId('')
     setType('GENERAL')
+    setCategory('')
     setPriority('MEDIUM')
     setDeadline('')
     setMetadata({})
+    setAssigneeId('')
     setRequiresApproval(false)
     setApproverId('')
   }
@@ -518,8 +563,12 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
       submitting={isSubmitting}
       onCancel={() => setShowPreflight(false)}
       onConfirm={async () => {
-        await handleSubmit()
-        setShowPreflight(false)
+        // Taken down only once the ticket exists. It used to close either way, so a
+        // rejected create dropped the person back on the form with the error toast
+        // already fading and no sign of which step had failed. The obvious next move
+        // is to press Send again, and if the first post had in fact reached the server
+        // that is a second ticket.
+        if (await handleSubmit()) setShowPreflight(false)
       }}
       onResolved={() => {
         // Answered by what they just read, so nothing is raised. The form closes with

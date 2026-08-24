@@ -21,6 +21,8 @@ const WorkflowsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const [workflows, setWorkflows] = useState<Workflow[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  /** Set when the list request failed, so the empty state does not speak for it. */
+  const [loadError, setLoadError] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [editing, setEditing] = useState<Workflow | null>(null)
 
@@ -33,10 +35,15 @@ const WorkflowsPage: React.FC = () => {
   const loadWorkflows = async () => {
     try {
       setIsLoading(true)
+      setLoadError(false)
       const data = await workflowsApi.getAll()
       setWorkflows(data)
     } catch (error) {
       console.error('Error loading workflows:', error)
+      // Tracked, because the empty state below invites an admin to "Create the first
+      // one". After a dropped connection that button builds a duplicate workflow in a
+      // company that already has several, and tasks then get filed into the wrong one.
+      setLoadError(true)
       toast.error('Could not load workflows')
     } finally {
       setIsLoading(false)
@@ -88,10 +95,16 @@ const WorkflowsPage: React.FC = () => {
           <h1 className="page-title">Workflows</h1>
           <p className="page-subtitle">The phases work moves through, one set per kind of work.</p>
         </div>
-        <button onClick={() => setShowCreateModal(true)} className="btn-primary">
-          <PlusIcon className="h-4 w-4" />
-          New workflow
-        </button>
+        {/* Hidden on the error path, where the panel below explicitly tells the
+            admin not to create a workflow to work around the outage. Withholding the
+            empty state's button while leaving this one a click away made that advice
+            impossible to follow. */}
+        {!loadError && (
+          <button onClick={() => setShowCreateModal(true)} className="btn-primary">
+            <PlusIcon className="h-4 w-4" />
+            New workflow
+          </button>
+        )}
       </header>
 
       {isLoading ? (
@@ -99,6 +112,18 @@ const WorkflowsPage: React.FC = () => {
           {[0, 1, 2].map((i) => (
             <div key={i} className="surface h-56 animate-pulse" />
           ))}
+        </div>
+      ) : loadError ? (
+        <div className="surface flex flex-col items-center justify-center px-6 py-16 text-center">
+          <Squares2X2Icon className="h-10 w-10 text-yellow-500" />
+          <h2 className="mt-4 text-base font-semibold text-gray-900 dark:text-white">
+            Workflows could not be loaded
+          </h2>
+          <p className="mt-1 max-w-sm text-sm text-gray-500 dark:text-gray-400">
+            This is a problem reaching the server, not an empty company. Do not create a new
+            workflow to work around it.
+          </p>
+          <button onClick={loadWorkflows} className="btn-primary mt-5">Try again</button>
         </div>
       ) : workflows.length === 0 ? (
         <div className="surface flex flex-col items-center justify-center px-6 py-16 text-center">

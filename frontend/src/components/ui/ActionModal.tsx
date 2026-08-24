@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import React, { useEffect, useId, useRef, useState } from 'react'
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion'
 import {
   XMarkIcon,
   ExclamationTriangleIcon,
@@ -99,6 +99,25 @@ const ActionModal: React.FC<ActionModalProps> = ({
   const [picked, setPicked] = useState('')
   const cancelRef = useRef<HTMLButtonElement>(null)
 
+  /**
+   * Generated, not written down.
+   *
+   * These four ids used to be the literals "action-modal-title" and friends. One
+   * ActionModal is mounted permanently at the app root to serve confirmDialog, so
+   * any screen that renders its own put a second copy of every id in the document,
+   * and aria-labelledby resolves to the first match: the wrong dialog's title, read
+   * out over the one actually on screen.
+   */
+  const baseId = useId()
+  const titleId = `${baseId}-title`
+  const descriptionId = `${baseId}-description`
+  const choiceId = `${baseId}-choice`
+  const reasonId = `${baseId}-reason`
+
+  // Framer animates in JavaScript, out of reach of the stylesheet's reduced-motion
+  // block, so the preference is read here and folded into the transitions.
+  const stillness = useReducedMotion()
+
   const { Icon, iconClass, iconBg, confirm } = VARIANTS[variant]
 
   // A free-text reason is what gets sent; a chosen one fills it in, and picking
@@ -130,10 +149,13 @@ const ActionModal: React.FC<ActionModalProps> = ({
       {isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={stillness ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={stillness ? { opacity: 1 } : { opacity: 0 }}
             onClick={dismiss}
+            // Decoration and a dismiss target for a pointer. A keyboard uses Escape
+            // or the close button, so there is nothing here worth announcing.
+            aria-hidden="true"
             className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
           />
 
@@ -141,12 +163,13 @@ const ActionModal: React.FC<ActionModalProps> = ({
             ref={panelRef}
             role="alertdialog"
             aria-modal="true"
-            aria-labelledby="action-modal-title"
-            aria-describedby="action-modal-description"
-            initial={{ opacity: 0, scale: 0.97, y: 12 }}
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
+            aria-busy={isLoading || undefined}
+            initial={stillness ? false : { opacity: 0, scale: 0.97, y: 12 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.97, y: 12 }}
-            transition={{ duration: 0.16 }}
+            exit={stillness ? { opacity: 1 } : { opacity: 0, scale: 0.97, y: 12 }}
+            transition={{ duration: stillness ? 0 : 0.16 }}
             className="relative w-full max-w-md overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-800"
           >
             <div className="flex items-start gap-4 p-6">
@@ -156,13 +179,13 @@ const ActionModal: React.FC<ActionModalProps> = ({
 
               <div className="min-w-0 flex-1">
                 <h2
-                  id="action-modal-title"
+                  id={titleId}
                   className="text-base font-semibold text-gray-900 dark:text-white"
                 >
                   {title}
                 </h2>
                 <p
-                  id="action-modal-description"
+                  id={descriptionId}
                   className="mt-1.5 text-sm leading-relaxed text-gray-600 dark:text-gray-300"
                 >
                   {description}
@@ -170,6 +193,7 @@ const ActionModal: React.FC<ActionModalProps> = ({
               </div>
 
               <button
+                type="button"
                 aria-label="Close"
                 onClick={dismiss}
                 className="-mr-1 -mt-1 shrink-0 rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-200"
@@ -182,11 +206,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
               <div className="space-y-3 px-6 pb-2">
                 {usingList && (
                   <div>
-                    <label htmlFor="action-modal-choice" className="form-label">
+                    <label htmlFor={choiceId} className="form-label">
                       {reasonLabel}
                     </label>
                     <Select
-                      id="action-modal-choice"
+                      id={choiceId}
                       value={picked}
                       onChange={(e) => setPicked(e.target.value)}
                       className="select-field"
@@ -204,11 +228,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
 
                 {(!usingList || picked === 'other') && (
                   <div>
-                    <label htmlFor="action-modal-reason" className="form-label">
+                    <label htmlFor={reasonId} className="form-label">
                       {usingList ? 'Tell us more' : reasonLabel}
                     </label>
                     <textarea
-                      id="action-modal-reason"
+                      id={reasonId}
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                       placeholder={reasonPlaceholder}
@@ -224,10 +248,11 @@ const ActionModal: React.FC<ActionModalProps> = ({
             {/* Confirm leads, cancel sits quietly beside it. Equal halves make the
                 dialog ask a question without suggesting an answer. */}
             <div className="flex items-center justify-end gap-2 border-t border-gray-100 bg-gray-50 px-6 py-4 dark:border-gray-700 dark:bg-gray-900/40">
-              <button ref={cancelRef} onClick={onClose} className="btn-secondary">
+              <button type="button" ref={cancelRef} onClick={onClose} className="btn-secondary">
                 {cancelText}
               </button>
               <button
+                type="button"
                 onClick={handleConfirm}
                 disabled={blocked}
                 className={`inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-offset-gray-800 ${confirm}`}

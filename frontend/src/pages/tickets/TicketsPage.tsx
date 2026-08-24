@@ -35,6 +35,8 @@ const TicketsPage: React.FC = () => {
   const { user } = useAppSelector((state) => state.auth)
   const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
   const [tickets, setTickets] = useState<any[]>([])
+  /** Set when the list request failed, so the empty state does not speak for it. */
+  const [loadError, setLoadError] = useState(false)
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
@@ -95,6 +97,7 @@ const TicketsPage: React.FC = () => {
   const fetchData = async () => {
     const mine = ++requestId.current
     setIsLoading(true)
+    setLoadError(false)
     try {
       const ticketsRes = await api.get('/tickets', { 
         params: { 
@@ -110,6 +113,10 @@ const TicketsPage: React.FC = () => {
       setSelected(new Set())
     } catch (error) {
       if (mine !== requestId.current) return
+      // Recorded, because the empty state below blames the user's filters and offers
+      // "New Request". Telling someone their filters match nothing, when the truth is
+      // that the list never arrived, invites them to raise a duplicate.
+      setLoadError(true)
       toast.error('Could not load tickets')
     } finally {
       if (mine === requestId.current) setIsLoading(false)
@@ -397,6 +404,13 @@ const TicketsPage: React.FC = () => {
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
             <p className="text-gray-600 dark:text-gray-300">Loading tickets...</p>
           </div>
+        ) : loadError ? (
+          <div className="text-center py-16">
+            <TicketIcon className="h-16 w-16 text-yellow-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">Tickets could not be loaded</h3>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">Nothing is wrong with your filters. Try again.</p>
+            <button onClick={fetchData} className="btn-primary">Try again</button>
+          </div>
         ) : tickets.length === 0 ? (
           <div className="text-center py-16">
             <TicketIcon className="h-16 w-16 text-gray-200 mx-auto mb-4" />
@@ -466,13 +480,23 @@ const TicketsPage: React.FC = () => {
                       {getStatusBadge(ticket)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      {/*
+                        This column is the ticket's routing, not a label, so it must not
+                        guess. It used to read `|| 'General'` and `|| 'IT'`, which meant a
+                        ticket with no receiving department was rendered as routed to a
+                        department called IT: a specific, plausible, checkable claim that
+                        the data does not support, in the one column people scan to find
+                        out where a request went. TicketDetailPage renders the same field
+                        with no default, so the two screens disagreed about the same
+                        ticket.
+                      */}
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-2.5 py-1 rounded-full">
-                          {ticket.requester?.department?.name || 'General'}
+                          {ticket.requester?.department?.name ?? 'No department'}
                         </span>
                         <ArrowRightIcon className="h-3 w-3 text-gray-500 dark:text-gray-400" />
                         <span className="text-xs font-medium text-indigo-700 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-900/30 px-2.5 py-1 rounded-full">
-                          {ticket.receiverDept?.name || 'IT'}
+                          {ticket.receiverDept?.name ?? 'Unrouted'}
                         </span>
                       </div>
                     </td>

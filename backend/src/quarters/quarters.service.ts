@@ -5,6 +5,7 @@ import { CloseQuarterDto } from './dto/close-quarter.dto';
 import { NotificationsService } from '../notifications/notifications.service';
 import {
     didObjectiveLand,
+    objectivePercent,
     quarterReadiness,
     QuarterReadiness,
     quarterEnding,
@@ -12,6 +13,8 @@ import {
     nextQuarterSlot,
     advanceQuarterSlot,
 } from '../okr/okr-math';
+import { realTasksOnly, EXCLUDE_SUBTASKS } from '../tasks/task-filters';
+import { taskStage, phasesForStage } from '../tasks/task-stage';
 
 /** Who plans cycles, as opposed to working inside the current one. */
 const PLANNER_ROLES = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'ADMIN'];
@@ -99,7 +102,7 @@ export class QuartersService {
             where: { companyId, status: 'ACTIVE' },
             include: {
                 _count: {
-                    select: { tasks: true }
+                    select: { tasks: { where: EXCLUDE_SUBTASKS } }
                 },
                 objectives: {
                     include: {
@@ -116,26 +119,24 @@ export class QuartersService {
         // quarter is hidden in one place and announced in the other.
         if (!this.isPlanner(userRole) && !quarterReadiness(quarter.objectives).ready) return null;
 
-        // Get completed tasks count separately to be accurate
+        // The same three things taskStage reads, expressed as a query. Counting only
+        // completedAt here made the dashboard disagree with the cycle page about the
+        // same quarter, because a task finished by reaching a workflow end phase does
+        // not always carry a date.
         const completedTasksCount = await this.prisma.task.count({
-            where: {
+            where: realTasksOnly({
                 quarterId: quarter.id,
                 companyId,
-                completedAt: { not: null }
-            }
+                OR: [
+                    { completedAt: { not: null } },
+                    { phase: { in: phasesForStage('COMPLETED') as any } },
+                    { currentPhase: { isEndPhase: true } },
+                ],
+            })
         });
 
         // Calculate progress
-        const objectives = quarter.objectives.map(obj => {
-            const krs = obj.keyResults;
-            const progress = krs.length > 0
-                ? Math.round(krs.reduce((sum, kr) => {
-                    const pct = kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0;
-                    return sum + Math.min(pct, 100);
-                }, 0) / krs.length)
-                : 0;
-            return { ...obj, progress };
-        });
+        const objectives = quarter.objectives.map(obj => ({ ...obj, progress: objectivePercent(obj.keyResults) }));
 
         const avgProgress = objectives.length > 0
             ? Math.round(objectives.reduce((sum, obj) => sum + obj.progress, 0) / objectives.length)
@@ -155,6 +156,7 @@ export class QuartersService {
             where: { id, companyId },
             include: {
                 tasks: {
+                    where: EXCLUDE_SUBTASKS,
                     include: {
                         assignedTo: { select: { id: true, name: true, position: true } },
                         createdBy: { select: { id: true, name: true } },
@@ -182,24 +184,14 @@ export class QuartersService {
 
         // Calculate stats for frontend accuracy
         const totalTasks = quarter.tasks.length;
-        const completedTasks = quarter.tasks.filter(t => 
-            t.completedAt !== null || 
-            (t as any).phase === 'COMPLETED' || 
-            t.currentPhase?.isEndPhase
-        ).length;
+        // taskStage, not a fourth hand-written reading of "finished". This one had
+        // already lost ARCHIVED, so a cycle whose work had been archived reported
+        // fewer completed tasks here than on the analytics page for the same cycle.
+        const completedTasks = quarter.tasks.filter(t => taskStage(t as any) === 'COMPLETED').length;
         const objectivesCount = quarter.objectives.length;
 
         // Calculate progress for each objective
-        const objectivesWithProgress = quarter.objectives.map(obj => {
-            const krs = obj.keyResults;
-            const progress = krs.length > 0
-                ? Math.round(krs.reduce((sum, kr) => {
-                    const pct = kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0;
-                    return sum + Math.min(pct, 100);
-                }, 0) / krs.length)
-                : 0;
-            return { ...obj, progress };
-        });
+        const objectivesWithProgress = quarter.objectives.map(obj => ({ ...obj, progress: objectivePercent(obj.keyResults) }));
 
         return {
             ...quarter,
@@ -294,6 +286,9 @@ export class QuartersService {
         // Capture who is affected BEFORE the updates, while the links still exist.
         // Closing a quarter used to move and orphan people's work in silence: the
         // assignee found out by noticing their task had left the quarter.
+        // Deliberately unfiltered. These reads decide what the updates below touch, so
+        // they have to reach every row pointing at this quarter, subtask mirror rows
+        // included. One left behind would keep pointing at a closed cycle.
         const [rollingOver, beingReleased, rolloverTarget] = await Promise.all([
             rolloverIds.length > 0
                 ? this.prisma.task.findMany({
@@ -463,6 +458,10 @@ export class QuartersService {
             where: { id, companyId },
             select: {
                 id: true, name: true, year: true, status: true,
+                // Counted raw, subtask mirror rows included, unlike every reporting
+                // count in this file. The question here is whether deleting would
+                // break a foreign key, and a mirror row breaks it exactly as hard as
+                // a real task. Excluding them would let the delete through and fail.
                 _count: { select: { objectives: true, tasks: true } },
             },
         });
@@ -638,6 +637,7 @@ export class QuartersService {
             where: { id, companyId },
             include: {
                 tasks: {
+                    where: EXCLUDE_SUBTASKS,
                     select: { phase: true, isRolledOver: true, createdAt: true, completedAt: true, currentPhase: { select: { isEndPhase: true } } },
                 },
                 objectives: {
@@ -649,24 +649,33 @@ export class QuartersService {
 
         const tasks = quarter.tasks;
         const total = tasks.length;
-        const completed = tasks.filter((t: any) => Boolean(t.completedAt) || t.phase === 'COMPLETED' || t.phase === 'ARCHIVED' || t.currentPhase?.isEndPhase).length;
+
+        // One bucket per task, so completed + inProgress + pending is exactly total
+        // and the three can be stacked in a chart. They could not before: `pending`
+        // was a strict subset of `inProgress`, and a task carrying a completion date
+        // but left in the IN_PROGRESS phase was counted in two buckets at once, so
+        // the parts added up to more than the whole.
+        //
+        // taskStage decides which bucket, rather than a fresh set of conditions here.
+        // Completion wins over the phase column, because a task carrying a completion
+        // date is finished whatever phase it was left sitting in, and because the
+        // legacy approval phases describe nothing anyone still does. `pending` is its
+        // To do stage: work in this cycle that nobody has started.
+        const stages = tasks.map((t: any) => taskStage(t));
+        const completed = stages.filter((s) => s === 'COMPLETED').length;
+        const inProgress = stages.filter((s) => s === 'IN_PROGRESS').length;
+        const pending = stages.filter((s) => s === 'TODO').length;
+
+        // Not part of that partition, and deliberately so: rolled over is where a task
+        // came from, not what state it is in, and it is reported as a share of the
+        // whole cycle. A rolled-over task is also counted in whichever stage it is in.
         const rolledOver = tasks.filter((t: any) => t.isRolledOver).length;
-        const inProgress = tasks.filter((t: any) => t.phase === 'IN_PROGRESS' || (!Boolean(t.completedAt) && t.phase !== 'COMPLETED' && t.phase !== 'ARCHIVED' && !t.currentPhase?.isEndPhase)).length;
-        const pending = tasks.filter((t: any) => ['PENDING_APPROVAL', 'APPROVED', 'ASSIGNED'].includes(t.phase)).length;
+
         const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
         const rolloverRate = total > 0 ? Math.round((rolledOver / total) * 100) : 0;
 
         // Objectives health
-        const objectives = quarter.objectives.map(obj => {
-            const krs = obj.keyResults;
-            const progress = krs.length > 0
-                ? Math.round(krs.reduce((sum, kr) => {
-                    const pct = kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0;
-                    return sum + Math.min(pct, 100);
-                }, 0) / krs.length)
-                : 0;
-            return { ...obj, progress };
-        });
+        const objectives = quarter.objectives.map(obj => ({ ...obj, progress: objectivePercent(obj.keyResults) }));
 
         const avgObjectiveProgress = objectives.length > 0
             ? Math.round(objectives.reduce((sum, obj) => sum + (obj as any).progress, 0) / objectives.length)
@@ -686,7 +695,7 @@ export class QuartersService {
         const quarters = await this.prisma.quarter.findMany({
             where: { companyId, year },
             include: {
-                tasks: { select: { phase: true, isRolledOver: true, completedAt: true, currentPhase: { select: { isEndPhase: true } } } },
+                tasks: { where: EXCLUDE_SUBTASKS, select: { phase: true, isRolledOver: true, completedAt: true, currentPhase: { select: { isEndPhase: true } } } },
                 objectives: { include: { keyResults: true } },
             },
             orderBy: { name: 'asc' },
@@ -694,17 +703,12 @@ export class QuartersService {
 
         const data = quarters.map(q => {
             const total = q.tasks.length;
-            const completed = q.tasks.filter((t: any) => Boolean(t.completedAt) || t.phase === 'COMPLETED' || t.phase === 'ARCHIVED' || t.currentPhase?.isEndPhase).length;
+            const completed = q.tasks.filter((t: any) => taskStage(t) === 'COMPLETED').length;
             const rolledOver = q.tasks.filter((t: any) => t.isRolledOver).length;
             const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
             const rolloverRate = total > 0 ? Math.round((rolledOver / total) * 100) : 0;
 
-            const objProgress = q.objectives.map(obj => {
-                const krs = obj.keyResults;
-                return krs.length > 0
-                    ? Math.round(krs.reduce((s, kr) => s + Math.min(kr.targetValue > 0 ? (kr.currentValue / kr.targetValue) * 100 : 0, 100), 0) / krs.length)
-                    : 0;
-            });
+            const objProgress = q.objectives.map(obj => objectivePercent(obj.keyResults));
             const avgObjProgress = objProgress.length > 0 ? Math.round(objProgress.reduce((a, b) => a + b, 0) / objProgress.length) : 0;
 
             return {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { confirmDialog } from '@/components/ui/confirm'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -27,6 +27,16 @@ interface KeyResult {
     startValue: number
     targetValue: number
     currentValue: number
+    /**
+     * Sent by the backend, already rounded to a whole percent.
+     *
+     * Not computed here. Progress is measured from startValue, not as a share of
+     * targetValue, and every local copy of that arithmetic got it wrong: a key result
+     * starting at 80 on the way to 100 read 80% before any work was done, a "reduce to
+     * zero" goal was pinned at 0% forever, and dividing by a zero target rendered NaN.
+     * One formula, in okr-math.ts, and the server does the sum.
+     */
+    progress: number
 }
 
 
@@ -68,36 +78,74 @@ const ObjectiveDetailPage: React.FC = () => {
     const [obj, setObj] = useState<ObjectiveDetail | null>(null)
     const [loading, setLoading] = useState(true)
     const [addingKR, setAddingKR] = useState(false)
-    const [updatingKR, setUpdatingKR] = useState<{ id: string, title: string, current: number, target: number, unit: string } | null>(null)
+    // `progress` travels with the rest of the key result rather than being worked out
+    // again inside the dialog. The card behind the dialog already renders the server's
+    // number, so a second local formula put two different percentages for the same key
+    // result on screen at once.
+    const [updatingKR, setUpdatingKR] = useState<{ id: string, title: string, current: number, target: number, unit: string, progress: number } | null>(null)
     const [krForm, setKrForm] = useState({ title: '', unit: 'number', startValue: 0, targetValue: 100 })
     const [showLinkTask, setShowLinkTask] = useState(false)
     const [availableTasks, setAvailableTasks] = useState<Task[]>([])
     const [selectedKRForTask, setSelectedKRForTask] = useState<string>('')
+    /**
+     * A picker that failed to load is not a company whose every task is already linked.
+     *
+     * The catch below empties the list, and the picker then states that everything is
+     * linked or nothing exists. Someone acting on that goes and creates a duplicate of
+     * a task they already have.
+     */
+    const [taskPickerFailed, setTaskPickerFailed] = useState(false)
+
+    /**
+     * Only the newest objective's answer may land.
+     *
+     * Both the linked-task list and the objectives table navigate straight from one
+     * objective to another, so two requests are easily in the air at once, and the
+     * slower earlier one used to win: another objective's key results, owner and
+     * progress under this objective's heading, editable and deletable in good faith.
+     * The sibling pages, QuarterDetailPage and StrategyPage, already stamp their
+     * requests this way.
+     */
+    const detailRequestId = useRef(0)
 
     useEffect(() => {
         fetchDetail()
     }, [id])
 
     const fetchDetail = async () => {
+        const mine = ++detailRequestId.current
         setLoading(true)
         try {
             const { data } = await api.get(`/objectives/${id}`)
+            if (mine !== detailRequestId.current) return
             setObj(data)
         } catch {
+            if (mine !== detailRequestId.current) return
             toast.error('Failed to load objective details')
             navigate('/objectives')
         } finally {
-            setLoading(false)
+            if (mine === detailRequestId.current) setLoading(false)
         }
     }
 
     const fetchAvailableTasks = async () => {
         try {
-            const { data } = await api.get('/tasks')
-            // Filter out tasks already linked
-            const linkedIds = new Set(obj?.tasks.map(t => t.id))
-            setAvailableTasks(data.filter((t: any) => !linkedIds.has(t.id)))
+            // `GET /tasks` answers with `{ tasks, pagination }`, and this called
+            // `.filter` straight on that object. It threw every time, the catch below
+            // swallowed it as "Failed to load tasks", and the picker was permanently
+            // empty: linking a task to an objective could not be done at all.
+            //
+            // The limit is explicit because the endpoint defaults to ten. A picker
+            // offering the ten most recent tasks and calling everything else "already
+            // linked" is the same bug wearing a nicer face.
+            const { data } = await api.get('/tasks', { params: { limit: 200 } })
+            const tasks: Task[] = Array.isArray(data) ? data : data?.tasks ?? []
+            const linkedIds = new Set(obj?.tasks?.map(t => t.id))
+            setAvailableTasks(tasks.filter((t) => !linkedIds.has(t.id)))
+            setTaskPickerFailed(false)
         } catch {
+            setAvailableTasks([])
+            setTaskPickerFailed(true)
             toast.error('Failed to load tasks')
         }
     }
@@ -234,7 +282,7 @@ const ObjectiveDetailPage: React.FC = () => {
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {obj.keyResults.map(kr => {
-                                        const progressPct = Math.min((kr.currentValue / kr.targetValue) * 100, 100);
+                                        const progressPct = kr.progress;
                                         const isDone = progressPct >= 100;
                                         
                                         return (
@@ -247,7 +295,7 @@ const ObjectiveDetailPage: React.FC = () => {
                                                     {canEdit && (
                                                         <button
                                                             onClick={() => {
-                                                                setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit })
+                                                                setUpdatingKR({ id: kr.id, title: kr.title, current: kr.currentValue, target: kr.targetValue, unit: kr.unit, progress: kr.progress })
                                                             }}
                                                             className="p-2 text-gray-500 dark:text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 rounded-xl transition-all"
                                                         >
@@ -403,7 +451,18 @@ const ObjectiveDetailPage: React.FC = () => {
                             </Select>
                         </div>
                         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                            {availableTasks.length === 0 ? (
+                            {taskPickerFailed ? (
+                                /* "All tasks are already linked" is a claim about the company's
+                                   work. Made after a failed request, it sends people off to
+                                   create a duplicate of a task they already have. */
+                                <div className="py-10 text-center">
+                                    <p className="font-medium text-gray-700 dark:text-gray-200">Tasks could not be loaded</p>
+                                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                        This is not an empty list. Nothing here says whether a task is linked yet.
+                                    </p>
+                                    <button onClick={fetchAvailableTasks} className="btn-primary mt-4">Try again</button>
+                                </div>
+                            ) : availableTasks.length === 0 ? (
                                 <p className="text-center py-10 text-gray-500 dark:text-gray-400 font-medium">All tasks are already linked or none found.</p>
                             ) : (
                                 availableTasks.map(task => (
@@ -495,9 +554,12 @@ const ObjectiveDetailPage: React.FC = () => {
                                     of {updatingKR.target} {updatingKR.unit}
                                 </span>
                             </div>
+                            {/* The server's percent, not current divided by target. Progress runs
+                                from startValue, so the local ratio disagreed with the card this
+                                dialog was opened from and pinned a reduce-to-zero goal at 0%. */}
                             <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
                                 <div className="h-full rounded-full bg-primary-600"
-                                     style={{ width: `${Math.min(100, Math.round(((updatingKR.current ?? 0) / (updatingKR.target || 1)) * 100))}%` }} />
+                                     style={{ width: `${Math.min(100, Math.max(0, updatingKR.progress ?? 0))}%` }} />
                             </div>
                         </div>
 

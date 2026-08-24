@@ -117,6 +117,12 @@ const TicketPreflightDialog: React.FC<Props> = ({
     <FormDialog
       isOpen={isOpen}
       onClose={onCancel}
+      // Escape and the backdrop go quiet once the ticket is on its way. Without this,
+      // a stray click behind the panel dismissed the dialog mid-post: the ticket was
+      // still created, but the person was back on the form as though nothing had
+      // happened, and pressing send again raised the duplicate this dialog exists to
+      // prevent.
+      busy={submitting}
       width="lg"
       backdrop="heavy"
       bare

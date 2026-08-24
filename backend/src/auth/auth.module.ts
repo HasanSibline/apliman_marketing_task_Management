@@ -17,7 +17,12 @@ import { UsersModule } from '../users/users.module';
       useFactory: async (configService: ConfigService) => ({
         secret: configService.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '7d'),
+          // Cast, because jsonwebtoken now types this as a template literal union
+          // ("7d", "24h", ...) rather than a plain string, and the value comes from
+          // the environment where no type can reach it. A malformed JWT_EXPIRES_IN
+          // was never caught at compile time anyway; it throws on the first sign,
+          // which is a clearer failure than a token that silently never expires.
+          expiresIn: configService.get<string>('JWT_EXPIRES_IN', '7d') as any,
         },
       }),
       inject: [ConfigService],

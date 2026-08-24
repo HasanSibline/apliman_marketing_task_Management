@@ -15,6 +15,13 @@ class KeepAliveService {
       return
     }
 
+    // One timer, however many times this is called. It is a module-level singleton
+    // started from an effect, so a second mount would otherwise stack a second
+    // interval on the first and double the traffic for the rest of the session.
+    if (this.intervals.length > 0) {
+      return
+    }
+
     console.log('🔄 Starting keepalive service...')
 
     // Ping backend service to prevent AI service/backend from sleeping

@@ -16,9 +16,9 @@ interface CreateWorkflowModalProps {
    * it, so a workflow could be made and deleted but never corrected: a typo in a phase
    * name meant rebuilding the whole thing, which nobody does, so the typo stays.
    *
-   * Editing covers the workflow's own fields only. The server's update handles name,
-   * description, colour and default, and does not touch phases, so the phase editor is
-   * hidden rather than shown and silently ignored.
+   * Editing covers the phases too. The server's update reconciles them: it keeps what
+   * stayed, adds what is new, and removes what went, refusing only to delete a phase
+   * that still holds tasks unless it is told where those tasks go.
    */
   workflow?: any | null
 }
@@ -31,9 +31,25 @@ interface User {
   role: string
 }
 
+/**
+ * A stable identity for one phase row, for React's benefit only.
+ *
+ * Phase rows were keyed by their array index, and phases can be removed from the
+ * middle: delete the second of four and React keeps the DOM nodes where they are and
+ * shifts the values underneath them, so the caret jumps out of the field being typed
+ * in and the allowed-users box scrolls to a different phase's list. A phase that has
+ * been saved has an id, but one just added has not, which is what this covers.
+ *
+ * It never reaches the server; handleSubmit strips it.
+ */
+let phaseKeySeq = 0
+const nextPhaseKey = () => `ph-${++phaseKeySeq}`
+
 interface PhaseData {
   /** Present on a phase that already exists; absent on one being added. */
   id?: string
+  /** Local only. Never sent. */
+  _rowKey: string
   name: string
   description: string
   allowedUserIds: string[]
@@ -74,6 +90,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
   const [phases, setPhases] = useState<PhaseData[]>([
     {
+      _rowKey: nextPhaseKey(),
       name: 'To Do',
       description: 'Tasks that need to be started',
       allowedUserIds: [],
@@ -82,6 +99,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       color: '#9CA3AF',
     },
     {
+      _rowKey: nextPhaseKey(),
       name: 'In Progress',
       description: 'Tasks currently being worked on',
       allowedUserIds: [],
@@ -90,6 +108,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       color: '#3B82F6',
     },
     {
+      _rowKey: nextPhaseKey(),
       name: 'Completed',
       description: 'Finished tasks',
       allowedUserIds: [],
@@ -108,8 +127,21 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
   // Seeded from the workflow each time the dialog opens on one, so editing a second
   // workflow after a first does not show the first one's values.
+  //
+  // Opening on nothing has to clear just as deliberately. The dialog is mounted for
+  // the life of the page rather than created per open, so without this, closing an
+  // edit and then pressing "New workflow" showed the workflow just edited, phase ids
+  // and all, and saving it created a copy of it under whatever name was left in the
+  // box.
   useEffect(() => {
-    if (!isOpen || !workflow) return
+    if (!isOpen) return
+    if (!workflow) {
+      resetForm()
+      setReassign({})
+      setRehoming(null)
+      setRehomeTarget('')
+      return
+    }
     setFormData({
       name: workflow.name ?? '',
       description: workflow.description ?? '',
@@ -128,6 +160,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
           .sort((a: any, b: any) => a.order - b.order)
           .map((p: any) => ({
             id: p.id,
+            _rowKey: nextPhaseKey(),
             name: p.name ?? '',
             description: p.description ?? '',
             allowedUserIds: p.allowedUsers ?? [],
@@ -153,8 +186,14 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       const data: any = await usersApi.getAll()
       const userList = Array.isArray(data) ? data : (data.users || [])
       setUsers(userList)
-      
-      // Default: allow all users in each phase
+
+      // A new workflow starts permissive: every phase open to everyone, narrowed from
+      // there. An existing one must not be touched. This lands after the effect that
+      // seeds the editor from the workflow, so applying it while editing silently
+      // replaced each phase's real allowed-user list with "everybody", and saving then
+      // wrote that back and destroyed the restriction.
+      if (workflow) return
+
       const allUserIds = userList.map((u: User) => u.id)
       setPhases(prev => prev.map(phase => ({
         ...phase,
@@ -188,7 +227,11 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
+    // The button is disabled while this runs, but the guard does not depend on that
+    // being the only way in: a second save would create a second workflow.
+    if (isLoading) return
+
     // Checked here rather than left to the browser. The task type picker used to be
     // a native select whose `required` blocked submission on the empty first option;
     // it is a listbox now, and a button does not take part in form validation, so
@@ -198,7 +241,6 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       return
     }
 
-    // Only a new workflow defines its phases here. An edit leaves them alone, so the
     // Phases are editable in both modes now, so the minimum applies to both.
     if (phases.length < 2) {
       toast.error('A workflow needs at least two phases')
@@ -217,6 +259,10 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       teamIds: formData.departmentId ? formData.teamIds : [],
     }
 
+    // The row keys are React's, not the server's, and the server validates the phase
+    // objects it is sent.
+    const phasesToSend = phases.map(({ _rowKey, ...phase }) => phase)
+
     try {
       setIsLoading(true)
 
@@ -227,12 +273,12 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
           color: formData.color,
           isDefault: formData.isDefault,
           ...scope,
-          phases,
+          phases: phasesToSend,
           reassign,
         })
         toast.success(`${formData.name} saved`)
       } else {
-        await workflowsApi.create({ ...formData, ...scope, phases })
+        await workflowsApi.create({ ...formData, ...scope, phases: phasesToSend })
         toast.success(`${formData.name} created`)
       }
 
@@ -261,6 +307,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     })
     setPhases([
       {
+        _rowKey: nextPhaseKey(),
         name: 'To Do',
         description: 'Tasks that need to be started',
         allowedUserIds: allUserIds,
@@ -269,6 +316,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         color: '#9CA3AF',
       },
       {
+        _rowKey: nextPhaseKey(),
         name: 'In Progress',
         description: 'Tasks currently being worked on',
         allowedUserIds: allUserIds,
@@ -277,6 +325,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         color: '#3B82F6',
       },
       {
+        _rowKey: nextPhaseKey(),
         name: 'Completed',
         description: 'Finished tasks',
         allowedUserIds: allUserIds,
@@ -291,6 +340,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
     setPhases([
       ...phases,
       {
+        _rowKey: nextPhaseKey(),
         name: '',
         description: '',
         allowedUserIds: users.map(u => u.id),
@@ -385,7 +435,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
       title={isEditing ? `Edit ${workflow.name}` : 'Create a workflow'}
       description={
         isEditing
-          ? 'Its phases stay as they are. Tasks already using it are unaffected.'
+          ? 'Phases can be renamed, added and removed. Work already in one moves where you say.'
           : 'Set out the phases work moves through, and who can move it.'
       }
       footer={
@@ -579,7 +629,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 
                   <div className="space-y-4">
                     {phases.map((phase, index) => (
-                      <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/40">
+                      <div key={phase._rowKey} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-900/40">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="font-medium text-gray-900 dark:text-white">Phase {index + 1}</h4>
                           {phases.length > 2 && (

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  ServerIcon,
   ShieldCheckIcon,
   ClockIcon,
   DocumentTextIcon,
@@ -24,12 +23,21 @@ interface SystemSettings {
 }
 
 const AdminSettings: React.FC = () => {
-  const [settings, setSettings] = useState<SystemSettings>({
-    maxFileSize: 5242880, // 5MB
-    allowedFileTypes: 'image/jpeg,image/png,image/webp,application/pdf',
-    sessionTimeout: 480, // 8 hours
-  });
-  const [loading, setLoading] = useState(false);
+  /**
+   * Null until the platform's real settings arrive. Nothing is guessed.
+   *
+   * This used to be seeded with 5MB / 8 hours / a fixed MIME list, and the catch
+   * below deliberately kept them on failure ("Use defaults if fetch fails"). Those
+   * three numbers were then rendered in the inputs as though they were what the
+   * platform is configured with. That is bad enough on its own, but the Save button
+   * sits directly beneath them: a super admin who opened this page during an outage
+   * and pressed Save would PUT three invented values over whatever was genuinely
+   * configured, and the upload limit for every company on the platform would quietly
+   * become whatever this file happened to have hardcoded.
+   */
+  const [settings, setSettings] = useState<SystemSettings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
   /**
@@ -59,30 +67,37 @@ const AdminSettings: React.FC = () => {
 
   const fetchSystemSettings = async () => {
     setLoading(true);
+    setLoadError(false);
     try {
-      const response = await api.get('/system/settings');
-      if (response.data) {
-        setSettings((current) => ({ ...current, ...response.data }));
-      }
+      const { data } = await api.get('/system/settings');
+      if (!data) throw new Error('The settings endpoint returned nothing');
+      setSettings({
+        maxFileSize: data.maxFileSize,
+        allowedFileTypes: data.allowedFileTypes,
+        sessionTimeout: data.sessionTimeout,
+      });
     } catch (error) {
       console.error('Error fetching system settings:', error);
-      // Use defaults if fetch fails
+      setLoadError(true);
+      setSettings(null);
     } finally {
       setLoading(false);
     }
   };
 
   const handleSave = async () => {
+    // Unreachable while the button is disabled, but the guard is what makes the
+    // button's disabled state a rule rather than a decoration.
+    if (!settings) return;
     setSaving(true);
     try {
-      // Send only writable fields. platformAiKeySet is a read-only flag the GET
-      // returns so the UI knows a key exists; posting it back is not meaningful.
+      // Send only writable fields. The GET returns more than this form owns.
       const { data } = await api.put('/system/settings', {
         maxFileSize: settings.maxFileSize,
         allowedFileTypes: settings.allowedFileTypes,
         sessionTimeout: settings.sessionTimeout,
       });
-      if (data) setSettings((current) => ({ ...current, ...data }));
+      if (data) setSettings((current) => (current ? { ...current, ...data } : current));
       toast.success('Settings saved');
     } catch (error) {
       console.error('Error saving settings:', error);
@@ -92,7 +107,7 @@ const AdminSettings: React.FC = () => {
     }
   };
 
-  const settingsSections = [
+  const settingsSections = !settings ? [] : [
     {
       title: 'File Upload Settings',
       icon: DocumentTextIcon,
@@ -200,6 +215,20 @@ const AdminSettings: React.FC = () => {
           />
         )}
 
+        {loadError && (
+          <div className="rounded-lg border border-error-200 bg-error-50 p-4 dark:border-error-900/40 dark:bg-error-900/20">
+            <h3 className="text-sm font-medium text-error-800 dark:text-error-300">
+              Platform settings could not be loaded
+            </h3>
+            <p className="mt-1 text-sm text-error-700 dark:text-error-300">
+              The upload and session limits are not shown because they are not known.
+              Saving is disabled until they load, so nothing here can overwrite what is
+              already configured.
+            </p>
+            <button onClick={fetchSystemSettings} className="btn-primary mt-3">Try again</button>
+          </div>
+        )}
+
         {settingsSections.map((section) => (
           <div key={section.title} className="bg-white dark:bg-gray-800 shadow rounded-lg">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
@@ -231,71 +260,22 @@ const AdminSettings: React.FC = () => {
           </div>
         ))}
 
-        {/* Additional Info Cards */}
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <ServerIcon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-3" />
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">System Information</h2>
-            </div>
-          </div>
-          <div className="px-6 py-4 space-y-3">
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Platform Version</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">2.0.0</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Database</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">PostgreSQL (Neon)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Backend</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">NestJS (Render)</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm text-gray-600 dark:text-gray-300">Frontend</span>
-              <span className="text-sm font-medium text-gray-900 dark:text-white">React + Vite (Cloudflare)</span>
-            </div>
-          </div>
-        </div>
+        {/*
+          A "System Information" panel used to sit here reporting Platform Version
+          2.0.0, PostgreSQL (Neon), NestJS (Render) and React + Vite (Cloudflare), and
+          a "Security" panel listing JWT authentication, multi-tenant isolation and
+          bcrypt with a green "Active" pill beside each.
 
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center">
-              <ShieldCheckIcon className="h-6 w-6 text-primary-600 dark:text-primary-400 mr-3" />
-              <h2 className="text-lg font-medium text-gray-900 dark:text-white">Security</h2>
-            </div>
-          </div>
-          <div className="px-6 py-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">JWT Authentication</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Secure token-based authentication</p>
-              </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Multi-Tenant Isolation</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Company data isolation enforced</p>
-              </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                Active
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-900 dark:text-white">Password Encryption</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Bcrypt with 12 salt rounds</p>
-              </div>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">
-                Active
-              </span>
-            </div>
-          </div>
-        </div>
+          Not one of those was read from anything. The version was a string literal
+          that would have gone stale at the next release, and a status badge that
+          cannot render any value other than "Active" is not reporting a check, it is
+          drawing a reassurance. On a page an administrator visits precisely to find
+          out whether something is switched on, that is the worst place in the app to
+          put a number nobody verifies.
+
+          They are gone rather than rewritten because there is no endpoint behind
+          them. Bring the panel back when there is something real to read.
+        */}
       </div>
 
       <div className="mt-6 flex justify-end space-x-3">
@@ -304,12 +284,12 @@ const AdminSettings: React.FC = () => {
           onClick={fetchSystemSettings}
           className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700"
         >
-          Reset
+          Reload
         </button>
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || !settings}
           className="px-4 py-2 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Changes'}

@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef, HttpException } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
@@ -7,56 +7,17 @@ import { PerformanceInsightsDto } from './dto/performance-insights.dto';
 import { CompaniesService } from '../companies/companies.service';
 import { AIFeature } from '@prisma/client';
 import { AiGatewayService } from './ai-gateway.service';
-import {
-  retryAfterSeconds,
-  cooldownFor,
-  isSameIncident,
-  STRIKE_DEBOUNCE_SECONDS,
-} from './quota-cooldown';
 
-/**
- * How long a rate-limit lockout lasts, when the provider does not tell us.
- *
- * This was an hour, which is what made AI unusable after a couple of prompts. Free
- * tiers limit requests per *minute*: Gemini free allows about fifteen, Groq similar.
- * That limit clears in sixty seconds, so answering it with a sixty minute lockout was
- * sixty times longer than the thing it was protecting against, and the company spent
- * the other fifty-nine minutes locked out of a provider that would have answered.
- *
- * Providers usually say how long to wait. That is honoured when present, and this is
- * only the floor for when it is not.
- */
+// The rate-limit constants that lived here are gone with the company-level breaker
+// they served. Cooldowns are per provider entry now, held on AiProviderConfig and
+// applied by AiGatewayService, so one company hitting a per-minute limit on one
+// provider no longer stands between that company and its other providers.
 
-/**
- * Rate-limit errors arriving closer together than this are one incident.
- *
- * Creating a single task fires generateContentFromAI and generateSubtasks back to
- * back, and a chat message costs two upstream calls. On a per-minute limit those all
- * fail together, which counted as several strikes for what the user experienced as
- * one action. Five strikes then arrived in about two prompts, and the hour began.
- */
-
-/** Window over which strikes accumulate before a lockout is considered. */
-const QUOTA_RESET_MINUTES = 15;
-
-/**
- * How many upstream rate-limit errors a company may hit inside QUOTA_RESET_MINUTES
- * before AI is disabled for the rest of the window.
- *
- * A single 429 is normal on free provider tiers (Gemini free is ~15 requests/min and
- * one chat message costs 2+ calls). Tripping the company-wide breaker on the first
- * one is what made AI unusable after a single message. We only stop serving after
- * repeated failures, and the window always expires.
- */
-const QUOTA_STRIKES_BEFORE_LOCKOUT = 5;
 
 @Injectable()
 export class AiService {
   private readonly logger = new Logger(AiService.name);
   private readonly aiServiceUrl: string;
-
-  /** Rolling per-company rate-limit strike counter (see recordQuotaStrike). */
-  private readonly quotaStrikes = new Map<string, { count: number; windowStart: number; lastAt: number }>();
 
   constructor(
     private readonly httpService: HttpService,
@@ -161,13 +122,27 @@ export class AiService {
       myUsage[row.feature] = row.count;
     }
 
-    const hasCompanyKey = company.aiEnabled && !!company.aiApiKey;
+    /**
+     * Asked of the gateway, not inferred from the legacy key.
+     *
+     * This read `company.aiEnabled && company.aiApiKey`, which is the single key the
+     * provider chain replaced. A company that configured its providers through Settings
+     * and never set a legacy key reported aiEnabled: false, and the chat composer
+     * disabled itself with "AI is not enabled" for a tenant with three healthy
+     * providers. The gateway is the only thing that knows what a request would actually
+     * find, so it is the only thing entitled to answer.
+     *
+     * `configured` rather than `available` drives the flag on purpose: every provider
+     * being briefly in cooldown is a passing state, and locking the composer for it
+     * would take the feature away for a minute at a time with no way to tell why.
+     */
+    const status = await this.gateway.statusFor(user.companyId);
 
     return {
-      aiEnabled: hasCompanyKey,
-      quotaExhausted,
+      aiEnabled: status.configured,
+      quotaExhausted: quotaExhausted || status.reason === 'BUDGET_EXHAUSTED',
       quotaResetAt: quotaExhausted ? company.aiQuotaResetAt : null,
-      provider: company.aiProvider || 'gemini',
+      provider: status.provider ?? company.aiProvider ?? 'gemini',
       myUsage,
     };
   }
@@ -241,218 +216,70 @@ export class AiService {
     }
   }
 
-  /**
-   * Record an upstream rate-limit hit for a company.
-   *
-   * Only after QUOTA_STRIKES_BEFORE_LOCKOUT strikes inside one window do we flag the
-   * company, and the flag ALWAYS carries a reset time so it expires on its own. The
-   * previous behaviour, flag on the first 429, with a null reset for FREE_TRIAL , 
-   * meant one rate-limited message permanently disabled AI for the whole company.
-   */
+  // ─────────────────────────────────────────────────────────────────────────
+  // CREDENTIALS
+  // ─────────────────────────────────────────────────────────────────────────
+  //
+  // There is no credential resolver here any more, deliberately.
+  //
+  // Three things used to live in this space and all three are gone:
+  //
+  //   resolveAiCredential   read a single Company.aiApiKey and knew nothing about
+  //                         AiProviderConfig. Chat, the day brief, ticket checks and
+  //                         both learning calls used it, so the provider chain applied
+  //                         to every AI feature except the ones people actually used.
+  //   getPlatformAiCredential  a stub returning null, left over from the shared
+  //                         platform key that was removed on purpose.
+  //   recordQuotaStrike / clearQuotaStrikes
+  //                         a company-level circuit breaker with no callers. Nothing
+  //                         ever populated quotaStrikes, so clearQuotaStrikes returned
+  //                         early every time and never cleared aiQuotaExhausted. Its
+  //                         debounce and clamp helpers in quota-cooldown.ts were tested
+  //                         and unreachable, which is the worst combination: a green
+  //                         suite over code wired to nothing.
+  //
+  // Cooldowns are per provider entry now and live in AiGatewayService, which is the
+  // only thing that reads or writes them. Everything reaching the AI service goes
+  // through callAiService below.
 
-  private async recordQuotaStrike(companyId: string, retryHintSeconds?: number): Promise<void> {
-    try {
-      const now = Date.now();
-      const windowMs = QUOTA_RESET_MINUTES * 60 * 1000;
-      const entry = this.quotaStrikes.get(companyId);
-      const inWindow = entry && now - entry.windowStart < windowMs;
-
-      // One action, one strike. Creating a task fires two AI calls and a chat message
-      // fires two more; on a per-minute limit they fail together, and counting each as
-      // its own strike reached the lockout in about two prompts.
-      if (inWindow && isSameIncident(entry.lastAt, now)) {
-        this.logger.warn(
-          `AI rate limit for company ${companyId}, within ${STRIKE_DEBOUNCE_SECONDS}s of the last one. Same incident, not counted again.`,
-        );
-        return;
-      }
-
-      const strikes = inWindow ? entry.count + 1 : 1;
-      const windowStart = inWindow ? entry.windowStart : now;
-      this.quotaStrikes.set(companyId, { count: strikes, windowStart, lastAt: now });
-
-      if (strikes < QUOTA_STRIKES_BEFORE_LOCKOUT) {
-        this.logger.warn(
-          `AI rate limit for company ${companyId} (strike ${strikes}/${QUOTA_STRIKES_BEFORE_LOCKOUT}). Still serving.`,
-        );
-        return;
-      }
-
-      const company = await this.prisma.company.findUnique({
-        where: { id: companyId },
-        select: { aiQuotaExhausted: true },
-      });
-      if (!company || company.aiQuotaExhausted) return; // already flagged
-
-      // Long enough to let the limit clear, short enough that the company is not
-      // locked out of a provider that would answer. The provider's own figure wins
-      // when it sent one.
-      const cooldownSeconds = cooldownFor(retryHintSeconds);
-      const resetAt = new Date(now + cooldownSeconds * 1000);
-
-      await this.prisma.company.update({
-        where: { id: companyId },
-        data: { aiQuotaExhausted: true, aiQuotaResetAt: resetAt },
-      });
-
-      this.logger.warn(
-        `⚠️ AI quota marked exhausted for company ${companyId} after ${strikes} strikes. Resets at ${resetAt.toISOString()}.`,
-      );
-    } catch (e) {
-      this.logger.error(`Failed to record quota strike: ${e.message}`);
-    }
-  }
-
-  /** Clear the strike counter and any DB lockout after a successful AI call. */
-  private clearQuotaStrikes(companyId: string): void {
-    if (!this.quotaStrikes.has(companyId)) return;
-    this.quotaStrikes.delete(companyId);
-    this.prisma.company
-      .updateMany({
-        where: { id: companyId, aiQuotaExhausted: true },
-        data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
-      })
-      .catch((e) => this.logger.warn(`Failed to clear quota flag: ${e.message}`));
-  }
-
-  /**
-   * Removed: there is no platform-wide AI key any more.
-   *
-   * A shared super-admin key meant one company's traffic exhausted a quota that every
-   * other company then found missing, and a tenant could be served by a credential
-   * nobody in that tenant had configured or could see the usage of. AI is now either
-   * set up for a company or it is off, which is the only state anybody can reason
-   * about.
-   *
-   * Kept as a stub returning null so nothing that still calls it breaks while the last
-   * references are removed.
-   */
-  async getPlatformAiCredential(): Promise<null> {
-    return null;
-  }
-
-  /**
-   * Resolve which AI credential to use for a request.
-   *
-   * Order:
-   *   1. The company's own key, when a super admin assigned one and AI is enabled.
-   *   2. The platform-wide key from Settings → AI Platform (shared by every company).
-   *   3. None: AI is unavailable.
-   *
-   * Users without a company (super admins) can still use the platform key.
-   */
-  async resolveAiCredential(userId?: string): Promise<{
-    apiKey: string;
-    companyName: string;
-    provider: string;
-    companyId: string;
-    model?: string | null;
-  } | null> {
-    if (!userId) {
-      this.logger.error('❌ No userId provided - AI disabled');
-      throw new Error('User ID is required for AI features');
-    }
-
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { companyId: true, role: true, name: true },
-    });
-
-    // No company means no AI. Super admins configure it for tenants; they do not
-    // borrow a shared credential of their own.
-    if (!user?.companyId) {
-      this.logger.warn('AI requested by a user with no company. There is no platform key to fall back to.');
-      return null;
-    }
-
-    const company = await this.prisma.company.findUnique({
-      where: { id: user.companyId },
-      select: {
-        name: true,
-        aiApiKey: true,
-        aiEnabled: true,
-        aiProvider: true,
-        aiQuotaExhausted: true,
-        aiQuotaResetAt: true,
-        subscriptionPlan: true,
-      },
-    });
-
-    if (!company) return null;
-
-    // Auto-reset once the lockout window has passed.
-    //
-    // A null aiQuotaResetAt on an exhausted company is a legacy row: the old logic
-    // flagged FREE_TRIAL companies with no reset time, which no expiry check could
-    // ever clear. Every lockout we write now carries an expiry, so treat a missing
-    // one as stale and release it. Production applies schema with `prisma db push`,
-    // which does not run migration SQL, so this is what actually heals those rows
-    // there rather than the UPDATE in the migration.
-    const lockoutExpired =
-      company.aiQuotaExhausted && (!company.aiQuotaResetAt || new Date() > company.aiQuotaResetAt);
-
-    if (lockoutExpired) {
-      await this.prisma.company.update({
-        where: { id: user.companyId },
-        data: { aiQuotaExhausted: false, aiQuotaResetAt: null },
-      });
-      this.quotaStrikes.delete(user.companyId);
-      company.aiQuotaExhausted = false;
-    }
-
-    const companyKey =
-      company.aiEnabled && company.aiApiKey ? this.companiesService.decryptApiKey(company.aiApiKey) : null;
-    const hasUsableCompanyKey = !!companyKey && !companyKey.includes('[DECRYPTION_FAILED]');
-
-    if (company.aiApiKey && company.aiEnabled && !hasUsableCompanyKey) {
-      this.logger.error(`❌ Failed to decrypt AI key for company: ${company.name}`);
-    }
-
-    // The company's own key, blocked only by its own cooldown.
-    if (hasUsableCompanyKey && !company.aiQuotaExhausted) {
-      return {
-        apiKey: companyKey,
-        companyName: company.name,
-        provider: company.aiProvider || 'gemini',
-        companyId: user.companyId,
-      };
-    }
-
-    if (company.aiQuotaExhausted) {
-      const resetMsg = company.aiQuotaResetAt
-        ? ` AI will be available again at ${company.aiQuotaResetAt.toISOString()}.`
-        : '';
-      throw new Error(`AI quota exceeded for your company.${resetMsg}`);
-    }
-
-    return null;
-  }
-
-  private async getCompanyAiApiKey(userId?: string): Promise<string | null> {
-    const info = await this.resolveAiCredential(userId);
-    return info?.apiKey || null;
-  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // AI OPERATIONS (with usage tracking and quota enforcement)
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Send one AI-service call through the gateway.
+   * Send one AI-service call through the provider chain.
    *
-   * Every method below used to resolve a credential, post once, and treat any failure
-   * as the end of the matter. They hand the posting to the gateway now, so a rate limit
-   * on the first provider becomes an attempt on the second rather than an error the
-   * user reads, and none of them needed to learn what a provider is.
+   * This is the only way to reach the AI service. Callers used to resolve a credential
+   * themselves, post once, and treat any failure as the end of the matter, so a rate
+   * limit on the first provider was an error the user read rather than an attempt on
+   * the second. None of them needed to learn what a provider is.
+   *
+   * It is public because ChatService and TicketsService call it too. There was briefly
+   * a second resolver serving those, which meant chat ignored the chain entirely: the
+   * priority order, the cooldowns and the usage figures all applied to everything
+   * except the feature people actually used. One path, no exceptions.
    *
    * The payload's api_key, provider and model are filled in per attempt, because each
    * attempt may be a different provider entirely.
    */
-  private async viaGateway<T>(
+  async callAiService<T>(
     userId: string | undefined,
     endpoint: string,
     payload: Record<string, any>,
-    opts: { timeout?: number; feature?: AIFeature } = {},
+    opts: {
+      timeout?: number;
+      feature?: AIFeature;
+      /** Chat posts attached files inline, which exceeds axios's default body cap. */
+      unboundedBody?: boolean;
+      /** Extra fields naming the company, for endpoints whose prompts use it. */
+      companyNameField?: string;
+      /**
+       * Wall-clock ceiling for the whole chain walk. Set it when a person is waiting,
+       * so a run of hanging providers cannot outlive the browser holding the request.
+       */
+      deadlineMs?: number;
+    } = {},
   ): Promise<T> {
     if (!userId) throw new Error('User ID is required for AI features');
 
@@ -476,8 +303,15 @@ export class AiService {
               company_name: credential.companyName,
               provider: credential.provider,
               model: credential.model ?? undefined,
+              ...(opts.companyNameField ? { [opts.companyNameField]: credential.companyName } : {}),
             },
-            { headers: this.aiServiceHeaders, timeout: opts.timeout ?? 60000 },
+            {
+              headers: this.aiServiceHeaders,
+              timeout: opts.timeout ?? 60000,
+              ...(opts.unboundedBody
+                ? { maxBodyLength: Infinity, maxContentLength: Infinity }
+                : {}),
+            },
           ),
         );
 
@@ -486,11 +320,11 @@ export class AiService {
         }
         return response.data as T;
       },
-      { label: endpoint.replace('/', '') },
+      { label: endpoint.replace('/', ''), deadlineMs: opts.deadlineMs },
     );
   }
 
-  async generateContentFromAI(title: string, type: string, userId?: string): Promise<{
+  async generateContentFromAI(title: string, type: string, userId: string): Promise<{
     description: string;
     goals: string;
     priority?: number;
@@ -498,7 +332,7 @@ export class AiService {
   }> {
     const knowledgeSources = await this.getActiveKnowledgeSources(userId);
 
-    const data = await this.viaGateway<any>(
+    const data = await this.callAiService<any>(
       userId,
       '/generate-content',
       { title, type, knowledge_sources: knowledgeSources },
@@ -521,12 +355,12 @@ export class AiService {
       workflowPhases: string[];
       availableUsers?: { id: string; name: string; position: string; role: string }[];
     },
-    userId?: string,
+    userId: string,
   ): Promise<{ subtasks: any[]; ai_provider: string }> {
     const knowledgeSources = await this.getActiveKnowledgeSources(userId);
 
     try {
-      return await this.viaGateway<{ subtasks: any[]; ai_provider: string }>(
+      return await this.callAiService<{ subtasks: any[]; ai_provider: string }>(
         userId,
         '/generate-subtasks',
         { ...data, knowledgeSources },
@@ -547,9 +381,9 @@ export class AiService {
     }
   }
 
-  async summarizeText(text: string, maxLength: number = 150, userId?: string): Promise<string> {
+  async summarizeText(text: string, maxLength: number = 150, userId: string): Promise<string> {
     try {
-      const data = await this.viaGateway<{ summary: string }>(
+      const data = await this.callAiService<{ summary: string }>(
         userId,
         '/summarize',
         { text, max_length: maxLength },
@@ -563,12 +397,12 @@ export class AiService {
     }
   }
 
-  async analyzePriority(taskTitle: string, taskDescription: string, userId?: string): Promise<{
+  async analyzePriority(taskTitle: string, taskDescription: string, userId: string): Promise<{
     suggestedPriority: number;
     reasoning: string;
   }> {
     try {
-      const data = await this.viaGateway<any>(
+      const data = await this.callAiService<any>(
         userId,
         '/analyze-priority',
         { title: taskTitle, description: taskDescription },
@@ -585,134 +419,88 @@ export class AiService {
     }
   }
 
-  async checkTaskCompleteness(taskDescription: string, goals: string, currentPhase: string, userId?: string): Promise<{
+  async checkTaskCompleteness(taskDescription: string, goals: string, currentPhase: string, userId: string): Promise<{
     completenessScore: number;
     suggestions: string[];
     isComplete: boolean;
   }> {
     try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) return { completenessScore: 0.5, suggestions: ['AI is not enabled for your company.'], isComplete: false };
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/check-completeness`, {
-          description: taskDescription,
-          goals,
-          phase: currentPhase,
-          api_key: info?.apiKey,
-          provider: info?.provider,
-          model: info?.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-        }),
+      const data = await this.callAiService<any>(
+        userId,
+        '/check-completeness',
+        { description: taskDescription, goals, phase: currentPhase },
+        { timeout: 45000 },
       );
       return {
-        completenessScore: response.data.completeness_score,
-        suggestions: response.data.suggestions,
-        isComplete: response.data.is_complete,
+        completenessScore: data.completeness_score,
+        suggestions: data.suggestions,
+        isComplete: data.is_complete,
       };
-    } catch (error) {
+    } catch (error: any) {
+      this.logger.warn(`Completeness check unavailable: ${error.message}`);
       return { completenessScore: 0.5, suggestions: ['Unable to analyze task completeness.'], isComplete: false };
     }
   }
 
-  async generatePerformanceInsights(analyticsData: PerformanceInsightsDto, userId?: string): Promise<{
+  async generatePerformanceInsights(analyticsData: PerformanceInsightsDto, userId: string): Promise<{
     insights: string[];
     recommendations: string[];
     trends: string[];
   }> {
     try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) return { insights: ['AI is not enabled for your company.'], recommendations: ['Ask your administrator to add an AI API key.'], trends: [] };
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/performance-insights`, {
-          analytics: analyticsData,
-          api_key: info?.apiKey,
-          provider: info?.provider,
-          model: info?.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000,
-        }),
+      const data = await this.callAiService<any>(
+        userId,
+        '/performance-insights',
+        { analytics: analyticsData },
+        { timeout: 45000 },
       );
-      return { insights: response.data.insights, recommendations: response.data.recommendations, trends: response.data.trends };
-    } catch (error) {
+      return { insights: data.insights, recommendations: data.recommendations, trends: data.trends };
+    } catch (error: any) {
+      this.logger.warn(`Performance insights unavailable: ${error.message}`);
       return { insights: ['Analysis unavailable.'], recommendations: ['Monitor performance.'], trends: ['In progress.'] };
     }
   }
 
-  async detectTaskType(title: string, userId?: string): Promise<{ task_type: string; ai_provider: string }> {
+  async detectTaskType(title: string, userId: string): Promise<{ task_type: string; ai_provider: string }> {
     try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) return { task_type: 'GENERAL', ai_provider: 'fallback' };
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/detect-task-type`, {
-          title,
-          api_key: info?.apiKey,
-          provider: info?.provider,
-          model: info?.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000,
-        }),
+      return await this.callAiService<{ task_type: string; ai_provider: string }>(
+        userId,
+        '/detect-task-type',
+        { title },
+        { timeout: 45000 },
       );
-      return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // GENERAL is a defensible guess and the task still gets created. Log it, though:
+      // this used to be silent, so every task on the platform was typed GENERAL for
+      // months and nothing said why.
+      this.logger.warn(`Task type detection unavailable, defaulting to GENERAL: ${error.message}`);
       return { task_type: 'GENERAL', ai_provider: 'fallback' };
     }
   }
 
-  async extractTextFromFile(filePath: string, mimeType: string, userId?: string): Promise<string> {
-    try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) return 'Unable to extract text from file.';
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/extract-text`, {
-          file_path: filePath,
-          mime_type: mimeType,
-          api_key: info?.apiKey,
-          provider: info?.provider,
-          model: info?.model ?? undefined,
-        }, { headers: this.aiServiceHeaders }),
-      );
-      return response.data.extracted_text;
-    } catch (error) {
-      return 'Unable to extract text from file.';
-    }
-  }
+  // extractTextFromFile was removed here. It posted to /extract-text, which the AI
+  // service has never declared, and nothing in the repository called it, so it could
+  // only ever have returned its own failure string. Text extraction from uploads lives
+  // in ai-service/services/text_extractor.py and is reached another way.
 
-  async generateContent(title: string, userId?: string): Promise<{
+  async generateContent(title: string, userId: string): Promise<{
     description: string;
     goals: string;
     priority: number;
     ai_provider: string;
   }> {
     try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) {
-        return {
-          description: `Create a comprehensive plan for: ${title}.`,
-          goals: `1. Successfully complete ${title}\n2. Ensure quality\n3. Document outcomes`,
-          priority: 3,
-          ai_provider: 'fallback',
-        };
-      }
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/generate-content`, {
-          title,
-          type: 'task',
-          api_key: info.apiKey,
-          provider: info.provider,
-          model: info.model ?? undefined,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000,
-        }),
+      const data = await this.callAiService<any>(
+        userId,
+        '/generate-content',
+        { title, type: 'task' },
+        { timeout: 45000, feature: AIFeature.TASK_GENERATION },
       );
       return {
-        description: response.data.description,
-        goals: response.data.goals,
-        priority: response.data.priority || 3,
-        ai_provider: response.data.ai_provider || 'gemini',
+        description: data.description,
+        goals: data.goals,
+        priority: data.priority || 3,
+        ai_provider: data.ai_provider || 'gemini',
       };
     } catch (error) {
       return {
@@ -746,64 +534,31 @@ export class AiService {
     }
   }
 
-  async chat(
-    message: string,
-    user: any,
-    conversationHistory: any[],
-    knowledgeSources: any[],
-    additionalContext: any,
-    userId: string,
-    files?: any[],
-  ): Promise<any> {
-    try {
-      const info = await this.resolveAiCredential(userId);
-      if (!info) {
-        throw new HttpException('AI is not enabled for your company. Please ask your administrator to add an AI API key.', 403);
-      }
-      const response = await firstValueFrom(
-        this.httpService.post(`${this.aiServiceUrl}/chat`, {
-          message,
-          user: { ...user, position: user.position, department: user.department },
-          conversationHistory,
-          knowledgeSources,
-          additionalContext,
-          api_key: info.apiKey,
-          provider: info.provider,
-          model: info.model ?? undefined,
-          companyName: info.companyName,
-          files,
-        }, {
-          headers: this.aiServiceHeaders,
-          timeout: 45000,
-        }),
-      );
-
-      if (info?.companyId) this.clearQuotaStrikes(info.companyId);
-      if (info?.companyId && info.companyId !== 'platform') {
-        this.trackUsage(userId, info.companyId, AIFeature.CHAT);
-      }
-
-      return response.data;
-    } catch (error) {
-      this.logger.error('Error in AI chat:', error);
-      throw error;
-    }
-  }
+  // AiService.chat() was removed here. ChatService posts to /chat itself, so this
+  // had no callers, and it was the last thing holding the company-level strike
+  // counter alive.
 
   // ─────────────────────────────────────────────────────────────────────────
   // KNOWLEDGE SOURCES
   // ─────────────────────────────────────────────────────────────────────────
 
-  private async getActiveKnowledgeSources(userId?: string) {
+  /**
+   * Knowledge sources for the prompt, always confined to one company.
+   *
+   * Returns nothing when no company can be resolved. The filter used to be applied only
+   * when a userId and a companyId happened to be present, so a caller without either,
+   * a SUPER_ADMIN for instance, whose companyId is null by design, pulled every
+   * tenant's knowledge into the prompt. No tenant must never mean all tenants.
+   */
+  private async getActiveKnowledgeSources(userId: string) {
     try {
-      const where: any = { isActive: true };
-      if (userId) {
-        const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
-        if (user?.companyId) where.companyId = user.companyId;
-      }
+      if (!userId) return [];
+
+      const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { companyId: true } });
+      if (!user?.companyId) return [];
 
       const sources = await this.prisma.knowledgeSource.findMany({
-        where,
+        where: { isActive: true, companyId: user.companyId },
         orderBy: [{ priority: 'desc' }],
         select: { id: true, name: true, type: true, content: true, priority: true },
       });

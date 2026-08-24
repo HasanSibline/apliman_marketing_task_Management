@@ -14,6 +14,15 @@ interface TasksState {
     totalPages: number
   }
   isLoading: boolean
+  /**
+   * The most recent list request. Anything older that lands after it is discarded.
+   *
+   * The board refetches on every keystroke in the search box and on every scope tab,
+   * and the reducer used to take whichever response arrived last. A slow first request
+   * landing after a fast second one left the list showing results for a query the box
+   * no longer contains, with no way to tell it had happened.
+   */
+  listRequestId: string | null
   error: string | null
   filters: {
     phase?: string
@@ -36,6 +45,7 @@ const initialState: TasksState = {
     totalPages: 0,
   },
   isLoading: false,
+  listRequestId: null,
   error: null,
   filters: {},
 }
@@ -178,11 +188,13 @@ const tasksSlice = createSlice({
   extraReducers: (builder) => {
     builder
       // Fetch Tasks
-      .addCase(fetchTasks.pending, (state) => {
+      .addCase(fetchTasks.pending, (state, action) => {
         state.isLoading = true
+        state.listRequestId = action.meta.requestId
         state.error = null
       })
       .addCase(fetchTasks.fulfilled, (state, action) => {
+        if (state.listRequestId !== action.meta.requestId) return
         state.isLoading = false
         state.tasks = (action.payload.tasks as unknown as Task[]).map(task => ({
           ...task,
@@ -192,6 +204,7 @@ const tasksSlice = createSlice({
         state.error = null
       })
       .addCase(fetchTasks.rejected, (state, action) => {
+        if (state.listRequestId !== action.meta.requestId) return
         state.isLoading = false
         state.error = action.payload as string
       })
@@ -211,8 +224,12 @@ const tasksSlice = createSlice({
         state.error = action.payload as string
       })
 
-      // Fetch My Tasks
+      // Fetch My Tasks. Writes the same list as fetchTasks, so it shares the guard.
+      .addCase(fetchMyTasks.pending, (state, action) => {
+        state.listRequestId = action.meta.requestId
+      })
       .addCase(fetchMyTasks.fulfilled, (state, action) => {
+        if (state.listRequestId !== action.meta.requestId) return
         state.tasks = (action.payload.tasks as unknown as Task[]).map(task => ({
           ...task,
           createdById: task.createdBy?.id || ''
@@ -225,13 +242,13 @@ const tasksSlice = createSlice({
         state.phaseCount = action.payload
       })
 
-      // Create Task
+      // Create Task. Deliberately does not touch isLoading: that flag belongs to the
+      // list fetch, and sharing it meant any list response landing mid-create
+      // re-enabled the Create button and let a second click through.
       .addCase(createTask.pending, (state) => {
-        state.isLoading = true
         state.error = null
       })
       .addCase(createTask.fulfilled, (state, action) => {
-        state.isLoading = false
         // Add the newly created task to the tasks array immediately
         const newTask = {
           ...action.payload,
@@ -248,7 +265,6 @@ const tasksSlice = createSlice({
         // Note: Phase count will be refreshed on next dashboard visit or via interval
       })
       .addCase(createTask.rejected, (state, action) => {
-        state.isLoading = false
         state.error = action.payload as string
       })
 

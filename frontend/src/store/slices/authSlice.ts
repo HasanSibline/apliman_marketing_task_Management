@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit'
 import { authApi } from '@/services/api'
+import { clearTimeTrackingStorage } from './timeTrackingSlice'
 import toast from 'react-hot-toast'
 
 export interface User {
@@ -60,15 +61,28 @@ export const logout = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       await authApi.logout()
-      localStorage.removeItem('token')
+      endLocalSession()
       toast.success('Logged out successfully')
       return null
     } catch (error: any) {
-      localStorage.removeItem('token')
+      endLocalSession()
       return rejectWithValue(error.response?.data?.message || 'Logout failed')
     }
   }
 )
+
+/**
+ * Everything this browser was holding on behalf of the person signing out.
+ *
+ * The store is emptied by the root reducer on the same action, but two things live
+ * outside it: the token, and the task timers, which keep their own localStorage copy.
+ * Left behind, the timers are restored on the next load and shown to whoever signs in
+ * next on this machine.
+ */
+function endLocalSession() {
+  localStorage.removeItem('token')
+  clearTimeTrackingStorage()
+}
 
 export const checkAuth = createAsyncThunk(
   'auth/checkAuth',

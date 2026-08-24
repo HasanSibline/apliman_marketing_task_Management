@@ -96,6 +96,14 @@ const VERDICT = {
   },
 } as const
 
+/**
+ * The four verdicts above are everything the server sends today. Reading the map
+ * directly on `.label` meant that anything else, a verdict added later or an older
+ * response shape, was `undefined.label` and a thrown TypeError, which blanked the
+ * whole multi-year table and both exports rather than one cell.
+ */
+const verdictLabel = (v: string) => (VERDICT as Record<string, { label: string }>)[v]?.label ?? v
+
 // Semantic, not brand: landed reads as good, missed as bad, in both themes.
 const LANDED = '#16a34a'
 const MISSED = '#dc2626'
@@ -104,6 +112,16 @@ const ACCENT = '#2563eb'
 const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
   const [selectedYears, setSelectedYears] = useState<number[]>([year])
   const [reports, setReports] = useState<Report[]>([])
+  /**
+   * Years that were asked for and did not come back.
+   *
+   * Kept, rather than only toasted, because of what the page does next. Select 2024
+   * and 2025, have 2025 fail, and `reports` has one row: the view drops out of
+   * comparison mode into the full single-year report for 2024, headline verdict and
+   * all, on a screen the reader opened to look at 2025. The toast that said so is
+   * gone in four seconds and the authoritative-looking report stays.
+   */
+  const [missingYears, setMissingYears] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
   // Recharts draws its tooltip with inline styles, so it defaults to a white card
@@ -120,25 +138,33 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
     Promise.all(selectedYears.slice().sort((a, b) => a - b).map(fetchYear))
       .then((rows) => {
         if (cancelled) return
+        const wanted = selectedYears.slice().sort((a, b) => a - b)
         const ok = rows.filter((r): r is Report => !!r)
         setReports(ok)
-        if (ok.length < selectedYears.length) toast.error('Some years could not be loaded')
+        setMissingYears(wanted.filter((_, i) => !rows[i]))
+        if (ok.length < wanted.length) toast.error('Some years could not be loaded')
       })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [selectedYears])
 
   const toggleYear = (y: number) => {
+    // Told the parent "the report year is now y" even when the click had just
+    // *removed* y from the comparison, and even when the click was refused because y
+    // was the last year left. Only an addition is a choice of year.
+    const isAdding = !selectedYears.includes(y)
     setSelectedYears((prev) => {
       // Never end up with nothing selected: an empty report is not a useful state.
       if (prev.includes(y)) return prev.length === 1 ? prev : prev.filter((x) => x !== y)
       return [...prev, y]
     })
-    onYearChange(y)
+    if (isAdding) onYearChange(y)
   }
 
-  // The single-year view is the common case, so it stays the default shape.
-  const report = reports.length === 1 ? reports[0] : null
+  // The single-year view is the common case, so it stays the default shape. It is
+  // keyed off what was asked for, not off what happened to arrive, so a failure
+  // cannot quietly turn a two-year comparison into a report on one of them.
+  const report = selectedYears.length === 1 && reports.length === 1 ? reports[0] : null
   const multi = reports.length > 1
 
   const exportWorkbook = async () => {
@@ -152,7 +178,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
       await exportYearReport(
         reports.map((r) => ({
           year: r.year,
-          verdictLabel: VERDICT[r.verdict].label,
+          verdictLabel: verdictLabel(r.verdict),
           objectiveRate: r.objectiveRate,
           summary: r.summary,
           quarters: r.quarters,
@@ -173,7 +199,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
     if (!report) return
     const rows: string[][] = [
       ['Year', String(report.year)],
-      ['Verdict', VERDICT[report.verdict].label],
+      ['Verdict', verdictLabel(report.verdict)],
       ['Objectives landed', `${report.summary.objectivesLanded} of ${report.summary.objectivesTotal}`],
       ['Key results met', `${report.summary.keyResultsMet} of ${report.summary.keyResultsTotal}`],
       ['Average objective progress', `${report.summary.averageObjectiveProgress}%`],
@@ -195,7 +221,9 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
     a.href = url
     a.download = `aura-year-report-${report.year}.csv`
     a.click()
-    URL.revokeObjectURL(url)
+    // Revoked on the next tick. Doing it in the same one races the browser's own read
+    // of the blob, which is how you get an intermittently empty download.
+    setTimeout(() => URL.revokeObjectURL(url), 0)
   }
 
   if (loading) {
@@ -211,6 +239,13 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
     return <EmptyState icon={DocumentTextIcon} title="No report available" description="Nothing could be loaded for the selected years." />
   }
 
+  const missingNotice = missingYears.length > 0 && (
+    <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-200">
+      {missingYears.join(', ')} could not be loaded, so {missingYears.length === 1 ? 'it is' : 'they are'}{' '}
+      not counted in anything below.
+    </div>
+  )
+
   const v = report ? VERDICT[report.verdict] : null
   const outcomeData = !report ? [] : [
     { name: 'Landed', value: report.summary.objectivesLanded },
@@ -219,6 +254,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
 
   return (
     <div ref={reportRef} className="space-y-6">
+      {missingNotice}
       <div className="no-print flex flex-wrap items-end justify-between gap-3">
         <div>
           <span className="form-label">Years</span>
@@ -298,7 +334,7 @@ const YearReport: React.FC<Props> = ({ years, year, onYearChange }) => {
                 {reports.map((r) => (
                   <tr key={r.year} className="border-b border-gray-100 last:border-0 dark:border-gray-700/60">
                     <td className="px-3 py-2 font-medium text-gray-900 dark:text-white">{r.year}</td>
-                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{VERDICT[r.verdict].label}</td>
+                    <td className="px-3 py-2 text-gray-700 dark:text-gray-300">{verdictLabel(r.verdict)}</td>
                     <td className="px-3 py-2 tabular-nums">{r.summary.objectivesTotal}</td>
                     <td className="px-3 py-2 tabular-nums">{r.summary.objectivesLanded}</td>
                     <td className="px-3 py-2 tabular-nums">{r.summary.keyResultsMet}/{r.summary.keyResultsTotal}</td>

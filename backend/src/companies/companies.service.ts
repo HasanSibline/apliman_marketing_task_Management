@@ -255,9 +255,14 @@ export class CompaniesService {
       },
     });
 
+    // A provider key goes in and never comes out, the rule ai-providers.controller.ts
+    // already enforces. This used to hand back the decrypted key "for editing", which
+    // put a live credential in browser memory and in every log between here and there.
+    const { aiApiKey, ...companyWithoutKey } = company as any;
+
     return {
-      ...company,
-      aiApiKey: company.aiApiKey ? this.decryptApiKey(company.aiApiKey) : null, // Decrypt for editing
+      ...companyWithoutKey,
+      aiKeySet: !!aiApiKey,
       stats: {
         totalUsers: company._count.users,
         activeTasks: activeTasks,
