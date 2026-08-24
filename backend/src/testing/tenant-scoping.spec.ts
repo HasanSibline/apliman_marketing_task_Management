@@ -12,6 +12,18 @@ import {
 } from './prisma-recorder';
 
 /**
+ * Extraction is irrelevant to tenancy, so it is stubbed rather than mocked. If one of
+ * these tests ever reaches it, that is itself a finding: reading a document is not
+ * something an authorization check should do.
+ */
+const noExtraction: any = {
+  extractDocumentText: async () => {
+    throw new Error('extractDocumentText must not be reached from an authorization test');
+  },
+};
+
+
+/**
  * The bug class, caught generically rather than one case at a time.
  *
  * All four cross-tenant defects the audit found were the same mistake wearing different
@@ -132,17 +144,17 @@ const SCENARIOS: Scenario[] = [
   },
   {
     name: 'FilesService.getTicketFiles',
-    run: (prisma) => new FilesService(prisma, silentConfig).getTicketFiles('ticket-1', CALLER),
+    run: (prisma) => new FilesService(prisma, silentConfig, noExtraction).getTicketFiles('ticket-1', CALLER),
   },
   {
     name: 'FilesService.downloadTicketFile',
     run: (prisma) =>
-      new FilesService(prisma, silentConfig).downloadTicketFile('attachment-1', CALLER),
+      new FilesService(prisma, silentConfig, noExtraction).downloadTicketFile('attachment-1', CALLER),
   },
   {
     name: 'FilesService.deleteTicketFile',
     run: (prisma) =>
-      new FilesService(prisma, silentConfig).deleteTicketFile('attachment-1', CALLER),
+      new FilesService(prisma, silentConfig, noExtraction).deleteTicketFile('attachment-1', CALLER),
   },
   {
     name: 'AnalyticsService.getTeamAnalytics',

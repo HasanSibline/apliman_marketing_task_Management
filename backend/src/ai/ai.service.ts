@@ -538,6 +538,44 @@ export class AiService {
   // had no callers, and it was the last thing holding the company-level strike
   // counter alive.
 
+  /**
+   * Read the text out of an uploaded document.
+   *
+   * Deliberately NOT routed through the provider chain. OCR runs locally against
+   * Tesseract in the AI service and costs no provider quota, so making it depend on a
+   * configured credential would mean a company with no AI set up could not read its own
+   * documents. `/scrape-url` is reached the same way and for the same reason.
+   *
+   * Callers get a result or a thrown error; nothing here invents text. An earlier
+   * version returned the string "Unable to extract text from file." on failure, which a
+   * caller could not tell apart from a document that genuinely contained that sentence.
+   */
+  async extractDocumentText(
+    file: { filePath: string; mimeType: string; fileName?: string },
+  ): Promise<{ extractedText: string; confidence: number; ocrAvailable: boolean }> {
+    // Uploads land on Cloudinary, so filePath is usually a URL. It is a disk path only
+    // when Cloudinary is not configured and the local fallback took over.
+    const remote = /^https?:\/\//i.test(file.filePath);
+
+    const response = await firstValueFrom(
+      this.httpService.post(
+        `${this.aiServiceUrl}/extract-text`,
+        {
+          ...(remote ? { file_url: file.filePath } : { file_path: file.filePath }),
+          mime_type: file.mimeType,
+          file_name: file.fileName,
+        },
+        { headers: this.aiServiceHeaders, timeout: 90000 },
+      ),
+    );
+
+    return {
+      extractedText: response.data?.extracted_text ?? '',
+      confidence: response.data?.confidence ?? 0,
+      ocrAvailable: response.data?.ocr_available !== false,
+    };
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // KNOWLEDGE SOURCES
   // ─────────────────────────────────────────────────────────────────────────

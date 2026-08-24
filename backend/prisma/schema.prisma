@@ -179,6 +179,15 @@ model TicketAttachment {
   uploadedAt DateTime @default(now())
   ticket     Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
+  // Text read out of the document after upload, by Tesseract for images and by a
+  // parser for PDFs and plain text. Nullable because extraction is asynchronous: the
+  // upload returns as soon as the file is stored, and the text arrives afterwards.
+  extractedText String?  @db.Text
+  ocrConfidence Float?
+  /// PENDING, DONE, UNSUPPORTED or FAILED. Carried explicitly so an empty
+  /// extractedText can be told apart from one that was never attempted.
+  ocrStatus     String   @default("PENDING")
+
   @@map("ticket_attachments")
 }
 
@@ -474,6 +483,15 @@ model TaskFile {
   mimeType   String
   uploadedAt DateTime @default(now())
   task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  // Text read out of the document after upload, by Tesseract for images and by a
+  // parser for PDFs and plain text. Nullable because extraction is asynchronous: the
+  // upload returns as soon as the file is stored, and the text arrives afterwards.
+  extractedText String?  @db.Text
+  ocrConfidence Float?
+  /// PENDING, DONE, UNSUPPORTED or FAILED. Carried explicitly so an empty
+  /// extractedText can be told apart from one that was never attempted.
+  ocrStatus     String   @default("PENDING")
 
   @@map("task_files")
 }

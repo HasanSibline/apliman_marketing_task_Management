@@ -110,6 +110,21 @@ export class FilesController {
     return this.filesService.getTaskFiles(taskId, req.user.id, req.user.role);
   }
 
+  /**
+   * Read a document again.
+   *
+   * Extraction runs once, on upload. A deployment without Tesseract records UNSUPPORTED
+   * rather than text, and those rows are worth another attempt once the binary is there,
+   * which this offers without asking anyone to upload the file a second time.
+   */
+  @Post('task-file/:fileId/extract')
+  @ApiOperation({ summary: 'Re-run text extraction on an uploaded task document' })
+  @ApiResponse({ status: 201, description: 'Extraction queued' })
+  @ApiResponse({ status: 404, description: 'File not found or access denied' })
+  reextractTaskFile(@Param('fileId') fileId: string, @Request() req) {
+    return this.filesService.reextractTaskFile(fileId, req.user.id);
+  }
+
   @Get('download/:fileId')
   @ApiOperation({ summary: 'Download a file' })
   @ApiResponse({ status: 200, description: 'File downloaded successfully' })

@@ -13,9 +13,13 @@ from services.web_scraper import WebScraper
 from services.chat_service import ChatService
 from services.priority_analyzer import PriorityAnalyzer
 from services.completeness_checker import CompletenessChecker
+from services.text_extractor import TextExtractorService
 from typing import Optional, List, Dict, Any
 from pydantic import BaseModel
 import traceback
+import tempfile
+import aiohttp
+from urllib.parse import urlparse
 
 # Configure logging
 logger = logging.getLogger("ai_service")
@@ -72,6 +76,10 @@ web_scraper = WebScraper()
 # API key, so unlike ContentGenerator they are not rebuilt per company.
 priority_analyzer = PriorityAnalyzer()
 completeness_checker = CompletenessChecker()
+# Stateless and key-less like the two above. OCR runs locally against Tesseract, so
+# this endpoint deliberately does not resolve a company API key: extraction costs no
+# provider quota and must keep working for a company that has no AI configured at all.
+text_extractor = TextExtractorService()
 
 
 def with_usage(payload: Dict[str, Any], usage: Optional[Dict[str, int]]) -> Dict[str, Any]:
@@ -376,6 +384,120 @@ async def scrape_url(request: ScrapeUrlRequest):
                 "message": f"URL scraping failed: {str(e)}"
             }
         )
+
+class ExtractTextRequest(BaseModel):
+    """A document to read, named either by URL or by a path on this machine."""
+    file_url: Optional[str] = None
+    file_path: Optional[str] = None
+    mime_type: str
+    file_name: Optional[str] = None
+
+
+# Uploads go to Cloudinary, so most documents arrive as a URL while TextExtractorService
+# reads from disk. That mismatch is why this route did not exist: the backend called
+# /extract-text, nothing answered, and the failure was swallowed by a fallback string.
+MAX_DOCUMENT_BYTES = 20 * 1024 * 1024
+
+
+async def _download_to_temp(url: str, suffix: str) -> str:
+    """Fetch a remote document into a temporary file and return its path.
+
+    Capped, because this reads a URL supplied by the caller and an unbounded read is a
+    way to exhaust the container's disk. The cap is checked against the declared length
+    and again while streaming, since a declared length is a claim rather than a fact.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        raise HTTPException(status_code=400, detail="Only http and https documents can be read.")
+
+    fd, path = tempfile.mkstemp(suffix=suffix)
+    written = 0
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                if response.status != 200:
+                    raise HTTPException(
+                        status_code=502,
+                        detail=f"Could not read the document ({response.status}).",
+                    )
+                declared = response.headers.get("Content-Length")
+                if declared and int(declared) > MAX_DOCUMENT_BYTES:
+                    raise HTTPException(status_code=413, detail="That document is too large to read.")
+
+                with os.fdopen(fd, "wb") as handle:
+                    fd = None  # fdopen owns it now
+                    async for chunk in response.content.iter_chunked(64 * 1024):
+                        written += len(chunk)
+                        if written > MAX_DOCUMENT_BYTES:
+                            raise HTTPException(
+                                status_code=413, detail="That document is too large to read."
+                            )
+                        handle.write(chunk)
+        return path
+    except Exception:
+        if fd is not None:
+            os.close(fd)
+        if os.path.exists(path):
+            os.unlink(path)
+        raise
+
+
+@app.post("/extract-text", dependencies=[Depends(require_service_token)])
+async def extract_text(request: ExtractTextRequest):
+    """Read the text out of an uploaded document.
+
+    Images go through Tesseract OCR; PDFs and plain text are parsed directly. The
+    response carries a confidence figure so a caller can tell a clean read from a scan
+    that produced mostly noise, rather than treating every result as equally good.
+    """
+    temp_path = None
+    try:
+        if request.file_url:
+            suffix = os.path.splitext(urlparse(request.file_url).path)[1] or ""
+            temp_path = await _download_to_temp(request.file_url, suffix)
+            source = temp_path
+        elif request.file_path:
+            source = request.file_path
+        else:
+            raise HTTPException(status_code=400, detail="A file_url or a file_path is required.")
+
+        result = await text_extractor.extract(source, request.mime_type)
+
+        return {
+            "extracted_text": result.get("extracted_text", ""),
+            "confidence": result.get("confidence", 0.0),
+            "method": result.get("method"),
+            "mime_type": request.mime_type,
+            "file_name": request.file_name,
+            # Reported rather than assumed. Without Tesseract on the host an image
+            # extraction returns an explanatory string instead of text, and a caller
+            # storing that as if it were the document's contents would be worse than
+            # storing nothing.
+            "ocr_available": text_extractor.tesseract_available,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Text extraction failed: {str(e)}")
+        logger.error(traceback.format_exc())
+        raise HTTPException(
+            status_code=500,
+            detail={"status": "error", "message": f"Text extraction failed: {str(e)}"},
+        )
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            os.unlink(temp_path)
+
+
+@app.get("/extract-text/capabilities", dependencies=[Depends(require_service_token)])
+async def extract_text_capabilities():
+    """What this deployment can actually read, so a caller does not have to guess."""
+    return {
+        "ocr_available": text_extractor.tesseract_available,
+        **text_extractor.get_supported_types(),
+    }
+
 
 class ChatRequest(BaseModel):
     message: str

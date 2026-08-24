@@ -4,11 +4,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { FilesService } from './files.service';
 import { FilesController, PublicFilesController } from './files.controller';
 import { TasksModule } from '../tasks/tasks.module';
+import { AiModule } from '../ai/ai.module';
 import { multerConfig } from './config/multer.config';
 
 @Module({
   imports: [
     TasksModule,
+    AiModule,
     MulterModule.registerAsync({
       imports: [ConfigModule],
       useFactory: multerConfig,

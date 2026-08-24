@@ -3,6 +3,17 @@ import { FilesService } from './files.service';
 import { createPrismaRecorder, ModelHandlers } from '../testing/prisma-recorder';
 
 /**
+ * Extraction is irrelevant to tenancy, so it is stubbed rather than mocked. If one of
+ * these tests ever reaches it, that is itself a finding: reading a document is not
+ * something an authorization check should do.
+ */
+const noExtraction: any = {
+  extractDocumentText: async () => {
+    throw new Error('extractDocumentText must not be reached from an authorization test');
+  },
+};
+
+/**
  * The bug class: an attachment endpoint that trusts the id it was handed.
  *
  * A ticket id is a uuid in a URL. Nothing about holding one proves the holder is in the
@@ -80,7 +91,7 @@ function anUpload() {
 function buildService(handlers: ModelHandlers) {
   const recorder = createPrismaRecorder(handlers);
   const config = { get: () => undefined } as any;
-  return { service: new FilesService(recorder.prisma, config), recorder };
+  return { service: new FilesService(recorder.prisma, config, noExtraction), recorder };
 }
 
 /** The caller, the ticket they are reaching for, and the file on it. */

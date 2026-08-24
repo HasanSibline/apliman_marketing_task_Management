@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { AiService } from '../ai/ai.service';
 import sharp from 'sharp';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -9,11 +10,14 @@ import { v2 as cloudinary } from 'cloudinary';
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
+
   private isCloudinaryConfigured = false;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly aiService: AiService,
   ) {
     const cloudName = this.configService.get<string>('CLOUDINARY_CLOUD_NAME');
     const apiKey = this.configService.get<string>('CLOUDINARY_API_KEY');
@@ -153,6 +157,13 @@ export class FilesService {
             fileSize: processedFile.size,
             mimeType: file.mimetype,
           },
+        });
+
+        // Reading the document starts here and finishes on its own time.
+        this.extractInBackground('task', fileRecord.id, {
+          filePath: fileRecord.filePath,
+          mimeType: fileRecord.mimeType,
+          fileName: fileRecord.fileName,
         });
 
         uploadedFiles.push(fileRecord);
@@ -396,6 +407,83 @@ export class FilesService {
         count: item._count.id,
       })),
     };
+  }
+
+  /**
+   * Read an uploaded document's text, after the upload has already returned.
+   *
+   * Deliberately not awaited by the upload. Optical character recognition on a scanned
+   * page takes seconds, and a person watching a progress bar should not be made to wait
+   * for a step whose result they have not asked for yet. The row is written the moment
+   * the file is stored, and the text lands on it when it is ready.
+   *
+   * Nothing here throws. A document that cannot be read is a document the user still
+   * uploaded successfully, so the failure is recorded on the row as a status rather than
+   * raised to a caller who has already been told the upload worked. `ocrStatus` is what
+   * separates "read, and it contained nothing" from "never attempted" and from "tried
+   * and failed", which a null extractedText on its own cannot express.
+   */
+  private extractInBackground(
+    kind: 'task' | 'ticket',
+    id: string,
+    file: { filePath: string; mimeType: string; fileName: string },
+  ): void {
+    const table: any = kind === 'task' ? this.prisma.taskFile : this.prisma.ticketAttachment;
+
+    void (async () => {
+      try {
+        const result = await this.aiService.extractDocumentText(file);
+
+        await table.update({
+          where: { id },
+          data: {
+            extractedText: result.extractedText || null,
+            ocrConfidence: result.confidence,
+            // An image on a host with no Tesseract is not a failed read, it is a read
+            // this deployment cannot perform. Saying so stops anyone treating the
+            // explanatory string that comes back as the document's contents.
+            ocrStatus: result.ocrAvailable ? 'DONE' : 'UNSUPPORTED',
+          },
+        });
+      } catch (error: any) {
+        this.logger.warn(
+          `Text extraction failed for ${kind} file ${id}: ${error?.message ?? 'unknown error'}`,
+        );
+        await table
+          .update({ where: { id }, data: { ocrStatus: 'FAILED' } })
+          .catch(() => undefined);
+      }
+    })();
+  }
+
+  /**
+   * Read a document again on request.
+   *
+   * Extraction runs once on upload, and a deployment without Tesseract records
+   * UNSUPPORTED rather than text. Once the binary is present those rows are worth
+   * another attempt, and this is how that happens without re-uploading the file.
+   */
+  async reextractTaskFile(fileId: string, userId: string) {
+    const file = await this.prisma.taskFile.findUnique({ where: { id: fileId } });
+    if (!file) throw new NotFoundException('File not found');
+
+    // Same ownership rule the download path applies, so re-reading a document is not a
+    // way around the check that governs reading it in the first place. The role comes
+    // from the database rather than from the caller, matching authorizeTicketAccess.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    await this.getTaskFiles(file.taskId, userId, user?.role ?? 'EMPLOYEE');
+
+    await this.prisma.taskFile.update({ where: { id: fileId }, data: { ocrStatus: 'PENDING' } });
+    this.extractInBackground('task', fileId, {
+      filePath: file.filePath,
+      mimeType: file.mimeType,
+      fileName: file.fileName,
+    });
+
+    return { status: 'PENDING' };
   }
 
   // --- Ticket Attachments ---
