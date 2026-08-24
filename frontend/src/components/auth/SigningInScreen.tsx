@@ -377,9 +377,11 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
   const TRACK_PX = 80
 
   const meetings = real.meetings ?? [
-    { at: '10:00', title: 'Team stand-up' },
-    { at: '13:30', title: 'Campaign review' },
-    { at: '16:00', title: 'Client check-in' },
+    // Same shape as toLocaleTimeString gives, so the fallback rehearses the real
+    // layout rather than a narrower one that happens to fit.
+    { at: '10:00 AM', title: 'Team stand-up' },
+    { at: '01:30 PM', title: 'Campaign review' },
+    { at: '04:00 PM', title: 'Client check-in' },
   ]
 
   return (
@@ -687,7 +689,7 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
               // The cap is what makes the lane a lane. Everything here is positioned by
               // percentage and sized by content, so without a ceiling this card grows
               // with whatever it is given and walks into the assistant below it.
-              style={{ ...box('agenda'), maxHeight: '44vh', overflow: 'hidden' }}
+              style={{ ...box('agenda'), maxHeight: '40vh', overflow: 'hidden' }}
               animate={{ borderColor: summarised ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.10)' }}
               transition={{ duration: 0.3 }}
             >
@@ -696,7 +698,20 @@ const SigningInScreen: React.FC<Props> = ({ name, onDone }) => {
               <div className="mt-3 space-y-2">
                 {meetings.map((m) => (
                   <div key={m.title} className="flex items-center gap-2.5">
-                    <span className="w-11 shrink-0 text-[11px] tabular-nums text-gray-500">{m.at}</span>
+                    {/*
+                      * Wide enough for "03:00 PM", which is what the real data looks like.
+                      *
+                      * w-11 is 44px, and it fit the demonstration times below ("10:00",
+                      * "13:30") perfectly. Real meetings come from toLocaleTimeString, so
+                      * they arrive as "03:00 PM" and wrapped onto a second line: every row
+                      * doubled in height, the card grew about 70px past the lane it was
+                      * given, and the assistant bar at the bottom of the stage ended up
+                      * behind its lower half. The demonstration data was the only thing
+                      * this column was ever measured against.
+                      */}
+                    <span className="w-16 shrink-0 whitespace-nowrap text-[11px] tabular-nums text-gray-500">
+                      {m.at}
+                    </span>
                     <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-primary-500" />
                     <span className="truncate text-xs text-gray-300">{m.title}</span>
                   </div>
