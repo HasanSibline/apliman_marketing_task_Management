@@ -22,56 +22,78 @@ The browser never talks to `ai-service` directly. Only the backend does, authent
 
 ## Gotchas
 
-### Production baselines once, then runs real migrations
+### Production runs `migrate deploy`, and baselines only if told to
 
 `backend/scripts/start-production.js` used to run `prisma db push --accept-data-loss` on every
-boot. It no longer does. On a database with no migration history it syncs the schema once and
-records every existing migration as applied; after that, every deploy is a plain
-`prisma migrate deploy`.
+boot. It no longer does. It runs `prisma migrate deploy`, and falls back to baselining only
+when Prisma answers **P3005**, which is Prisma saying the database has no migration history.
 
 What this means now:
 
 - **Migration SQL does execute in production.** A data fix in a migration works. This was not
   true before, so treat any advice about self-healing-on-read as historical.
-- **A destructive change fails loudly instead of silently.** The one-time baseline runs
-  `db push` *without* `--accept-data-loss`, so a deploy that would drop a column refuses to
-  boot rather than dropping it.
-- **The one trap left:** the baseline path marks *every* migration in the folder as applied
-  without running it. A new migration added before production has ever been baselined would be
-  skipped. Production was baselined at `8be6512`, so this only matters for a fresh database.
+- **A destructive change fails loudly instead of silently.** The baseline path runs `db push`
+  *without* `--accept-data-loss`, so it refuses to drop a column rather than dropping it.
+- **A failure on a database that already has history stops the boot.** It is not treated as a
+  baselining problem, because baselining an established database marks pending migrations as
+  applied without running them, and loses the change silently.
+
+**Never build a `node -e` script for Prisma through a shell.** Every client method starts with
+`$`, and a shell expands `$queryRawUnsafe` and `$disconnect` inside double quotes to nothing.
+This is not hypothetical: `hasMigrationHistory` did exactly that, Node received `p.(...)`, and
+the `catch` turned the SyntaxError into "no history". Every deploy from `8be6512` until this
+was fixed therefore took the baseline path, and the first migration that dropped a column
+brought production down. Both probes use `execFileSync` with an argument array now, where no shell is
+involved. An earlier version of this file claimed production had been baselined at `8be6512`;
+that was never true.
 
 Locally, the database was built with `db push`, so a first `prisma migrate deploy` fails with
 **P3005**. Baseline the same way: `prisma migrate resolve --applied <name>` for each
 pre-existing migration, then deploy.
 
-### AI credentials resolve in one place
+### Every AI call goes through the gateway. There is no second path
 
-Order is **company key → platform key → unavailable**, implemented once in
-`AiService.resolveAiCredential` (`backend/src/ai/ai.service.ts`). `chat.service.ts` calls that
-same method — it used to duplicate the logic and drifted into a separate bug. Do not add a third
-copy.
+`AiGatewayService.execute` picks a provider from the company's chain, and
+`AiService.callAiService` is the only way to reach the AI service. Nothing else resolves a
+credential, and nothing else knows a provider exists.
 
-The platform key lives in `SystemSettings.platformAi*`, is set by a super admin at
-Settings → AI Platform, and is encrypted with `ENCRYPTION_KEY` via
-`CompaniesService.encryptApiKey`. **If `ENCRYPTION_KEY` changes, every stored key becomes
-undecryptable** — decryption returns `[DECRYPTION_FAILED]` rather than throwing, so watch for
-that string in logs.
+This is worth defending. There used to be a second resolver, `resolveAiCredential`, reading a
+single `Company.aiApiKey`. Chat, the day brief, ticket checks and both learning calls used it,
+so the chain's priority order, cooldowns, failover and usage figures applied to every AI
+feature except the ones people actually used. Both it and the platform-wide key are gone, along
+with a company-level circuit breaker that nothing ever called.
 
-Providers: `anthropic` (default, reads images and PDFs), `gemini` (reads images, low free-tier
-rate limit), `groq` and `openai` (text only — image attachments error).
+Ask `AiGatewayService.statusFor` whether a company can use AI. Do not infer it from
+`Company.aiEnabled` or `Company.aiApiKey`: those are the legacy single key, and a company
+configured through the chain has neither, so inferring from them told such a tenant that AI was
+disabled and locked the chat composer.
 
-### AI quota is a circuit breaker, not provider billing
+Keys are encrypted with `ENCRYPTION_KEY` via `CompaniesService.encryptApiKey`. **If
+`ENCRYPTION_KEY` changes, every stored key becomes undecryptable**: decryption returns
+`[DECRYPTION_FAILED]` rather than throwing, so watch for that string in logs.
 
-A company is paused only after `QUOTA_STRIKES_BEFORE_LOCKOUT` rate-limit hits inside a rolling
-hour, and **every lockout carries an expiry**. If AI "runs out" unexpectedly, look at
-`recordQuotaStrike` / `clearQuotaStrikes` before suspecting the provider.
+Providers: `anthropic` (reads images and PDFs), `gemini` (reads images, low free-tier rate
+limit), `groq` and `openai` (text only, image attachments error). The Gemini default is
+`gemini-2.5-flash`; **it retires on 2026-10-16**, successor `gemini-3.5-flash` at roughly
+fifteen times the price.
 
-An older version flagged a company on its first 429 with no reset time, which disabled AI
-permanently. `resolveAiCredential` treats a lockout with a null reset time as a legacy row and
-releases it.
+### Cooldowns are per provider entry, and they are not billing
 
-Note each chat message costs **2+ upstream calls** — `ContextLearningService` fires a second one
-to extract user context. Budget accordingly.
+When AI stops working, read `AiProviderConfig.status`, `cooldownUntil` and `lastError` before
+suspecting the provider. A rate limit rests one entry and moves to the next; it does not stop
+the company. The clock half-opens the breaker, so nothing has to run to release it.
+
+The company-wide breaker this replaced is gone. It flagged a whole tenant, its state lived in
+memory so it forgot everything on each deploy, and by the end nothing called it at all while
+its tests still passed.
+
+`estimatedCost` is written from real token counts, so `monthlyBudget` on an emergency entry is
+a real ceiling rather than a field. Rates go stale: they live in `backend/src/ai/ai-cost.ts`
+with their sources.
+
+Note each chat message costs **2+ upstream calls**, since `ContextLearningService` fires a
+second one to extract user context. That second call is now throttled to once a day per topic
+rather than once per message. Budget accordingly.
 
 ### `blue-*` is a semantic colour, `primary-*` is the brand
 

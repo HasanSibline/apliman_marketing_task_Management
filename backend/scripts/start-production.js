@@ -6,7 +6,7 @@
  * - Adds timeouts to prevent hangs on Render
  */
 
-const { execSync } = require('child_process');
+const { execSync, execFileSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -34,10 +34,18 @@ function run(command, description, required = true) {
 // Check if super admin already exists (returns true/false synchronously)
 function adminExists() {
   try {
-    const out = execSync(
-      `node -e "const{PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.user.findFirst({where:{role:'SUPER_ADMIN'}}).then(u=>{console.log(u?'YES':'NO');p.\\$disconnect()}).catch(()=>{console.log('NO');p.\\$disconnect()})"`,
-      { cwd: ROOT, timeout: 30_000 }
-    ).toString().trim();
+    const script =
+      "const{PrismaClient}=require('@prisma/client');" +
+      'const p=new PrismaClient();' +
+      "p.user.findFirst({where:{role:'SUPER_ADMIN'}})" +
+      ".then(u=>{console.log(u?'YES':'NO');return p.$disconnect()})" +
+      ".catch(()=>{console.log('NO');return p.$disconnect()});";
+    const out = execFileSync(process.execPath, ['-e', script], {
+      cwd: ROOT,
+      timeout: 30_000,
+    })
+      .toString()
+      .trim();
     return out.includes('YES');
   } catch {
     return false;
@@ -70,6 +78,25 @@ function migrationNames() {
     .sort();
 }
 
+/**
+ * Whether this database has already recorded migrations as applied.
+ *
+ * Run with execFileSync, never through a shell.
+ *
+ * This was `execSync(`node -e ${JSON.stringify(script)}`)`, which hands the source to
+ * `sh -c`. A shell expands `$queryRawUnsafe` and `$disconnect` inside double quotes as
+ * variables, and they are unset, so Node received `p.(...)` and threw a SyntaxError on
+ * every boot. The catch below turned that into `false`, so the answer was always "no
+ * history": production took the one-time baseline path on every single deploy. Nobody
+ * noticed, because baselining an already-baselined database is mostly harmless.
+ *
+ * It stopped being harmless the moment a migration dropped a column. The baseline runs
+ * `db push` without --accept-data-loss, that refused the drop, and the service would
+ * not start at all.
+ *
+ * Every Prisma client method begins with `$`, so a shell anywhere in this path is a
+ * trap. adminExists() below survived only because it escaped them by hand.
+ */
 function hasMigrationHistory() {
   try {
     const script =
@@ -78,7 +105,10 @@ function hasMigrationHistory() {
       "p.$queryRawUnsafe('SELECT count(*)::int AS n FROM _prisma_migrations WHERE finished_at IS NOT NULL')" +
       ".then(r=>{console.log('COUNT:'+r[0].n);return p.$disconnect()})" +
       ".catch(()=>{console.log('COUNT:-1');return p.$disconnect()});";
-    const out = execSync(`node -e ${JSON.stringify(script)}`, { cwd: ROOT, timeout: 30_000 }).toString();
+    const out = execFileSync(process.execPath, ['-e', script], {
+      cwd: ROOT,
+      timeout: 30_000,
+    }).toString();
     const m = out.match(/COUNT:(-?\d+)/);
     return m ? parseInt(m[1], 10) > 0 : false;
   } catch {
@@ -95,12 +125,37 @@ if (forceReset) {
 } else {
   console.log('🔄 Step 1: Applying database migrations...');
 
-  if (!hasMigrationHistory()) {
-    console.log('   No migration history found. Baselining this database once.');
+  // The ordinary path is tried first, and baselining is the exception rather than a
+  // gate in front of it.
+  //
+  // It used to be the other way round: decide up front whether history exists, and
+  // baseline if not. That put a query nobody checked in charge of the boot, and when
+  // the query silently failed the answer was always "baseline", forever. Asking
+  // `migrate deploy` to do its job and listening to what it says is both simpler and
+  // self-correcting, because P3005 is Prisma telling us precisely the one thing
+  // baselining is for.
+  const deployed = run('npx prisma migrate deploy', '🗄️  Applying migrations', false);
+
+  if (!deployed) {
+    // Distinguish "this database has never been migrated" from "the migration failed".
+    // Baselining an established database would mark pending migrations as applied
+    // without running them, which loses the change quietly. That is far worse than not
+    // starting, so anything with history stops here.
+    if (hasMigrationHistory()) {
+      console.error(
+        '\n❌ Migrations failed on a database that already has migration history.\n' +
+        '   This is not a baselining problem, so it is not being treated as one.\n' +
+        '   Read the Prisma error above: the schema and the migrations disagree, and\n' +
+        '   a person has to decide what the right resolution is.\n'
+      );
+      process.exit(1);
+    }
+
+    console.log('   No migration history. Baselining this database once.');
 
     // No --accept-data-loss here on purpose: this REFUSES a destructive change
-    // rather than performing it, so a deploy that would drop a column now fails
-    // loudly instead of losing data quietly.
+    // rather than performing it, so a deploy that would drop a column fails loudly
+    // instead of losing data quietly.
     run('npx prisma db push --skip-generate', '🗄️  Syncing schema before baseline');
 
     for (const name of migrationNames()) {
@@ -108,9 +163,9 @@ if (forceReset) {
       // is not allowed to abort the boot.
       run(`npx prisma migrate resolve --applied ${name}`, `   Baselining ${name}`, false);
     }
-  }
 
-  run('npx prisma migrate deploy', '🗄️  Applying migrations');
+    run('npx prisma migrate deploy', '🗄️  Applying migrations');
+  }
 }
 
 // ─── Step 2: Seed only when needed ──────────────────────────────────────
