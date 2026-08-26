@@ -417,10 +417,10 @@ const MeetingDetailPage: React.FC = () => {
                             (meeting?.attendees ?? []).map((person: any, idx: number) => (
                                 <div key={person.email ?? person.id ?? `attendee-${idx}`} className="flex items-center justify-between">
                                     <div className="flex items-center space-x-3">
-                                        <div className="relative">
+                                        <div className="relative h-9 w-9 shrink-0">
                                             <img
                                                 src={`https://ui-avatars.com/api/?name=${encodeURIComponent(person.name)}&background=f0f4ff&color=4f46e5&bold=true&rounded=true`}
-                                                className="h-9 w-9 rounded-xl border-2 border-white shadow-sm"
+                                                className="h-9 w-9 rounded-xl border-2 border-white object-cover shadow-sm"
                                                 alt={person.name}
                                             />
                                             {person.status === 'accepted' && (

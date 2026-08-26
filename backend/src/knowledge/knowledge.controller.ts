@@ -66,9 +66,13 @@ export class KnowledgeController {
   }
 
   @Get('active')
-  async getActiveKnowledgeSources() {
+  async getActiveKnowledgeSources(@Request() req) {
     try {
-      return await this.knowledgeService.findActive();
+      // Without a userId, findActive() has no company to scope by and returns every
+      // tenant's active sources, content included. This route sits behind auth only
+      // (no @Roles), so any signed-in user of any company could read every other
+      // company's knowledge base and competitor intelligence through it.
+      return await this.knowledgeService.findActive(req.user.id);
     } catch (error) {
       this.logger.error('Error fetching active knowledge sources:', error);
       this.logger.error('Error stack:', error.stack);

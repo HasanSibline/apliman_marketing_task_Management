@@ -483,35 +483,6 @@ export class AiService {
   // only ever have returned its own failure string. Text extraction from uploads lives
   // in ai-service/services/text_extractor.py and is reached another way.
 
-  async generateContent(title: string, userId: string): Promise<{
-    description: string;
-    goals: string;
-    priority: number;
-    ai_provider: string;
-  }> {
-    try {
-      const data = await this.callAiService<any>(
-        userId,
-        '/generate-content',
-        { title, type: 'task' },
-        { timeout: 45000, feature: AIFeature.TASK_GENERATION },
-      );
-      return {
-        description: data.description,
-        goals: data.goals,
-        priority: data.priority || 3,
-        ai_provider: data.ai_provider || 'gemini',
-      };
-    } catch (error) {
-      return {
-        description: `Create a comprehensive plan for: ${title}.`,
-        goals: `1. Successfully complete ${title}\n2. Ensure quality\n3. Document outcomes`,
-        priority: 3,
-        ai_provider: 'fallback',
-      };
-    }
-  }
-
   async isAiServiceHealthy(): Promise<{
     isHealthy: boolean;
     provider: string;

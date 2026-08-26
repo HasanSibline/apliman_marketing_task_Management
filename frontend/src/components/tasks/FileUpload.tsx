@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { CloudArrowUpIcon, TrashIcon } from '@heroicons/react/24/outline'
-import { filesApi } from '@/services/api'
+import { filesApi, formatAssetUrl } from '@/services/api'
 import FileIcon from '@/components/ui/FileIcon'
 import { fileKind, FILE_KIND_LABEL, formatBytes } from '@/lib/fileKind'
 import toast from 'react-hot-toast'
@@ -210,8 +210,23 @@ const FileUpload: React.FC<FileUploadProps> = ({ taskId, files, onFilesUpdated }
               animate={{ opacity: 1, y: 0 }}
               className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-lg"
             >
-              <div className="flex items-center space-x-3">
-                <FileIcon fileName={file.fileName} mimeType={file.fileType} />
+              <div className="flex items-center space-x-3 min-w-0">
+                {fileKind(file.fileName, file.fileType) === 'image' ? (
+                  <a
+                    href={formatAssetUrl(file.filePath)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700"
+                  >
+                    <img
+                      src={formatAssetUrl(file.filePath)}
+                      alt={file.fileName}
+                      className="h-full w-full object-cover"
+                    />
+                  </a>
+                ) : (
+                  <FileIcon fileName={file.fileName} mimeType={file.fileType} />
+                )}
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium text-gray-900 dark:text-white">{file.fileName}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">

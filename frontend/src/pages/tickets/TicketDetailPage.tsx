@@ -934,10 +934,27 @@ const TicketDetailPage: React.FC = () => {
               {attachments.map(att => (
                 <div key={att.id} className="group flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-transparent hover:border-gray-100 dark:border-gray-700 hover:bg-white dark:hover:bg-gray-700 transition-all">
                   <div className="flex items-center gap-3 min-w-0">
-                    {/* The file's own icon, not one grey document for everything. */}
-                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                      <FileIcon fileName={att.fileName} mimeType={att.fileType} className="h-4 w-4" />
-                    </div>
+                    {/* An actual thumbnail for an image, not the same grey document
+                        icon a spreadsheet or a PDF gets. */}
+                    {fileKind(att.fileName, att.fileType) === 'image' ? (
+                      <a
+                        href={formatAssetUrl(att.filePath)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="block h-8 w-8 shrink-0 overflow-hidden rounded-lg border border-gray-100 shadow-sm dark:border-gray-700"
+                      >
+                        <img
+                          src={formatAssetUrl(att.filePath)}
+                          alt={att.fileName}
+                          className="h-full w-full object-cover"
+                        />
+                      </a>
+                    ) : (
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-100 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                        <FileIcon fileName={att.fileName} mimeType={att.fileType} className="h-4 w-4" />
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <p className="truncate text-xs font-semibold tracking-tight text-gray-900 dark:text-white">{att.fileName}</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">

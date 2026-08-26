@@ -200,10 +200,25 @@ export class TasksService {
       let priority = createTaskDto.priority;
 
       if (!description || !goals || !priority) {
-        const aiContent = await this.aiService.generateContent(createTaskDto.title, creatorId);
-        description = description || aiContent.description;
-        goals = goals || aiContent.goals;
-        priority = priority || aiContent.priority;
+        // Company knowledge and competitor context, same as the "Generate with AI"
+        // button in the compose form. This path used to call the AI service's plain
+        // generateContent(), which sends neither: a task created without going
+        // through that button (a quick create, an integration, anything posting just
+        // a title) got generic, company-agnostic content with nothing telling the
+        // user it had happened.
+        try {
+          const aiContent = await this.aiService.generateContentFromAI(createTaskDto.title, taskType, creatorId);
+          description = description || aiContent.description;
+          goals = goals || aiContent.goals;
+          priority = priority || aiContent.priority;
+        } catch (error) {
+          // Task creation must not fail because the AI service is unavailable. A
+          // boilerplate description someone can edit beats no task at all.
+          console.warn('AI content generation failed, using placeholder content:', error.message);
+          description = description || `Create a comprehensive plan for: ${createTaskDto.title}.`;
+          goals = goals || `1. Successfully complete ${createTaskDto.title}\n2. Ensure quality\n3. Document outcomes`;
+          priority = priority || 3;
+        }
       }
 
       // 3. Create the task in the starting phase

@@ -300,16 +300,5 @@ export class KnowledgeService {
     };
   }
 
-  async getActiveKnowledgeForAI() {
-    const sources = await this.findActive();
-    return sources.map(source => ({
-      id: source.id,
-      name: source.name,
-      type: source.type,
-      content: source.content,
-      isActive: source.isActive,
-      priority: source.priority,
-    }));
-  }
 }
 
