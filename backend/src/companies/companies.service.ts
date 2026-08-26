@@ -165,6 +165,8 @@ export class CompaniesService {
             workflows: true,
             chatSessions: true,
             aiUsageStats: true,
+            departments: true,
+            tickets: true,
           },
         },
         settings: true,
@@ -172,6 +174,9 @@ export class CompaniesService {
           where: { role: 'COMPANY_ADMIN' },
           select: { id: true, email: true, name: true },
           take: 1,
+        },
+        aiProviders: {
+          select: { enabled: true, status: true, isEmergency: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -188,11 +193,14 @@ export class CompaniesService {
           adminEmail: adminUser?.email ?? null,
           adminName: adminUser?.name ?? null,
           aiApiKey: company.aiApiKey ? '[ENCRYPTED]' : null,
+          aiProviders: this.summarizeAiProviders((company as any).aiProviders),
           stats: {
             usersCount: company._count.users,
             tasksCount: company._count.tasks,
             workflowsCount: company._count.workflows,
             chatSessionsCount: company._count.chatSessions,
+            departmentsCount: company._count.departments,
+            ticketsCount: company._count.tickets,
             aiMessagesCount: aiUsage.totalMessages,
             aiTokensUsed: aiUsage.totalTokens,
             aiCost: aiUsage.totalCost,
@@ -218,9 +226,14 @@ export class CompaniesService {
             tasks: true,
             workflows: true,
             chatSessions: true,
+            departments: true,
+            tickets: true,
           },
         },
         settings: true,
+        aiProviders: {
+          select: { enabled: true, status: true, isEmergency: true },
+        },
       },
     });
 
@@ -263,10 +276,15 @@ export class CompaniesService {
     return {
       ...companyWithoutKey,
       aiKeySet: !!aiApiKey,
+      aiProviders: this.summarizeAiProviders((company as any).aiProviders),
       stats: {
         totalUsers: company._count.users,
         activeTasks: activeTasks,
         completedTasks: completedTasks,
+        workflowsCount: company._count.workflows,
+        chatSessionsCount: company._count.chatSessions,
+        departmentsCount: company._count.departments,
+        ticketsCount: company._count.tickets,
         aiMessagesCount: aiUsage.totalMessages,
         aiTokensUsed: aiUsage.totalTokens,
         aiTotalCost: aiUsage.totalCost,
@@ -459,6 +477,31 @@ export class CompaniesService {
     return {
       email: adminEmail,
       newPassword, // Return for super admin to share with client
+    };
+  }
+
+  /**
+   * The provider chain, boiled down to what an admin list or detail card needs to
+   * show at a glance: how many entries exist, how many are actually reachable right
+   * now, and whether there is a second one to fall back to.
+   *
+   * Deliberately not a read of `Company.aiEnabled`/`aiApiKey` — those are the legacy
+   * single key and say nothing about a tenant configured through the chain. This
+   * reads the same rows AiGatewayService walks, just without its request-time
+   * cooldown math, so "healthy" here means "enabled and not marked down", not
+   * "guaranteed to answer the next call".
+   */
+  private summarizeAiProviders(
+    providers: { enabled: boolean; status: string; isEmergency: boolean }[],
+  ) {
+    const ordinary = providers.filter((p) => !p.isEmergency);
+    const healthy = providers.filter((p) => p.enabled && p.status === 'HEALTHY').length;
+    const enabled = providers.filter((p) => p.enabled).length;
+    return {
+      total: providers.length,
+      healthy,
+      enabled,
+      hasFallback: ordinary.length > 1,
     };
   }
 

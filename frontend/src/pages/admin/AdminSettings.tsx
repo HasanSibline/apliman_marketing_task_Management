@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   ShieldCheckIcon,
   ClockIcon,
@@ -6,15 +6,14 @@ import {
 } from '@heroicons/react/24/outline';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
-import AiProviderChain from '@/components/admin/AiProviderChain';
-import Select from '@/components/ui/Select';
 
 /**
  * What is actually global.
  *
  * AI is no longer in here. A platform-wide key meant one company's traffic could
  * exhaust a quota every other company then found missing, so providers are configured
- * per company and this covers only the settings that genuinely apply to everybody.
+ * per company, on that company's own detail page, and this covers only the settings
+ * that genuinely apply to everybody.
  */
 interface SystemSettings {
   maxFileSize: number;
@@ -40,28 +39,7 @@ const AdminSettings: React.FC = () => {
   const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  /**
-   * Which company's AI is being configured.
-   *
-   * There is no platform-wide key any more, so this screen cannot configure "AI" in
-   * the abstract: a super admin picks the tenant whose chain they are editing.
-   */
-  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
-  const [companyId, setCompanyId] = useState('');
-
-  useEffect(() => {
-    api
-      .get('/companies')
-      .then(({ data }) => {
-        const list = Array.isArray(data) ? data : data?.companies ?? [];
-        setCompanies(list.map((c: any) => ({ id: c.id, name: c.name })));
-        // One company is the common case; picking it saves a click that has no choice in it.
-        if (list.length === 1) setCompanyId(list[0].id);
-      })
-      .catch(() => setCompanies([]));
-  }, []);
-
-  useEffect(() => {
+  React.useEffect(() => {
     fetchSystemSettings();
   }, []);
 
@@ -182,39 +160,12 @@ const AdminSettings: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">System Settings</h1>
         <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
-          Configure global platform settings that apply to all companies
+          Configure global platform settings that apply to all companies. Each company's
+          AI providers, keys and usage live on that company's own page.
         </p>
       </div>
 
       <div className="space-y-6">
-        <div className="surface p-4">
-          <label htmlFor="ai-company" className="form-label">
-            Configure AI for
-          </label>
-          <Select
-            id="ai-company"
-            value={companyId}
-            onChange={(e) => setCompanyId(e.target.value)}
-            className="select-field sm:max-w-sm"
-          >
-            <option value="">Choose a company…</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </Select>
-          <p className="form-hint">
-            Each company has its own providers and its own keys. Nothing is shared between
-            them, so one running out of quota cannot affect another.
-          </p>
-        </div>
-
-        {companyId && (
-          <AiProviderChain
-            companyId={companyId}
-            companyName={companies.find((c) => c.id === companyId)?.name}
-          />
-        )}
-
         {loadError && (
           <div className="rounded-lg border border-error-200 bg-error-50 p-4 dark:border-error-900/40 dark:bg-error-900/20">
             <h3 className="text-sm font-medium text-error-800 dark:text-error-300">

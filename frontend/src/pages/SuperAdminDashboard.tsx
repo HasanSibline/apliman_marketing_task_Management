@@ -1,13 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { confirmDialog } from '@/components/ui/confirm'
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import axios from 'axios';
+import api from '@/services/api';
 import toast from 'react-hot-toast';
 import Avatar from '../components/common/Avatar';
-
-const API_URL = (import.meta as any).env.VITE_API_URL || 'http://localhost:3001/api';
+import Select from '@/components/ui/Select';
+import FormDialog from '@/components/ui/FormDialog';
+import {
+  MagnifyingGlassIcon,
+  EyeIcon,
+  PencilSquareIcon,
+  KeyIcon,
+  TrashIcon,
+  BuildingOffice2Icon,
+  Cog6ToothIcon,
+} from '@heroicons/react/24/outline';
 
 interface Company {
   id: string;
@@ -19,10 +28,15 @@ interface Company {
   subscriptionPlan: string;
   subscriptionStatus: string;
   subscriptionEnd?: string;
-  aiEnabled: boolean;
   createdAt: string;
   adminEmail?: string;
   adminName?: string;
+  aiProviders?: {
+    total: number;
+    healthy: number;
+    enabled: number;
+    hasFallback: boolean;
+  };
   /**
    * Where the per-company counts actually live.
    *
@@ -36,12 +50,13 @@ interface Company {
     tasksCount: number;
     workflowsCount: number;
     chatSessionsCount: number;
+    departmentsCount: number;
+    ticketsCount: number;
     aiMessagesCount: number;
     aiTokensUsed: number;
     aiCost: number;
   };
 }
-
 
 // ── Reset Password Modal ──────────────────────────────────────────────────────
 function ResetPasswordModal({
@@ -57,46 +72,41 @@ function ResetPasswordModal({
   const [loading, setLoading] = useState(false);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 text-xl">🔑</div>
-          <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-white">Reset Admin Password</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">{company.name}</p>
-          </div>
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1.5">Admin Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="admin@company.com"
-          />
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Must match the COMPANY_ADMIN user's email</p>
-        </div>
-
-        <div className="flex gap-3 mt-6">
-          <button onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-            Cancel
-          </button>
+    <FormDialog
+      isOpen
+      onClose={onClose}
+      title="Reset admin password"
+      description={company.name}
+      width="sm"
+      busy={loading}
+      footer={
+        <>
+          <button onClick={onClose} className="btn-secondary" disabled={loading}>Cancel</button>
           <button
             disabled={!email.trim() || loading}
             onClick={async () => { setLoading(true); await onConfirm(email); setLoading(false); }}
-            className="flex-1 px-4 py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl text-sm font-semibold transition disabled:opacity-50">
-            {loading ? 'Resetting…' : 'Reset Password'}
+            className="btn-primary"
+          >
+            {loading ? 'Resetting…' : 'Reset password'}
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <label htmlFor="reset-email" className="form-label">Admin email</label>
+      <input
+        id="reset-email"
+        type="email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        className="input-field"
+        placeholder="admin@company.com"
+      />
+      <p className="form-hint">Must match the COMPANY_ADMIN user's email</p>
+    </FormDialog>
   );
 }
 
-// ── Credentials Modal (shown after company creation OR password reset) ────────
+// ── Credentials Modal (shown after password reset) ─────────────────────────────
 function CredentialsModal({
   title,
   data,
@@ -115,71 +125,56 @@ function CredentialsModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-lg overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 px-6 py-5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white text-xl">🔐</div>
-            <div>
-              <h2 className="text-lg font-bold text-white">{title}</h2>
-              <p className="text-sm text-indigo-200">Save these credentials, password won't be shown again</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Warning */}
-        <div className="mx-6 mt-4 px-4 py-3 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-xl flex items-start gap-2">
-          <span className="text-amber-500 mt-0.5">⚠️</span>
-          <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-            This password is shown only once. Copy and share it with the company admin securely before closing.
-          </p>
-        </div>
-
-        {/* Credential rows */}
-        <div className="px-6 py-4 space-y-3">
-          {data.map(({ label, value, copyable }) => (
-            <div key={label} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-200 dark:border-gray-700">
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{label}</p>
-                <p className="text-sm font-mono font-semibold text-gray-900 dark:text-white truncate">{value}</p>
-              </div>
-              {copyable && (
-                <button
-                  onClick={() => copy(value, label)}
-                  className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 transition
-                    ${copied === label
-                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300'
-                      : 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200'}`}
-                >
-                  {copied === label ? '✓ Copied' : 'Copy'}
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Copy all */}
-        <div className="px-6 pb-4 flex gap-3">
+    <FormDialog
+      isOpen
+      onClose={onClose}
+      title={title}
+      description="Save these credentials, the password won't be shown again"
+      width="sm"
+      footer={
+        <>
           <button
             onClick={() => {
               const all = data.filter(d => d.copyable).map(d => `${d.label}: ${d.value}`).join('\n');
               navigator.clipboard.writeText(all);
               toast.success('All credentials copied!');
             }}
-            className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition"
+            className="btn-secondary"
           >
-            📋 Copy All
+            Copy all
           </button>
-          <button
-            onClick={onClose}
-            className="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition"
-          >
-            I've saved it: Close
-          </button>
-        </div>
+          <button onClick={onClose} className="btn-primary">I've saved it: close</button>
+        </>
+      }
+    >
+      <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-900/40 dark:bg-amber-900/20">
+        <span className="mt-0.5 text-amber-500">⚠️</span>
+        <p className="text-xs font-medium text-amber-700 dark:text-amber-300">
+          This password is shown only once. Copy and share it with the company admin securely.
+        </p>
       </div>
-    </div>
+      <div className="space-y-3">
+        {data.map(({ label, value, copyable }) => (
+          <div key={label} className="flex items-center justify-between rounded-xl border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900/40">
+            <div className="min-w-0 flex-1">
+              <p className="mb-0.5 text-xs text-gray-500 dark:text-gray-400">{label}</p>
+              <p className="truncate font-mono text-sm font-semibold text-gray-900 dark:text-white">{value}</p>
+            </div>
+            {copyable && (
+              <button
+                onClick={() => copy(value, label)}
+                className={`ml-3 shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium transition
+                  ${copied === label
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                    : 'bg-primary-100 text-primary-700 hover:bg-primary-200 dark:bg-primary-900/30 dark:text-primary-300'}`}
+              >
+                {copied === label ? '✓ Copied' : 'Copy'}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </FormDialog>
   );
 }
 
@@ -192,6 +187,8 @@ export default function SuperAdminDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [resetTarget, setResetTarget] = useState<Company | null>(null);
   const [credentials, setCredentials] = useState<{ title: string; data: { label: string; value: string; copyable?: boolean }[] } | null>(null);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
 
   useEffect(() => {
     if (user?.role !== 'SUPER_ADMIN') navigate('/dashboard');
@@ -203,10 +200,7 @@ export default function SuperAdminDashboard() {
     try {
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`${API_URL}/companies`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await api.get('/companies');
       setCompanies(res.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load companies');
@@ -218,41 +212,21 @@ export default function SuperAdminDashboard() {
   const handleResetPassword = async (email: string) => {
     if (!resetTarget) return;
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${API_URL}/companies/${resetTarget.id}/reset-admin-password`,
-        { adminEmail: email },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post(`/companies/${resetTarget.id}/reset-admin-password`, { adminEmail: email });
       setResetTarget(null);
       const { newPassword } = res.data;
       const loginUrl = `${window.location.origin}/${resetTarget.slug}/login`;
       setCredentials({
-        title: 'New Admin Credentials',
+        title: 'New admin credentials',
         data: [
           { label: 'Company', value: resetTarget.name },
-          { label: 'Admin Email', value: email, copyable: true },
-          { label: 'New Password', value: newPassword, copyable: true },
+          { label: 'Admin email', value: email, copyable: true },
+          { label: 'New password', value: newPassword, copyable: true },
           { label: 'Login URL', value: loginUrl, copyable: true },
         ],
       });
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to reset password');
-    }
-  };
-
-  const handleToggleAI = async (companyId: string, currentStatus: boolean) => {
-    try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${API_URL}/companies/${companyId}/toggle-ai`,
-        { enabled: !currentStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      toast.success(`AI ${!currentStatus ? 'enabled' : 'disabled'} successfully`);
-      fetchCompanies();
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to toggle AI');
     }
   };
 
@@ -265,10 +239,7 @@ export default function SuperAdminDashboard() {
       variant: 'danger',
     }))) return;
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`${API_URL}/companies/${companyId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await api.delete(`/companies/${companyId}`);
       toast.success(`Company "${companyName}" deleted`);
       fetchCompanies();
     } catch (err: any) {
@@ -278,6 +249,7 @@ export default function SuperAdminDashboard() {
 
   const planBadge: Record<string, string> = {
     FREE: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
+    FREE_TRIAL: 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200',
     PRO: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300',
     ENTERPRISE: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300',
   };
@@ -288,14 +260,42 @@ export default function SuperAdminDashboard() {
     SUSPENDED: 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300',
   };
 
+  /**
+   * A real read of the provider chain, not `Company.aiEnabled`.
+   *
+   * That field is the legacy single key and stays false for a tenant configured
+   * through the chain, which is what made every company on this table look like AI
+   * was off for it. This reads the same rows the gateway walks.
+   */
+  const aiBadge = (company: Company) => {
+    const p = company.aiProviders ?? { total: 0, healthy: 0, enabled: 0, hasFallback: false };
+    if (p.total === 0) return { label: 'Not configured', cls: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400' };
+    if (p.healthy > 0) return { label: p.hasFallback ? 'Healthy' : 'Healthy, no fallback', cls: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' };
+    return { label: 'Degraded', cls: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' };
+  };
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return companies.filter((c) => {
+      if (statusFilter !== 'ALL' && c.subscriptionStatus !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        c.name.toLowerCase().includes(q) ||
+        c.slug.toLowerCase().includes(q) ||
+        (c.adminEmail ?? '').toLowerCase().includes(q) ||
+        (c.adminName ?? '').toLowerCase().includes(q)
+      );
+    });
+  }, [companies, query, statusFilter]);
+
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div className="spinner h-12 w-12" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 py-8 px-4 sm:px-6 lg:px-8">
+    <div>
       {/* Modals */}
       {resetTarget && (
         <ResetPasswordModal
@@ -312,204 +312,202 @@ export default function SuperAdminDashboard() {
         />
       )}
 
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Companies Management</h1>
-            <p className="mt-1 text-gray-500 dark:text-gray-400">Manage all companies in the system</p>
+      {/* Header */}
+      <div className="mb-6 flex flex-wrap justify-between items-center gap-4">
+        <div>
+          <h1 className="page-title">Companies</h1>
+          <p className="mt-1 text-gray-500 dark:text-gray-400">Every tenant on the platform, in one place</p>
+        </div>
+        <div className="flex gap-3">
+          <button onClick={() => navigate('/admin/plans')} className="btn-secondary">
+            <Cog6ToothIcon className="h-5 w-5" />
+            Plan Settings
+          </button>
+          <button onClick={() => navigate('/admin/companies/create')} className="btn-primary">
+            + Create Company
+          </button>
+        </div>
+      </div>
+
+      {error && (
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-error-700 dark:border-error-900/40 dark:bg-error-900/20 dark:text-error-300">
+          <span>{error}</span>
+          <button onClick={fetchCompanies} className="rounded-lg border border-error-300 px-3 py-1.5 text-sm font-semibold hover:bg-error-100 dark:border-error-800 dark:hover:bg-error-900/40">
+            Try again
+          </button>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        {[
+          { label: 'Companies', value: companies.length, color: 'text-gray-900 dark:text-white' },
+          { label: 'Active', value: companies.filter(c => c.subscriptionStatus === 'ACTIVE').length, color: 'text-green-600 dark:text-green-400' },
+          { label: 'Trial', value: companies.filter(c => c.subscriptionStatus === 'TRIAL').length, color: 'text-blue-600 dark:text-blue-400' },
+          { label: 'Suspended', value: companies.filter(c => !c.isActive || c.subscriptionStatus === 'SUSPENDED').length, color: 'text-red-600 dark:text-red-400' },
+          { label: 'Total Users', value: companies.reduce((a, c) => a + (c.stats?.usersCount || 0), 0), color: 'text-indigo-600 dark:text-indigo-400' },
+          { label: 'AI Healthy', value: companies.filter(c => (c.aiProviders?.healthy ?? 0) > 0).length, color: 'text-emerald-600 dark:text-emerald-400' },
+        ].map(s => (
+          <div key={s.label} className="surface p-5">
+            <p className="text-sm text-gray-500 dark:text-gray-400">{s.label}</p>
+            <p className={`text-3xl font-bold mt-1 tabular-nums ${s.color}`}>{s.value}</p>
           </div>
-          <div className="flex gap-3">
-            <button
-              onClick={() => navigate('/admin/plans')}
-              className="px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition font-semibold shadow-sm flex items-center gap-2"
-            >
-              <svg className="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              Plan Settings
-            </button>
-            <button
-              onClick={() => navigate('/admin/companies/create')}
-              className="px-6 py-3 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold shadow-sm"
-            >
-              + Create Company
-            </button>
-          </div>
+        ))}
+      </div>
+
+      {/* Search / filter */}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <div className="relative flex-1 min-w-[220px]">
+          <MagnifyingGlassIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by company, slug or admin…"
+            className="input-field pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="select-field w-auto">
+          <option value="ALL">All statuses</option>
+          <option value="ACTIVE">Active</option>
+          <option value="TRIAL">Trial</option>
+          <option value="EXPIRED">Expired</option>
+          <option value="SUSPENDED">Suspended</option>
+        </Select>
+      </div>
+
+      {/* Table */}
+      <div className="surface overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-900/40">
+              <tr>
+                {['Company', 'Admin', 'Plan', 'Status', 'Users', 'Tasks', 'AI', 'Actions'].map(h => (
+                  <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
+                    {h}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+              {filtered.map(company => {
+                const ai = aiBadge(company);
+                return (
+                  <tr
+                    key={company.id}
+                    onClick={() => navigate(`/admin/companies/${company.id}`)}
+                    className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    {/* Company */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <Avatar src={company.logo} name={company.name} size="sm" rounded="lg" className="h-9 w-9" />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-900 dark:text-white">{company.name}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">/{company.slug}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Admin */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      {/* The server returns null here for a company with no COMPANY_ADMIN,
+                          and this rendered a bare ", " in the column where a person's name
+                          and login address belong: the remains of a placeholder character
+                          that a find and replace removed. Say what is actually the case,
+                          because "this company has nobody administering it" is exactly the
+                          thing a super admin is scanning this table for. */}
+                      {company.adminName ? (
+                        <>
+                          <p className="text-sm text-gray-800 dark:text-gray-100">{company.adminName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{company.adminEmail}</p>
+                        </>
+                      ) : (
+                        <p className="text-sm italic text-gray-400 dark:text-gray-500">No admin assigned</p>
+                      )}
+                    </td>
+
+                    {/* Plan */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`status-badge ${planBadge[company.subscriptionPlan] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+                        {company.subscriptionPlan}
+                      </span>
+                    </td>
+
+                    {/* Status */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`status-badge ${statusBadge[company.subscriptionStatus] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
+                        {company.subscriptionStatus}
+                      </span>
+                      {!company.isActive && (
+                        <span className="ml-1.5 status-badge bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                          Suspended
+                        </span>
+                      )}
+                    </td>
+
+                    {/* Users */}
+                    <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200 tabular-nums">
+                      {company.stats?.usersCount ?? 0}
+                    </td>
+
+                    {/* Tasks */}
+                    <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200 tabular-nums">
+                      {company.stats?.tasksCount ?? 0}
+                    </td>
+
+                    {/* AI, read from the provider chain, not the legacy toggle */}
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`status-badge ${ai.cls}`} title={`${company.aiProviders?.total ?? 0} provider(s) configured`}>
+                        {ai.label}
+                      </span>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="px-5 py-4 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-1.5">
+                        <ActionBtn title="View Details" color="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                          onClick={() => navigate(`/admin/companies/${company.id}`)}>
+                          <EyeIcon className="h-4 w-4" />
+                        </ActionBtn>
+
+                        <ActionBtn title="Edit Company" color="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
+                          onClick={() => navigate(`/admin/companies/${company.id}/edit`)}>
+                          <PencilSquareIcon className="h-4 w-4" />
+                        </ActionBtn>
+
+                        <ActionBtn title="Reset Admin Password" color="text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30"
+                          onClick={() => setResetTarget(company)}>
+                          <KeyIcon className="h-4 w-4" />
+                        </ActionBtn>
+
+                        <ActionBtn title="Delete Company" color="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
+                          onClick={() => handleDeleteCompany(company.id, company.name)}>
+                          <TrashIcon className="h-4 w-4" />
+                        </ActionBtn>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
 
-        {error && (
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-red-700 dark:bg-red-900/30 dark:text-red-300">
-            <span>{error}</span>
-            <button
-              onClick={fetchCompanies}
-              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-semibold hover:bg-red-100 dark:border-red-800 dark:hover:bg-red-900/50"
-            >
-              Try again
+        {companies.length === 0 && !loading && !error && (
+          <div className="text-center py-16">
+            <BuildingOffice2Icon className="mx-auto h-10 w-10 text-gray-300 dark:text-gray-600" />
+            <p className="mt-3 text-gray-500 dark:text-gray-400 font-medium mb-4">No companies yet</p>
+            <button onClick={() => navigate('/admin/companies/create')} className="btn-primary">
+              Create First Company
             </button>
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-          {[
-            { label: 'Companies', value: companies.length, color: 'text-gray-900 dark:text-white' },
-            { label: 'Active', value: companies.filter(c => c.subscriptionStatus === 'ACTIVE').length, color: 'text-green-600 dark:text-green-400' },
-            { label: 'Trial', value: companies.filter(c => c.subscriptionStatus === 'TRIAL').length, color: 'text-blue-600 dark:text-blue-400' },
-            { label: 'Suspended', value: companies.filter(c => !c.isActive || c.subscriptionStatus === 'SUSPENDED').length, color: 'text-red-600 dark:text-red-400' },
-            { label: 'Total Users', value: companies.reduce((a, c) => a + (c.stats?.usersCount || 0), 0), color: 'text-indigo-600 dark:text-indigo-400' },
-            { label: 'AI Enabled', value: companies.filter(c => c.aiEnabled).length, color: 'text-primary-600 dark:text-primary-400' },
-          ].map(s => (
-            <div key={s.label} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-5 border border-gray-100 dark:border-gray-700">
-              <p className="text-sm text-gray-500 dark:text-gray-400">{s.label}</p>
-              <p className={`text-3xl font-bold mt-1 ${s.color}`}>{s.value}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-100 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-900/40">
-                <tr>
-                  {['Company', 'Admin', 'Plan', 'Status', 'Users', 'Tasks', 'AI', 'Actions'].map(h => (
-                    <th key={h} className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 tracking-wider">
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
-                {companies.map(company => {
-                  return (
-                    <tr key={company.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                      {/* Company */}
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3">
-                          <Avatar 
-                             src={company.logo} 
-                             name={company.name}
-                             size="sm"
-                             rounded="lg"
-                             className="h-9 w-9"
-                          />
-                          <div>
-                             <p className="text-sm font-semibold text-gray-900 dark:text-white">{company.name}</p>
-                             <p className="text-xs text-gray-500 dark:text-gray-400">/{company.slug}</p>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Admin */}
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        {/* The server returns null here for a company with no COMPANY_ADMIN,
-                            and this rendered a bare ", " in the column where a person's name
-                            and login address belong: the remains of a placeholder character
-                            that a find and replace removed. Say what is actually the case,
-                            because "this company has nobody administering it" is exactly the
-                            thing a super admin is scanning this table for. */}
-                        {company.adminName ? (
-                          <>
-                            <p className="text-sm text-gray-800 dark:text-gray-100">{company.adminName}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{company.adminEmail}</p>
-                          </>
-                        ) : (
-                          <p className="text-sm italic text-gray-400 dark:text-gray-500">No admin assigned</p>
-                        )}
-                      </td>
-
-                      {/* Plan */}
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full ${planBadge[company.subscriptionPlan] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
-                          {company.subscriptionPlan}
-                        </span>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-0.5 inline-flex text-xs font-semibold rounded-full ${statusBadge[company.subscriptionStatus] ?? 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300'}`}>
-                          {company.subscriptionStatus}
-                        </span>
-                      </td>
-
-                      {/* Users */}
-                      <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
-                        {company.stats?.usersCount ?? 0}
-                      </td>
-
-                      {/* Tasks */}
-                      <td className="px-5 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-200">
-                        {company.stats?.tasksCount ?? 0}
-                      </td>
-
-                      {/* AI */}
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => handleToggleAI(company.id, company.aiEnabled)}
-                          title={company.aiEnabled ? 'Disable AI' : 'Enable AI'}
-                          className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-lg transition
-                            ${company.aiEnabled ? 'bg-green-50 text-green-700 dark:text-green-300 hover:bg-green-100 dark:hover:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-800 text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'}`}
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                          </svg>
-                          {company.aiEnabled ? 'On' : 'Off'}
-                        </button>
-                      </td>
-
-                      {/* Actions */}
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          {/* View */}
-                          <ActionBtn title="View Details" color="text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
-                            onClick={() => navigate(`/admin/companies/${company.id}`)}>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </ActionBtn>
-
-                          {/* Edit */}
-                          <ActionBtn title="Edit Company" color="text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
-                            onClick={() => navigate(`/admin/companies/${company.id}/edit`)}>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </ActionBtn>
-
-                          {/* Reset password */}
-                          <ActionBtn title="Reset Admin Password" color="text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30"
-                            onClick={() => setResetTarget(company)}>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                          </ActionBtn>
-
-                          {/* Delete */}
-                          <ActionBtn title="Delete Company" color="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30"
-                            onClick={() => handleDeleteCompany(company.id, company.name)}>
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </ActionBtn>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        {companies.length > 0 && filtered.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-gray-500 dark:text-gray-400">No company matches that search.</p>
           </div>
-
-          {/* Gated on `error` as well as on emptiness. The banner above already says
-              the load failed, and this used to render directly underneath it offering
-              to create the platform's first company, on a platform whose companies had
-              simply not arrived. */}
-          {companies.length === 0 && !loading && !error && (
-            <div className="text-center py-16">
-              <p className="text-4xl mb-3">🏢</p>
-              <p className="text-gray-500 dark:text-gray-400 font-medium mb-4">No companies yet</p>
-              <button onClick={() => navigate('/admin/companies/create')}
-                className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition font-semibold">
-                Create First Company
-              </button>
-            </div>
-          )}
-        </div>
+        )}
       </div>
     </div>
   );
@@ -520,11 +518,9 @@ function ActionBtn({ title, color, onClick, children }: {
   title: string; color: string; onClick: () => void; children: React.ReactNode;
 }) {
   return (
-    <button onClick={onClick} title={title}
+    <button onClick={onClick} title={title} aria-label={title}
       className={`p-1.5 rounded-lg transition ${color}`}>
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        {children}
-      </svg>
+      {children}
     </button>
   );
 }

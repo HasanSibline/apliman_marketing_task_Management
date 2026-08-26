@@ -41,7 +41,7 @@ const AdminLayout: React.FC = () => {
           name: 'Settings',
           href: '/admin/settings',
           icon: Cog6ToothIcon,
-          description: 'AI key, uploads, sessions',
+          description: 'Uploads, sessions, platform-wide',
         },
         {
           name: 'Plans',

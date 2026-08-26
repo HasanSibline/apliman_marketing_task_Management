@@ -4,6 +4,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 import Avatar from '@/components/common/Avatar';
+import FormDialog from '@/components/ui/FormDialog';
+import AiProviderChain from '@/components/admin/AiProviderChain';
+import {
+  ArrowLeftIcon,
+  PencilSquareIcon,
+  KeyIcon,
+  CalendarDaysIcon,
+  NoSymbolIcon,
+  CheckCircleIcon,
+  TrashIcon,
+  ClipboardDocumentIcon,
+} from '@heroicons/react/24/outline';
 
 interface Company {
   id: string;
@@ -17,21 +29,62 @@ interface Company {
   subscriptionStart: string;
   subscriptionEnd?: string;
   monthlyPrice: number;
-  aiEnabled: boolean;
-  aiProvider: string;
   maxUsers: number;
   maxTasks: number;
   maxStorage: number;
   billingEmail?: string;
   createdAt: string;
+  aiKeySet?: boolean;
+  aiProviders?: {
+    total: number;
+    healthy: number;
+    enabled: number;
+    hasFallback: boolean;
+  };
   stats?: {
     totalUsers: number;
     activeTasks: number;
     completedTasks: number;
+    workflowsCount: number;
+    chatSessionsCount: number;
+    departmentsCount: number;
+    ticketsCount: number;
     aiMessagesCount: number;
     aiTokensUsed: number;
     aiTotalCost: number;
   };
+}
+
+const PLAN_BADGE: Record<string, string> = {
+  FREE_TRIAL: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200',
+  PRO: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+  ENTERPRISE: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+};
+const STATUS_BADGE: Record<string, string> = {
+  ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+  TRIAL: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+  EXPIRED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+  SUSPENDED: 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+};
+
+function StatTile({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
+  return (
+    <div className="surface px-4 py-3.5">
+      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">{label}</p>
+      <p className={`mt-1 text-2xl font-bold tabular-nums ${accent ?? 'text-gray-900 dark:text-white'}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-2">
+      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
+      <span className="text-sm font-semibold text-gray-900 dark:text-white text-right">{value}</span>
+    </div>
+  );
 }
 
 export default function CompanyDetails() {
@@ -41,42 +94,18 @@ export default function CompanyDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
-  
-  /**
-   * Reset password modal.
-   *
-   * It asks who, not what. The server generates the password itself and returns it
-   * once (`resetAdminPassword` in companies.service.ts); there is no endpoint that
-   * accepts a password of your choosing. This dialog used to collect one, validate
-   * its length, discard it, and send `company.billingEmail` as the account to reset.
-   * Billing email is the address invoices go to, not a login, so the call normally
-   * 404'd, and when the two addresses happened to match it randomised the admin's
-   * password and threw away the only copy. Either way the toast said
-   * "Password reset successfully!".
-   */
+
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [adminEmail, setAdminEmail] = useState('');
   const [issuedCredentials, setIssuedCredentials] = useState<{ email: string; password: string } | null>(null);
-  
-  // Extend subscription modal
+
   const [showExtendSubscription, setShowExtendSubscription] = useState(false);
   const [extensionDays, setExtensionDays] = useState(30);
 
   useEffect(() => {
-    if (id) {
-      fetchCompany();
-    }
+    if (id) fetchCompany();
   }, [id]);
 
-  /**
-   * Only the newest company's answer may write.
-   *
-   * This re-runs on `[id]` and is also called again by four mutation handlers, none of
-   * which waited for the one before. Nothing tied a response to the id that asked for
-   * it, so an earlier answer arriving last put one company's plan, limits and usage
-   * under another company's heading, where the Suspend and Reset password buttons on
-   * the same screen act on the id in the URL.
-   */
   const requestId = useRef(0);
 
   const fetchCompany = async () => {
@@ -89,7 +118,6 @@ export default function CompanyDetails() {
       setCompany(response.data);
     } catch (err: any) {
       if (mine !== requestId.current) return;
-      console.error('Error fetching company:', err);
       setError(err.response?.data?.message || 'Failed to load company');
       toast.error(err.response?.data?.message || 'Failed to load company');
     } finally {
@@ -104,15 +132,14 @@ export default function CompanyDetails() {
       confirmText: 'Suspend',
       variant: 'warning',
     }))) return;
-    
+
     try {
       setActionLoading(true);
       await api.post(`/companies/${id}/suspend`, { reason: 'Suspended by admin' });
-      toast.success('Company suspended successfully');
+      toast.success('Company suspended');
       await fetchCompany();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to suspend company';
-      toast.error(message);
+      toast.error(err.response?.data?.message || 'Failed to suspend company');
     } finally {
       setActionLoading(false);
     }
@@ -122,11 +149,31 @@ export default function CompanyDetails() {
     try {
       setActionLoading(true);
       await api.post(`/companies/${id}/reactivate`);
-      toast.success('Company reactivated successfully');
+      toast.success('Company reactivated');
       await fetchCompany();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to reactivate company';
-      toast.error(message);
+      toast.error(err.response?.data?.message || 'Failed to reactivate company');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!company) return;
+    if (!(await confirmDialog({
+      title: `Delete ${company.name}?`,
+      description:
+        'Every user, task, workflow and conversation belonging to this company is deleted permanently. There is no undo and no backup.',
+      confirmText: 'Delete company',
+      variant: 'danger',
+    }))) return;
+    try {
+      setActionLoading(true);
+      await api.delete(`/companies/${id}`);
+      toast.success(`Company "${company.name}" deleted`);
+      navigate('/admin/companies');
+    } catch (err: any) {
+      toast.error(err.response?.data?.message || 'Failed to delete company');
     } finally {
       setActionLoading(false);
     }
@@ -138,18 +185,14 @@ export default function CompanyDetails() {
       toast.error("Enter the company admin's email address");
       return;
     }
-
     try {
       setActionLoading(true);
       const { data } = await api.post(`/companies/${id}/reset-admin-password`, { adminEmail: email });
       setShowResetPassword(false);
       setAdminEmail('');
-      // Shown, not swallowed. This is the only time the new password exists in
-      // readable form, and the admin cannot sign in without being told it.
       setIssuedCredentials({ email: data?.email ?? email, password: data?.newPassword ?? '' });
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to reset password';
-      toast.error(message);
+      toast.error(err.response?.data?.message || 'Failed to reset password');
     } finally {
       setActionLoading(false);
     }
@@ -160,11 +203,10 @@ export default function CompanyDetails() {
       setActionLoading(true);
       await api.post(`/companies/${id}/extend-subscription`, { days: extensionDays });
       setShowExtendSubscription(false);
-      toast.success('Subscription extended successfully!');
+      toast.success('Subscription extended');
       await fetchCompany();
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Failed to extend subscription';
-      toast.error(message);
+      toast.error(err.response?.data?.message || 'Failed to extend subscription');
     } finally {
       setActionLoading(false);
     }
@@ -172,353 +214,308 @@ export default function CompanyDetails() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="spinner h-10 w-10" />
       </div>
     );
   }
 
   if (error || !company) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 text-red-700 dark:text-red-300 px-4 py-3 rounded-lg">
-            {error || 'Company not found'}
-          </div>
-          <button
-            onClick={() => navigate('/admin/companies')}
-            className="mt-4 text-blue-600 dark:text-blue-400 hover:text-blue-800"
-          >
-            ← Back to Companies
-          </button>
+      <div className="mx-auto max-w-3xl">
+        <div className="rounded-xl border border-error-200 bg-error-50 px-4 py-3 text-error-700 dark:border-error-900/40 dark:bg-error-900/20 dark:text-error-300">
+          {error || 'Company not found'}
         </div>
+        <button
+          onClick={() => navigate('/admin/companies')}
+          className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-800 dark:text-primary-400"
+        >
+          <ArrowLeftIcon className="h-4 w-4" /> Back to companies
+        </button>
       </div>
     );
   }
 
-  const daysUntilExpiry = company.subscriptionEnd 
-    ? Math.ceil((new Date(company.subscriptionEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+  const daysUntilExpiry = company.subscriptionEnd
+    ? Math.ceil((new Date(company.subscriptionEnd).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
     : null;
 
+  const aiSummary = company.aiProviders ?? { total: 0, healthy: 0, enabled: 0, hasFallback: false };
+  const aiHealthLabel =
+    aiSummary.total === 0
+      ? 'Not configured'
+      : aiSummary.healthy > 0
+        ? `${aiSummary.healthy} of ${aiSummary.total} healthy`
+        : 'Configured, none healthy';
+  const aiHealthClass =
+    aiSummary.total === 0
+      ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
+      : aiSummary.healthy > 0
+        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300';
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate('/admin/companies')}
-            className="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white mb-4 flex items-center"
-          >
-            ← Back to Companies
-          </button>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <Avatar 
-                src={company.logo} 
-                name={company.name}
-                size="lg"
-                rounded="full"
-                className="h-16 w-16 mr-4 border-2 border-white shadow-sm"
-              />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">{company.name}</h1>
-                <p className="text-gray-600 dark:text-gray-300">{company.slug}</p>
-              </div>
-            </div>
-            
-            <div className="flex space-x-3">
-              <button
-                onClick={() => navigate(`/admin/companies/${id}/edit`)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Edit Company
-              </button>
-              {company.isActive ? (
-                <button
-                  onClick={handleSuspend}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                >
-                  Suspend
-                </button>
-              ) : (
-                <button
-                  onClick={handleReactivate}
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
-                >
-                  Reactivate
-                </button>
+    <div className="mx-auto max-w-6xl">
+      {/* Back */}
+      <button
+        onClick={() => navigate('/admin/companies')}
+        className="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
+      >
+        <ArrowLeftIcon className="h-4 w-4" /> Back to companies
+      </button>
+
+      {/* Header */}
+      <div className="surface mb-6 flex flex-wrap items-start justify-between gap-4 p-5">
+        <div className="flex items-center gap-4">
+          <Avatar src={company.logo} name={company.name} size="lg" rounded="xl" className="h-16 w-16" />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{company.name}</h1>
+              <span className={`status-badge ${PLAN_BADGE[company.subscriptionPlan] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}>
+                {company.subscriptionPlan}
+              </span>
+              <span className={`status-badge ${STATUS_BADGE[company.subscriptionStatus] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}>
+                {company.subscriptionStatus}
+              </span>
+              {!company.isActive && (
+                <span className="status-badge bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
+                  Suspended
+                </span>
               )}
             </div>
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              /{company.slug} · Created {new Date(company.createdAt).toLocaleDateString()}
+            </p>
           </div>
         </div>
 
-        {/* Statistics Grid */}
-        {company.stats && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Total Users</div>
-              <div className="text-3xl font-bold text-gray-900 dark:text-white">{company.stats.totalUsers}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Active Tasks</div>
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{company.stats.activeTasks}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">Completed Tasks</div>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400">{company.stats.completedTasks}</div>
-            </div>
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-              <div className="text-sm text-gray-600 dark:text-gray-300 mb-1">AI Messages</div>
-              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400">{company.stats.aiMessagesCount}</div>
-            </div>
-          </div>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => navigate(`/admin/companies/${id}/edit`)} className="btn-secondary">
+            <PencilSquareIcon className="h-4 w-4" /> Edit
+          </button>
+          {company.isActive ? (
+            <button onClick={handleSuspend} disabled={actionLoading} className="btn-secondary text-red-600 dark:text-red-400">
+              <NoSymbolIcon className="h-4 w-4" /> Suspend
+            </button>
+          ) : (
+            <button onClick={handleReactivate} disabled={actionLoading} className="btn-primary">
+              <CheckCircleIcon className="h-4 w-4" /> Reactivate
+            </button>
+          )}
+        </div>
+      </div>
 
-        {/* Details Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Subscription Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Subscription Details</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Plan:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{company.subscriptionPlan}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Status:</span>
-                <span className={`font-semibold ${
-                  company.subscriptionStatus === 'ACTIVE' ? 'text-green-600 dark:text-green-400' :
-                  company.subscriptionStatus === 'TRIAL' ? 'text-blue-600 dark:text-blue-400' :
-                  'text-red-600 dark:text-red-400'
-                }`}>
-                  {company.subscriptionStatus}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Started:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">
-                  {new Date(company.subscriptionStart).toLocaleDateString()}
-                </span>
-              </div>
+      {/* Operational stats */}
+      <div className="mb-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <StatTile label="Users" value={company.stats?.totalUsers ?? 0} />
+        <StatTile label="Departments" value={company.stats?.departmentsCount ?? 0} />
+        <StatTile label="Workflows" value={company.stats?.workflowsCount ?? 0} />
+        <StatTile label="Active tasks" value={company.stats?.activeTasks ?? 0} accent="text-blue-600 dark:text-blue-400" />
+        <StatTile label="Completed tasks" value={company.stats?.completedTasks ?? 0} accent="text-green-600 dark:text-green-400" />
+        <StatTile label="Tickets" value={company.stats?.ticketsCount ?? 0} />
+      </div>
+
+      {/* AI usage stats */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <StatTile label="AI messages" value={(company.stats?.aiMessagesCount ?? 0).toLocaleString()} accent="text-purple-600 dark:text-purple-400" />
+        <StatTile label="Tokens used" value={(company.stats?.aiTokensUsed ?? 0).toLocaleString()} accent="text-purple-600 dark:text-purple-400" />
+        <StatTile label="AI cost" value={`$${(company.stats?.aiTotalCost ?? 0).toFixed(2)}`} accent="text-purple-600 dark:text-purple-400" />
+        <StatTile label="Chat sessions" value={company.stats?.chatSessionsCount ?? 0} accent="text-purple-600 dark:text-purple-400" />
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Main column */}
+        <div className="space-y-6 lg:col-span-2">
+          <AiProviderChain companyId={company.id} companyName={company.name} />
+
+          <div className="surface p-5">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Subscription</h2>
+            <div className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
+              <InfoRow label="Plan" value={company.subscriptionPlan} />
+              <InfoRow label="Status" value={company.subscriptionStatus} />
+              <InfoRow label="Started" value={new Date(company.subscriptionStart).toLocaleDateString()} />
               {company.subscriptionEnd && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Expires:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">
+                <InfoRow
+                  label="Expires"
+                  value={
+                    <span className={daysUntilExpiry !== null && daysUntilExpiry < 7 ? 'text-red-600 dark:text-red-400' : ''}>
                       {new Date(company.subscriptionEnd).toLocaleDateString()}
+                      {daysUntilExpiry !== null ? ` (${daysUntilExpiry}d)` : ''}
                     </span>
-                  </div>
-                  {daysUntilExpiry !== null && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-300">Days Remaining:</span>
-                      <span className={`font-semibold ${daysUntilExpiry < 7 ? 'text-red-600' : 'text-gray-900 dark:text-white'}`}>
-                        {daysUntilExpiry} days
-                      </span>
-                    </div>
-                  )}
-                </>
+                  }
+                />
               )}
+              {company.billingEmail && <InfoRow label="Billing email" value={company.billingEmail} />}
             </div>
             <button
               onClick={() => setShowExtendSubscription(true)}
-              className="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="btn-secondary mt-4 w-full justify-center"
             >
-              Extend Subscription
+              <CalendarDaysIcon className="h-4 w-4" /> Extend subscription
+            </button>
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          <div className="surface p-5">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">AI status</h2>
+            <div className="mt-3 flex items-center justify-between">
+              <span className="text-sm text-gray-500 dark:text-gray-400">Provider chain</span>
+              <span className={`status-badge ${aiHealthClass}`}>{aiHealthLabel}</span>
+            </div>
+            {aiSummary.total > 0 && !aiSummary.hasFallback && (
+              <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
+                Only one provider is configured. If it hits a rate limit or runs out of
+                quota, this company's assistant goes down with nothing to fall back to.
+              </p>
+            )}
+            {aiSummary.total === 0 && (
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                No providers configured yet. Add one below to switch AI on for this company.
+              </p>
+            )}
+          </div>
+
+          <div className="surface p-5">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Resource limits</h2>
+            <div className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
+              <InfoRow label="Max users" value={company.maxUsers === -1 ? 'Unlimited' : company.maxUsers} />
+              <InfoRow label="Max tasks" value={company.maxTasks === -1 ? 'Unlimited' : company.maxTasks} />
+              <InfoRow label="Max storage" value={company.maxStorage === -1 ? 'Unlimited' : `${company.maxStorage} GB`} />
+            </div>
+          </div>
+
+          <div className="surface p-5">
+            <h2 className="text-base font-semibold text-gray-900 dark:text-white">Admin access</h2>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Issue a new password for this company's admin account.
+            </p>
+            <button onClick={() => setShowResetPassword(true)} className="btn-secondary mt-3 w-full justify-center">
+              <KeyIcon className="h-4 w-4" /> Reset admin password
             </button>
           </div>
 
-          {/* AI Configuration Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">AI Configuration</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">AI Status:</span>
-                <span className={`font-semibold ${company.aiEnabled ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
-                  {company.aiEnabled ? '✓ Enabled' : '✗ Disabled'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Provider:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{company.aiProvider}</span>
-              </div>
-              {company.stats && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Tokens Used:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">{(company.stats.aiTokensUsed || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Total Cost:</span>
-                    <span className="font-semibold text-gray-900 dark:text-white">${(company.stats.aiTotalCost || 0).toFixed(4)}</span>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Resource Limits Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Resource Limits</h2>
-            <div className="space-y-3">
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Max Users:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{company.maxUsers}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Max Tasks:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{company.maxTasks}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600 dark:text-gray-300">Max Storage:</span>
-                <span className="font-semibold text-gray-900 dark:text-white">{company.maxStorage} GB</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Admin Actions Card */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Admin Actions</h2>
-            <div className="space-y-3">
-              <button
-                onClick={() => setShowResetPassword(true)}
-                className="w-full px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
-              >
-                Reset Admin Password
-              </button>
-              {company.billingEmail && (
-                <div className="pt-3 border-t border-gray-200 dark:border-gray-700">
-                  <div className="text-sm text-gray-600 dark:text-gray-300">Billing Email:</div>
-                  <div className="font-semibold text-gray-900 dark:text-white">{company.billingEmail}</div>
-                </div>
-              )}
-            </div>
+          <div className="rounded-xl border border-red-200 bg-red-50/60 p-5 dark:border-red-900/40 dark:bg-red-900/10">
+            <h2 className="text-base font-semibold text-red-800 dark:text-red-300">Danger zone</h2>
+            <p className="mt-1 text-xs text-red-700/80 dark:text-red-300/80">
+              Deletes every user, task, workflow and conversation for this company. This
+              cannot be undone.
+            </p>
+            <button
+              onClick={handleDelete}
+              disabled={actionLoading}
+              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-800 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              <TrashIcon className="h-4 w-4" /> Delete company
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Reset Password Modal */}
-      {showResetPassword && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Reset Admin Password</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Which company admin? A new password is generated and shown to you once, so you
-              can pass it on.
-            </p>
-            <input
-              type="email"
-              value={adminEmail}
-              onChange={(e) => setAdminEmail(e.target.value)}
-              placeholder="admin@company.com"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-2"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">
-              Must be the login address of a company admin on this account.
-            </p>
-            <div className="flex space-x-3">
-              <button
-                onClick={() => {
-                  setShowResetPassword(false);
-                  setAdminEmail('');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleResetPassword}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50"
-              >
-                {actionLoading ? 'Resetting...' : 'Reset Password'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Reset password */}
+      <FormDialog
+        isOpen={showResetPassword}
+        onClose={() => setShowResetPassword(false)}
+        title="Reset admin password"
+        description="A new password is generated and shown to you once, so you can pass it on."
+        width="sm"
+        busy={actionLoading}
+        footer={
+          <>
+            <button type="button" onClick={() => setShowResetPassword(false)} className="btn-secondary" disabled={actionLoading}>
+              Cancel
+            </button>
+            <button type="button" onClick={handleResetPassword} className="btn-primary" disabled={actionLoading}>
+              {actionLoading ? 'Resetting…' : 'Reset password'}
+            </button>
+          </>
+        }
+      >
+        <label htmlFor="reset-admin-email" className="form-label">Admin email</label>
+        <input
+          id="reset-admin-email"
+          type="email"
+          value={adminEmail}
+          onChange={(e) => setAdminEmail(e.target.value)}
+          placeholder="admin@company.com"
+          className="input-field"
+        />
+        <p className="form-hint">Must be the login address of a company admin on this account.</p>
+      </FormDialog>
 
-      {/* The new password, shown once. There is no second chance to read it: the
-          server stores only the hash. */}
-      {issuedCredentials && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">New admin password</h3>
-            <p className="text-sm text-amber-700 dark:text-amber-300 mb-4">
-              Copy this now and share it securely. It is not stored anywhere you can read it again.
-            </p>
-            <div className="space-y-3">
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400">Admin email</p>
-                <p className="font-mono text-sm text-gray-900 dark:text-white break-all">{issuedCredentials.email}</p>
-              </div>
-              <div className="rounded-lg border border-gray-200 dark:border-gray-700 p-3">
-                <p className="text-xs text-gray-500 dark:text-gray-400">New password</p>
-                <p className="font-mono text-sm text-gray-900 dark:text-white break-all">{issuedCredentials.password}</p>
-              </div>
-            </div>
-            <div className="mt-6 flex space-x-3">
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(`${issuedCredentials.email} / ${issuedCredentials.password}`);
-                  toast.success('Copied');
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Copy
-              </button>
-              <button
-                onClick={() => setIssuedCredentials(null)}
-                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Extend Subscription Modal */}
-      {showExtendSubscription && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-8 max-w-md w-full mx-4">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Extend Subscription</h3>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">How many days would you like to extend the subscription?</p>
-            <input
-              type="number"
-              value={extensionDays}
-              onChange={(e) => {
-                // Clearing the box gave NaN, which rendered as a blank-but-invalid
-                // field and then serialised to null in the POST body, so the extend
-                // either failed or extended by nothing while reporting success.
-                const days = parseInt(e.target.value, 10)
-                setExtensionDays(Number.isNaN(days) ? 1 : days)
+      {/* Issued credentials */}
+      <FormDialog
+        isOpen={!!issuedCredentials}
+        onClose={() => setIssuedCredentials(null)}
+        title="New admin password"
+        description="Copy this now and share it securely. It is not stored anywhere you can read it again."
+        width="sm"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                if (!issuedCredentials) return;
+                navigator.clipboard.writeText(`${issuedCredentials.email} / ${issuedCredentials.password}`);
+                toast.success('Copied');
               }}
-              min={1}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent mb-4"
-            />
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowExtendSubscription(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleExtendSubscription}
-                disabled={actionLoading}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {actionLoading ? 'Extending...' : 'Extend'}
-              </button>
+              className="btn-secondary"
+            >
+              <ClipboardDocumentIcon className="h-4 w-4" /> Copy
+            </button>
+            <button type="button" onClick={() => setIssuedCredentials(null)} className="btn-primary">
+              Done
+            </button>
+          </>
+        }
+      >
+        {issuedCredentials && (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">Admin email</p>
+              <p className="break-all font-mono text-sm text-gray-900 dark:text-white">{issuedCredentials.email}</p>
+            </div>
+            <div className="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
+              <p className="text-xs text-gray-500 dark:text-gray-400">New password</p>
+              <p className="break-all font-mono text-sm text-gray-900 dark:text-white">{issuedCredentials.password}</p>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </FormDialog>
+
+      {/* Extend subscription */}
+      <FormDialog
+        isOpen={showExtendSubscription}
+        onClose={() => setShowExtendSubscription(false)}
+        title="Extend subscription"
+        description="How many days should be added to the current end date?"
+        width="sm"
+        busy={actionLoading}
+        footer={
+          <>
+            <button type="button" onClick={() => setShowExtendSubscription(false)} className="btn-secondary" disabled={actionLoading}>
+              Cancel
+            </button>
+            <button type="button" onClick={handleExtendSubscription} className="btn-primary" disabled={actionLoading}>
+              {actionLoading ? 'Extending…' : 'Extend'}
+            </button>
+          </>
+        }
+      >
+        <label htmlFor="extend-days" className="form-label">Days</label>
+        <input
+          id="extend-days"
+          type="number"
+          min={1}
+          value={extensionDays}
+          onChange={(e) => {
+            const days = parseInt(e.target.value, 10);
+            setExtensionDays(Number.isNaN(days) ? 1 : days);
+          }}
+          className="input-field"
+        />
+      </FormDialog>
     </div>
   );
 }
-
