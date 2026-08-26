@@ -57,49 +57,18 @@ class ContextLearningService:
             Updated context dictionary or None if nothing new learned
         """
         try:
-            # Build prompt for context extraction
-            prompt = f"""You are a context extraction AI. Your job is to extract and update information about the user from their messages.
+            # Build prompt for context extraction. Kept short on purpose: this runs on
+            # every single chat message, so its input tokens are paid far more often
+            # than any other prompt in the system, and the extraction rule itself
+            # (new/updated fields only, corrections replace) is stated once, plainly,
+            # rather than re-explained across a rules list and an examples list.
+            prompt = f"""Extract new or corrected facts about the user from their latest message. Personal info, preferences, role, interests, anything factual they stated about themselves. A correction replaces the old value.
 
-IMPORTANT: If the user provides NEW or CORRECTED information, ALWAYS update the context with the latest information. Previous values should be REPLACED with new ones.
+Known context: {json.dumps(existing_context)}
+Recent messages: {self._format_history(conversation_history[-5:])}
+Latest message: "{message}"
 
-Current known context about the user:
-{json.dumps(existing_context, indent=2)}
-
-Recent conversation history:
-{self._format_history(conversation_history[-5:])}
-
-Current user message: "{message}"
-
-Your task:
-1. Extract ANY new information about the user (name, preferences, work details, interests, etc.)
-2. If the user is CORRECTING previous information, REPLACE the old value with the new one
-3. If the user is UPDATING information, merge or replace as appropriate
-4. Return ONLY the NEW or UPDATED fields (not the entire context)
-
-Examples of what to extract:
-- Personal info: name, nickname, location, age, etc.
-- Preferences: likes, dislikes, work style, communication preferences
-- Professional info: role, responsibilities, projects, expertise
-- Interests: hobbies, topics they care about
-- Any factual information the user shares about themselves
-
-Rules:
-- If user says "my name is X" when we already know a different name, UPDATE it to X
-- If user says "I prefer Y" when we know they prefer Z, UPDATE it to Y
-- Be comprehensive - extract ALL relevant information
-- Use clear field names (e.g., "name", "preferred_name", "work_role", "interests")
-- For corrections/updates, explicitly replace old values
-
-Return your response as a JSON object with ONLY the fields that should be updated or added.
-If nothing new is learned, return an empty object {{}}.
-
-Response format:
-{{
-  "field_name": "new_value",
-  "another_field": "updated_value"
-}}
-
-JSON Response:"""
+Return ONLY a JSON object of the new/changed fields, using short clear field names. Return {{}} if nothing new. No other text."""
 
             response_text = await self._generate_via_rest(prompt)
             # Response already stripped in _generate_via_rest
@@ -359,7 +328,7 @@ JSON Response:"""
                 api_key=self.api_key,
                 prompt=prompt,
                 model=self.model_name,
-                max_tokens=1024,
+                max_tokens=512,
                 effort="low",
             )
             if usage:
@@ -383,7 +352,7 @@ JSON Response:"""
                         "model": self.model_name,
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.3,
-                        "max_tokens": 1024,
+                        "max_tokens": 512,
                     },
                     timeout=aiohttp.ClientTimeout(total=20),
                 ) as response:
@@ -398,7 +367,8 @@ JSON Response:"""
                     )
 
         payload = {
-            "contents": [{"parts": [{"text": prompt}]}]
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {"maxOutputTokens": 512},
         }
 
         attempts = 0

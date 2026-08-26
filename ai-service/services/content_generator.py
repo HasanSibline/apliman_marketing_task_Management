@@ -178,8 +178,22 @@ class ContentGenerator:
         self.company_name = company_name
         logger.info(f"✅ Set company name: {company_name}")
             
-    def _get_system_prompt(self, is_social_media: bool = False) -> str:
-        """Generate a dynamic company-aware system prompt"""
+    def _get_system_prompt(self, is_social_media: bool = False, minimal: bool = False) -> str:
+        """Generate a dynamic company-aware system prompt.
+
+        `minimal` skips the company knowledge base, competitive intelligence and
+        content-generation instructions entirely. A classification call like priority
+        or task-type detection answers from the title alone and never reads any of
+        that, so building it anyway means paying for (and sometimes 3000+ characters
+        of) knowledge-source content as input tokens on a call whose entire output is
+        one digit or one word.
+        """
+        if minimal:
+            return (
+                "You answer with exactly the format requested and nothing else: "
+                "no preamble, no explanation beyond what is asked for, no markdown."
+            )
+
         # Extract company name (use provided name, or fall back to knowledge sources, or generic)
         company_name = self.company_name or "this company"
         
@@ -298,19 +312,32 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
         """
         return dict(self.token_usage) if self.token_usage else None
 
-    async def _make_request(self, prompt: str) -> Tuple[str, Usage]:
-        """Make a request to the appropriate AI API, returning text and token counts"""
+    async def _make_request(
+        self,
+        prompt: str,
+        minimal_system: bool = False,
+        max_tokens: Optional[int] = None,
+    ) -> Tuple[str, Usage]:
+        """Make a request to the appropriate AI API, returning text and token counts.
+
+        `minimal_system` and `max_tokens` exist for calls whose answer is a digit or a
+        single word (priority, task type): the full company-aware system prompt costs
+        real input tokens it never uses, and the generous default output ceiling is
+        headroom this kind of answer will never need.
+        """
         if self.api_type == "anthropic":
-            text, usage = await self._make_anthropic_request(prompt)
+            text, usage = await self._make_anthropic_request(prompt, minimal_system, max_tokens)
         elif self.api_type in ("groq", "openai"):
-            text, usage = await self._make_openai_compatible_request(prompt)
+            text, usage = await self._make_openai_compatible_request(prompt, minimal_system, max_tokens)
         else:
-            text, usage = await self._make_gemini_request(prompt)
+            text, usage = await self._make_gemini_request(prompt, minimal_system, max_tokens)
 
         self.token_usage = add_usage(self.token_usage, usage)
         return text, usage
 
-    async def _make_anthropic_request(self, prompt: str) -> Tuple[str, Usage]:
+    async def _make_anthropic_request(
+        self, prompt: str, minimal_system: bool = False, max_tokens: Optional[int] = None,
+    ) -> Tuple[str, Usage]:
         """Make a request to Claude with the same company-specific system prompt."""
         from .anthropic_client import generate_with_usage as anthropic_generate, AnthropicProviderError
 
@@ -321,23 +348,30 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             return await anthropic_generate(
                 api_key=self._get_current_api_key(),
                 prompt=prompt,
-                system_prompt=self._get_system_prompt(is_social_media),
+                system_prompt=self._get_system_prompt(is_social_media, minimal=minimal_system),
                 model=self.model,
+                max_tokens=max_tokens,
+                # A one-word or one-digit answer needs no extended reasoning before it.
+                # Medium effort on a classification call spends invisible thinking
+                # tokens on a question that was already answered by the prompt itself.
+                effort="low" if minimal_system else None,
             )
         except AnthropicProviderError as e:
             # Re-raise in the shape the rest of this service (and the NestJS layer)
             # already knows how to classify.
             raise ContentGeneratorError(str(e))
 
-    async def _make_openai_compatible_request(self, prompt: str) -> Tuple[str, Usage]:
+    async def _make_openai_compatible_request(
+        self, prompt: str, minimal_system: bool = False, max_tokens: Optional[int] = None,
+    ) -> Tuple[str, Usage]:
         """Make a request to an OpenAI-compatible chat API (Groq or OpenAI)."""
         url = f"{self.base_url}/chat/completions"
-        
+
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
         is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
-        
-        system_prompt = self._get_system_prompt(is_social_media)
-        
+
+        system_prompt = self._get_system_prompt(is_social_media, minimal=minimal_system)
+
         payload = {
             "model": self.model,
             "messages": [
@@ -345,7 +379,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                 {"role": "user", "content": prompt}
             ],
             "temperature": 0.5,
-            "max_tokens": 4096,
+            "max_tokens": max_tokens or 4096,
             "stream": False
         }
         
@@ -376,19 +410,21 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             logger.error(f"❌ {self.provider} request failed: {str(e)}")
             raise ContentGeneratorError(f"{self.provider} request failed: {str(e)}")
 
-    async def _make_gemini_request(self, prompt: str) -> Tuple[str, Usage]:
+    async def _make_gemini_request(
+        self, prompt: str, minimal_system: bool = False, max_tokens: Optional[int] = None,
+    ) -> Tuple[str, Usage]:
         """Make a request to Gemini API with dynamic company-specific system prompt"""
         url = f"{self.base_url}/models/{self.model}:generateContent"
-        
+
         # Check if this is a social media post
         social_media_keywords = ['post', 'social media', 'instagram', 'facebook', 'linkedin', 'twitter', 'tiktok']
         is_social_media = any(keyword in prompt.lower() for keyword in social_media_keywords)
-        
-        system_prompt = self._get_system_prompt(is_social_media)
-        
+
+        system_prompt = self._get_system_prompt(is_social_media, minimal=minimal_system)
+
         # Combine system prompt with user prompt
         full_prompt = f"{system_prompt}\n\nUser Task: {prompt}"
-        
+
         payload = {
             "contents": [{
                 "parts": [{
@@ -396,6 +432,8 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                 }]
             }]
         }
+        if max_tokens:
+            payload["generationConfig"] = {"maxOutputTokens": max_tokens}
         
         # Try all available API keys with automatic fallback
         last_error = None
@@ -670,29 +708,15 @@ Respond with ONLY the bullet points, nothing else."""
         try:
             await self._rate_limit()
             
-            prompt = f"""
-            Task: Analyze the priority level for this task:
-            Title: {title}
-            Description: {description}
-            
-            Determine the priority level (1-5) based on:
-            1. Urgency - How time-sensitive is this task?
-            2. Impact - How much value/impact will this deliver?
-            3. Dependencies - Are other tasks waiting on this?
-            4. Complexity - How challenging or risky is this?
-            5. Strategic importance - How critical is this to business goals?
-            
-            Priority Scale:
-            5 = Critical/Urgent (immediate action required)
-            4 = High (important, short timeline)
-            3 = Medium (standard priority)
-            2 = Low (can be scheduled flexibly)
-            1 = Minimal (nice-to-have)
-            
-            Reply with ONLY a single number (1-5) representing the priority level.
-            """
+            prompt = f"""Rate priority 1-5 (5=urgent/critical, 3=standard, 1=nice-to-have), weighing urgency, impact and dependencies.
+Title: {title}
+Description: {description}
+Reply with ONLY the digit."""
 
-            response, _usage = await self._make_request(prompt)
+            # Not tighter than this: on Claude, thinking and the visible answer share
+            # the same budget, and a cap right at the answer's size risks the low-effort
+            # thinking alone exhausting it before any digit is written.
+            response, _usage = await self._make_request(prompt, minimal_system=True, max_tokens=200)
             
             # Extract number from response
             priority_str = response.strip()
@@ -716,27 +740,13 @@ Respond with ONLY the bullet points, nothing else."""
         try:
             await self._rate_limit()
             
-            prompt = f"""
-            Analyze this task title and categorize it into ONE of these marketing task types:
-            
-            - SOCIAL_MEDIA_POST: Social media content about products/services
-            - VIDEO_CONTENT: Product demos, explainer videos, testimonials
-            - BLOG_ARTICLE: Thought leadership, technical articles
-            - EMAIL_CAMPAIGN: Product announcements, feature launches
-            - CASE_STUDY: Customer success stories, ROI demonstrations
-            - WEBSITE_CONTENT: Landing pages, product pages
-            - WHITEPAPER: Technical documentation, research papers
-            - WEBINAR: Live presentations, product training
-            - INFOGRAPHIC: Data visualizations, process flows
-            - PRESS_RELEASE: Company announcements, partnerships
-            - GENERAL: Other marketing activities
-            
-            Task Title: "{title}"
-            
-            Reply with ONLY the task type name (e.g., "SOCIAL_MEDIA_POST")
-            """
+            prompt = f"""Categorize this task title into exactly one type:
+SOCIAL_MEDIA_POST, VIDEO_CONTENT, BLOG_ARTICLE, EMAIL_CAMPAIGN, CASE_STUDY, WEBSITE_CONTENT, WHITEPAPER, WEBINAR, INFOGRAPHIC, PRESS_RELEASE, GENERAL
 
-            response, _usage = await self._make_request(prompt)
+Title: "{title}"
+Reply with ONLY the type name."""
+
+            response, _usage = await self._make_request(prompt, minimal_system=True, max_tokens=200)
             task_type = response.strip().upper().replace(" ", "_")
             
             valid_types = [
@@ -783,31 +793,24 @@ Respond with ONLY the bullet points, nothing else."""
             else:
                 users_context = "\n\nAVAILABLE TEAM MEMBERS:\n- Marketing Manager\n- Content Writer\n- Graphic Designer\n- Social Media Manager\n- Video Editor\n- Marketing Strategist\n- Marketing Coordinator\n- SEO Specialist"
             
-            prompt = f"""Generate DETAILED subtasks with step-by-step instructions.
+            prompt = f"""Break this task into actionable subtasks.
 
 Title: {title}
 Type: {task_type}
 Description: {description}
 Workflow Phases: {phases_str}{users_context}
 
-CRITICAL REQUIREMENTS:
-1. Use ONLY the team members listed above - match by exact name and position
-2. Each subtask description must be DETAILED with 3-5 specific implementation steps
-3. Main task has high-level description, subtasks have ALL the details
-4. Include specific deliverables and acceptance criteria
-
-SUBTASK DESCRIPTION FORMAT:
-"Step 1: [Specific action with details]
-Step 2: [Specific action with details]  
-Step 3: [Specific action with details]
-Deliverables: [Specific outputs expected]
-Acceptance criteria: [How to verify completion]"
+REQUIREMENTS:
+1. Use ONLY the team members listed above, matched by exact name and position
+2. Each description is ONE concise sentence: the specific action and its deliverable.
+   No step-by-step breakdown, no separate deliverables or acceptance-criteria lines.
+   The title plus that one sentence must be enough for the assignee to start.
 
 Generate 3-6 subtasks as JSON array ONLY:
 [
   {{
     "title": "Clear, actionable subtask title",
-    "description": "DETAILED step-by-step instructions (3-5 sentences minimum)",
+    "description": "One concise sentence: the action and its deliverable",
     "phaseName": "Phase from workflow phases above",
     "suggestedRole": "Position from available team members above",
     "suggestedUserId": "User ID if specific person found (use exact ID from list)",
@@ -816,7 +819,6 @@ Generate 3-6 subtasks as JSON array ONLY:
   }}
 ]
 
-Make each description actionable and detailed. The assigned person should know exactly what to do.
 Respond with ONLY the JSON array, no other text."""
 
             response, _usage = await self._make_request(prompt)
