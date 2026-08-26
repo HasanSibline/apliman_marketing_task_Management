@@ -15,7 +15,8 @@ import {
   PlusIcon,
   ChevronLeftIcon,
   ClockIcon,
-  SparklesIcon
+  SparklesIcon,
+  ArrowUturnLeftIcon
 } from '@heroicons/react/24/outline'
 import api, { formatAssetUrl } from '@/services/api'
 import Avatar from '@/components/common/Avatar'
@@ -23,6 +24,7 @@ import { toast } from 'react-hot-toast'
 import { useAppSelector } from '@/hooks/redux'
 
 import ActionModal from '@/components/ui/ActionModal'
+import { confirmDialog } from '@/components/ui/confirm'
 import Select from '@/components/ui/Select'
 import FileIcon from '@/components/ui/FileIcon'
 import { fileKind, FILE_KIND_LABEL, formatBytes } from '@/lib/fileKind'
@@ -334,6 +336,27 @@ const TicketDetailPage: React.FC = () => {
     }
   }
 
+  const handleReopen = async () => {
+    if (
+      !(await confirmDialog({
+        title: 'Reopen this ticket?',
+        description: 'It goes back to active work. Nothing already recorded about how it closed is lost.',
+        confirmText: 'Reopen',
+        variant: 'info',
+      }))
+    ) {
+      return
+    }
+
+    try {
+      await api.patch(`/tickets/${ticketId}/reopen`)
+      toast.success('Reopened')
+      fetchTicketDetails()
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Could not reopen this ticket')
+    }
+  }
+
   const handleReject = () => {
     setActionModal({
       isOpen: true,
@@ -496,6 +519,24 @@ const TicketDetailPage: React.FC = () => {
   const canDecideAsRole = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(user?.role || '');
   const canAuthoriseRec = (ticket.receiverManagerId === user?.id || ticket.receiverDept?.managerId === user?.id || canDecideAsRole);
 
+  // Same rule reopen() enforces server-side: the assignee or a COMPANY_ADMIN /
+  // SUPER_ADMIN, not the broader isAdmin above that also lets plain ADMIN in.
+  const canReopen = canDecideAsRole || ticket.assigneeId === user?.id;
+
+  /**
+   * Same rule as `isOverdue` in `backend/src/tickets/ticket-deadline.ts`, worked out
+   * here instead of read off the ticket.
+   *
+   * `GET /tickets/:id` goes through `findOne`, which does not carry the `isOverdue`
+   * flag `findAll` computes for the list page, so deadline and status are checked
+   * again here rather than left undone: set, in the past, not a terminal status.
+   */
+  const deadlineDate = ticket.deadline ? new Date(ticket.deadline) : null;
+  const isTicketOverdue =
+    !!deadlineDate &&
+    deadlineDate.getTime() < Date.now() &&
+    !['RESOLVED', 'CANCELLED'].includes(ticket.status);
+
   return (
     <div className="space-y-6 pb-12 animate-in fade-in duration-500 max-w-7xl mx-auto">
 
@@ -549,6 +590,17 @@ const TicketDetailPage: React.FC = () => {
               {ticket.category && (
                 <span className="status-badge bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200">
                   {ticket.category}
+                </span>
+              )}
+              {deadlineDate && (
+                <span
+                  className={`status-badge ${
+                    isTicketOverdue
+                      ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
+                      : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'
+                  }`}
+                >
+                  {isTicketOverdue ? 'Overdue' : `Due ${deadlineDate.toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`}
                 </span>
               )}
             </div>
@@ -906,6 +958,18 @@ const TicketDetailPage: React.FC = () => {
                       className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'} text-white rounded-xl text-xs font-semibold uppercase tracking-normal hover:scale-[1.02] transition-all mt-4`}
                     >
                       Mark resolved
+                    </button>
+                  )}
+
+                  {/* Only from RESOLVED or CANCELLED: everything else is already
+                      open, so there is nothing here to reopen into. */}
+                  {(ticket.status === 'RESOLVED' || ticket.status === 'CANCELLED') && canReopen && (
+                    <button
+                      onClick={handleReopen}
+                      className="w-full flex items-center justify-center gap-2 py-4 bg-primary-600 text-white rounded-xl text-xs font-semibold uppercase tracking-normal shadow-md shadow-primary-100 hover:scale-[1.02] transition-all mt-4"
+                    >
+                      <ArrowUturnLeftIcon className="h-4 w-4" />
+                      Reopen
                     </button>
                   )}
                 </div>

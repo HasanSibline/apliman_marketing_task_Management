@@ -81,6 +81,7 @@ export class MicrosoftService {
       'OnlineMeetingTranscript.Read.All',
       'Chat.Read',
       'Files.Read',        // Required for OneDrive transcript VTT file search
+      'Mail.Send',         // Lets a ticket notification reach someone who isn't looking at the app
     ].join(' ');
 
     // Use 'common' endpoint so ANY Microsoft account type (personal MSA, work, school)
@@ -204,6 +205,45 @@ export class MicrosoftService {
     } catch (error: any) {
       this.logger.error('Token Refresh Error', error.message);
       throw new BadRequestException('Microsoft session expired. Please re-sync.');
+    }
+  }
+
+  /**
+   * Send a notification email to a user's own inbox via their connected Microsoft
+   * account, as them, since that is the only mailbox this integration is ever
+   * granted access to.
+   *
+   * Returns false rather than throwing on any failure, because notification
+   * delivery must never be the reason a ticket action itself fails. The two
+   * expected failure shapes both mean "cannot deliver this way, not right now":
+   * the user has never connected (`isMicrosoftSynced` false, or no stored token),
+   * and a user who connected before `Mail.Send` was added to the requested scopes
+   * and has not reconnected since, whose token Graph will reject for this call
+   * with a permission error.
+   */
+  async sendMail(userId: string, subject: string, bodyHtml: string): Promise<boolean> {
+    try {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, isMicrosoftSynced: true },
+      });
+      if (!user?.isMicrosoftSynced || !user.email) return false;
+
+      const token = await this.getAccessToken(userId);
+      const graphClient = Client.init({ authProvider: (done) => done(null, token) });
+
+      await graphClient.api('/me/sendMail').post({
+        message: {
+          subject,
+          body: { contentType: 'HTML', content: bodyHtml },
+          toRecipients: [{ emailAddress: { address: user.email } }],
+        },
+        saveToSentItems: false,
+      });
+      return true;
+    } catch (error: any) {
+      this.logger.warn(`Notification email not sent for user ${userId}: ${error.message}`);
+      return false;
     }
   }
 

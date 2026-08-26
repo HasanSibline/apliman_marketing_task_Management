@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom'
 import ActionModal from '@/components/ui/ActionModal'
 import { confirmDialog, promptDialog } from '@/components/ui/confirm'
 import CreateTicketModal from '@/components/tickets/CreateTicketModal'
+import Select from '@/components/ui/Select'
 
 type TicketStatus = 'PENDING_REC_MGR' | 'OPEN' | 'ASSIGNED' | 'RESOLVED' | 'CANCELLED' | 'IN_PROGRESS'
 
@@ -29,6 +30,41 @@ type TicketStatus = 'PENDING_REC_MGR' | 'OPEN' | 'ASSIGNED' | 'RESOLVED' | 'CANC
  * matches the arithmetic below.
  */
 const PAGE_SIZE = 12
+
+/** What each item in the Sort control asks the server for. */
+const SORT_OPTIONS: Record<
+  'newest' | 'oldest' | 'deadline' | 'priority',
+  { label: string; sortBy: 'createdAt' | 'deadline' | 'priority'; sortDir: 'asc' | 'desc' }
+> = {
+  newest: { label: 'Newest', sortBy: 'createdAt', sortDir: 'desc' },
+  oldest: { label: 'Oldest', sortBy: 'createdAt', sortDir: 'asc' },
+  deadline: { label: 'Deadline soonest', sortBy: 'deadline', sortDir: 'asc' },
+  priority: { label: 'Priority', sortBy: 'priority', sortDir: 'desc' },
+}
+
+/**
+ * The exact statuses a ticket can be in, grouped the way the Active/History tabs
+ * already group them.
+ *
+ * The server has no field for "just this one status" — `statusType` only knows
+ * Active (not resolved or cancelled), History (resolved or cancelled) and All, which
+ * is the right shape for the tabs above this bar but too coarse for someone who
+ * wants only the tickets still waiting on them specifically. Narrowing to one exact
+ * status is done client-side, against whichever page the tabs already fetched,
+ * rather than teaching the server a filter used nowhere else.
+ */
+const STATUS_OPTIONS: Record<'ACTIVE' | 'HISTORY', { value: TicketStatus; label: string }[]> = {
+  ACTIVE: [
+    { value: 'PENDING_REC_MGR', label: 'Pending approval' },
+    { value: 'OPEN', label: 'Open' },
+    { value: 'ASSIGNED', label: 'Assigned' },
+    { value: 'IN_PROGRESS', label: 'In progress' },
+  ],
+  HISTORY: [
+    { value: 'RESOLVED', label: 'Resolved' },
+    { value: 'CANCELLED', label: 'Cancelled' },
+  ],
+}
 
 const TicketsPage: React.FC = () => {
   const navigate = useNavigate()
@@ -53,7 +89,30 @@ const TicketsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE')
-  
+
+  // Filter/sort bar. Priority and department are sent to the server, same as search;
+  // status is narrower than anything the server knows how to filter by (see
+  // STATUS_OPTIONS above) and is applied to the page already on screen.
+  const [priorityFilter, setPriorityFilter] = useState('')
+  const [departmentFilter, setDepartmentFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [sortOption, setSortOption] = useState<keyof typeof SORT_OPTIONS>('newest')
+  const [departments, setDepartments] = useState<any[]>([])
+
+  // A specific status from one tab rarely means anything on the other: "Resolved"
+  // is not a choice while looking at Active tickets. Switching tabs drops it rather
+  // than silently filtering the new tab down to zero rows.
+  useEffect(() => {
+    setStatusFilter('')
+  }, [activeTab])
+
+  useEffect(() => {
+    api
+      .get('/departments')
+      .then((res) => setDepartments(Array.isArray(res.data) ? res.data : res.data?.departments ?? []))
+      .catch(() => toast.error('Failed to load departments'))
+  }, [])
+
   // Confirmation dialog state
   const [actionModal, setActionModal] = useState<{
     isOpen: boolean;
@@ -80,7 +139,7 @@ const TicketsPage: React.FC = () => {
 
   useEffect(() => {
     fetchData()
-  }, [page, activeTab, debouncedSearch])
+  }, [page, activeTab, debouncedSearch, priorityFilter, departmentFilter, sortOption])
 
   /**
    * Only the newest request may write to the list.
@@ -99,13 +158,18 @@ const TicketsPage: React.FC = () => {
     setIsLoading(true)
     setLoadError(false)
     try {
-      const ticketsRes = await api.get('/tickets', { 
-        params: { 
-          page, 
+      const { sortBy, sortDir } = SORT_OPTIONS[sortOption]
+      const ticketsRes = await api.get('/tickets', {
+        params: {
+          page,
           statusType: activeTab,
           search: debouncedSearch,
           limit: PAGE_SIZE,
-        } 
+          priority: priorityFilter || undefined,
+          departmentId: departmentFilter || undefined,
+          sortBy,
+          sortDir,
+        }
       })
       if (mine !== requestId.current) return
       setTickets(ticketsRes.data.tickets || [])
@@ -236,7 +300,10 @@ const TicketsPage: React.FC = () => {
     t.status === 'PENDING_REC_MGR' &&
     (isAdmin || t.receiverManagerId === user?.id || t.receiverDept?.managerId === user?.id)
 
-  const decidable = tickets.filter(canDecide)
+  /** The fetched page, narrowed by the Status dropdown. See STATUS_OPTIONS above. */
+  const visibleTickets = statusFilter ? tickets.filter((t) => t.status === statusFilter) : tickets
+
+  const decidable = visibleTickets.filter(canDecide)
   const selectedIds = [...selected].filter((id) => decidable.some((t) => t.id === id))
 
   const toggle = (id: string) =>
@@ -398,6 +465,70 @@ const TicketsPage: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Filter / sort bar */}
+      <div className="surface flex flex-col gap-3 p-4 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex-1 min-w-[10rem]">
+          <label className="form-label" htmlFor="ticket-filter-priority">Priority</label>
+          <Select
+            id="ticket-filter-priority"
+            value={priorityFilter}
+            onChange={(e) => { setPriorityFilter(e.target.value); setPage(1) }}
+            className="select-field w-full"
+          >
+            <option value="">All priorities</option>
+            <option value="LOW">Low</option>
+            <option value="MEDIUM">Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
+          </Select>
+        </div>
+
+        <div className="flex-1 min-w-[10rem]">
+          <label className="form-label" htmlFor="ticket-filter-department">Department</label>
+          <Select
+            id="ticket-filter-department"
+            value={departmentFilter}
+            onChange={(e) => { setDepartmentFilter(e.target.value); setPage(1) }}
+            className="select-field w-full"
+          >
+            <option value="">All departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="flex-1 min-w-[10rem]">
+          <label className="form-label" htmlFor="ticket-filter-status">Status</label>
+          <Select
+            id="ticket-filter-status"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="select-field w-full"
+          >
+            <option value="">{activeTab === 'HISTORY' ? 'All closed' : 'All open'}</option>
+            {STATUS_OPTIONS[activeTab].map((s) => (
+              <option key={s.value} value={s.value}>{s.label}</option>
+            ))}
+          </Select>
+        </div>
+
+        <div className="flex-1 min-w-[10rem]">
+          <label className="form-label" htmlFor="ticket-sort">Sort</label>
+          <Select
+            id="ticket-sort"
+            value={sortOption}
+            onChange={(e) => { setSortOption(e.target.value as keyof typeof SORT_OPTIONS); setPage(1) }}
+            className="select-field w-full"
+          >
+            {Object.entries(SORT_OPTIONS).map(([key, opt]) => (
+              <option key={key} value={key}>{opt.label}</option>
+            ))}
+          </Select>
+        </div>
+      </div>
+
       <div className="surface overflow-hidden">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-16">
@@ -411,7 +542,7 @@ const TicketsPage: React.FC = () => {
             <p className="text-gray-500 dark:text-gray-400 mb-6">Nothing is wrong with your filters. Try again.</p>
             <button onClick={fetchData} className="btn-primary">Try again</button>
           </div>
-        ) : tickets.length === 0 ? (
+        ) : visibleTickets.length === 0 ? (
           <div className="text-center py-16">
             <TicketIcon className="h-16 w-16 text-gray-200 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No tickets found</h3>
@@ -451,7 +582,7 @@ const TicketsPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-                {tickets.map((ticket) => (
+                {visibleTickets.map((ticket) => (
                   <tr
                     key={ticket.id}
                     onClick={() => handleOpenDetail(ticket.id)}
@@ -477,7 +608,14 @@ const TicketsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(ticket)}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {getStatusBadge(ticket)}
+                        {ticket.isOverdue && (
+                          <span className="status-badge bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                            Overdue
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {/*
@@ -546,7 +684,7 @@ const TicketsPage: React.FC = () => {
         {/* Footer / Pagination */}
         <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between bg-gray-50 dark:bg-gray-900/40">
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{tickets.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> tickets
+            Showing <span className="font-semibold text-gray-700 dark:text-gray-200">{visibleTickets.length}</span> of <span className="font-semibold text-gray-700 dark:text-gray-200">{total}</span> tickets
           </p>
           <div className="flex items-center gap-2">
             <button

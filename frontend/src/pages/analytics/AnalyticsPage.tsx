@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { useAppSelector } from '@/hooks/redux'
 import { Tab } from '@headlessui/react'
-import { ChartBarIcon, UserGroupIcon, UserIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, UserGroupIcon, UserIcon, TicketIcon } from '@heroicons/react/24/outline'
 import AdminAnalyticsDashboard from '@/components/analytics/AdminAnalyticsDashboard'
 import UserAnalytics from '@/components/analytics/UserAnalytics'
 import TeamAnalytics from '@/components/analytics/TeamAnalytics'
+import TicketAnalytics from '@/components/analytics/TicketAnalytics'
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(' ')
@@ -22,6 +23,7 @@ const AnalyticsPage: React.FC = () => {
         { key: 'overview', name: 'Overview', icon: ChartBarIcon },
         { key: 'mine', name: 'My analytics', icon: UserIcon },
         { key: 'team', name: 'Team analytics', icon: UserGroupIcon },
+        { key: 'tickets', name: 'Tickets', icon: TicketIcon },
       ]
     : [{ key: 'mine', name: 'My analytics', icon: UserIcon }]
 
@@ -72,6 +74,9 @@ const AnalyticsPage: React.FC = () => {
               </Tab.Panel>
               <Tab.Panel>
                 <TeamAnalytics />
+              </Tab.Panel>
+              <Tab.Panel>
+                <TicketAnalytics />
               </Tab.Panel>
             </>
           ) : (

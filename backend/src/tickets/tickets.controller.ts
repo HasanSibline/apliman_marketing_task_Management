@@ -18,22 +18,28 @@ export class TicketsController {
 
   @Get()
   findAll(
-    @Request() req, 
+    @Request() req,
     @Query('page') page: string = '1',
     @Query('search') search?: string,
     @Query('departmentId') departmentId?: string,
     @Query('statusType') statusType?: string,
-    @Query('limit') limit?: string
+    @Query('limit') limit?: string,
+    @Query('priority') priority?: string,
+    @Query('sortBy') sortBy?: 'createdAt' | 'deadline' | 'priority',
+    @Query('sortDir') sortDir?: 'asc' | 'desc',
   ) {
     return this.ticketsService.findAll(
-      req.user.companyId, 
-      req.user.id, 
-      req.user.role, 
+      req.user.companyId,
+      req.user.id,
+      req.user.role,
       Number.parseInt(page, 10),
       departmentId,
       search,
       statusType,
-      limit ? Number.parseInt(limit, 10) : undefined
+      limit ? Number.parseInt(limit, 10) : undefined,
+      priority,
+      sortBy,
+      sortDir,
     );
   }
 
@@ -152,6 +158,15 @@ export class TicketsController {
     @Request() req,
   ) {
     return this.ticketsService.resolve(id, req.user.id, req.user.companyId, body?.resolutionNote);
+  }
+
+  @Patch(':id/reopen')
+  reopen(
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+    @Request() req,
+  ) {
+    return this.ticketsService.reopen(id, req.user.id, req.user.companyId, body?.reason);
   }
 
   @Patch(':id')

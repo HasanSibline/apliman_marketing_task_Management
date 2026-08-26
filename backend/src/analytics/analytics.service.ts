@@ -16,6 +16,12 @@ import {
   reconcileBuckets,
 } from './task-buckets';
 import { trendPeriods } from './trend-periods';
+import {
+  averageResolutionHours,
+  backlogByAge,
+  slaComplianceRate,
+  volumeByDepartment,
+} from './ticket-metrics';
 
 // This is a simplified version that provides basic analytics while the workflow system is integrated
 
@@ -543,6 +549,42 @@ export class AnalyticsService {
       const worksheet = XLSX.utils.json_to_sheet(exportData);
       return XLSX.utils.sheet_to_csv(worksheet);
     }
+  }
+
+  /**
+   * Resolution time, SLA compliance, backlog age and department volume for one
+   * company's tickets.
+   *
+   * companyId is required, unlike the task methods above: there is no "all companies"
+   * mode here because nothing calling this route needs one (see the controller), and
+   * a ticket carries no workflow to fall back on the way `loadPhasePartition` does for
+   * a super admin looking across every tenant.
+   */
+  async getTicketAnalytics(companyId: string) {
+    const tickets = await this.prisma.ticket.findMany({
+      where: { companyId },
+      select: {
+        createdAt: true,
+        resolvedAt: true,
+        deadline: true,
+        status: true,
+        receiverDeptId: true,
+        receiverDept: { select: { name: true } },
+      },
+    });
+
+    const departmentTickets = tickets.map((t) => ({
+      receiverDeptId: t.receiverDeptId,
+      departmentName: t.receiverDept?.name || 'Unknown',
+    }));
+
+    return {
+      averageResolutionHours: averageResolutionHours(tickets),
+      slaComplianceRate: slaComplianceRate(tickets),
+      backlogByAge: backlogByAge(tickets, new Date()),
+      volumeByDepartment: volumeByDepartment(departmentTickets),
+      totalTickets: tickets.length,
+    };
   }
 
   async getTasksByPhase() { return []; }

@@ -3,6 +3,19 @@ import { PrismaService } from '../prisma/prisma.service';
 import { TicketStatus } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
 import { AiService } from '../ai/ai.service';
+import { MicrosoftService } from '../microsoft/microsoft.service';
+import { isOverdue } from './ticket-deadline';
+import { sendTicketMail } from './ticket-mail';
+
+/**
+ * Severity order for `sortBy: 'priority'`.
+ *
+ * `Ticket.priority` is a plain string column, not an enum whose declaration order
+ * Prisma could lean on for `orderBy`, and Prisma's query builder has no way to
+ * express "URGENT before HIGH before MEDIUM before LOW" short of raw SQL. Ranked in
+ * memory instead — see the branch in `findAll` below.
+ */
+const PRIORITY_RANK: Record<string, number> = { LOW: 0, MEDIUM: 1, HIGH: 2, URGENT: 3 };
 
 @Injectable()
 export class TicketsService {
@@ -15,7 +28,16 @@ export class TicketsService {
     private prisma: PrismaService,
     private notifications: NotificationsService,
     private aiService: AiService,
+    private microsoft: MicrosoftService,
   ) {}
+
+  /**
+   * The in-app notification's email courtesy, alongside it, never instead of it.
+   * Never awaited by callers: see ticket-mail.ts for why this must not block.
+   */
+  private notifyMail(userId: string, companyId: string, subject: string, bodyHtml: string): void {
+    void sendTicketMail({ prisma: this.prisma, microsoft: this.microsoft }, { userId, companyId, subject, bodyHtml });
+  }
 
   /**
    * Close a ticket, and record how.
@@ -47,7 +69,7 @@ export class TicketsService {
 
     const updated = await this.prisma.ticket.update({
       where: { id },
-      data: { status: 'RESOLVED', resolutionNote: note },
+      data: { status: 'RESOLVED', resolutionNote: note, resolvedAt: new Date() },
     });
 
     // Written to the thread as well as the column. The column is what gets read by
@@ -64,6 +86,71 @@ export class TicketsService {
       message: `The objectives for ticket ${ticket.ticketNumber} have been successfully localized and resolved.`,
       actionUrl: `/tickets/${id}`
     });
+    this.notifyMail(
+      ticket.requesterId,
+      companyId,
+      `Resolved: ${ticket.ticketNumber}`,
+      `<p>Ticket <strong>${ticket.ticketNumber}</strong> (${ticket.title}) has been resolved.</p><p>${note}</p>`,
+    );
+
+    return updated;
+  }
+
+  /**
+   * Bring a closed ticket back to active work.
+   *
+   * Resolved and cancelled are the only states this starts from — everything else is
+   * already open, and reopening it would be asking to do nothing. What closed it stays
+   * on the record: resolutionNote and cancellationReason are not cleared, because a
+   * ticket can be resolved, reopened and resolved again, and the earlier answer is
+   * still worth keeping for whoever hits the same problem next.
+   *
+   * The same people who could close it can open it again — this copies resolve()'s
+   * permission check above rather than inventing a separate rule for the reverse.
+   */
+  async reopen(id: string, userId: string, companyId: string, reason?: string) {
+    const ticket = await this.findOne(id, companyId);
+
+    // Only assignee or manager can reopen
+    const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes((await this.prisma.user.findUnique({ where: { id: userId } }))?.role || '');
+    if (ticket.assigneeId !== userId && !isAdmin) {
+      throw new ForbiddenException('Only the assigned resource or an admin can reopen this engagement');
+    }
+
+    if (!['RESOLVED', 'CANCELLED'].includes(ticket.status)) {
+      throw new BadRequestException(
+        `Only a resolved or cancelled ticket can be reopened; this one is ${ticket.status.replace(/_/g, ' ').toLowerCase()}.`,
+      );
+    }
+
+    const why = (reason ?? '').trim();
+    const nextStatus = ticket.assigneeId ? TicketStatus.ASSIGNED : TicketStatus.OPEN;
+
+    const updated = await this.prisma.ticket.update({
+      where: { id },
+      data: { status: nextStatus, resolvedAt: null },
+    });
+
+    const summary = why
+      ? `Reopened, back into active work. ${why}`
+      : 'Reopened, back into active work.';
+    await this.addSystemComment(id, userId, summary, companyId);
+
+    // Notify requester that the engagement is active again
+    await this.notifications.createNotification({
+      userId: ticket.requesterId,
+      ticketId: id,
+      type: 'TICKET_REOPENED',
+      title: 'Engagement Reopened',
+      message: `Ticket ${ticket.ticketNumber} has been reopened and is active again.${why ? ` Reason: ${why}` : ''}`,
+      actionUrl: `/tickets/${id}`
+    });
+    this.notifyMail(
+      ticket.requesterId,
+      companyId,
+      `Reopened: ${ticket.ticketNumber}`,
+      `<p>Ticket <strong>${ticket.ticketNumber}</strong> (${ticket.title}) has been reopened and is active again.</p>${why ? `<p>${why}</p>` : ''}`,
+    );
 
     return updated;
   }
@@ -75,8 +162,25 @@ export class TicketsService {
    *   referring to a ticket that was resolved last week is an ordinary thing to do.
    * @param limit overrides the page size, for callers building a picker rather than
    *   a page. Capped, because an uncapped limit is a way to ask for the whole table.
+   * @param priority filters to one `Ticket.priority` value (`LOW`/`MEDIUM`/`HIGH`/`URGENT`).
+   * @param sortBy `createdAt` (default, newest first), `deadline` (soonest first,
+   *   nulls last so undated tickets do not crowd the top) or `priority` (ranked
+   *   severity, not alphabetical).
+   * @param sortDir `asc` or `desc`; defaults per `sortBy` below.
    */
-  async findAll(companyId: string, userId: string, role: string, page: number = 1, departmentId?: string, search?: string, statusType?: string, limit?: number) {
+  async findAll(
+    companyId: string,
+    userId: string,
+    role: string,
+    page: number = 1,
+    departmentId?: string,
+    search?: string,
+    statusType?: string,
+    limit?: number,
+    priority?: string,
+    sortBy?: 'createdAt' | 'deadline' | 'priority',
+    sortDir?: 'asc' | 'desc',
+  ) {
     const isAdmin = ['COMPANY_ADMIN', 'SUPER_ADMIN'].includes(role);
     // A page number or limit that does not parse arrives as NaN, and NaN survives
     // both ?? and Math.min/max, so it reached Prisma as take: NaN and threw a 500.
@@ -124,6 +228,10 @@ export class TicketsService {
       });
     }
 
+    if (priority) {
+      clauses.push({ priority });
+    }
+
     if (search) {
       clauses.push({
         OR: [
@@ -136,25 +244,66 @@ export class TicketsService {
 
     const where: any = { AND: clauses };
 
-    const [tickets, total] = await Promise.all([
-      this.prisma.ticket.findMany({
-        where,
-        include: {
-          requester: { select: { id: true, name: true, department: { select: { name: true } } } },
-          requesterManager: { select: { id: true, name: true } },
-          receiverDept: { include: { manager: { select: { id: true, name: true } } } },
-          receiverManager: { select: { id: true, name: true } },
-          assignee: { select: { id: true, name: true } },
-          assignments: { where: { userId }, select: { id: true, status: true, userId: true } },
-        },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.ticket.count({ where })
-    ]);
+    const include = {
+      requester: { select: { id: true, name: true, department: { select: { name: true } } } },
+      requesterManager: { select: { id: true, name: true } },
+      receiverDept: { include: { manager: { select: { id: true, name: true } } } },
+      receiverManager: { select: { id: true, name: true } },
+      assignee: { select: { id: true, name: true } },
+      assignments: { where: { userId }, select: { id: true, status: true, userId: true } },
+    };
 
-    return { tickets, total };
+    let tickets: any[];
+    let total: number;
+
+    if (sortBy === 'priority') {
+      // No `orderBy` expression can rank these four strings by severity, so every
+      // matching id is ranked in memory first and only the requested page is then
+      // hydrated with the full include above — two queries instead of one, but the
+      // first is a narrow select and `take` still caps how much work the second does.
+      const ranked = await this.prisma.ticket.findMany({
+        where,
+        select: { id: true, priority: true, createdAt: true },
+      });
+      const rank = (p: string) => PRIORITY_RANK[p] ?? -1;
+      const dir = sortDir === 'asc' ? 1 : -1;
+      ranked.sort((a, b) => {
+        const diff = (rank(b.priority) - rank(a.priority)) * -dir;
+        if (diff !== 0) return diff;
+        // Same priority: newest first, same as the default sort, so the order is
+        // stable rather than left to whatever the database happened to return.
+        return b.createdAt.getTime() - a.createdAt.getTime();
+      });
+
+      total = ranked.length;
+      const pageIds = ranked.slice(skip, skip + take).map((t) => t.id);
+      const pageTickets = pageIds.length
+        ? await this.prisma.ticket.findMany({ where: { id: { in: pageIds } }, include })
+        : [];
+
+      // `id: { in: [...] }` does not promise to return rows in that order, so the
+      // ranking done above has to be reapplied here or the page would come back
+      // sorted however Postgres felt like returning it.
+      const order = new Map(pageIds.map((id, i) => [id, i]));
+      tickets = pageTickets.sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    } else {
+      const orderBy =
+        sortBy === 'deadline'
+          ? // Nulls last regardless of direction: an undated ticket is not "soonest
+            // due" just because null sorts first, in either direction.
+            { deadline: { sort: sortDir ?? 'asc', nulls: 'last' as const } }
+          : { createdAt: sortDir ?? 'desc' };
+
+      [tickets, total] = await Promise.all([
+        this.prisma.ticket.findMany({ where, include, orderBy, skip, take }),
+        this.prisma.ticket.count({ where }),
+      ]);
+    }
+
+    const now = new Date();
+    const withOverdue = tickets.map((t) => ({ ...t, isOverdue: isOverdue(t, now) }));
+
+    return { tickets: withOverdue, total };
   }
 
   async findOne(id: string, companyId: string, requestingUserId?: string) {
@@ -246,7 +395,11 @@ export class TicketsService {
           .filter((w) => w.length > 2 && !NOISE.has(w)),
       );
 
-    const mine = terms(title);
+    // The description carries real signal a title alone does not: two requests can
+    // share a generic title ("Need help") and diverge completely, or use different
+    // titles for the same ask and only agree in the body. Matching on both is what
+    // the title-only version was missing every duplicate that phrased itself that way.
+    const mine = terms(`${title} ${draft.description ?? ''}`);
     if (mine.size === 0) return { similar: [], note: '', aiWritten: false };
 
     // Scoped to the department being asked, and to the last ninety days. The same
@@ -264,6 +417,7 @@ export class TicketsService {
         id: true,
         ticketNumber: true,
         title: true,
+        description: true,
         status: true,
         createdAt: true,
         resolutionNote: true,
@@ -276,7 +430,7 @@ export class TicketsService {
 
     const scored = candidates
       .map((t) => {
-        const theirs = terms(t.title ?? '');
+        const theirs = terms(`${t.title ?? ''} ${t.description ?? ''}`);
         const shared = [...mine].filter((w) => theirs.has(w)).length;
         // Measured against the shorter title, so a short request still matches a long
         // one that contains it. Dividing by the union would bury exactly that case.
@@ -462,33 +616,6 @@ export class TicketsService {
     const receiverDept = await this.prisma.department.findUnique({ where: { id: data.receiverDeptId } });
     const isSameDept = user.departmentId === data.receiverDeptId;
 
-    // VALIDATION: If no approval is required, a target personnel MUST be assigned
-    if (!data.requiresApproval && !data.assigneeId) {
-      throw new BadRequestException('Target Personnel is required when manager approval is not requested.');
-    }
-
-    // Determine initial status:
-    // 1. If requiresApproval is true, wait for Receiver Manager
-    // 2. Otherwise, status is OPEN
-    let initialStatus: TicketStatus = TicketStatus.OPEN;
-    if (data.requiresApproval) {
-      initialStatus = TicketStatus.PENDING_REC_MGR;
-    }
-
-    const squad: any[] = [{ userId: userId, status: 'ACCEPTED' }];
-    
-    // Add targeted manager/assignee as PENDING
-    if (data.requiresApproval) {
-      const targetApprover = data.approverId || receiverDept?.managerId;
-      if (targetApprover && targetApprover !== userId) {
-        squad.push({ userId: targetApprover, status: 'PENDING' });
-      }
-    } else if (data.assigneeId) {
-      if (data.assigneeId !== userId) {
-        squad.push({ userId: data.assigneeId, status: 'PENDING' });
-      }
-    }
-
     /**
      * The category has to be one this department actually offers.
      *
@@ -503,6 +630,50 @@ export class TicketsService {
       'DESIGN_REQUEST', 'LEGAL_CONTRACT', 'MARKETING_ASSET',
     ];
     const safeType = allowedTypes.includes(String(data.type)) ? String(data.type) : 'GENERAL';
+
+    /**
+     * A purchase order at or over the company's threshold needs a manager's sign-off,
+     * whether or not the requester asked for one.
+     *
+     * Read once, here, into a local rather than mutating `data.requiresApproval`:
+     * that flag drives the validation check right below, the initial status, the
+     * squad that gets built, and the receiver manager written onto the row, so a
+     * mutated input is the kind of thing a later edit adds a fifth read of and misses.
+     */
+    const settings = await this.prisma.companySettings.findUnique({ where: { companyId } });
+    const thresholdForced =
+      safeType === 'PURCHASE_ORDER' &&
+      data.amount != null &&
+      settings?.ticketApprovalThreshold != null &&
+      data.amount >= settings.ticketApprovalThreshold;
+    const requiresApproval = data.requiresApproval || thresholdForced;
+
+    // VALIDATION: If no approval is required, a target personnel MUST be assigned
+    if (!requiresApproval && !data.assigneeId) {
+      throw new BadRequestException('Target Personnel is required when manager approval is not requested.');
+    }
+
+    // Determine initial status:
+    // 1. If requiresApproval is true, wait for Receiver Manager
+    // 2. Otherwise, status is OPEN
+    let initialStatus: TicketStatus = TicketStatus.OPEN;
+    if (requiresApproval) {
+      initialStatus = TicketStatus.PENDING_REC_MGR;
+    }
+
+    const squad: any[] = [{ userId: userId, status: 'ACCEPTED' }];
+
+    // Add targeted manager/assignee as PENDING
+    if (requiresApproval) {
+      const targetApprover = data.approverId || receiverDept?.managerId;
+      if (targetApprover && targetApprover !== userId) {
+        squad.push({ userId: targetApprover, status: 'PENDING' });
+      }
+    } else if (data.assigneeId) {
+      if (data.assigneeId !== userId) {
+        squad.push({ userId: data.assigneeId, status: 'PENDING' });
+      }
+    }
 
     const offered = receiverDept?.ticketCategories ?? [];
     if (data.category && offered.length > 0 && !offered.includes(data.category)) {
@@ -523,7 +694,7 @@ export class TicketsService {
         receiverDeptId: data.receiverDeptId,
         assigneeId: data.assigneeId || null,
         requesterId: userId,
-        receiverManagerId: data.requiresApproval ? (data.approverId || receiverDept?.managerId || null) : (receiverDept?.managerId || null),
+        receiverManagerId: requiresApproval ? (data.approverId || receiverDept?.managerId || null) : (receiverDept?.managerId || null),
         isInternal: data.isInternal || isSameDept || false,
         amount: data.amount ? parseFloat(data.amount.toString()) : null,
         providerName: data.providerName || null,
@@ -554,9 +725,16 @@ export class TicketsService {
     // request". Quoted and left as written instead. Trimmed to match what is stored,
     // or a category of spaces persists as null and still reads as though it were set.
     const category = data.category?.trim();
-    const summary = category
-      ? `Raised for ${receiverDept?.name ?? 'the team'} as "${category}", ${priority} priority.`
-      : `Raised for ${receiverDept?.name ?? 'the team'}, ${priority} priority.`;
+    const summary =
+      (category
+        ? `Raised for ${receiverDept?.name ?? 'the team'} as "${category}", ${priority} priority.`
+        : `Raised for ${receiverDept?.name ?? 'the team'}, ${priority} priority.`) +
+      // Silent is the wrong way to force this. The requester chose not to route it
+      // through approval, so the one line explaining why it is waiting anyway is the
+      // only thing standing between them and wondering why nothing happened next.
+      (thresholdForced
+        ? ' This purchase order\'s amount meets or exceeds the company\'s approval threshold, so it needs managerial sign-off before it can proceed.'
+        : '');
     await this.addSystemComment(ticket.id, userId, summary, companyId);
 
     // Notify for tactical authorizations if required
@@ -570,6 +748,12 @@ export class TicketsService {
         message: `${user.name} has initiated an engagement (${ticket.ticketNumber}) that requires your managerial authorization.`,
         actionUrl: `/tickets/${ticket.id}`
       });
+      this.notifyMail(
+        targetApproverId,
+        companyId,
+        `Approval needed: ${ticket.ticketNumber}`,
+        `<p><strong>${user.name}</strong> raised ${ticket.ticketNumber} ("${ticket.title}") and it needs your approval.</p>`,
+      );
     }
 
     return ticket;
@@ -712,6 +896,12 @@ export class TicketsService {
         title: 'Request cancelled',
         message: `${ticket.ticketNumber} was cancelled. Reason: ${why}`,
       });
+      this.notifyMail(
+        ticket.requesterId,
+        companyId,
+        `Cancelled: ${ticket.ticketNumber}`,
+        `<p>Ticket <strong>${ticket.ticketNumber}</strong> was cancelled.</p><p>${why}</p>`,
+      );
     }
 
     return updated;
@@ -768,6 +958,12 @@ export class TicketsService {
       message: `Strategic Rejection: Your ticket ${ticket.ticketNumber} was rejected by management. Reason: ${reason || 'Operational Constraints'}`,
       actionUrl: `/tickets/${id}`
     });
+    this.notifyMail(
+      ticket.requesterId,
+      companyId,
+      `Declined: ${ticket.ticketNumber}`,
+      `<p>Ticket <strong>${ticket.ticketNumber}</strong> was declined.</p><p>Reason: ${reason || 'Not given'}</p>`,
+    );
 
     return updated;
   }
@@ -811,6 +1007,12 @@ export class TicketsService {
       message: `All authorizations for ${ticket.ticketNumber} have been localized. The engagement is now ACTIVE.`,
       actionUrl: `/tickets/${id}`
     });
+    this.notifyMail(
+      ticket.requesterId,
+      companyId,
+      `Approved: ${ticket.ticketNumber}`,
+      `<p>Ticket <strong>${ticket.ticketNumber}</strong> was approved and is now active.</p>`,
+    );
 
     return updated;
   }
@@ -846,6 +1048,12 @@ export class TicketsService {
       message: `You have been deployed to the tactical squad for ticket ${ticket.ticketNumber}.`,
       actionUrl: `/tickets/${id}`
     });
+    this.notifyMail(
+      assigneeId,
+      companyId,
+      `Assigned: ${ticket.ticketNumber}`,
+      `<p>You've been assigned to ticket <strong>${ticket.ticketNumber}</strong> (${ticket.title}) by ${manager?.name}.</p>`,
+    );
 
     return updated;
   }
@@ -872,6 +1080,12 @@ export class TicketsService {
       message: `${inviter?.name} has requested your tactical support on ticket ${ticket.ticketNumber}.`,
       actionUrl: `/tickets/${id}`
     });
+    this.notifyMail(
+      personId,
+      companyId,
+      `Invited: ${ticket.ticketNumber}`,
+      `<p>${inviter?.name} invited you to ticket <strong>${ticket.ticketNumber}</strong> (${ticket.title}).</p>`,
+    );
 
     return { success: true };
   }
@@ -994,6 +1208,12 @@ export class TicketsService {
         message: `${senderName} mentioned you in the intelligence feed for ${ticketNumber}.`,
         actionUrl: `/tickets/${ticketId}`
       });
+      this.notifyMail(
+        u.id,
+        companyId,
+        `Mentioned in ${ticketNumber}`,
+        `<p>${senderName} mentioned you in a comment on ticket <strong>${ticketNumber}</strong>.</p>`,
+      );
     }
   }
 
@@ -1030,6 +1250,12 @@ export class TicketsService {
       message: `You have been removed from ticket ${ticket.ticketNumber} by ${remover?.name}. You no longer have access to this ticket.`,
       actionUrl: `/tickets`,
     });
+    this.notifyMail(
+      assignment.userId,
+      companyId,
+      `Removed from ${ticket.ticketNumber}`,
+      `<p>${remover?.name} removed you from ticket <strong>${ticket.ticketNumber}</strong>. You no longer have access to it.</p>`,
+    );
 
     return { success: true };
   }

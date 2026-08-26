@@ -117,6 +117,16 @@ export class AnalyticsController {
     return this.analyticsService.getDashboardStats(req.user?.id);
   }
 
+  @Get('tickets')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
+  @ApiOperation({ summary: 'Get ticket analytics (Admin/Company Admin/Super Admin only)' })
+  @ApiResponse({ status: 200, description: 'Ticket analytics retrieved successfully' })
+  @ApiResponse({ status: 403, description: 'Insufficient permissions' })
+  async getTicketAnalytics(@Request() req) {
+    return this.analyticsService.getTicketAnalytics(req.user.companyId);
+  }
+
   @Get('tasks/me')
   @ApiOperation({ summary: 'Get current user task analytics' })
   @ApiResponse({ status: 200, description: 'User task analytics retrieved successfully' })

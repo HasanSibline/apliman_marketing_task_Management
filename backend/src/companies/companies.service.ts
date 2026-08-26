@@ -368,9 +368,21 @@ export class CompaniesService {
       });
     }
 
+    // ticketApprovalThreshold lives on CompanySettings, a separate table, not on
+    // Company. Passed straight through to company.update() below it would be an
+    // unknown-field error, since Prisma validates against the Company model.
+    const { ticketApprovalThreshold, ...companyFields } = updateCompanyDto;
+    if (ticketApprovalThreshold !== undefined) {
+      await this.prisma.companySettings.upsert({
+        where: { companyId: id },
+        create: { companyId: id, ticketApprovalThreshold },
+        update: { ticketApprovalThreshold },
+      });
+    }
+
     return this.prisma.company.update({
       where: { id },
-      data: updateCompanyDto,
+      data: companyFields,
     });
   }
 

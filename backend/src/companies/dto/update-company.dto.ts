@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsEnum, IsBoolean, Min } from 'class-validator';
+import { IsString, IsOptional, IsInt, IsEnum, IsBoolean, IsNumber, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateCompanyDto {
@@ -70,5 +70,14 @@ export class UpdateCompanyDto {
   @IsOptional()
   @IsString()
   billingEmail?: string;
+
+  @ApiProperty({
+    example: 1000,
+    description: 'Purchase-order tickets at or above this amount require receiver-manager approval. Omit or null to turn the gate off.',
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  ticketApprovalThreshold?: number | null;
 }
 

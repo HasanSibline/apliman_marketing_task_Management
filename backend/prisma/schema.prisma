@@ -136,6 +136,11 @@ model Ticket {
   /// resolved, reopened and then cancelled, and one field would lose the first answer
   /// to the second. They are also read in different places and mean opposite things.
   cancellationReason String?
+  /// When resolve() actually fired, not when the row was last touched. updatedAt
+  /// moves on every edit, including ones long after resolution (a comment, a
+  /// re-opened-then-re-resolved cycle), so it cannot stand in for this without
+  /// silently corrupting resolution-time and SLA-compliance reporting.
+  resolvedAt         DateTime?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
   taskId             String?            @unique
@@ -233,6 +238,10 @@ model CompanySettings {
   language           String  @default("en")
   emailNotifications Boolean @default(true)
   webhookUrl         String?
+  /// Purchase-order tickets at or above this amount require receiver-manager
+  /// approval regardless of what the requester chose at creation. Null means the
+  /// gate is off: no company is opted into it just by the column existing.
+  ticketApprovalThreshold Float?
   company            Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("company_settings")

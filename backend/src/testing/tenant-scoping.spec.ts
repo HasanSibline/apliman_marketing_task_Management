@@ -116,19 +116,19 @@ const SCENARIOS: Scenario[] = [
   {
     name: 'TicketsService.findAll, as an employee',
     run: (prisma) =>
-      new TicketsService(prisma, {} as any, {} as any).findAll(COMPANY_A, CALLER, 'EMPLOYEE'),
+      new TicketsService(prisma, {} as any, {} as any, {} as any).findAll(COMPANY_A, CALLER, 'EMPLOYEE'),
   },
   {
     name: 'TicketsService.findAll, as a company admin',
     run: (prisma) =>
-      new TicketsService(prisma, {} as any, {} as any).findAll(COMPANY_A, CALLER, 'COMPANY_ADMIN'),
+      new TicketsService(prisma, {} as any, {} as any, {} as any).findAll(COMPANY_A, CALLER, 'COMPANY_ADMIN'),
   },
   {
     name: 'TicketsService.findAll, with a search term',
     // Search once collapsed the permission clause it was spread beside. A search must
     // narrow the result set, never widen it past the company.
     run: (prisma) =>
-      new TicketsService(prisma, {} as any, {} as any).findAll(
+      new TicketsService(prisma, {} as any, {} as any, {} as any).findAll(
         COMPANY_A,
         CALLER,
         'EMPLOYEE',
@@ -140,7 +140,7 @@ const SCENARIOS: Scenario[] = [
   {
     name: 'TicketsService.findOne',
     run: (prisma) =>
-      new TicketsService(prisma, {} as any, {} as any).findOne('ticket-1', COMPANY_A, CALLER),
+      new TicketsService(prisma, {} as any, {} as any, {} as any).findOne('ticket-1', COMPANY_A, CALLER),
   },
   {
     name: 'FilesService.getTicketFiles',

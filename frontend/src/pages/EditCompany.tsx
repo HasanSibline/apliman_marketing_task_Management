@@ -14,6 +14,9 @@ interface EditCompanyForm {
   maxTasks: number;
   maxStorage: number;
   billingEmail?: string;
+  /** Purchase-order tickets at or above this amount require manager approval.
+   *  Empty string means the gate is off, not zero. */
+  ticketApprovalThreshold: string;
 }
 
 const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
@@ -40,6 +43,7 @@ export default function EditCompany() {
     maxUsers: 50,
     maxTasks: 5000,
     maxStorage: 10,
+    ticketApprovalThreshold: '',
   });
 
   useEffect(() => {
@@ -64,6 +68,10 @@ export default function EditCompany() {
         maxTasks: company.maxTasks ?? 100,
         maxStorage: company.maxStorage ?? 1,
         billingEmail: company.billingEmail || '',
+        ticketApprovalThreshold:
+          company.settings?.ticketApprovalThreshold != null
+            ? String(company.settings.ticketApprovalThreshold)
+            : '',
       });
 
       // Set logo preview if exists
@@ -199,6 +207,12 @@ export default function EditCompany() {
         maxTasks: formData.maxTasks,
         maxStorage: formData.maxStorage,
         billingEmail: formData.billingEmail,
+        // Empty box means "off": send null rather than parsing '' to NaN or 0, either
+        // of which would mean something a blank box does not.
+        ticketApprovalThreshold:
+          formData.ticketApprovalThreshold.trim() === ''
+            ? null
+            : Number(formData.ticketApprovalThreshold),
       };
 
       await api.patch(`/companies/${id}`, payload);
@@ -408,6 +422,31 @@ export default function EditCompany() {
                 Manage AI providers
               </button>
             </div>
+          </div>
+
+          {/* Ticketing Section */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Ticketing</h2>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
+              Purchase-order approval threshold
+            </label>
+            <div className="flex items-center gap-2 max-w-xs">
+              <span className="text-gray-500 dark:text-gray-400">$</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={formData.ticketApprovalThreshold}
+                onChange={(e) => setFormData(prev => ({ ...prev, ticketApprovalThreshold: e.target.value }))}
+                placeholder="Off"
+                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              A purchase-order ticket at or above this amount always requires the receiving
+              department's manager to approve it, even if the requester did not ask for
+              approval. Leave blank to turn this off.
+            </p>
           </div>
 
           {/* Action Buttons */}

@@ -652,6 +652,11 @@ export const analyticsApi = {
     })
     return response.data
   },
+
+  getTicketAnalytics: async (): Promise<any> => {
+    const response = await api.get('/analytics/tickets')
+    return response.data
+  },
 }
 
 // AI API
