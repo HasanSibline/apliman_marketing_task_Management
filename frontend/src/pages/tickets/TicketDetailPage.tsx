@@ -742,7 +742,7 @@ const TicketDetailPage: React.FC = () => {
 
                   {(isRecMgrStage && canAuthoriseRec) && (
                     <div className="grid grid-cols-2 gap-2 mt-4">
-                      <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold tracking-wide hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100">
+                      <button onClick={handleApprove} className="flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold tracking-wide hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/25">
                         <CheckCircleIcon className="h-4 w-4" /> Approve
                       </button>
                       <button onClick={handleReject} className="flex items-center justify-center gap-2 py-2.5 bg-white dark:bg-gray-800 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 rounded-lg text-xs font-semibold tracking-wide hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-all">
@@ -933,7 +933,7 @@ const TicketDetailPage: React.FC = () => {
                           fetchTicketDetails()
                         } catch { toast.error('Failed to start engagement') }
                       }}
-                      className="w-full py-4 bg-primary-600 text-white rounded-xl text-xs font-semibold tracking-normal shadow-md shadow-primary-100 hover:scale-[1.02] transition-all mt-4"
+                      className="w-full py-4 bg-primary-600 text-white rounded-xl text-xs font-semibold tracking-normal shadow-lg shadow-primary-600/25 hover:scale-[1.02] transition-all mt-4"
                     >
                       Commence Execution
                     </button>
@@ -955,7 +955,7 @@ const TicketDetailPage: React.FC = () => {
                           requireReason: true,
                         })
                       }
-                      className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-emerald-100 shadow-md' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'} text-white rounded-xl text-xs font-semibold uppercase tracking-normal hover:scale-[1.02] transition-all mt-4`}
+                      className={`w-full py-4 ${ticket.status === 'IN_PROGRESS' ? 'bg-emerald-600 shadow-lg shadow-emerald-600/25' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'} text-white rounded-xl text-xs font-semibold uppercase tracking-normal hover:scale-[1.02] transition-all mt-4`}
                     >
                       Mark resolved
                     </button>
@@ -966,7 +966,7 @@ const TicketDetailPage: React.FC = () => {
                   {(ticket.status === 'RESOLVED' || ticket.status === 'CANCELLED') && canReopen && (
                     <button
                       onClick={handleReopen}
-                      className="w-full flex items-center justify-center gap-2 py-4 bg-primary-600 text-white rounded-xl text-xs font-semibold uppercase tracking-normal shadow-md shadow-primary-100 hover:scale-[1.02] transition-all mt-4"
+                      className="w-full flex items-center justify-center gap-2 py-4 bg-primary-600 text-white rounded-xl text-xs font-semibold uppercase tracking-normal shadow-lg shadow-primary-600/25 hover:scale-[1.02] transition-all mt-4"
                     >
                       <ArrowUturnLeftIcon className="h-4 w-4" />
                       Reopen

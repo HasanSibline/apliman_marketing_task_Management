@@ -414,7 +414,7 @@ const TicketsPage: React.FC = () => {
                 <div className="flex items-center gap-2">
                    <button 
                      onClick={(e) => { e.stopPropagation(); promptAction(e, 'accept_invite', ticket.id); }}
-                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold tracking-wide hover:bg-emerald-700 transition-all shadow-md shadow-emerald-100 flex items-center gap-2"
+                     className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-semibold tracking-wide hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-600/25 flex items-center gap-2"
                    >
                      <CheckCircleIcon className="h-4 w-4" /> Access
                    </button>

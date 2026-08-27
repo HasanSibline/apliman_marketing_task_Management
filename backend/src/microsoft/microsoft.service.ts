@@ -116,6 +116,38 @@ export class MicrosoftService {
       const graphClient = Client.init({ authProvider: (done) => done(null, access_token) });
       const profile = await graphClient.api('/me').get();
 
+      /**
+       * The account being connected has to be the signed-in person's own.
+       *
+       * The 'common' endpoint used to build the consent URL accepts sign-in from any
+       * Microsoft account, on purpose, so any AAD tenant and any personal account can
+       * use this integration. Nothing enforced it was the SAME person: the callback
+       * wrote whatever token it received onto whichever Aura user's session requested
+       * it, so signing into Microsoft as someone else silently connected their
+       * calendar, meetings and transcripts, and now their mailbox for notification
+       * email, to a different person's Aura account. Caught in practice, not in
+       * theory: one company connected a colleague's Microsoft account under a
+       * different name entirely.
+       *
+       * Checked against the requester's own Aura email, case-insensitively. A
+       * personal Microsoft account can leave `mail` empty, so `userPrincipalName` is
+       * the fallback, not the primary: it is guaranteed present but is sometimes a
+       * tenant-internal identifier rather than the address a person would recognise.
+       */
+      const requester = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      const graphEmail = String(profile.mail || profile.userPrincipalName || '').toLowerCase().trim();
+      const auraEmail = String(requester?.email || '').toLowerCase().trim();
+
+      if (!graphEmail || !auraEmail || graphEmail !== auraEmail) {
+        throw new BadRequestException(
+          `That Microsoft account (${profile.mail || profile.userPrincipalName || 'unknown address'}) does not match your Aura Operations email (${requester?.email ?? 'unknown'}). ` +
+            'Sign in to Microsoft with the account that matches your own email address.',
+        );
+      }
+
       // One Microsoft account belongs to one person here, which the unique index on
       // microsoftId enforces. Writing it blindly meant connecting an account someone
       // had already connected failed with the database's own words about a constraint
