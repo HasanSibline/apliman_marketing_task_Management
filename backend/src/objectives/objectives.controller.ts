@@ -16,6 +16,7 @@ export class ObjectivesController {
     constructor(private readonly objectivesService: ObjectivesService) { }
 
     @Get()
+    @ApiOperation({ summary: 'Get objectives for the company, optionally filtered by quarter' })
     @ApiQuery({ name: 'quarterId', required: false })
     findAll(@Request() req, @Query('quarterId') quarterId?: string) {
         return this.objectivesService.findAll(req.user.companyId, req.user.role, quarterId);
@@ -28,23 +29,27 @@ export class ObjectivesController {
     }
 
     @Get(':id')
+    @ApiOperation({ summary: 'Get a single objective with its key results' })
     findOne(@Param('id') id: string, @Request() req) {
         return this.objectivesService.findOne(id, req.user.companyId, req.user.role);
     }
 
     @Post()
+    @ApiOperation({ summary: 'Create a new objective' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     create(@Body() dto: CreateObjectiveDto, @Request() req) {
         return this.objectivesService.create(dto, req.user.companyId);
     }
 
     @Patch(':id')
+    @ApiOperation({ summary: 'Update an objective' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     update(@Param('id') id: string, @Body() dto: Partial<CreateObjectiveDto>, @Request() req) {
         return this.objectivesService.update(id, req.user.companyId, dto);
     }
 
     @Delete(':id')
+    @ApiOperation({ summary: 'Delete an objective' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     remove(@Param('id') id: string, @Request() req) {
         return this.objectivesService.remove(id, req.user.companyId);
@@ -52,18 +57,21 @@ export class ObjectivesController {
 
     // Key Results
     @Post(':id/key-results')
+    @ApiOperation({ summary: 'Add a key result to an objective' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     addKeyResult(@Param('id') id: string, @Body() dto: CreateKeyResultDto, @Request() req) {
         return this.objectivesService.addKeyResult(id, req.user.companyId, dto);
     }
 
     @Patch('key-results/:krId')
+    @ApiOperation({ summary: 'Update a key result' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     updateKeyResult(@Param('krId') krId: string, @Body() dto: UpdateKeyResultDto, @Request() req) {
         return this.objectivesService.updateKeyResult(krId, req.user.companyId, dto);
     }
 
     @Delete('key-results/:krId')
+    @ApiOperation({ summary: 'Delete a key result' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     removeKeyResult(@Param('krId') krId: string, @Request() req) {
         return this.objectivesService.removeKeyResult(krId, req.user.companyId);
@@ -71,6 +79,7 @@ export class ObjectivesController {
 
     // Task links
     @Post(':id/tasks/:taskId')
+    @ApiOperation({ summary: 'Link a task to an objective, optionally against a specific key result' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     linkTask(
         @Param('id') id: string, 
@@ -82,6 +91,7 @@ export class ObjectivesController {
     }
 
     @Delete(':id/tasks/:taskId')
+    @ApiOperation({ summary: 'Unlink a task from an objective' })
     @Roles(UserRole.COMPANY_ADMIN, UserRole.ADMIN, UserRole.SUPER_ADMIN)
     unlinkTask(@Param('id') id: string, @Param('taskId') taskId: string, @Request() req) {
         return this.objectivesService.unlinkTask(id, req.user.companyId, taskId);

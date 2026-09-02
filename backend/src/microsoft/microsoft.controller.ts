@@ -1,20 +1,25 @@
 ﻿import { Controller, Get, Query, UseGuards, Req, Res, Post, Param, Body } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { MicrosoftService } from './microsoft.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Response } from 'express';
 import { Client } from '@microsoft/microsoft-graph-client';
 
+@ApiTags('Microsoft Integration')
 @Controller('microsoft')
 export class MicrosoftController {
   constructor(private readonly microsoftService: MicrosoftService) {}
 
   @Get('auth-url')
+  @ApiOperation({ summary: 'Get the Microsoft OAuth consent URL to connect a Microsoft account' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   getAuthUrl() {
     return { url: this.microsoftService.getAuthUrl() };
   }
 
   @Get('callback')
+  @ApiOperation({ summary: 'Receive the Microsoft OAuth redirect and forward its code to the frontend' })
   async handleCallback(@Query('code') code: string, @Res() res: Response) {
     // A configured URL ending in "/" produced //auth/microsoft/callback here, which
     // the router does not match, so sign-in completed and the page stayed blank.
@@ -25,12 +30,16 @@ export class MicrosoftController {
   }
 
   @Post('sync')
+  @ApiOperation({ summary: 'Exchange an OAuth code for tokens and link the Microsoft account to the current user' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async sync(@Body('code') code: string, @Req() req: any) {
     return this.microsoftService.handleCallback(code, req.user.id);
   }
 
   @Get('events')
+  @ApiOperation({ summary: 'Get the current user\'s Microsoft calendar events in a date range' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async getEvents(
     @Req() req,
@@ -46,6 +55,8 @@ export class MicrosoftController {
    * debugging without server log access.
    */
   @Get('debug')
+  @ApiOperation({ summary: 'Diagnostic dump of raw Microsoft Graph calendar and meeting data for the current user' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async debugEvents(@Req() req) {
     try {
@@ -117,24 +128,32 @@ export class MicrosoftController {
   }
 
   @Get('details/:meetingId')
+  @ApiOperation({ summary: 'Get details of a Microsoft meeting, with the organizer included among attendees' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async getDetails(@Req() req, @Param('meetingId') meetingId: string) {
     return this.microsoftService.getMeeting(req.user.id, meetingId);
   }
 
   @Get('transcripts/:meetingId')
+  @ApiOperation({ summary: 'Get the Teams transcript or chat history for a meeting' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async getTranscript(@Req() req, @Param('meetingId') meetingId: string) {
     return this.microsoftService.getMeetingTranscript(req.user.id, meetingId);
   }
 
   @Get('summarize/:meetingId')
+  @ApiOperation({ summary: 'Summarize a meeting\'s transcript or chat history with AI' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async summarize(@Req() req, @Param('meetingId') meetingId: string) {
     return this.microsoftService.summarizeMeeting(req.user.id, meetingId);
   }
 
   @Post('disconnect')
+  @ApiOperation({ summary: 'Disconnect the current user\'s own Microsoft account' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async disconnect(@Req() req) {
     return this.microsoftService.disconnect(req.user.id);
@@ -149,6 +168,8 @@ export class MicrosoftController {
    * and the only way out was editing the database by hand.
    */
   @Post('disconnect/:userId')
+  @ApiOperation({ summary: 'Disconnect another user\'s Microsoft account, on an admin\'s authority' })
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   async disconnectUser(@Req() req, @Param('userId') userId: string) {
     return this.microsoftService.disconnectAsAdmin(userId, req.user);

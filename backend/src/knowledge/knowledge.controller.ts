@@ -12,6 +12,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -19,6 +20,8 @@ import { UserRole } from '../types/prisma';
 import { KnowledgeService } from './knowledge.service';
 import { CreateKnowledgeSourceDto, UpdateKnowledgeSourceDto } from './dto/knowledge-source.dto';
 
+@ApiTags('Knowledge Sources')
+@ApiBearerAuth()
 @Controller('knowledge-sources')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class KnowledgeController {
@@ -27,6 +30,7 @@ export class KnowledgeController {
   constructor(private readonly knowledgeService: KnowledgeService) {}
 
   @Get('debug')
+  @ApiOperation({ summary: 'Diagnostic check that the Prisma client has the KnowledgeSource model' })
   async debugPrismaClient() {
     try {
       const { PrismaClient } = require('@prisma/client');
@@ -51,6 +55,7 @@ export class KnowledgeController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get all knowledge sources for the current user\'s company' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async getAllKnowledgeSources(@Request() req) {
     try {
@@ -66,6 +71,7 @@ export class KnowledgeController {
   }
 
   @Get('active')
+  @ApiOperation({ summary: 'Get active knowledge sources for the current user\'s company' })
   async getActiveKnowledgeSources(@Request() req) {
     try {
       // Without a userId, findActive() has no company to scope by and returns every
@@ -84,6 +90,7 @@ export class KnowledgeController {
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get a single knowledge source' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async getKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
@@ -106,6 +113,7 @@ export class KnowledgeController {
   }
 
   @Post()
+  @ApiOperation({ summary: 'Create a new knowledge source' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async createKnowledgeSource(
     @Body() createDto: CreateKnowledgeSourceDto,
@@ -141,6 +149,7 @@ export class KnowledgeController {
   }
 
   @Put(':id')
+  @ApiOperation({ summary: 'Update a knowledge source' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async updateKnowledgeSource(
     @Param('id') id: string,
@@ -160,6 +169,7 @@ export class KnowledgeController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Delete a knowledge source' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async deleteKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
@@ -176,6 +186,7 @@ export class KnowledgeController {
   }
 
   @Post(':id/scrape')
+  @ApiOperation({ summary: 'Scrape a knowledge source\'s URL via the AI service and store its content' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async scrapeKnowledgeSource(@Param('id') id: string, @Request() req) {
     try {
@@ -191,6 +202,7 @@ export class KnowledgeController {
   }
 
   @Post('scrape-all')
+  @ApiOperation({ summary: 'Scrape every active knowledge source in the company, one at a time' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
   async scrapeAllKnowledgeSources(@Request() req) {
     try {

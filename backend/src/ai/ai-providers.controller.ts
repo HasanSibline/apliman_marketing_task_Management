@@ -12,6 +12,7 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,6 +34,8 @@ import { AiGatewayService } from './ai-gateway.service';
  * platform-wide credential any more, so every route takes a companyId and a company
  * admin may only ever pass their own.
  */
+@ApiTags('AI Providers')
+@ApiBearerAuth()
 @Controller('ai/providers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class AiProvidersController {
@@ -63,18 +66,21 @@ export class AiProvidersController {
   }
 
   @Get()
+  @ApiOperation({ summary: 'Get the AI provider chain and health for a company, via query param' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async list(@Query('companyId') companyId: string | undefined, @Request() req) {
     return this.gateway.healthFor(this.scopeFor(req, companyId));
   }
 
   @Get(':companyId')
+  @ApiOperation({ summary: 'Get the AI provider chain and health for a company, via path param' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async listFor(@Param('companyId') companyId: string, @Request() req) {
     return this.gateway.healthFor(this.scopeFor(req, companyId));
   }
 
   @Post()
+  @ApiOperation({ summary: 'Add an AI provider entry to a company\'s chain, with the key encrypted at rest' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async create(
     @Body()
@@ -123,6 +129,7 @@ export class AiProvidersController {
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update a provider entry, re-checking the emergency-budget rule against the resulting state' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async update(
     @Param('id') id: string,
@@ -192,6 +199,7 @@ export class AiProvidersController {
    * condition that no longer holds.
    */
   @Post(':id/reset')
+  @ApiOperation({ summary: 'Clear a provider entry\'s cooldown and put it back into service by hand' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async reset(@Param('id') id: string, @Request() req) {
     const existing = await this.prisma.aiProviderConfig.findUnique({
@@ -217,6 +225,7 @@ export class AiProvidersController {
    * the same act.
    */
   @Post(':id/test')
+  @ApiOperation({ summary: 'Send a throwaway prompt through a provider entry to verify its key works' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async test(@Param('id') id: string, @Request() req) {
     const existing = await this.prisma.aiProviderConfig.findUnique({
@@ -236,6 +245,7 @@ export class AiProvidersController {
   }
 
   @Delete(':id')
+  @ApiOperation({ summary: 'Remove a provider entry from a company\'s AI chain' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN)
   async remove(@Param('id') id: string, @Request() req) {
     const existing = await this.prisma.aiProviderConfig.findUnique({
