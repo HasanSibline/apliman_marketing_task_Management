@@ -7,7 +7,7 @@
  *
  * PUBLISHED RATES GO STALE. Providers reprice, retire models and run introductory
  * discounts. Everything in RATES below was read from the providers' own pricing pages
- * on 2026-08-21; when a number is wrong, the fix is in this file and nowhere else:
+ * on 2026-08-21 (Gemini and Claude rows re-read 2026-11-09); when a number is wrong, the fix is in this file and nowhere else:
  *
  *   anthropic  https://claude.com/pricing#api
  *   openai     https://openai.com/api/pricing
@@ -36,14 +36,22 @@ const RATES: Record<string, Record<string, TokenRate>> = {
   anthropic: {
     'claude-fable-5': { inputPerMillion: 10, outputPerMillion: 50 },
     'claude-mythos-5': { inputPerMillion: 10, outputPerMillion: 50 },
+    // The 5.5 rows must stay listed: longest prefix wins, so without its own row
+    // claude-opus-5-5 prices as claude-opus-5, and claude-haiku-5-5 matches nothing and
+    // prices at the unknown-model rate, a hundred times its real cost, which would
+    // trip monthly budgets on the AI service's default model.
+    'claude-opus-5-5': { inputPerMillion: 4, outputPerMillion: 20 },
     'claude-opus-5': { inputPerMillion: 5, outputPerMillion: 25 },
     'claude-opus-4-8': { inputPerMillion: 5, outputPerMillion: 25 },
     'claude-opus-4-7': { inputPerMillion: 5, outputPerMillion: 25 },
     'claude-opus-4-6': { inputPerMillion: 5, outputPerMillion: 25 },
-    // Sonnet 5 is on an introductory $2/$10 until 2026-08-31. The standard rate is
-    // recorded on purpose, so nothing has to be edited on the day it ends.
-    'claude-sonnet-5': { inputPerMillion: 3, outputPerMillion: 15 },
+    // Sonnet 5's introductory $2/$10 became its standard price (read 2026-11-09).
+    'claude-sonnet-5-5': { inputPerMillion: 2, outputPerMillion: 10 },
+    'claude-sonnet-5': { inputPerMillion: 2, outputPerMillion: 10 },
     'claude-sonnet-4-6': { inputPerMillion: 3, outputPerMillion: 15 },
+    // The AI service's default Claude model. $0.50 / $2.50 above 100K input tokens;
+    // the standard rate is recorded because no prompt here comes near that.
+    'claude-haiku-5-5': { inputPerMillion: 0.1, outputPerMillion: 0.5 },
     'claude-haiku-4-5': { inputPerMillion: 1, outputPerMillion: 5 },
   },
   openai: {
@@ -53,11 +61,16 @@ const RATES: Record<string, Record<string, TokenRate>> = {
     // Retired by Google on 2026-06-01 and no longer the AI service's default, so the
     // rate stays listed: a row of usage against it should price at what it cost.
     'gemini-2.0-flash': { inputPerMillion: 0.1, outputPerMillion: 0.4 },
-    // The AI service's default since the 2.0 shutdown, and retired itself on
-    // 2026-10-16. Note the successor below is 5x the input and 3.6x the output, so the
-    // day someone moves to it, every budget ceiling set against this row is wrong.
+    // Shuts down on 2026-12-01; Google then routes its requests to 3.5-flash-lite.
     'gemini-2.5-flash': { inputPerMillion: 0.3, outputPerMillion: 2.5 },
+    // The "-lite" rows must stay listed. Prefixes match longest first, and without them
+    // a lite model would be priced as its full-size sibling.
+    'gemini-2.5-flash-lite': { inputPerMillion: 0.1, outputPerMillion: 0.4 },
+    // The AI service's default since 2026-11-09 (read from Google's pricing page).
+    'gemini-3.5-flash-lite': { inputPerMillion: 0.3, outputPerMillion: 2.5 },
+    // No longer listed on Google's pricing page; its endpoint routes to 3.6-flash.
     'gemini-3.5-flash': { inputPerMillion: 1.5, outputPerMillion: 9 },
+    'gemini-3.6-flash': { inputPerMillion: 0.75, outputPerMillion: 3.75 },
   },
   groq: {
     'gpt-oss-120b': { inputPerMillion: 0.15, outputPerMillion: 0.6 },
@@ -89,10 +102,10 @@ export const UNKNOWN_MODEL_RATE: TokenRate = Object.values(RATES)
 /**
  * The rate for one provider and model.
  *
- * A null model is the common case rather than an edge one: an entry that pins no model
- * lets the AI service pick its own default, which this service cannot see. That falls
- * to the unknown rate, which is correct, because guessing the service's default here
- * would be a second copy of a value that lives in ai-service/config.py.
+ * A null model means nobody said which model ran. It falls to the unknown rate rather
+ * than a guess at the AI service's default, which would be a second copy of a value
+ * that lives in ai-service/config.py. callCost avoids it in practice: the service now
+ * reports the model it used beside the token counts.
  */
 export function rateFor(provider: string, model?: string | null): TokenRate {
   const models = RATES[(provider || '').toLowerCase()];
@@ -221,6 +234,12 @@ export function callCost(
   model: string | null | undefined,
   result: unknown,
 ): CallCost {
+  // The AI service names the model that served the call beside its token counts. That
+  // is the truth even when the entry pins nothing, and it is the only way an unpinned
+  // entry is priced at its real rate rather than the unknown-model ceiling.
+  const served = (result as any)?.usage?.model;
+  if (typeof served === 'string' && served.trim()) model = served;
+
   const measured = measuredTokens(result);
   if (measured) {
     return { ...measured, estimatedCost: costOf(provider, model, measured), basis: 'measured' };

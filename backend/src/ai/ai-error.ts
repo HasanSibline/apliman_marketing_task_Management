@@ -12,6 +12,7 @@ import { MAX_COOLDOWN_SECONDS } from './quota-cooldown';
 import type { EmptyChainCode } from './provider-chain';
 
 export type AiErrorKind =
+  | 'SERVICE_MISCONFIGURED'
   | 'RATE_LIMIT'
   | 'QUOTA_EXCEEDED'
   | 'PROVIDER_OVERLOADED'
@@ -23,6 +24,7 @@ export type AiErrorKind =
   | 'CONTENT_FILTER'
   | 'INVALID_API_KEY'
   | 'AUTHENTICATION_ERROR'
+  | 'MODEL_UNAVAILABLE'
   | 'STREAM_INTERRUPTED'
   | 'BAD_REQUEST'
   | 'ENDPOINT_NOT_FOUND'
@@ -69,6 +71,11 @@ type VerdictRow = Omit<AiErrorVerdict, 'kind' | 'blameEntry'> & { blameEntry?: b
  * A **content filter** is a property of the prompt, not the provider. Sending it
  * elsewhere gets the same refusal from a second provider, so it stops here.
  *
+ * A **model unavailable** (unknown, retired or not granted to this key) is configuration,
+ * often the AI service's default rather than the entry's own. It rests the entry for the
+ * longest cooldown instead of retiring it: retiring would lock every unpinned entry at
+ * once over one env var, and keep them locked after the env var was fixed.
+ *
  * **Context too large** is also a property of the request, but a different provider may
  * genuinely have a bigger window, so it falls through without punishing the entry.
  *
@@ -78,6 +85,12 @@ type VerdictRow = Omit<AiErrorVerdict, 'kind' | 'blameEntry'> & { blameEntry?: b
  * **Endpoint not found** is our own deployment answering rather than a provider, so it
  * stops the chain and blames nobody: every entry would fail it identically.
  *
+ * **Service misconfigured** is our own AI service refusing the backend, because
+ * AI_SERVICE_SECRET differs between the two services or is unset. It arrives as a 401
+ * or 503, which read as a bad key or an overloaded provider, and that reading used to
+ * retire every key in the chain for a fault no provider ever saw. Fixing the secret
+ * then left the tenant locked out until each entry was re-tested by hand.
+ *
  * QUOTA_EXCEEDED rests for MAX_COOLDOWN_SECONDS rather than the hour it used to claim.
  * Which ceiling wins is now decided here: the fifteen minute clamp does, because the
  * gateway routes every cooldown through cooldownFor and an hour was therefore a number
@@ -86,6 +99,7 @@ type VerdictRow = Omit<AiErrorVerdict, 'kind' | 'blameEntry'> & { blameEntry?: b
  * benched for fifty-nine minutes with nothing to un-bench it.
  */
 const VERDICTS: Record<AiErrorKind, VerdictRow> = {
+  SERVICE_MISCONFIGURED: { fallback: false, retrySame: false, blameEntry: false },
   RATE_LIMIT:           { fallback: true,  retrySame: true,  cooldownSeconds: 90,     status: 'RATE_LIMITED' },
   QUOTA_EXCEEDED:       { fallback: true,  retrySame: false, cooldownSeconds: MAX_COOLDOWN_SECONDS, status: 'QUOTA_EXCEEDED' },
   PROVIDER_OVERLOADED:  { fallback: true,  retrySame: true,  cooldownSeconds: 60,     status: 'UNAVAILABLE' },
@@ -97,6 +111,7 @@ const VERDICTS: Record<AiErrorKind, VerdictRow> = {
   CONTENT_FILTER:       { fallback: false, retrySame: false },
   INVALID_API_KEY:      { fallback: true,  retrySame: false, status: 'INVALID_KEY' },
   AUTHENTICATION_ERROR: { fallback: true,  retrySame: false, status: 'INVALID_KEY' },
+  MODEL_UNAVAILABLE:    { fallback: true,  retrySame: false, cooldownSeconds: MAX_COOLDOWN_SECONDS, status: 'UNAVAILABLE' },
   STREAM_INTERRUPTED:   { fallback: true,  retrySame: true },
   BAD_REQUEST:          { fallback: false, retrySame: false },
   ENDPOINT_NOT_FOUND:   { fallback: false, retrySame: false, blameEntry: false },
@@ -136,19 +151,29 @@ export function classifyAiError(error: any): AiErrorVerdict {
   const code = String(error?.code ?? '').toUpperCase();
 
   const kind = ((): AiErrorKind => {
+    // Our own service's two refusals, in main.py's require_service_token. Checked
+    // first, because their statuses (401, 503) would otherwise blame the provider.
+    // The status is required too, so a provider echoing a prompt that happens to
+    // contain these words cannot stop the chain.
+    if ((status === 401 || status === 503) && /invalid or missing service token|ai_service_secret/.test(text)) {
+      return 'SERVICE_MISCONFIGURED';
+    }
     // Checked before status, because a provider may return 400 for a filtered prompt
     // and 402 for an account that has run dry.
-    if (/content[_ ]?filter|safety|blocked by|responsibleai|content policy/.test(text)) {
+    if (/content[_ ]?filter|safety|blocked by|responsibleai|content policy|declined this request/.test(text)) {
       return 'CONTENT_FILTER';
     }
     if (/max[_ ]?tokens|max output|length limit|finish_reason.*length/.test(text)) {
       return 'MAX_OUTPUT_REACHED';
     }
-    if (/context (length|window)|too many tokens|maximum context|prompt is too long|request too large/.test(text)) {
+    if (/context (length|window)|too many tokens|maximum context|prompt is too long|request too large|input token count/.test(text)) {
       return 'CONTEXT_TOO_LARGE';
     }
-    if (/api[_ ]?key not valid|api_key_invalid|invalid api key|incorrect api key|api key expired|revoked/.test(text)) {
+    if (/api[_ ]?key not valid|api_key_invalid|invalid api key|incorrect api key|api key expired|revoked|reported as leaked|unauthenticated|api has not been used|service_disabled/.test(text)) {
       return 'INVALID_API_KEY';
+    }
+    if (/model[_ ]not[_ ]found|is not found for api version|unknown anthropic model|does not have access to the requested model|model .{1,80} does not exist/.test(text)) {
+      return 'MODEL_UNAVAILABLE';
     }
     // Hard exhaustion is checked before the status codes because it can arrive with
     // any of them, but it needs positive evidence to be claimed at all.
@@ -159,6 +184,10 @@ export function classifyAiError(error: any): AiErrorVerdict {
     }
     if (code === 'ECONNABORTED' || /timeout|etimedout|timed out/.test(text)) return 'TIMEOUT';
     if (['ECONNRESET', 'ENOTFOUND', 'ECONNREFUSED', 'EAI_AGAIN', 'EPIPE'].includes(code)) {
+      return 'NETWORK_ERROR';
+    }
+    // The same failures as our AI service words them after reaching for a provider.
+    if (/cannot connect to host|connection (refused|reset)|could not reach|server disconnected|getaddrinfo|name or service not known/.test(text)) {
       return 'NETWORK_ERROR';
     }
 
@@ -247,12 +276,15 @@ export function userFacingMessage(kind: AiErrorKind): string {
       return 'That request could not be processed as written.';
     case 'ENDPOINT_NOT_FOUND':
       return 'That assistant feature is not available yet. Please report it to your administrator.';
+    case 'SERVICE_MISCONFIGURED':
+      return 'The assistant is misconfigured on the server. Please report it to your administrator.';
     case 'NOT_CONFIGURED':
       return 'The assistant has not been set up yet. Ask your administrator to enable it.';
     case 'BUDGET_EXHAUSTED':
       return 'The assistant has reached its spending limit for this month. Ask your administrator to raise it.';
     case 'INVALID_API_KEY':
     case 'AUTHENTICATION_ERROR':
+    case 'MODEL_UNAVAILABLE':
       return 'The assistant is not set up correctly. Ask your administrator to check the AI settings.';
     default:
       return 'The assistant is briefly unavailable. Please try again in a moment.';

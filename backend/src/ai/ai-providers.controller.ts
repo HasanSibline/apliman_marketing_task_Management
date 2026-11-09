@@ -116,7 +116,7 @@ export class AiProvidersController {
       data: {
         companyId,
         provider: body.provider,
-        model: body.model || null,
+        model: body.model?.trim() || null,
         encryptedKey: this.companies.encryptApiKey(body.apiKey.trim()),
         label: body.label || null,
         priority: body.priority ?? 100,
@@ -168,7 +168,7 @@ export class AiProvidersController {
     const updated = await this.prisma.aiProviderConfig.update({
       where: { id },
       data: {
-        ...(body.model !== undefined ? { model: body.model || null } : {}),
+        ...(body.model !== undefined ? { model: body.model?.trim() || null } : {}),
         ...(body.label !== undefined ? { label: body.label || null } : {}),
         ...(body.priority !== undefined ? { priority: body.priority } : {}),
         ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),

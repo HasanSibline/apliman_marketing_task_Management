@@ -9,11 +9,26 @@ import asyncio
 from .context_learning import ContextLearningService
 # Shared with the content generator so both services report token counts under the
 # same two key names, and drop an empty report the same way.
-from .content_generator import Usage, add_usage, normalise_usage
+from .content_generator import Usage, add_usage, normalise_usage, with_model
+from .gemini_reply import empty_reply_error, reply_text, usage_counts
 
 from config import get_config
 
 logger = logging.getLogger(__name__)
+
+# How much of the conversation goes into each prompt: the latest messages, each cut to
+# a length that keeps a long pasted answer from crowding out everything else.
+HISTORY_MESSAGES = 12
+HISTORY_CHARS_PER_MESSAGE = 600
+
+
+class UnsupportedAttachment(Exception):
+    """The configured provider cannot read this attachment. Told to the user, not a failure."""
+
+
+class EmptyReply(Exception):
+    """Gemini answered with no visible text. Final: retrying the same prompt spends more."""
+
 
 class ChatService:
     """Service for handling conversational AI chat with context and memory"""
@@ -167,8 +182,16 @@ class ChatService:
             # Oldest-first. reversed() fed the model the conversation backwards,
             # which is a large part of why it lost the thread between turns.
             history_text = "CHAT HISTORY (oldest first):\n"
-            for msg in conversation_history[-12:]:
+            for msg in conversation_history[-HISTORY_MESSAGES:]:
                 role_label = "Aura Assist" if msg.get("role") == "assistant" else "User"
+                # This line was lost at some point, leaving a loop that built nothing:
+                # every prompt carried the header and no history, so the assistant had
+                # no memory of the previous turn.
+                content = str(msg.get("content") or "").strip()
+                if len(content) > HISTORY_CHARS_PER_MESSAGE:
+                    content = content[:HISTORY_CHARS_PER_MESSAGE] + "..."
+                if content:
+                    history_text += f"{role_label}: {content}\n"
 
             # Create highly dynamic system prompt
             system_prompt = self._build_system_prompt(
@@ -211,7 +234,7 @@ class ChatService:
                 # Only Gemini handles image attachments here. Groq/OpenAI text models used
                 # in this deployment don't do vision, and we never fall back to a platform key.
                 if self.provider in ("groq", "openai") and has_media:
-                    raise Exception(
+                    raise UnsupportedAttachment(
                         f"Image attachments require a Google Gemini API key. Your company is configured "
                         f"with {self.provider}, which is set up for text only here. Please ask your "
                         f"administrator to use a Gemini key for image support."
@@ -270,26 +293,24 @@ class ChatService:
             # ContextLearningService returns text only. Whoever gives it a usage return
             # should add it here.
             if usage_total:
-                result["usage"] = usage_total
+                result["usage"] = with_model(usage_total, self.model_name)
 
             return result
 
-        except Exception as e:
-            error_msg = str(e)
-            logger.error(f"Error processing chat message: {error_msg}")
-            
-            # Surface the actual error message to the user/frontend for debugging
-            detailed_msg = f"I encountered an error: {error_msg}"
-            if "quota exhausted" in error_msg.lower() or "429" in error_msg:
-                detailed_msg = "⏳ AI quota exceeded. All available API keys have reached their rate limit. The system will automatically retry with a new key if one is available. If this persists, please ask your administrator to add an additional API key in the company settings."
-            elif "API key was reported as leaked" in error_msg:
-                detailed_msg = "Your AI API key has been revoked by the provider. Please update your company settings with a new key."
-            
+        except UnsupportedAttachment as e:
+            # Not a failure of the provider: the answer is what the person needs to know.
             return {
-                "message": detailed_msg,
+                "message": str(e),
                 "contextUsed": False,
                 "learnedContext": None
             }
+        except Exception as e:
+            # Raised, not returned. A failure used to come back as HTTP 200 with the raw
+            # upstream error as the assistant's reply: the gateway recorded a success, so
+            # it never failed over or cooled the entry down, and the reply named the
+            # provider. The backend now classifies it and tells the person what to do.
+            logger.error(f"Error processing chat message: {str(e)}")
+            raise
 
     async def _generate_via_openai_compatible(self, prompt: str) -> Tuple[str, Usage]:
         """OpenAI-compatible chat API (Groq or OpenAI) with company-key rotation on 429.
@@ -550,21 +571,15 @@ class ChatService:
                     async with session.post(auth_url, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=50)) as response:
                         if response.status == 200:
                             data = await response.json()
-                            reported = data.get('usageMetadata') or {}
                             # A refused answer was still generated and still billed, so
                             # both exits carry the same counts.
-                            call_usage = normalise_usage(
-                                reported.get('promptTokenCount'), reported.get('candidatesTokenCount')
-                            )
-                            if data.get('candidates'):
-                                candidate = data['candidates'][0]
-                                if candidate.get('content'):
-                                    return candidate['content']['parts'][0]['text'], call_usage
-                                elif candidate.get('finishReason'):
-                                    return (
-                                        f"⚠️ Google Gemini chose not to respond due to Safety/Policy settings (Finish Reason: {candidate['finishReason']})",
-                                        call_usage,
-                                    )
+                            call_usage = normalise_usage(*usage_counts(data.get('usageMetadata')))
+                            text, finish_reason = reply_text(data)
+                            if text is not None:
+                                return text, call_usage
+                            # Worded for the backend's classifier: running out of tokens
+                            # and a safety refusal must not bench the entry.
+                            raise EmptyReply(empty_reply_error(finish_reason))
                         
                         # Handle errors
                         try:
@@ -583,6 +598,8 @@ class ChatService:
                             api_error = error_text
                             last_was_429 = False
 
+            except EmptyReply:
+                raise
             except Exception as e:
                 last_error = str(e)
                 logger.warning(f"Request exception (attempt {attempts+1}): {last_error[:200]}")

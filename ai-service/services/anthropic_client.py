@@ -4,9 +4,8 @@ Every other provider in this service talks raw REST over aiohttp because that is
 Gemini/Groq/OpenAI need here. Anthropic ships an official Python SDK, so we use that
 instead: it gives us retries, typed errors, and correct streaming for free.
 
-The key that reaches this module is either a company's own key or the platform-wide
-key a super admin saved in Settings → AI Platform. Nothing is read from the
-environment except the default model.
+The key that reaches this module is the company's own, from its AI provider chain.
+Nothing is read from the environment except the default model and tuning values.
 """
 
 import logging
@@ -15,10 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
-# Claude's most capable model. Override per-request with the platform "model" field,
-# or globally with ANTHROPIC_MODEL. `claude-haiku-4-5` is the cheapest option and is
-# more than adequate for task descriptions and short chat turns.
-DEFAULT_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-5")
+# The model used when a provider entry pins none. Haiku 5.5 ($0.10 / $0.50 per million
+# tokens for prompts up to 100K) is ample for task descriptions, briefs, classification
+# and chat turns; this was claude-opus-5 ($5 / $25), fifty times the price on every
+# call, one-line daily briefs included. An entry that needs more pins its own model
+# (claude-sonnet-5-5 or claude-opus-5-5), or set ANTHROPIC_MODEL for every entry.
+DEFAULT_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")
 
 # Thinking + response share this budget, so leave headroom above the visible answer.
 DEFAULT_MAX_TOKENS = int(os.getenv("ANTHROPIC_MAX_TOKENS", "8192"))
@@ -30,6 +31,31 @@ DEFAULT_EFFORT = os.getenv("ANTHROPIC_EFFORT", "medium")
 # the API retries it on Anthropic's recommended fallback model inside the same call
 # instead of handing us an empty response.
 FALLBACK_BETA = "server-side-fallback-2026-07-01"
+
+# The models that accept `fallbacks: "default"`. Others (Haiku among them) have no
+# server-side fallback, and sending it to them costs a rejected round trip before the
+# plain call below, on every request.
+_FALLBACK_MODEL_PREFIXES = ("claude-fable-5-1", "claude-mythos-5-1", "claude-opus-5", "claude-sonnet-5-5")
+
+
+def _supports_fallback(model_id: str) -> bool:
+    return model_id.startswith(_FALLBACK_MODEL_PREFIXES)
+
+
+# Models that accept output_config.effort. Opus 4.5 was the first; older Claude models
+# (Haiku 4.5, Sonnet 4.5, Opus 4.1, the Claude 3 family) answer it with a 400 on every
+# call. An allowlist, so an unlisted model gets the provider's default rather than an
+# error.
+_EFFORT_MODEL_PREFIXES = (
+    "claude-opus-4-5", "claude-opus-4-6", "claude-opus-4-7", "claude-opus-4-8",
+    "claude-sonnet-4-6", "claude-opus-5", "claude-sonnet-5", "claude-haiku-5",
+    "claude-fable-5", "claude-mythos-5",
+)
+
+# Thinking is spent from max_tokens, so a short-answer cap (200 for a priority) can be
+# used up before any text is written. Output is billed as generated, not as capped.
+MIN_MAX_TOKENS = 1024
+
 
 IMAGE_MIME_TYPES = {
     "image/jpeg": "image/jpeg",
@@ -204,20 +230,26 @@ async def generate_with_usage(
 
     request: Dict[str, Any] = {
         "model": model_id,
-        "max_tokens": max_tokens or DEFAULT_MAX_TOKENS,
-        "output_config": {"effort": effort or DEFAULT_EFFORT},
+        "max_tokens": max(max_tokens, MIN_MAX_TOKENS) if max_tokens else DEFAULT_MAX_TOKENS,
         "messages": [{"role": "user", "content": build_user_content(prompt, files)}],
     }
+    if model_id.startswith(_EFFORT_MODEL_PREFIXES):
+        request["output_config"] = {"effort": effort or DEFAULT_EFFORT or "medium"}
     if system_prompt:
         request["system"] = system_prompt
 
     try:
         try:
+            if not _supports_fallback(model_id):
+                response = await client.messages.create(**request)
+                return _extract_text(response), _extract_usage(response)
             # Preferred path: refusals are retried server-side on a fallback model.
             response = await client.beta.messages.create(
                 **request, betas=[FALLBACK_BETA], extra_body={"fallbacks": "default"}
             )
         except (anthropic.BadRequestError, TypeError) as beta_error:
+            if not _supports_fallback(model_id):
+                raise
             # Older SDK or an account without the beta, fall back to a plain call
             # rather than failing the user's request over an optional feature.
             logger.warning(f"Claude fallback beta unavailable ({beta_error}); retrying without it.")

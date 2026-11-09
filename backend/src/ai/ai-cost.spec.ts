@@ -33,7 +33,7 @@ describe('rateFor', () => {
     expect(rateFor('gemini', 'gemini-2.5-flash')).not.toEqual(rateFor('gemini', 'gemini-2.0-flash'));
   });
 
-  /** Google dates its snapshots too, and 2.5-flash is the id the service now sends. */
+  /** Google dates its snapshots too, so a dated id must price as its base model. */
   it('prices a dated gemini-2.5-flash snapshot as gemini-2.5-flash', () => {
     expect(rateFor('gemini', 'gemini-2.5-flash-preview-09-2026')).toEqual(
       rateFor('gemini', 'gemini-2.5-flash'),
@@ -41,15 +41,42 @@ describe('rateFor', () => {
   });
 
   /**
-   * The successor is materially dearer, which is the whole reason moving to it is the
-   * owner's decision and not a silent default change.
+   * Google routes gemini-2.5-flash to gemini-3.5-flash-lite on its shutdown, at the same
+   * price. If that ever stops being true, moving the default changes every bill, and
+   * this test should fail so the owner decides rather than the table.
    */
-  it('keeps the successor dearer than the model it replaces', () => {
-    const current = rateFor('gemini', 'gemini-2.5-flash');
-    const successor = rateFor('gemini', 'gemini-3.5-flash');
+  it('keeps the current default priced the same as the model it replaced', () => {
+    expect(rateFor('gemini', 'gemini-3.5-flash-lite')).toEqual(rateFor('gemini', 'gemini-2.5-flash'));
+  });
 
-    expect(successor.inputPerMillion).toBeGreaterThan(current.inputPerMillion);
-    expect(successor.outputPerMillion).toBeGreaterThan(current.outputPerMillion);
+  /**
+   * The AI service now defaults to gemini-3.5-flash-lite. Without its own row, the
+   * longest matching prefix would be gemini-3.5-flash, five times the input price.
+   */
+  it('prices a lite Gemini model at its own rate, not its full-size sibling', () => {
+    expect(rateFor('gemini', 'gemini-3.5-flash-lite')).toEqual({
+      inputPerMillion: 0.3,
+      outputPerMillion: 2.5,
+    });
+    expect(rateFor('gemini', 'gemini-2.5-flash-lite')).toEqual({
+      inputPerMillion: 0.1,
+      outputPerMillion: 0.4,
+    });
+  });
+
+  /**
+   * The AI service's default Claude model. It has no shorter neighbour in the table, so
+   * without its own row it would price at the unknown-model rate and exhaust budgets.
+   */
+  it('prices the default Claude model at its own rate, not the unknown-model rate', () => {
+    expect(rateFor('anthropic', 'claude-haiku-5-5')).toEqual({ inputPerMillion: 0.1, outputPerMillion: 0.5 });
+    expect(rateFor('anthropic', 'claude-haiku-5-5')).not.toEqual(UNKNOWN_MODEL_RATE);
+  });
+
+  it('prices the 5.5 generation separately from the model each would prefix-match', () => {
+    expect(rateFor('anthropic', 'claude-opus-5-5')).toEqual({ inputPerMillion: 4, outputPerMillion: 20 });
+    expect(rateFor('anthropic', 'claude-opus-5')).toEqual({ inputPerMillion: 5, outputPerMillion: 25 });
+    expect(rateFor('anthropic', 'claude-sonnet-5-5')).toEqual({ inputPerMillion: 2, outputPerMillion: 10 });
   });
 
   /** Groq's vendor path says who trained the model, not who is billing for it. */
@@ -89,10 +116,15 @@ describe('rateFor', () => {
       ['anthropic', 'claude-opus-5'],
       ['anthropic', 'claude-sonnet-5'],
       ['anthropic', 'claude-haiku-4-5'],
+      ['anthropic', 'claude-haiku-5-5'],
+      ['anthropic', 'claude-opus-5-5'],
+      ['anthropic', 'claude-sonnet-5-5'],
       ['openai', 'gpt-4o-mini'],
       ['gemini', 'gemini-2.0-flash'],
       ['gemini', 'gemini-2.5-flash'],
       ['gemini', 'gemini-3.5-flash'],
+      ['gemini', 'gemini-3.5-flash-lite'],
+      ['gemini', 'gemini-3.6-flash'],
       ['groq', 'gpt-oss-120b'],
     ] as const;
 
@@ -101,6 +133,18 @@ describe('rateFor', () => {
       expect(rate.inputPerMillion).toBeLessThanOrEqual(UNKNOWN_MODEL_RATE.inputPerMillion);
       expect(rate.outputPerMillion).toBeLessThanOrEqual(UNKNOWN_MODEL_RATE.outputPerMillion);
     }
+  });
+});
+
+describe('callCost with the model the service reports', () => {
+  it('prices an unpinned entry at the model that actually served it', () => {
+    const result = { usage: { input_tokens: 1_000_000, output_tokens: 1_000_000, model: 'claude-haiku-5-5' } };
+    expect(callCost('anthropic', null, result).estimatedCost).toBe(0.6);
+  });
+
+  it('still prices at the unknown rate when nobody says which model ran', () => {
+    const result = { usage: { input_tokens: 1_000_000, output_tokens: 0 } };
+    expect(callCost('anthropic', null, result).estimatedCost).toBe(UNKNOWN_MODEL_RATE.inputPerMillion);
   });
 });
 

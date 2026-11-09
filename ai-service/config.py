@@ -48,19 +48,18 @@ class Config:
     CACHE_TTL = int(os.getenv("CACHE_TTL", 3600))  # seconds
     
     # AI Model Configuration
-    # gemini-2.0-flash was shut down by Google on 2026-06-01, and this default is the
-    # live fallback for every provider entry that pins no model of its own, so calls
-    # were going to a model that no longer exists. gemini-2.5-flash is Google's
-    # documented replacement.
-    # NEXT RETIREMENT: gemini-2.5-flash goes the same way on 2026-10-16, successor
-    # gemini-3.5-flash. Moving is not automatic, 3.5-flash costs roughly fifteen times
-    # as much per token, so the owner decides when the bill changes, not this file.
-    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+    # This default is the live fallback for every provider entry that pins no model of
+    # its own, so it must never name a retired model (gemini-2.0-flash, shut down
+    # 2026-06-01, once broke every such call). gemini-2.5-flash shuts down on 2026-12-01, and Google names gemini-3.5-flash-lite
+    # as its replacement: the same $0.30 / $2.50 per million tokens, no shutdown date
+    # announced (https://aistudio.google.com/docs/deprecations, read 2026-11-09). A
+    # provider entry that pins its own model overrides this for that entry.
+    GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
     GROQ_MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
-    # Claude. Requests may override this per-company via the platform "model" setting.
-    # Use "claude-haiku-4-5" for the cheapest option.
-    ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-opus-5")
+    # Claude. A provider entry that pins a model overrides this for that entry. Kept in
+    # step with DEFAULT_MODEL in services/anthropic_client.py.
+    ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-haiku-5-5")
 
     @classmethod
     def validate(cls):

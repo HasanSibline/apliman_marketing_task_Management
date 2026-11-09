@@ -399,7 +399,9 @@ export default function AuraAssist({ isOpen, onClose }: AuraAssistProps) {
         kind === 'BUDGET_EXHAUSTED' ||
         kind === 'INVALID_API_KEY' ||
         kind === 'AUTHENTICATION_ERROR' ||
-        kind === 'ENDPOINT_NOT_FOUND'
+        kind === 'MODEL_UNAVAILABLE' ||
+        kind === 'ENDPOINT_NOT_FOUND' ||
+        kind === 'SERVICE_MISCONFIGURED'
 
       const unexplained500 =
         status !== undefined &&

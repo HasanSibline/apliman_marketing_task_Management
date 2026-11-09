@@ -43,7 +43,9 @@ function describeScrapeFailure(error: any, fallback: string) {
     kind === 'BUDGET_EXHAUSTED' ||
     kind === 'INVALID_API_KEY' ||
     kind === 'AUTHENTICATION_ERROR' ||
-    kind === 'ENDPOINT_NOT_FOUND'
+    kind === 'MODEL_UNAVAILABLE' ||
+    kind === 'ENDPOINT_NOT_FOUND' ||
+    kind === 'SERVICE_MISCONFIGURED'
 
   let message: string
   if (error?.code === 'ECONNABORTED') {
@@ -103,6 +105,8 @@ export default function KnowledgeSourcesPage() {
    * you end up with a duplicate of every source the company already had.
    */
   const [loadError, setLoadError] = useState(false);
+  // The server's reason for a refusal (a 403 for an account with no company).
+  const [loadErrorReason, setLoadErrorReason] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingSource, setEditingSource] = useState<KnowledgeSource | null>(null);
   const [scraping, setScraping] = useState<string | null>(null);
@@ -138,6 +142,7 @@ export default function KnowledgeSourcesPage() {
     try {
       setLoading(true);
       setLoadError(false);
+      setLoadErrorReason(null);
       const response = await api.get('/knowledge-sources');
       // The endpoint returns a bare array today. Guarded because the raw body went
       // straight into state and every read below is a .length or a .map on it, so an
@@ -147,6 +152,10 @@ export default function KnowledgeSourcesPage() {
     } catch (error) {
       console.error('Error fetching knowledge sources:', error);
       setLoadError(true);
+      // Only a refusal (403) replaces the default text and the retry button. A 500 or
+      // a 429 passes, so those keep "Try again" and the do-not-re-add warning.
+      const reason = (error as any)?.response?.data?.message;
+      setLoadErrorReason((error as any)?.response?.status === 403 && typeof reason === 'string' ? reason : null);
       setSources([]);
     } finally {
       setLoading(false);
@@ -166,7 +175,10 @@ export default function KnowledgeSourcesPage() {
       fetchSources();
     } catch (error) {
       console.error('Error saving knowledge source:', error);
-      toast.error('Failed to save knowledge source');
+      const reason = (error as any)?.response?.data?.message;
+      toast.error(
+        typeof reason === 'string' ? reason : Array.isArray(reason) ? reason.join(', ') : 'Failed to save knowledge source',
+      );
     }
   };
 
@@ -317,10 +329,10 @@ export default function KnowledgeSourcesPage() {
               Your sources could not be loaded
             </h3>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              The server did not answer. Anything already saved is still there, so do not add
-              it again from here.
+              {loadErrorReason ??
+                'The server did not answer. Anything already saved is still there, so do not add it again from here.'}
             </p>
-            <button onClick={fetchSources} className="btn-primary">Try again</button>
+            {!loadErrorReason && <button onClick={fetchSources} className="btn-primary">Try again</button>}
           </div>
         ) : sources.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center">
