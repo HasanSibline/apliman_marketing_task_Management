@@ -29,31 +29,6 @@ export class KnowledgeController {
 
   constructor(private readonly knowledgeService: KnowledgeService) {}
 
-  @Get('debug')
-  @ApiOperation({ summary: 'Diagnostic check that the Prisma client has the KnowledgeSource model' })
-  async debugPrismaClient() {
-    try {
-      const { PrismaClient } = require('@prisma/client');
-      const prisma = new PrismaClient();
-      
-      const hasModel = !!prisma.knowledgeSource;
-      const models = Object.keys(prisma).filter(k => !k.startsWith('$') && !k.startsWith('_'));
-      
-      await prisma.$disconnect();
-      
-      return {
-        hasKnowledgeSourceModel: hasModel,
-        availableModels: models,
-        prismaVersion: require('@prisma/client/package.json').version,
-      };
-    } catch (error) {
-      return {
-        error: error.message,
-        stack: error.stack,
-      };
-    }
-  }
-
   @Get()
   @ApiOperation({ summary: 'Get all knowledge sources for the current user\'s company' })
   @Roles(UserRole.SUPER_ADMIN, UserRole.COMPANY_ADMIN, UserRole.ADMIN)
@@ -61,6 +36,7 @@ export class KnowledgeController {
     try {
       return await this.knowledgeService.findAll(req.user.id);
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching knowledge sources:', error);
       this.logger.error('Error stack:', error.stack);
       throw new HttpException(
@@ -80,6 +56,7 @@ export class KnowledgeController {
       // company's knowledge base and competitor intelligence through it.
       return await this.knowledgeService.findActive(req.user.id);
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error fetching active knowledge sources:', error);
       this.logger.error('Error stack:', error.stack);
       throw new HttpException(
@@ -131,6 +108,7 @@ export class KnowledgeController {
       this.logger.log('Knowledge source created successfully');
       return result;
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error creating knowledge source:', error.message);
       this.logger.error('Error stack:', error.stack);
       this.logger.error('Error name:', error.name);
@@ -159,6 +137,7 @@ export class KnowledgeController {
     try {
       return await this.knowledgeService.update(id, updateDto, req.user.id);
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(`Error updating knowledge source ${id}:`, error);
       this.logger.error('Error stack:', error.stack);
       throw new HttpException(
@@ -176,6 +155,7 @@ export class KnowledgeController {
       await this.knowledgeService.delete(id, req.user.id);
       return { message: 'Knowledge source deleted successfully' };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(`Error deleting knowledge source ${id}:`, error);
       this.logger.error('Error stack:', error.stack);
       throw new HttpException(
@@ -192,6 +172,7 @@ export class KnowledgeController {
     try {
       return await this.knowledgeService.scrapeSource(id, req.user.id);
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error(`Error scraping knowledge source ${id}:`, error);
       this.logger.error('Error stack:', error.stack);
       throw new HttpException(
@@ -208,6 +189,7 @@ export class KnowledgeController {
     try {
       return await this.knowledgeService.scrapeAll(req.user.id);
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error scraping all knowledge sources:', error);
       this.logger.error('Error stack:', error.stack);
       throw new HttpException(

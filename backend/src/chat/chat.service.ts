@@ -1017,17 +1017,22 @@ export class ChatService {
         ticketRefs
       );
 
-      // Prepare conversation history
-      const conversationHistory = await this.prisma.chatMessage.findMany({
-        where: { sessionId: session.id },
-        orderBy: { createdAt: 'asc' },
-        take: 20, // Last 20 messages
-        select: {
-          role: true,
-          content: true,
-          createdAt: true,
-        },
-      });
+      // The latest messages before this one, oldest first. This took the OLDEST 20
+      // (ascending with a limit), so a long session kept resending its opening lines
+      // and never the last turn, and it included the message just saved, which the
+      // prompt already carries as the question.
+      const conversationHistory = (
+        await this.prisma.chatMessage.findMany({
+          where: { sessionId: session.id, id: { not: userMessage.id } },
+          orderBy: { createdAt: 'desc' },
+          take: ChatService.HISTORY_MESSAGES,
+          select: {
+            role: true,
+            content: true,
+            createdAt: true,
+          },
+        })
+      ).reverse();
 
       // Normalize file URLs to absolute paths so the AI service can fetch them
       const backendUrlConfig = this.configService.get<string>('BACKEND_URL', 'http://localhost:3001');
@@ -1118,23 +1123,15 @@ export class ChatService {
         await this.updateUserContext(userId, aiResponse.learnedContext);
       }
 
-      // Track CHAT AI usage (fire-and-forget)
-      try {
-        const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-        await this.prisma.userAIUsage.upsert({
-          where: { userId_feature_monthYear: { userId, feature: 'CHAT' as any, monthYear } },
-          update: { count: { increment: 1 } },
-          create: { userId, companyId: userCompanyId, feature: 'CHAT' as any, count: 1, monthYear },
-        });
-      } catch (trackErr) {
-        this.logger.warn(`Failed to track CHAT usage: ${trackErr.message}`);
-      }
+      // CHAT usage is counted by callAiService (feature: AIFeature.CHAT). A second
+      // upsert here counted every message twice.
 
       // Track domain questions for learning
       await this.trackDomainQuestion(userId, dto.message);
 
       // Update session title if it's the first real conversation
-      if (conversationHistory.length <= 2 && session.title === 'New Chat') {
+      // History excludes the message just sent, so this is the first or second message.
+      if (conversationHistory.length <= 1 && session.title === 'New Chat') {
         const title = this.generateSessionTitle(dto.message);
         await this.prisma.chatSession.update({
           where: { id: session.id },
@@ -1530,6 +1527,8 @@ export class ChatService {
    * gateway had no notion of a person waiting.
    */
   private static readonly CHAT_ATTEMPT_TIMEOUT_MS = 22_000;
+  /** Messages of history sent with each chat message (the AI service caps each one's length). */
+  private static readonly HISTORY_MESSAGES = 12;
 
   /**
    * Generate a session title from the first message

@@ -146,6 +146,45 @@ describe('classifyAiError', () => {
     });
   });
 
+  /**
+   * Our AI service refusing the backend itself (AI_SERVICE_SECRET mismatched or unset).
+   * No provider saw the request, so no provider may be benched or retired for it.
+   */
+  describe('our own service refusing the backend', () => {
+    const tokenRejected = { response: { status: 401, data: { detail: 'Invalid or missing service token' } } };
+    const secretUnset = {
+      response: { status: 503, data: { detail: 'AI service is misconfigured: AI_SERVICE_SECRET is not set.' } },
+    };
+
+    it('does not read a rejected service token as a bad provider key', () => {
+      const v = classifyAiError(tokenRejected);
+      expect(v.kind).toBe('SERVICE_MISCONFIGURED');
+      expect(v.status).toBeUndefined();
+    });
+
+    it('does not read an unset secret as an overloaded provider', () => {
+      expect(classifyAiError(secretUnset).kind).toBe('SERVICE_MISCONFIGURED');
+    });
+
+    it('blames nobody, benches nobody and stops the chain', () => {
+      for (const error of [tokenRejected, secretUnset]) {
+        const v = classifyAiError(error);
+        expect(v.blameEntry).toBe(false);
+        expect(v.cooldownSeconds).toBeUndefined();
+        expect(v.fallback).toBe(false);
+        expect(v.retrySame).toBe(false);
+      }
+    });
+
+    it('ignores the same words under any other status', () => {
+      expect(classifyAiError(withStatus(400, 'Echo: invalid or missing service token')).kind).toBe('BAD_REQUEST');
+    });
+
+    it('still reads a provider 401 as a bad key', () => {
+      expect(classifyAiError(withStatus(401, 'Unauthorized')).kind).toBe('AUTHENTICATION_ERROR');
+    });
+  });
+
   describe('the failures that must not be retried elsewhere', () => {
     /**
      * The prompt is the problem, not the provider. Four providers would give four
@@ -180,6 +219,65 @@ describe('classifyAiError', () => {
 
     it('reads a 401 the same way', () => {
       expect(classifyAiError(withStatus(401)).status).toBe('INVALID_KEY');
+    });
+  });
+
+  /**
+   * Chat failures reach the classifier as our service's 500 with the provider's words in
+   * `detail.message`, so these are read from the text alone.
+   */
+  describe('provider wordings carried in our service\'s 500', () => {
+    const wrapped = (message: string) => ({ response: { status: 500, data: { detail: { status: 'error', message } } } });
+
+    it('retires a key Google calls unauthenticated, leaked or disabled', () => {
+      for (const message of [
+        'Gemini API failure (401): Request had invalid authentication credentials. UNAUTHENTICATED',
+        'Your API key was reported as leaked. Please use another API key.',
+        'Generative Language API has not been used in project 123 before or it is disabled. SERVICE_DISABLED',
+      ]) {
+        const v = classifyAiError(wrapped(message));
+        expect(v.kind).toBe('INVALID_API_KEY');
+        expect(v.status).toBe('INVALID_KEY');
+      }
+    });
+
+    it('rests an entry whose model is unknown or not granted, and lets it recover by itself', () => {
+      for (const message of [
+        'models/gemini-9-flash is not found for API version v1beta',
+        'Unknown Anthropic model: claude-nope.',
+        'This Anthropic API key does not have access to the requested model. Model: claude-opus-5-5.',
+        'The model `gpt-9` does not exist or you do not have access to it.',
+      ]) {
+        const v = classifyAiError(wrapped(message));
+        expect(v.kind).toBe('MODEL_UNAVAILABLE');
+        expect(v.status).toBe('UNAVAILABLE');
+        expect(v.cooldownSeconds).toBe(MAX_COOLDOWN_SECONDS);
+        expect(v.fallback).toBe(true);
+      }
+    });
+
+    it('stops on a Claude refusal instead of shopping it around', () => {
+      const v = classifyAiError(wrapped('Claude declined this request (cyber). Try rephrasing it.'));
+      expect(v.kind).toBe('CONTENT_FILTER');
+      expect(v.fallback).toBe(false);
+      expect(v.cooldownSeconds).toBeUndefined();
+    });
+
+    it('does not bench a provider for a dropped connection', () => {
+      for (const message of [
+        'gemini request failed: Cannot connect to host generativelanguage.googleapis.com:443',
+        'Could not reach Anthropic: Connection error.',
+      ]) {
+        const v = classifyAiError(wrapped(message));
+        expect(v.kind).toBe('NETWORK_ERROR');
+        expect(v.cooldownSeconds).toBeUndefined();
+      }
+    });
+
+    it('reads an oversized Gemini input as context too large', () => {
+      expect(classifyAiError(wrapped('The input token count (1200000) exceeds the maximum number of tokens allowed')).kind).toBe(
+        'CONTEXT_TOO_LARGE',
+      );
     });
   });
 
@@ -263,6 +361,7 @@ describe('userFacingMessage', () => {
       'INVALID_API_KEY',
       'PROVIDER_ERROR',
       'ENDPOINT_NOT_FOUND',
+      'SERVICE_MISCONFIGURED',
       'NOT_CONFIGURED',
       'BUDGET_EXHAUSTED',
       'UNKNOWN',
@@ -280,7 +379,7 @@ describe('userFacingMessage', () => {
 
   /** Telling somebody to wait a moment for a state nobody is fixing is telling them to wait forever. */
   it('does not ask the reader to wait out a state only an administrator can end', () => {
-    for (const kind of ['NOT_CONFIGURED', 'BUDGET_EXHAUSTED', 'ENDPOINT_NOT_FOUND', 'INVALID_API_KEY'] as const) {
+    for (const kind of ['NOT_CONFIGURED', 'BUDGET_EXHAUSTED', 'ENDPOINT_NOT_FOUND', 'INVALID_API_KEY', 'SERVICE_MISCONFIGURED', 'MODEL_UNAVAILABLE'] as const) {
       const msg = userFacingMessage(kind);
       expect(msg).not.toMatch(/try again|in a moment/i);
       expect(msg).toMatch(/administrator/i);

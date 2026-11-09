@@ -74,8 +74,11 @@ Keys are encrypted with `ENCRYPTION_KEY` via `CompaniesService.encryptApiKey`. *
 
 Providers: `anthropic` (reads images and PDFs), `gemini` (reads images, low free-tier rate
 limit), `groq` and `openai` (text only, image attachments error). The Gemini default is
-`gemini-2.5-flash`; **it retires on 2026-10-16**, successor `gemini-3.5-flash` at roughly
-fifteen times the price.
+`gemini-3.5-flash-lite` (Google's named replacement for `gemini-2.5-flash`, which shuts
+down 2026-12-01; same price). A provider entry's own `model` overrides the default for every
+feature. The Anthropic default is `claude-haiku-5-5` ($0.10 / $0.50); it was `claude-opus-5`,
+fifty times dearer on every call. Never pin `gemini-2.0-flash` in an env file: it was shut down on 2026-06-01, and
+every Gemini call then fails, and each entry rests for fifteen minutes as `MODEL_UNAVAILABLE`.
 
 ### Cooldowns are per provider entry, and they are not billing
 

@@ -7,7 +7,8 @@ import re
 import aiohttp
 import asyncio
 
-from .content_generator import Usage, add_usage, normalise_usage
+from .content_generator import Usage, add_usage, normalise_usage, with_model
+from .gemini_reply import output_cap, reply_text, usage_counts
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class ContextLearningService:
         report as a broken measurement, and its own estimate beats pricing a real call
         at nothing.
         """
-        return dict(self.token_usage) if self.token_usage else None
+        return with_model(dict(self.token_usage), self.model_name) if self.token_usage else None
 
     def _record(self, input_tokens, output_tokens) -> None:
         self.token_usage = add_usage(self.token_usage, normalise_usage(input_tokens, output_tokens))
@@ -368,7 +369,7 @@ JSON Response:"""
 
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {"maxOutputTokens": 512},
+            "generationConfig": {"maxOutputTokens": output_cap(512)},
         }
 
         attempts = 0
@@ -391,10 +392,10 @@ JSON Response:"""
                     async with session.post(url_query, headers={'Content-Type': 'application/json'}, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
                         if response.status == 200:
                             data = await response.json()
-                            if data.get('candidates') and data['candidates'][0].get('content'):
-                                meta = data.get('usageMetadata') or {}
-                                self._record(meta.get('promptTokenCount'), meta.get('candidatesTokenCount'))
-                                return data['candidates'][0]['content']['parts'][0]['text']
+                            text, _ = reply_text(data)
+                            if text is not None:
+                                self._record(*usage_counts(data.get('usageMetadata')))
+                                return text
                         
                         if response.status == 429:
                             wait_time = 2 ** (attempts + 2) # Wait a bit longer for background tasks (4s, 8s)
@@ -414,10 +415,10 @@ JSON Response:"""
                     async with session.post(url_header, headers=headers, json=payload, timeout=aiohttp.ClientTimeout(total=45)) as response:
                         if response.status == 200:
                             data = await response.json()
-                            if data.get('candidates') and data['candidates'][0].get('content'):
-                                meta = data.get('usageMetadata') or {}
-                                self._record(meta.get('promptTokenCount'), meta.get('candidatesTokenCount'))
-                                return data['candidates'][0]['content']['parts'][0]['text']
+                            text, _ = reply_text(data)
+                            if text is not None:
+                                self._record(*usage_counts(data.get('usageMetadata')))
+                                return text
                         
                         if response.status == 429:
                                 wait_time = 2 ** (attempts + 2)

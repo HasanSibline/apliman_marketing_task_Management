@@ -7,6 +7,7 @@ from datetime import datetime
 import aiohttp
 import json
 from config import get_config
+from .gemini_reply import empty_reply_error, output_cap, reply_text, usage_counts
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,17 @@ def normalise_usage(input_tokens: Any, output_tokens: Any) -> Usage:
         return None
 
     return {"input_tokens": max(counted_in, 0), "output_tokens": max(counted_out, 0)}
+
+
+def with_model(usage: Usage, model: Optional[str]) -> Usage:
+    """Name the model beside the token counts.
+
+    An entry that pins no model is served by this service's default, which the backend
+    cannot see; without the name it prices the call at its most expensive known rate.
+    """
+    if usage and model:
+        return {**usage, "model": model}
+    return usage
 
 
 def add_usage(total: Usage, addition: Usage) -> Usage:
@@ -107,7 +119,7 @@ class ContentGenerator:
 
             self.current_key_index = 0  # Track which key we're using
             self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-            self.model = self.config.GEMINI_MODEL
+            self.model = self.model_override or self.config.GEMINI_MODEL
             self.api_type = "gemini"
 
         except Exception as e:
@@ -123,7 +135,7 @@ class ContentGenerator:
                 logger.warning("Groq initialized WITHOUT a company key: AI calls will be rejected until a key is provided")
 
             self.base_url = "https://api.groq.com/openai/v1"
-            self.model = self.config.GROQ_MODEL
+            self.model = self.model_override or self.config.GROQ_MODEL
             self.api_type = "groq"
             logger.info(f"✅ Groq initialized with model {self.model}")
 
@@ -138,7 +150,7 @@ class ContentGenerator:
                 logger.warning("OpenAI initialized WITHOUT a company key: AI calls will be rejected until a key is provided")
 
             self.base_url = "https://api.openai.com/v1"
-            self.model = self.config.OPENAI_MODEL
+            self.model = self.model_override or self.config.OPENAI_MODEL
             self.api_type = "openai"
             logger.info(f"✅ OpenAI initialized with model {self.model}")
 
@@ -310,7 +322,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
         zeros, because the backend reads zeros as a broken measurement and its own
         estimate is better than a $0 price on a call that was not free.
         """
-        return dict(self.token_usage) if self.token_usage else None
+        return with_model(dict(self.token_usage), self.model) if self.token_usage else None
 
     async def _make_request(
         self,
@@ -433,7 +445,7 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
             }]
         }
         if max_tokens:
-            payload["generationConfig"] = {"maxOutputTokens": max_tokens}
+            payload["generationConfig"] = {"maxOutputTokens": output_cap(max_tokens)}
         
         # Try all available API keys with automatic fallback
         last_error = None
@@ -452,18 +464,15 @@ Hashtags: #hashtag1 #hashtag2 #hashtag3
                     async with session.post(url, headers=headers, json=payload) as response:
                         if response.status == 200:
                             data = await response.json()
-                            if not data.get('candidates', []) or not data['candidates'][0].get('content'):
-                                raise ContentGeneratorError("AI returned an empty response. This is usually caused by safety filters.")
-                            
+                            text, finish_reason = reply_text(data)
+                            if text is None:
+                                raise ContentGeneratorError(empty_reply_error(finish_reason))
+
                             # Success! Log which key worked
                             if attempts > 0:
                                 logger.info(f"✅ Request succeeded with fallback API key (index {self.current_key_index})")
 
-                            reported = data.get('usageMetadata') or {}
-                            return (
-                                data['candidates'][0]['content']['parts'][0]['text'],
-                                normalise_usage(reported.get('promptTokenCount'), reported.get('candidatesTokenCount')),
-                            )
+                            return text, normalise_usage(*usage_counts(data.get('usageMetadata')))
                         
                         # Handle quota/rate limit errors (429)
                         elif response.status == 429:

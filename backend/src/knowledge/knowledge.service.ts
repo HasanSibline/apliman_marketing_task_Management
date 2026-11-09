@@ -1,9 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { firstValueFrom } from 'rxjs';
 import { CreateKnowledgeSourceDto, UpdateKnowledgeSourceDto } from './dto/knowledge-source.dto';
+import { classifyAiError, userFacingMessage } from '../ai/ai-error';
 
 @Injectable()
 export class KnowledgeService {
@@ -34,8 +42,13 @@ export class KnowledgeService {
       select: { companyId: true, role: true },
     });
 
+    // A 403, not a plain Error: the controllers used to turn this into a 500, so the
+    // super administrator and any admin without a company saw "could not be loaded"
+    // with no reason, and saving a source tried to write a null companyId.
     if (!user?.companyId) {
-      throw new Error('User must belong to a company to access knowledge sources');
+      throw new ForbiddenException(
+        'Knowledge sources belong to a company. Sign in with an account that belongs to one to manage them.',
+      );
     }
 
     return user.companyId;
@@ -102,11 +115,7 @@ export class KnowledgeService {
   }
 
   async create(createDto: CreateKnowledgeSourceDto, userId: string) {
-    // Get user's company
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { companyId: true },
-    });
+    const companyId = await this.getUserCompanyId(userId);
 
     const source = await this.prisma.knowledgeSource.create({
       data: {
@@ -117,7 +126,7 @@ export class KnowledgeService {
         isActive: createDto.isActive,
         priority: createDto.priority,
         createdById: userId,
-        companyId: user?.companyId!,
+        companyId,
       },
       include: {
         createdBy: {
@@ -149,7 +158,7 @@ export class KnowledgeService {
     });
 
     if (!existing) {
-      throw new Error('Knowledge source not found or access denied');
+      throw new NotFoundException('Knowledge source not found');
     }
 
     const source = await this.prisma.knowledgeSource.update({
@@ -192,7 +201,7 @@ export class KnowledgeService {
     });
 
     if (!existing) {
-      throw new Error('Knowledge source not found or access denied');
+      throw new NotFoundException('Knowledge source not found');
     }
 
     return this.prisma.knowledgeSource.delete({
@@ -203,7 +212,7 @@ export class KnowledgeService {
   async scrapeSource(id: string, userId: string) {
     const source = await this.findOne(id, userId);
     if (!source) {
-      throw new Error('Knowledge source not found');
+      throw new NotFoundException('Knowledge source not found');
     }
 
     try {
@@ -248,19 +257,64 @@ export class KnowledgeService {
         throw new Error(`Scraping failed: ${scrapedData.error}`);
       }
     } catch (error) {
-      this.logger.error(`Error scraping source ${source.name}:`, error.message);
+      const failure = this.describeScrapeFailure(error);
+      this.logger.error(`Error scraping source ${source.name}: ${failure.stored}`);
 
       // Update with error
       await this.prisma.knowledgeSource.update({
         where: { id },
         data: {
-          scrapingError: error.message,
+          scrapingError: failure.stored,
           lastScraped: new Date(),
         },
       });
 
-      throw error;
+      throw failure.exception;
     }
+  }
+
+  /**
+   * Why a scrape failed, for the source card and for the person who pressed the button.
+   *
+   * axios reports only "Request failed with status code 401" and drops the AI service's
+   * own `detail`, which is the part that says what went wrong. A refused service token
+   * is our configuration, not the page, so it gets the gateway's wording and kind.
+   */
+  private describeScrapeFailure(error: any): { stored: string; exception: HttpException } {
+    const { kind } = classifyAiError(error);
+    const status: number | undefined = error?.response?.status;
+    const detail = error?.response?.data?.detail;
+
+    if (kind === 'SERVICE_MISCONFIGURED') {
+      // The server log names AI_SERVICE_SECRET; the tenant's source card does not.
+      this.logger.error('AI service refused the service token: check AI_SERVICE_SECRET on both services');
+      return {
+        stored: 'The AI service refused the request because the server is misconfigured. Report it to the platform administrator.',
+        exception: new HttpException(
+          { statusCode: HttpStatus.INTERNAL_SERVER_ERROR, kind, message: userFacingMessage(kind) },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
+      };
+    }
+    // Our own 90 s wait ran out. Only axios's code says so: a scraper error that merely
+    // mentions a timeout carries its own, more precise, wording below.
+    if (error?.code === 'ECONNABORTED') {
+      const stored = 'Reading the page took longer than 90 seconds. The AI service may be starting up, or the page is heavy; try again.';
+      return { stored, exception: new HttpException(stored, HttpStatus.GATEWAY_TIMEOUT) };
+    }
+    // Unreachable, or a hosting proxy answering for it (502/503/504 with no FastAPI
+    // detail) while the service restarts or sleeps.
+    if (kind === 'NETWORK_ERROR' || ((status === 502 || status === 503 || status === 504) && !detail)) {
+      const stored = 'Could not reach the AI service. It may be starting up; try again in a minute.';
+      return { stored, exception: new HttpException(stored, HttpStatus.BAD_GATEWAY) };
+    }
+
+    const reason: string =
+      (typeof detail === 'string' ? detail : detail?.message) ||
+      (typeof error?.response?.data?.message === 'string' ? error.response.data.message : undefined) ||
+      error?.message ||
+      'Scraping failed';
+    return { stored: reason, exception: new HttpException(reason, HttpStatus.BAD_GATEWAY) };
   }
 
   async scrapeAll(userId: string) {

@@ -269,7 +269,9 @@ const CreateTaskModal: React.FC<CreateTaskModalProps> = ({ isOpen, onClose }) =>
           kind === 'BUDGET_EXHAUSTED' ||
           kind === 'INVALID_API_KEY' ||
           kind === 'AUTHENTICATION_ERROR' ||
-          kind === 'ENDPOINT_NOT_FOUND'
+          kind === 'MODEL_UNAVAILABLE' ||
+          kind === 'ENDPOINT_NOT_FOUND' ||
+          kind === 'SERVICE_MISCONFIGURED'
 
         // A 500 with Nest's stock body is the one case where the server has told us
         // nothing, so there is nothing to quote and the generic line has to carry it.
