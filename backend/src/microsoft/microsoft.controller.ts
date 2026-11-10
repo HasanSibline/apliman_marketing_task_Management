@@ -20,13 +20,27 @@ export class MicrosoftController {
 
   @Get('callback')
   @ApiOperation({ summary: 'Receive the Microsoft OAuth redirect and forward its code to the frontend' })
-  async handleCallback(@Query('code') code: string, @Res() res: Response) {
+  async handleCallback(
+    @Query('code') code: string,
+    @Query('error') error: string,
+    @Query('error_description') errorDescription: string,
+    @Res() res: Response,
+  ) {
     // A configured URL ending in "/" produced //auth/microsoft/callback here, which
     // the router does not match, so sign-in completed and the page stayed blank.
     const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:5173')
       .trim()
       .replace(/\/+$/, '');
-    res.redirect(`${frontendUrl}/auth/microsoft/callback?code=${code}`);
+    // When Microsoft refuses (consent denied, account type not allowed, an AADSTS
+    // code), it sends error and error_description instead of a code. Only the code
+    // was forwarded, so the page said "No authorization code received" and the reason
+    // Microsoft gave was lost. Both are passed on now, encoded.
+    if (error || !code) {
+      const reason = encodeURIComponent(errorDescription || error || 'Microsoft did not return a sign-in code');
+      res.redirect(`${frontendUrl}/auth/microsoft/callback?error=${encodeURIComponent(error || 'no_code')}&error_description=${reason}`);
+      return;
+    }
+    res.redirect(`${frontendUrl}/auth/microsoft/callback?code=${encodeURIComponent(code)}`);
   }
 
   @Post('sync')

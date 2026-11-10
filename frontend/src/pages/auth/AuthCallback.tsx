@@ -28,7 +28,11 @@ const AuthCallback: React.FC = () => {
         const error = searchParams.get('error')
 
         if (error) {
-            toast.error(`Microsoft Auth Error: ${error}`)
+            // Microsoft's own explanation, e.g. "AADSTS50020: User account … does not
+            // exist in tenant", is what says what to fix; the bare code does not. Its
+            // first sentence is enough, and the trace ids after it are noise here.
+            const description = (searchParams.get('error_description') || '').split(/\r?\n|Trace ID/)[0].trim()
+            toast.error(`Microsoft sign-in failed: ${description || error}`, { duration: 12000 })
             navigate('/calendar')
             return
         }
