@@ -317,6 +317,21 @@ export class KnowledgeService {
     return { stored: reason, exception: new HttpException(reason, HttpStatus.BAD_GATEWAY) };
   }
 
+  /** Companies with a scrape-all running, so a second click does not start another. */
+  private readonly scrapingCompanies = new Set<string>();
+
+  /**
+   * Start reading every active source, and return at once.
+   *
+   * This used to read them one after another inside the request. Each source can take
+   * most of a minute, so with two or three of them the browser gave up at 120 seconds
+   * while the work carried on unseen. Now the request only starts the work; each
+   * source records its own result (content, or the reason it failed) on its card as it
+   * finishes, and the page refreshes the cards until they have all reported.
+   *
+   * One at a time on purpose: a page that needs the headless browser takes a few
+   * hundred MB, and the AI service runs one browser at a time anyway.
+   */
   async scrapeAll(userId: string) {
     const companyId = await this.getUserCompanyId(userId);
 
@@ -325,33 +340,31 @@ export class KnowledgeService {
         isActive: true,
         companyId, // Only scrape sources from user's company
       },
+      select: { id: true, name: true },
     });
 
-    const results = [];
-    for (const source of sources) {
-      try {
-        await this.scrapeSource(source.id, userId);
-        results.push({
-          id: source.id,
-          name: source.name,
-          success: true,
-        });
-      } catch (error) {
-        results.push({
-          id: source.id,
-          name: source.name,
-          success: false,
-          error: error.message,
-        });
-      }
+    const startedAt = new Date().toISOString();
+    if (this.scrapingCompanies.has(companyId)) {
+      return { started: false, alreadyRunning: true, total: sources.length, startedAt };
+    }
+    if (sources.length === 0) {
+      return { started: false, alreadyRunning: false, total: 0, startedAt };
     }
 
-    return {
-      total: sources.length,
-      successful: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length,
-      results,
-    };
+    this.scrapingCompanies.add(companyId);
+    void (async () => {
+      try {
+        for (const source of sources) {
+          // scrapeSource writes the outcome to the source itself, success or failure,
+          // so there is nothing to collect here; a failure must not stop the rest.
+          await this.scrapeSource(source.id, userId).catch(() => undefined);
+        }
+      } finally {
+        this.scrapingCompanies.delete(companyId);
+      }
+    })();
+
+    return { started: true, alreadyRunning: false, total: sources.length, startedAt };
   }
 
 }
