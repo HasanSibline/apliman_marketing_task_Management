@@ -229,29 +229,65 @@ export default function KnowledgeSourcesPage() {
     }
   };
 
+  /**
+   * Scrape all runs on the server in the background and returns at once. The cards are
+   * refreshed quietly every few seconds until every active source has reported since
+   * the run began, or four minutes pass, whichever is first.
+   */
   const handleScrapeAll = async () => {
+    let started: { total: number; startedAt: string } | null = null;
     try {
       setScrapingAll(true);
       const response = await api.post('/knowledge-sources/scrape-all', undefined, { quiet: true });
-      // Defaulted, because the counts were read straight off the body and a shape
-      // change reported "undefined successful, undefined failed" as if it were news.
-      const successful = response.data?.successful ?? 0;
-      const failed = response.data?.failed ?? 0;
-      if (failed === 0) {
-        toast.success(`Scraped ${successful} source${successful === 1 ? '' : 's'}.`);
+      const total: number = response.data?.total ?? 0;
+      if (total === 0) {
+        toast('There are no active sources to read.');
+        return;
+      }
+      if (response.data?.alreadyRunning) {
+        toast('The sources are already being read. The cards update as each one finishes.');
       } else {
-        toast(`Scraped ${successful}, failed on ${failed}. The failures are listed on the cards below.`, {
-          icon: '📊',
+        toast(`Reading ${total} source${total === 1 ? '' : 's'} in the background. Each card updates when it is done.`, {
+          duration: 6000,
         });
       }
-      fetchSources();
+      started = { total, startedAt: response.data?.startedAt ?? new Date().toISOString() };
     } catch (error) {
       console.error('Error scraping all sources:', error);
-      const { message, permanent } = describeScrapeFailure(error, 'Could not scrape the sources.');
+      const { message, permanent } = describeScrapeFailure(error, 'Could not start reading the sources.');
       toast.error(message, permanent ? { duration: 8000 } : undefined);
     } finally {
-      setScrapingAll(false);
+      if (!started) setScrapingAll(false);
     }
+    if (!started) return;
+
+    const since = new Date(started.startedAt).getTime();
+    const deadline = Date.now() + 4 * 60_000;
+    const poll = async () => {
+      try {
+        const response = await api.get('/knowledge-sources', { quiet: true });
+        const list: KnowledgeSource[] = Array.isArray(response.data) ? response.data : response.data?.sources ?? [];
+        setSources(list);
+        const active = list.filter((s) => s.isActive);
+        const done = active.filter((s) => s.lastScraped && new Date(s.lastScraped).getTime() >= since - 1000);
+        if (done.length >= active.length) {
+          const failed = done.filter((s) => s.scrapingError).length;
+          if (failed === 0) toast.success(`Read ${done.length} source${done.length === 1 ? '' : 's'}.`);
+          else toast(`Read ${done.length - failed}, failed on ${failed}. The reasons are on the cards.`, { icon: '📊' });
+          setScrapingAll(false);
+          return;
+        }
+      } catch {
+        // A missed refresh is not worth a toast; the next one will catch up.
+      }
+      if (Date.now() < deadline) {
+        setTimeout(poll, 5000);
+      } else {
+        setScrapingAll(false);
+        toast('Still reading. Refresh the page in a minute to see the rest.');
+      }
+    };
+    setTimeout(poll, 4000);
   };
 
   const resetForm = () => {
