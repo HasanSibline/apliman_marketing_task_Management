@@ -6,6 +6,17 @@ import toast from 'react-hot-toast';
 import Avatar from '@/components/common/Avatar';
 import FormDialog from '@/components/ui/FormDialog';
 import AiProviderChain from '@/components/admin/AiProviderChain';
+import RecordPaymentModal from '@/components/billing/RecordPaymentModal';
+import InvoiceView from '@/components/billing/InvoiceView';
+import {
+  STATE_BADGE,
+  STATE_LABEL,
+  formatDate,
+  formatLimit,
+  formatMoney,
+  planLabel,
+} from '@/components/billing/subscription';
+import { billingApi, type BillingCompany, type InvoiceRecord } from '@/services/api';
 import {
   ArrowLeftIcon,
   PencilSquareIcon,
@@ -15,6 +26,8 @@ import {
   CheckCircleIcon,
   TrashIcon,
   ClipboardDocumentIcon,
+  BanknotesIcon,
+  DocumentTextIcon,
 } from '@heroicons/react/24/outline';
 
 interface Company {
@@ -29,9 +42,10 @@ interface Company {
   subscriptionStart: string;
   subscriptionEnd?: string;
   monthlyPrice: number;
-  maxUsers: number;
-  maxTasks: number;
-  maxStorage: number;
+  /** Null means the company follows its plan's limit. */
+  maxUsers: number | null;
+  maxTasks: number | null;
+  maxStorage: number | null;
   billingEmail?: string;
   createdAt: string;
   aiKeySet?: boolean;
@@ -101,6 +115,30 @@ export default function CompanyDetails() {
 
   const [showExtendSubscription, setShowExtendSubscription] = useState(false);
   const [extensionDays, setExtensionDays] = useState(30);
+
+  // Billing: the server's view of this company's subscription, and its payments.
+  const [billing, setBilling] = useState<BillingCompany | null>(null);
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>([]);
+  const [paying, setPaying] = useState(false);
+  const [viewing, setViewing] = useState<InvoiceRecord | null>(null);
+
+  /**
+   * Read quietly and separately from the company itself: a billing hiccup should not
+   * take the rest of the page down with it, only leave these parts empty.
+   */
+  const fetchBilling = async () => {
+    if (!id) return;
+    const [overview, list] = await Promise.all([
+      billingApi.overview({ quiet: true }).catch(() => null),
+      billingApi.invoices(id).catch(() => [] as InvoiceRecord[]),
+    ]);
+    setBilling(overview?.companies.find((c) => c.id === id) ?? null);
+    setInvoices(list);
+  };
+
+  useEffect(() => {
+    fetchBilling();
+  }, [id]);
 
   useEffect(() => {
     if (id) fetchCompany();
@@ -204,7 +242,7 @@ export default function CompanyDetails() {
       await api.post(`/companies/${id}/extend-subscription`, { days: extensionDays });
       setShowExtendSubscription(false);
       toast.success('Subscription extended');
-      await fetchCompany();
+      await Promise.all([fetchCompany(), fetchBilling()]);
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to extend subscription');
     } finally {
@@ -274,9 +312,13 @@ export default function CompanyDetails() {
               <span className={`status-badge ${PLAN_BADGE[company.subscriptionPlan] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}>
                 {company.subscriptionPlan}
               </span>
-              <span className={`status-badge ${STATUS_BADGE[company.subscriptionStatus] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}>
-                {company.subscriptionStatus}
-              </span>
+              {billing ? (
+                <span className={`status-badge ${STATE_BADGE[billing.state]}`}>{STATE_LABEL[billing.state]}</span>
+              ) : (
+                <span className={`status-badge ${STATUS_BADGE[company.subscriptionStatus] ?? 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300'}`}>
+                  {company.subscriptionStatus}
+                </span>
+              )}
               {!company.isActive && (
                 <span className="status-badge bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300">
                   Suspended
@@ -331,8 +373,24 @@ export default function CompanyDetails() {
           <div className="surface p-5">
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Subscription</h2>
             <div className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
-              <InfoRow label="Plan" value={company.subscriptionPlan} />
-              <InfoRow label="Status" value={company.subscriptionStatus} />
+              <InfoRow label="Plan" value={planLabel(company.subscriptionPlan)} />
+              <InfoRow
+                label="Status"
+                value={
+                  billing ? (
+                    <span className="inline-flex flex-col items-end">
+                      <span className={`status-badge ${STATE_BADGE[billing.state]}`}>{STATE_LABEL[billing.state]}</span>
+                      {billing.state === 'GRACE' && billing.graceEndsAt && (
+                        <span className="mt-1 text-xs font-normal text-orange-700 dark:text-orange-300">
+                          Blocks on {formatDate(billing.graceEndsAt)}
+                        </span>
+                      )}
+                    </span>
+                  ) : (
+                    company.subscriptionStatus
+                  )
+                }
+              />
               <InfoRow label="Started" value={new Date(company.subscriptionStart).toLocaleDateString()} />
               {company.subscriptionEnd && (
                 <InfoRow
@@ -347,12 +405,52 @@ export default function CompanyDetails() {
               )}
               {company.billingEmail && <InfoRow label="Billing email" value={company.billingEmail} />}
             </div>
-            <button
-              onClick={() => setShowExtendSubscription(true)}
-              className="btn-secondary mt-4 w-full justify-center"
-            >
-              <CalendarDaysIcon className="h-4 w-4" /> Extend subscription
-            </button>
+            <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <button onClick={() => setPaying(true)} className="btn-primary w-full justify-center">
+                <BanknotesIcon className="h-4 w-4" /> Record payment
+              </button>
+              <button
+                onClick={() => setShowExtendSubscription(true)}
+                className="btn-secondary w-full justify-center"
+              >
+                <CalendarDaysIcon className="h-4 w-4" /> Extend without payment
+              </button>
+            </div>
+          </div>
+
+          <div className="surface p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base font-semibold text-gray-900 dark:text-white">Invoices</h2>
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                {invoices.length} recorded
+              </span>
+            </div>
+            {invoices.length === 0 ? (
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                No payments recorded yet. Recording one files an invoice record and extends the subscription.
+              </p>
+            ) : (
+              <ul className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
+                {invoices.map((inv) => (
+                  <li key={inv.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs font-semibold text-gray-900 dark:text-white">{inv.number}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Paid {formatDate(inv.paidAt)} for {formatDate(inv.periodStart)} to {formatDate(inv.periodEnd)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-semibold tabular-nums text-gray-900 dark:text-white">
+                        {formatMoney(inv.amount, inv.currency)}
+                      </span>
+                      <button type="button" onClick={() => setViewing(inv)} className="btn-secondary px-2.5 py-1 text-xs">
+                        <DocumentTextIcon className="h-4 w-4" /> View
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
@@ -380,9 +478,44 @@ export default function CompanyDetails() {
           <div className="surface p-5">
             <h2 className="text-base font-semibold text-gray-900 dark:text-white">Resource limits</h2>
             <div className="mt-3 divide-y divide-gray-100 dark:divide-gray-700">
-              <InfoRow label="Max users" value={company.maxUsers === -1 ? 'Unlimited' : company.maxUsers} />
-              <InfoRow label="Max tasks" value={company.maxTasks === -1 ? 'Unlimited' : company.maxTasks} />
-              <InfoRow label="Max storage" value={company.maxStorage === -1 ? 'Unlimited' : `${company.maxStorage} GB`} />
+              {/* A null limit means "follows the plan"; the effective number comes from billing. */}
+              <InfoRow
+                label="Max users"
+                value={
+                  <span>
+                    {company.maxUsers !== null && company.maxUsers !== undefined
+                      ? formatLimit(company.maxUsers)
+                      : billing
+                        ? formatLimit(billing.maxUsers)
+                        : 'From plan'}
+                    <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                      {company.maxUsers !== null && company.maxUsers !== undefined ? '(custom)' : '(plan)'}
+                    </span>
+                  </span>
+                }
+              />
+              {billing && (
+                <InfoRow
+                  label="Active users"
+                  value={
+                    <span className={billing.overLimitBy > 0 ? 'text-red-600 dark:text-red-400' : ''}>
+                      {billing.activeUsers}
+                      {billing.overLimitBy > 0 ? `, ${billing.overLimitBy} over the limit` : ''}
+                    </span>
+                  }
+                />
+              )}
+              <InfoRow
+                label="Max tasks"
+                value={
+                  <span>
+                    {company.maxTasks !== null && company.maxTasks !== undefined ? formatLimit(company.maxTasks) : 'From plan'}
+                    <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-400">
+                      {company.maxTasks !== null && company.maxTasks !== undefined ? '(custom)' : '(plan)'}
+                    </span>
+                  </span>
+                }
+              />
             </div>
           </div>
 
@@ -516,6 +649,26 @@ export default function CompanyDetails() {
           className="input-field"
         />
       </FormDialog>
+      <RecordPaymentModal
+        company={
+          paying && company
+            ? {
+                id: company.id,
+                name: company.name,
+                plan: company.subscriptionPlan,
+                monthlyPrice: company.monthlyPrice,
+                subscriptionEnd: company.subscriptionEnd ?? null,
+              }
+            : null
+        }
+        onClose={() => setPaying(false)}
+        onRecorded={() => {
+          fetchCompany();
+          fetchBilling();
+          window.dispatchEvent(new CustomEvent('billing:changed'));
+        }}
+      />
+      <InvoiceView invoice={viewing} billingEmail={company.billingEmail ?? null} onClose={() => setViewing(null)} />
     </div>
   );
 }

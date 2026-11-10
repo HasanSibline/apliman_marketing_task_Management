@@ -19,6 +19,7 @@ import { SystemModule } from './system/system.module';
 import { QuartersModule } from './quarters/quarters.module';
 import { ObjectivesModule } from './objectives/objectives.module';
 import { PlansModule } from './plans/plans.module';
+import { BillingModule } from './billing/billing.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DepartmentsModule } from './departments/departments.module';
@@ -61,6 +62,7 @@ import { MicrosoftModule } from './microsoft/microsoft.module';
     QuartersModule,
     ObjectivesModule,
     PlansModule,
+    BillingModule,
     DepartmentsModule,
     TeamsModule,
     TicketsModule,

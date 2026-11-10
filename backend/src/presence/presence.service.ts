@@ -140,8 +140,11 @@ export class PresenceService {
 
   private async updateUserStatus(userId: string, status: UserStatus) {
     try {
-      await this.prisma.user.update({
-        where: { id: userId },
+      // updateMany with a status guard, not update: a socket that disconnects or
+      // reconnects after its user was deactivated must not turn RETIRED back into
+      // ACTIVE or OFFLINE, which would hand the user their seat and their login back.
+      await this.prisma.user.updateMany({
+        where: { id: userId, status: { not: 'RETIRED' } },
         data: {
           status,
           lastActiveAt: new Date(),

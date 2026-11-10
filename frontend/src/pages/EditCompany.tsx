@@ -1,29 +1,49 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api, { formatAssetUrl } from '../services/api';
+import api, { formatAssetUrl, plansApi, billingApi, type PlanRecord, type RetiredUser } from '../services/api';
 import Select from '@/components/ui/Select'
+import { confirmDialog } from '@/components/ui/confirm'
+import { formatLimit, formatPlanPrice, planLabel } from '@/components/billing/subscription'
 
 interface EditCompanyForm {
   name: string;
   slug: string;
   logo?: string;
   primaryColor: string;
-  subscriptionPlan: 'FREE_TRIAL' | 'PRO' | 'ENTERPRISE';
-  maxUsers: number;
-  maxTasks: number;
-  maxStorage: number;
+  subscriptionPlan: string;
+  /**
+   * Off means the company follows its plan's limits, which is what the server stores
+   * as null. On means a super admin set this company's own numbers on purpose.
+   */
+  customLimits: boolean;
+  /** Text, so an empty box stays empty rather than becoming a limit of 0. */
+  maxUsers: string;
+  maxTasks: string;
   billingEmail?: string;
   /** Purchase-order tickets at or above this amount require manager approval.
    *  Empty string means the gate is off, not zero. */
   ticketApprovalThreshold: string;
 }
 
-const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string }> = {
-  FREE_TRIAL: { maxUsers: 10, maxTasks: 500, maxStorage: 2, price: '7-Day Trial' },
-  PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo' },
-  ENTERPRISE: { maxUsers: -1, maxTasks: -1, maxStorage: 100, price: '$299/mo' },
-};
+/** What the company had when the page loaded, so only real changes are sent. */
+interface LoadedLimits {
+  plan: string;
+  maxUsers: number | null;
+  maxTasks: number | null;
+  maxStorage: number | null;
+}
+
+/**
+ * A limit box's value as the server wants it: -1 for unlimited, a positive whole
+ * number, or undefined when the box does not hold a usable limit.
+ */
+function parseLimit(text: string): number | undefined {
+  const n = Number(text.trim());
+  if (text.trim() === '' || !Number.isInteger(n)) return undefined;
+  if (n === -1 || n >= 1) return n;
+  return undefined;
+}
 
 export default function EditCompany() {
   const { id } = useParams<{ id: string }>();
@@ -39,12 +59,16 @@ export default function EditCompany() {
     name: '',
     slug: '',
     primaryColor: '#3B82F6',
-    subscriptionPlan: 'PRO',
-    maxUsers: 50,
-    maxTasks: 5000,
-    maxStorage: 10,
+    subscriptionPlan: '',
+    customLimits: false,
+    maxUsers: '',
+    maxTasks: '',
     ticketApprovalThreshold: '',
   });
+  const [plans, setPlans] = useState<PlanRecord[]>([]);
+  const [loaded, setLoaded] = useState<LoadedLimits | null>(null);
+  /** People counted against the user limit right now, for the deactivation warning. */
+  const [activeUsers, setActiveUsers] = useState<number | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -55,24 +79,45 @@ export default function EditCompany() {
   const fetchCompany = async () => {
     try {
       setLoadingData(true);
-      const response = await api.get(`/companies/${id}`);
+      const [response, planList] = await Promise.all([
+        api.get(`/companies/${id}`),
+        plansApi.list().catch(() => [] as PlanRecord[]),
+      ]);
       const company = response.data;
+      setPlans(planList);
+
+      // Null is "follows the plan" and is kept as exactly that. Inventing a number
+      // here would turn into a custom limit on the next save, and a low one would
+      // deactivate real people.
+      const maxUsers: number | null = company.maxUsers ?? null;
+      const maxTasks: number | null = company.maxTasks ?? null;
+      const maxStorage: number | null = company.maxStorage ?? null;
+      setLoaded({ plan: company.subscriptionPlan || '', maxUsers, maxTasks, maxStorage });
 
       setFormData({
         name: company.name || '',
         slug: company.slug || '',
         logo: company.logo || undefined,
         primaryColor: company.primaryColor || '#3B82F6',
-        subscriptionPlan: company.subscriptionPlan || 'PRO',
-        maxUsers: company.maxUsers ?? 5,
-        maxTasks: company.maxTasks ?? 100,
-        maxStorage: company.maxStorage ?? 1,
+        subscriptionPlan: company.subscriptionPlan || '',
+        customLimits: maxUsers !== null || maxTasks !== null,
+        maxUsers: maxUsers !== null ? String(maxUsers) : '',
+        maxTasks: maxTasks !== null ? String(maxTasks) : '',
         billingEmail: company.billingEmail || '',
         ticketApprovalThreshold:
           company.settings?.ticketApprovalThreshold != null
             ? String(company.settings.ticketApprovalThreshold)
             : '',
       });
+
+      setActiveUsers(typeof company.stats?.totalUsers === 'number' ? company.stats.totalUsers : null);
+      billingApi
+        .overview()
+        .then((o) => {
+          const row = o.companies.find((c) => c.id === id);
+          if (row) setActiveUsers(row.activeUsers);
+        })
+        .catch(() => undefined);
 
       // Set logo preview if exists
       if (company.logo) {
@@ -98,23 +143,9 @@ export default function EditCompany() {
         [name]: checked,
       }));
     } else {
-      let newValue: any = value;
-      if (type === 'number') {
-        const parsed = parseInt(value);
-        newValue = isNaN(parsed) ? 0 : parsed;
-        // For limits, we might want to allow -1, so 0 if empty is safe for now
-        if (value === '') newValue = 0;
-      }
-      setFormData(prev => {
-        const updated = { ...prev, [name]: newValue };
-        if (name === 'subscriptionPlan') {
-          const limits = PLAN_LIMITS[value as string] || PLAN_LIMITS.PRO;
-          updated.maxUsers = limits.maxUsers;
-          updated.maxTasks = limits.maxTasks;
-          updated.maxStorage = limits.maxStorage;
-        }
-        return updated;
-      });
+      // Limits stay as typed text. A plan change no longer copies numbers in, because
+      // a company that follows its plan should go on following the new one.
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
@@ -189,6 +220,58 @@ export default function EditCompany() {
         logoUrl = await uploadLogo();
       }
 
+      // Limits: send only what actually changed. A limit in the payload makes the server
+      // re-check the user count and deactivate anyone over it, so an unchanged limit
+      // must not be sent just because the form was saved.
+      // An empty box follows the plan for that field, and a value left exactly as it
+      // was loaded is kept as it is, even one the old form wrote that is not valid now
+      // (a 0, say). Only a value someone actually typed is validated.
+      const limitFor = (text: string, was: number | null): number | null | undefined => {
+        if (!formData.customLimits) return null;
+        const t = text.trim();
+        if (t === '') return null;
+        if (was !== null && t === String(was)) return was;
+        return parseLimit(t);
+      };
+      const wantUsers = limitFor(formData.maxUsers, loaded?.maxUsers ?? null);
+      const wantTasks = limitFor(formData.maxTasks, loaded?.maxTasks ?? null);
+      if (wantUsers === undefined || wantTasks === undefined) {
+        throw Object.assign(new Error('limits'), {
+          friendly: 'Custom limits must be a whole number of 1 or more, or -1 for unlimited.',
+        });
+      }
+      const planChanged = !!loaded && formData.subscriptionPlan !== loaded.plan;
+      const limitPatch: Record<string, number | null> = {};
+      if (loaded && wantUsers !== loaded.maxUsers) limitPatch.maxUsers = wantUsers;
+      if (loaded && wantTasks !== loaded.maxTasks) limitPatch.maxTasks = wantTasks;
+      // Storage is not enforced and has no box here. It is only cleared, alongside the
+      // other two, when the company goes back to following its plan.
+      if (loaded && !formData.customLimits && loaded.maxStorage !== null) limitPatch.maxStorage = null;
+
+      // The limit that will apply after saving, and whether saving changes it.
+      const newPlan = plans.find((p) => p.name === formData.subscriptionPlan);
+      const effectiveUsers = wantUsers !== null ? wantUsers : newPlan?.maxUsers;
+      const limitTouched = planChanged || 'maxUsers' in limitPatch;
+      if (
+        limitTouched &&
+        typeof effectiveUsers === 'number' &&
+        effectiveUsers !== -1 &&
+        activeUsers !== null &&
+        activeUsers > effectiveUsers
+      ) {
+        const over = activeUsers - effectiveUsers;
+        const ok = await confirmDialog({
+          title: `Deactivate up to ${over} user${over === 1 ? '' : 's'}?`,
+          description: `This company has ${activeUsers} active users and the new limit is ${effectiveUsers}. ${over} user${over === 1 ? '' : 's'} will be deactivated (newest first, never company admins). They can be reactivated later if the limit is raised.`,
+          confirmText: 'Save and deactivate',
+          variant: 'danger',
+        });
+        if (!ok) {
+          setLoading(false);
+          return;
+        }
+      }
+
       const payload: any = {
         name: formData.name,
         /**
@@ -203,9 +286,7 @@ export default function EditCompany() {
         logo: logoUrl ?? '',
         primaryColor: formData.primaryColor,
         subscriptionPlan: formData.subscriptionPlan,
-        maxUsers: formData.maxUsers,
-        maxTasks: formData.maxTasks,
-        maxStorage: formData.maxStorage,
+        ...limitPatch,
         billingEmail: formData.billingEmail,
         // Empty box means "off": send null rather than parsing '' to NaN or 0, either
         // of which would mean something a blank box does not.
@@ -215,13 +296,24 @@ export default function EditCompany() {
             : Number(formData.ticketApprovalThreshold),
       };
 
-      await api.patch(`/companies/${id}`, payload);
+      const { data } = await api.patch(`/companies/${id}`, payload);
 
+      const retired: RetiredUser[] = Array.isArray(data?.retiredUsers) ? data.retiredUsers : [];
+      if (retired.length > 0) {
+        toast(
+          `${retired.length} user${retired.length === 1 ? ' was' : 's were'} deactivated to fit the new limit: ${retired
+            .map((u) => u.name || u.email)
+            .join(', ')}`,
+          { duration: 8000 },
+        );
+      }
       toast.success('Company updated successfully!');
       navigate(`/admin/companies/${id}`);
     } catch (err: any) {
       console.error('Error updating company:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to update company';
+      const serverMessage = err.response?.data?.message;
+      const errorMessage =
+        err.friendly || (Array.isArray(serverMessage) ? serverMessage.join(', ') : serverMessage) || 'Failed to update company';
       setError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -378,30 +470,82 @@ export default function EditCompany() {
                 onChange={handleChange}
                 className="select-field w-full mb-4"
               >
-                <option value="FREE_TRIAL">Free Trial (10 users, 500 tasks, 2 GB) - 7 Days</option>
-                <option value="PRO">Pro (25 users, 5000 tasks, 10 GB) - $99/month</option>
-                <option value="ENTERPRISE">Enterprise (Unlimited) - $299/month</option>
+                {plans.map((plan) => (
+                  <option key={plan.id} value={plan.name}>
+                    {`${planLabel(plan.name)} (${formatLimit(plan.maxUsers)} users, ${formatLimit(plan.maxTasks)} tasks), ${
+                      plan.name === 'FREE_TRIAL' ? '7-day free trial' : formatPlanPrice(plan.price)
+                    }`}
+                  </option>
+                ))}
+                {/* A company on a plan that no longer exists keeps showing it, rather than
+                    silently appearing to be on the first plan in the list. */}
+                {formData.subscriptionPlan && !plans.some((p) => p.name === formData.subscriptionPlan) && (
+                  <option value={formData.subscriptionPlan}>{planLabel(formData.subscriptionPlan)}</option>
+                )}
               </Select>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-100 dark:border-gray-700">
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Max Users</label>
-                  <input type="number" name="maxUsers" value={formData.maxUsers} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">(-1 for unlimited)</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Max Tasks</label>
-                  <input type="number" name="maxTasks" value={formData.maxTasks} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">(-1 for unlimited)</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Max Storage (GB)</label>
-                  <input type="number" name="maxStorage" value={formData.maxStorage} onChange={handleChange}
-                    className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">(-1 for unlimited)</p>
-                </div>
+              <div className="bg-gray-50 dark:bg-gray-900/40 p-4 rounded-xl border border-gray-100 dark:border-gray-700 space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.customLimits}
+                    onChange={(e) => {
+                      const on = e.target.checked;
+                      setFormData(prev => {
+                        if (!on) return { ...prev, customLimits: false };
+                        // Start a custom limit from the plan's own numbers: a deliberate
+                        // starting point the super admin then edits, never a guess.
+                        const plan = plans.find((p) => p.name === prev.subscriptionPlan);
+                        return {
+                          ...prev,
+                          customLimits: true,
+                          maxUsers: prev.maxUsers || (plan ? String(plan.maxUsers) : ''),
+                          maxTasks: prev.maxTasks || (plan ? String(plan.maxTasks) : ''),
+                        };
+                      });
+                    }}
+                    className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-gray-900 dark:text-white">Custom limits for this company</span>
+                    <span className="block text-xs text-gray-500 dark:text-gray-400">
+                      Off: the company follows its plan, and any change to the plan applies to it.
+                    </span>
+                  </span>
+                </label>
+
+                {formData.customLimits ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Max users</label>
+                      <input type="number" name="maxUsers" min={-1} value={formData.maxUsers} onChange={handleChange} required
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">-1 for unlimited</p>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wide mb-1">Max tasks</label>
+                      <input type="number" name="maxTasks" min={-1} value={formData.maxTasks} onChange={handleChange} required
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm font-bold" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">-1 for unlimited</p>
+                    </div>
+                  </div>
+                ) : (
+                  (() => {
+                    const plan = plans.find((p) => p.name === formData.subscriptionPlan);
+                    return plan ? (
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        Following the {planLabel(plan.name)} plan: {formatLimit(plan.maxUsers)} users, {formatLimit(plan.maxTasks)} tasks.
+                      </p>
+                    ) : null;
+                  })()
+                )}
+
+                {activeUsers !== null && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {activeUsers} active user{activeUsers === 1 ? '' : 's'} today. Lowering the user limit below that
+                    deactivates the newest users first, never company admins.
+                  </p>
+                )}
               </div>
             </div>
           </div>

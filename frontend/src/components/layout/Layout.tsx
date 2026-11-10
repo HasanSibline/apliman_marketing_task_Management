@@ -5,6 +5,7 @@ import { toggleSidebar } from '@/store/slices/uiSlice'
 import Header from './Header'
 import Sidebar from './Sidebar'
 import FloatingChatButton from '../chat/FloatingChatButton'
+import SubscriptionBanner from '../billing/SubscriptionBanner'
 
 const Layout: React.FC = () => {
   const dispatch = useAppDispatch()
@@ -39,6 +40,9 @@ const Layout: React.FC = () => {
 
         {/* Header */}
         <Header />
+
+        {/* Renewal and grace-period notice, for the company's admins */}
+        <SubscriptionBanner />
 
         {/* Page content */}
         <main className="app-backdrop flex-1 overflow-y-auto">

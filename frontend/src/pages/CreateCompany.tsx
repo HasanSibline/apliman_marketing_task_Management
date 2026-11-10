@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import {
   UsersIcon,
   ClipboardDocumentCheckIcon,
-  CloudArrowUpIcon,
   CheckBadgeIcon,
   InformationCircleIcon,
   CalendarIcon,
@@ -14,8 +13,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import api, { plansApi, type PlanRecord } from '../services/api';
 import Select from '@/components/ui/Select'
+import { formatLimit, formatPlanPrice, planLabel } from '@/components/billing/subscription'
 
 // ── One-time credentials modal ────────────────────────────────────────────────
 function CredentialsModal({
@@ -109,13 +109,10 @@ interface CreateCompanyForm {
   adminName: string;
   adminEmail: string;
   adminPassword: string;
-  subscriptionPlan: 'FREE_TRIAL' | 'PRO' | 'ENTERPRISE';
+  subscriptionPlan: string;
   subscriptionDays: number;
   aiApiKey?: string;
   aiProvider: string;
-  maxUsers: number;
-  maxTasks: number;
-  maxStorage: number;
   billingEmail?: string;
 }
 
@@ -160,11 +157,12 @@ function Field({
   );
 }
 
-const PLAN_LIMITS: Record<string, { maxUsers: number; maxTasks: number; maxStorage: number; price: string; defaultDays: number }> = {
-  FREE_TRIAL: { maxUsers: 10, maxTasks: 500, maxStorage: 2, price: '7-Day Trial', defaultDays: 7 },
-  PRO: { maxUsers: 25, maxTasks: 5000, maxStorage: 10, price: '$99/mo', defaultDays: 30 },
-  ENTERPRISE: { maxUsers: -1, maxTasks: -1, maxStorage: -1, price: '$299/mo', defaultDays: 30 },
-};
+/**
+ * The trial's length is fixed by the server, which overrides whatever is sent for a
+ * FREE_TRIAL company. The form says so rather than offering a box that does nothing.
+ */
+const TRIAL_DAYS = 7;
+const PAID_DEFAULT_DAYS = 30;
 
 const STEPS = [
   { id: 1, label: 'Company Info', icon: BuildingOfficeIcon },
@@ -225,12 +223,42 @@ export default function CreateCompany() {
     adminEmail: '',
     adminPassword: '',
     subscriptionPlan: 'FREE_TRIAL',
-    subscriptionDays: 7,
+    subscriptionDays: TRIAL_DAYS,
     aiProvider: 'gemini',
-    maxUsers: 10,
-    maxTasks: 500,
-    maxStorage: 2,
   });
+
+  /**
+   * The plans come from the Plans page, the one place they are defined. They used to
+   * be typed into this file, so the cards could promise limits and prices that the
+   * server, reading its own table, did not apply.
+   */
+  const [plans, setPlans] = useState<PlanRecord[]>([]);
+  const [plansState, setPlansState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const loadPlans = () => {
+    setPlansState('loading');
+    plansApi
+      .list()
+      .then((list) => {
+        setPlans(list);
+        setPlansState('ready');
+        // Keep the trial selected when it exists; otherwise the first plan offered.
+        setFormData(prev =>
+          list.some((p) => p.name === prev.subscriptionPlan) || list.length === 0
+            ? prev
+            : {
+                ...prev,
+                subscriptionPlan: list[0].name,
+                subscriptionDays: list[0].name === 'FREE_TRIAL' ? TRIAL_DAYS : PAID_DEFAULT_DAYS,
+              },
+        );
+      })
+      .catch(() => setPlansState('error'));
+  };
+  useEffect(() => {
+    loadPlans();
+  }, []);
+  const selectedPlan = plans.find((p) => p.name === formData.subscriptionPlan);
+  const isTrial = formData.subscriptionPlan === 'FREE_TRIAL';
 
   const clearError = (field: string) =>
     setFieldErrors(prev => { const next = { ...prev }; delete next[field]; return next; });
@@ -253,13 +281,9 @@ export default function CreateCompany() {
       }
 
       if (name === 'subscriptionPlan') {
-        const limits = PLAN_LIMITS[value] || PLAN_LIMITS.PRO;
-        updated.maxUsers = limits.maxUsers;
-        updated.maxTasks = limits.maxTasks;
-        updated.maxStorage = limits.maxStorage;
-
-        // Auto-set duration based on plan
-        updated.subscriptionDays = limits.defaultDays || 30;
+        // Limits are not copied in: the company follows its plan. Only the starting
+        // duration depends on which plan was picked.
+        updated.subscriptionDays = value === 'FREE_TRIAL' ? TRIAL_DAYS : PAID_DEFAULT_DAYS;
       }
 
       return updated;
@@ -307,11 +331,11 @@ export default function CreateCompany() {
         errors.adminPassword = 'Password must be at least 8 characters';
     }
     if (s === 3) {
-      if (!formData.subscriptionDays || formData.subscriptionDays < 1)
+      if (formData.subscriptionPlan !== 'FREE_TRIAL' && (!formData.subscriptionDays || formData.subscriptionDays < 1))
         errors.subscriptionDays = 'Must be at least 1 day';
     }
-    // Step 4 (AI) has no required fields: a company without its own key falls back
-    // to the platform key configured in Settings → AI Platform.
+    // Step 4 (AI) has no required fields. There is no platform-wide key: a company
+    // without one has no AI until providers are added on its page.
 
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -339,6 +363,11 @@ export default function CreateCompany() {
     e.stopPropagation();
     if (step !== 4) return;
     if (!validateStep(4)) return;
+    if (!selectedPlan) {
+      toast.error('Choose a plan before creating the company');
+      setStep(3);
+      return;
+    }
 
     try {
       setLoading(true);
@@ -387,7 +416,7 @@ export default function CreateCompany() {
     }
   };
 
-  const fmt = (n: number) => n === -1 ? '∞' : n.toLocaleString();
+  const fmt = (n: number | undefined) => (n === undefined ? 'Not set' : formatLimit(n));
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900/40 flex">
@@ -469,7 +498,7 @@ export default function CreateCompany() {
                   ${formData.subscriptionPlan === 'ENTERPRISE' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' : ''}`}>
                   {formData.subscriptionPlan === 'FREE_TRIAL' ? 'TRIAL' : formData.subscriptionPlan}
                 </span>
-                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{formData.subscriptionDays}d</span>
+                <span className="text-xs font-medium text-gray-500 dark:text-gray-400">{isTrial ? TRIAL_DAYS : formData.subscriptionDays}d</span>
               </div>
             </div>
           </div>
@@ -642,14 +671,28 @@ export default function CreateCompany() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 font-medium">Choose a package that fits your organization's scale.</p>
                 </div>
 
-                {/* Plan cards */}
+                {/* Plan cards, read from the Plans page */}
+                {plansState === 'loading' && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Loading plans…</p>
+                )}
+                {plansState === 'error' && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
+                    The plans could not be loaded.{' '}
+                    <button type="button" onClick={loadPlans} className="font-semibold underline">Try again</button>
+                  </div>
+                )}
+                {plansState === 'ready' && plans.length === 0 && (
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No plans exist yet. Create them on the Plans page first.
+                  </p>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {(['FREE_TRIAL', 'PRO', 'ENTERPRISE'] as const).map(plan => {
-                    const info = PLAN_LIMITS[plan];
+                  {plans.map(info => {
+                    const plan = info.name;
                     const selected = formData.subscriptionPlan === plan;
                     return (
                       <button
-                        key={plan}
+                        key={info.id}
                         type="button"
                         onClick={() => handleChange({ target: { name: 'subscriptionPlan', value: plan, type: 'select' } } as any)}
                         className={`group relative flex flex-col items-start p-5 rounded-xl border-2 transition-all duration-300 text-left
@@ -661,15 +704,17 @@ export default function CreateCompany() {
                           ${plan === 'FREE_TRIAL' ? 'bg-purple-600 text-white shadow-sm' :
                             plan === 'PRO' ? 'bg-blue-600 text-white shadow-sm' :
                               'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}`}>
-                          {plan === 'FREE_TRIAL' ? 'Free Trial' : plan}
+                          {planLabel(plan)}
                         </div>
-                        <p className="text-gray-900 dark:text-white font-bold text-lg mb-1">{info.price}</p>
+                        <p className="text-gray-900 dark:text-white font-bold text-lg mb-1">
+                          {plan === 'FREE_TRIAL' ? `${TRIAL_DAYS}-day free trial` : formatPlanPrice(info.price)}
+                        </p>
                         <div className="space-y-1 mt-2">
                           <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-1.5">
-                            <span className="text-blue-500 opacity-70">●</span> {info.maxUsers === -1 ? 'Unlimited' : info.maxUsers} Users
+                            <span className="text-blue-500 opacity-70">●</span> {formatLimit(info.maxUsers)} users
                           </p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 font-semibold flex items-center gap-1.5">
-                            <span className="text-blue-500 opacity-70">●</span> {info.maxTasks === -1 ? 'Unlimited' : info.maxTasks} Tasks
+                            <span className="text-blue-500 opacity-70">●</span> {formatLimit(info.maxTasks)} tasks
                           </p>
                         </div>
                         {selected && (
@@ -686,14 +731,21 @@ export default function CreateCompany() {
                   })}
                 </div>
 
-                <Field label="Initial Duration (days)" name="subscriptionDays" type="number" required
-                  value={formData.subscriptionDays} onChange={handleChange} error={fieldErrors.subscriptionDays}
-                  hint="Account will be active for this period after creation." />
+                {isTrial ? (
+                  <div className="p-5 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/40 text-sm text-blue-800 dark:text-blue-200">
+                    The free trial always lasts {TRIAL_DAYS} days. After it ends the company has a 7-day grace
+                    period, then its users are blocked until a paid plan is recorded.
+                  </div>
+                ) : (
+                  <Field label="Initial Duration (days)" name="subscriptionDays" type="number" required
+                    value={formData.subscriptionDays} onChange={handleChange} error={fieldErrors.subscriptionDays}
+                    hint="The company is active for this period. After it ends there is a 7-day grace period, then its users are blocked until it is renewed." />
+                )}
 
                 <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300 font-medium flex items-center gap-2">
                   <CalendarIcon className="h-5 w-5 text-gray-500 dark:text-gray-400" />
                   Renewal Date: <span className="font-bold text-gray-900 dark:text-white">
-                    {new Date(Date.now() + formData.subscriptionDays * 86400000).toLocaleDateString('en-US', {
+                    {new Date(Date.now() + (isTrial ? TRIAL_DAYS : formData.subscriptionDays) * 86400000).toLocaleDateString('en-US', {
                       year: 'numeric', month: 'long', day: 'numeric'
                     })}
                   </span>
@@ -701,7 +753,7 @@ export default function CreateCompany() {
 
                 <Field label="Billing Contact Email" name="billingEmail" type="email" placeholder="billing@company.com"
                   value={formData.billingEmail ?? ''} onChange={handleChange}
-                  hint="Used for billing notifications and automated invoices." />
+                  hint="The contact shown on this company's invoice records." />
               </div>
             )}
 
@@ -721,9 +773,9 @@ export default function CreateCompany() {
                     AI Configuration (Optional)
                   </h3>
                   <div className="space-y-5">
-                    <Field label="Company AI API Key" name="aiApiKey" placeholder="Leave empty to use the platform key"
+                    <Field label="Company AI API Key" name="aiApiKey" placeholder="Optional"
                       value={formData.aiApiKey ?? ''} onChange={handleChange} error={fieldErrors.aiApiKey}
-                      hint="Leave this empty and the company uses the platform key from Settings → AI Platform. Add a key here only to bill this company's AI usage separately. Multiple comma-separated keys fail over automatically." />
+                      hint="Optional. Leave it empty and add AI providers later on the company's page, where several providers can back each other up. Without a key or a provider, the company's AI features stay off." />
 
                     <div>
                       <label className="block text-sm font-bold text-gray-700 dark:text-gray-200 mb-2">Primary AI Provider</label>
@@ -744,13 +796,12 @@ export default function CreateCompany() {
                 {/* Resource Limits List (Style Match) */}
                 <div className="rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 p-6">
                   <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mb-5 tracking-wide">
-                    Plan Resources: {formData.subscriptionPlan}
+                    Plan Resources: {planLabel(formData.subscriptionPlan)}
                   </p>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 gap-4">
                     {[
-                      { label: 'Max Users', value: fmt(formData.maxUsers), icon: <UsersIcon className="h-6 w-6 text-blue-500" /> },
-                      { label: 'Max Tasks', value: fmt(formData.maxTasks), icon: <ClipboardDocumentCheckIcon className="h-6 w-6 text-emerald-500" /> },
-                      { label: 'Storage', value: `${fmt(formData.maxStorage)} GB`, icon: <CloudArrowUpIcon className="h-6 w-6 text-purple-500" /> },
+                      { label: 'Max Users', value: fmt(selectedPlan?.maxUsers), icon: <UsersIcon className="h-6 w-6 text-blue-500" /> },
+                      { label: 'Max Tasks', value: fmt(selectedPlan?.maxTasks), icon: <ClipboardDocumentCheckIcon className="h-6 w-6 text-emerald-500" /> },
                     ].map(({ label, value, icon }) => (
                       <div key={label} className="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm hover:border-blue-200 transition-colors">
                         <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-900/40 rounded-xl">{icon}</div>

@@ -109,7 +109,11 @@ api.interceptors.response.use(
       // session that has expired can only be replaced by signing in again.
       if (!sessionEndAnnounced) {
         sessionEndAnnounced = true
-        window.dispatchEvent(new CustomEvent(UNAUTHORIZED_EVENT))
+        // The server's reason travels with the event, so a company blocked for an
+        // ended subscription is told that rather than that its session expired.
+        window.dispatchEvent(
+          new CustomEvent(UNAUTHORIZED_EVENT, { detail: { message: error.response?.data?.message } }),
+        )
       }
       return Promise.reject(error)
     }
@@ -655,6 +659,134 @@ export const analyticsApi = {
 
   getTicketAnalytics: async (): Promise<any> => {
     const response = await api.get('/analytics/tickets')
+    return response.data
+  },
+}
+
+// Billing (super admin)
+
+/** Where a company stands. Computed by the server from its dates; never stored. */
+export type SubscriptionState = 'ACTIVE' | 'TRIAL' | 'DUE_SOON' | 'GRACE' | 'EXPIRED' | 'SUSPENDED'
+
+export interface CompanySubscription {
+  state: SubscriptionState
+  daysLeft: number | null
+  subscriptionEnd: string | null
+  graceEndsAt: string | null
+  blocked: boolean
+}
+
+export interface PlanRecord {
+  id: string
+  name: string
+  /** -1 means unlimited. */
+  maxUsers: number
+  maxTasks: number
+  maxStorage: number
+  price: number
+  aiEnabled: boolean
+}
+
+export interface BillingCompany {
+  id: string
+  name: string
+  slug: string
+  logo: string | null
+  plan: string
+  monthlyPrice: number
+  state: SubscriptionState
+  subscriptionEnd: string | null
+  /** Negative once the end date has passed. */
+  daysLeft: number | null
+  graceEndsAt: string | null
+  blocked: boolean
+  billingEmail: string | null
+  activeUsers: number
+  /** -1 means unlimited. */
+  maxUsers: number
+  overLimitBy: number
+  lastInvoice: { number: string; amount: number; paidAt: string } | null
+}
+
+export interface BillingSummary {
+  needsAttention: number
+  dueSoon: number
+  trial: number
+  grace: number
+  expired: number
+  suspended: number
+  overLimit: number
+  collectedThisMonth: number
+}
+
+export interface InvoiceRecord {
+  id: string
+  number: string
+  companyId: string
+  companyName: string
+  plan: string
+  amount: number
+  currency: string
+  periodStart: string
+  periodEnd: string
+  paidAt: string
+  method: string | null
+  reference: string | null
+  note: string | null
+  recordedByName: string | null
+  createdAt: string
+}
+
+export interface RecordPaymentInput {
+  amount: number
+  months: number
+  paidAt?: string
+  method?: string
+  reference?: string
+  note?: string
+  /** Move the company to this plan with the payment. */
+  plan?: string
+}
+
+export interface RetiredUser {
+  id: string
+  name: string
+  email: string
+}
+
+export const plansApi = {
+  list: async (): Promise<PlanRecord[]> => {
+    const response = await api.get('/plans')
+    const data = response.data
+    return Array.isArray(data) ? data : data?.plans ?? []
+  },
+}
+
+export const billingApi = {
+  /** `quiet` for background reads, like the nav badge, that should never raise a toast. */
+  overview: async (opts?: { quiet?: boolean }): Promise<{ summary: BillingSummary; companies: BillingCompany[] }> => {
+    const response = await api.get('/billing/overview', { quiet: opts?.quiet === true })
+    return response.data
+  },
+
+  invoices: async (companyId?: string): Promise<InvoiceRecord[]> => {
+    const response = await api.get('/billing/invoices', { params: companyId ? { companyId } : undefined })
+    return Array.isArray(response.data) ? response.data : []
+  },
+
+  /** Quiet: the caller shows the server's own message. */
+  recordPayment: async (
+    companyId: string,
+    data: RecordPaymentInput,
+  ): Promise<{ invoice: InvoiceRecord; subscriptionEnd: string; state: SubscriptionState }> => {
+    const response = await api.post(`/billing/companies/${companyId}/payments`, data, { quiet: true })
+    return response.data
+  },
+
+  applyUserLimit: async (
+    companyId: string,
+  ): Promise<{ retired: RetiredUser[]; activeUsers: number; maxUsers: number }> => {
+    const response = await api.post(`/billing/companies/${companyId}/apply-user-limit`, undefined, { quiet: true })
     return response.data
   },
 }

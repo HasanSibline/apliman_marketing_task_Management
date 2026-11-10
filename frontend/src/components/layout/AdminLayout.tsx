@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
@@ -13,14 +13,41 @@ import {
   ShieldCheckIcon,
   UserCircleIcon,
   CreditCardIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 import { BRAND } from '@/config/brand';
+import { billingApi } from '@/services/api';
 
 const AdminLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
+
+  /**
+   * Companies that need a super admin's attention, shown beside "Billing".
+   *
+   * Read quietly, on each page change and whenever the billing page records something,
+   * so the count is current without a toast if the read fails: a missing badge is a
+   * smaller problem than an error on every admin page.
+   */
+  const [needsAttention, setNeedsAttention] = useState(0);
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = () =>
+      billingApi
+        .overview({ quiet: true })
+        .then((o) => {
+          if (!cancelled) setNeedsAttention(o.summary?.needsAttention ?? 0);
+        })
+        .catch(() => undefined);
+    refresh();
+    window.addEventListener('billing:changed', refresh);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('billing:changed', refresh);
+    };
+  }, [location.pathname]);
 
   const adminNavigation = [
     {
@@ -31,6 +58,13 @@ const AdminLayout: React.FC = () => {
           href: '/admin/companies',
           icon: BuildingOfficeIcon,
           description: 'Create companies, set plans and limits',
+        },
+        {
+          name: 'Billing',
+          href: '/admin/billing',
+          icon: BanknotesIcon,
+          description: 'Renewals, payments and invoices',
+          badge: needsAttention,
         },
       ],
     },
@@ -135,8 +169,18 @@ const AdminLayout: React.FC = () => {
                               } h-5 w-5 flex-shrink-0`}
                             aria-hidden="true"
                           />
-                          <span className="ml-3 min-w-0">
-                            <span className="block font-medium">{item.name}</span>
+                          <span className="ml-3 min-w-0 flex-1">
+                            <span className="flex items-center justify-between gap-2 font-medium">
+                              {item.name}
+                              {'badge' in item && typeof item.badge === 'number' && item.badge > 0 && (
+                                <span
+                                  className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white"
+                                  aria-label={`${item.badge} need attention`}
+                                >
+                                  {item.badge}
+                                </span>
+                              )}
+                            </span>
                             <span className="block text-xs text-gray-500 dark:text-gray-400">
                               {item.description}
                             </span>

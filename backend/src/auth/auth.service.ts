@@ -9,6 +9,8 @@ import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto';
 import { JwtPayload } from './interfaces/jwt-payload.interface';
 import { UserRole, UserStatus } from '../types/prisma';
+import { subscriptionState, BLOCKED_MESSAGE } from '../billing/subscription-state';
+import { rememberCompanyAccess } from '../billing/company-access-cache';
 
 @Injectable()
 export class AuthService {
@@ -50,12 +52,18 @@ export class AuthService {
       throw new UnauthorizedException('System Administrators must use the admin portal at /admin/login');
     }
 
-    // Check if company is active (if user has a company)
-    if (user.companyId) {
+    // Check the company may sign in: not suspended, and not past its grace period.
+    // A Super Admin is never locked out by a company's subscription.
+    if (user.companyId && user.role !== UserRole.SUPER_ADMIN) {
       const company = await this.usersService.findCompanyById(user.companyId);
-      if (!company || !company.isActive || company.subscriptionStatus === 'SUSPENDED') {
+      const access = company ? subscriptionState(company) : null;
+      // What login just read is the freshest answer there is; the requests that follow
+      // must not contradict it from an older cached one.
+      rememberCompanyAccess(user.companyId, access);
+      if (!access || access.state === 'SUSPENDED') {
         throw new UnauthorizedException('Company account is suspended or inactive');
       }
+      if (access.blocked) throw new UnauthorizedException(BLOCKED_MESSAGE);
     }
 
     const payload: JwtPayload = {
@@ -196,20 +204,9 @@ export class AuthService {
         throw new BadRequestException('Insufficient permissions to create users');
     }
 
-    // Enforce company user limit (if configured)
-    if (targetCompanyId) {
-      const existingUsers = await this.usersService.findAll(undefined, undefined, targetCompanyId);
-      const companyRecord = await this.usersService.findCompanyById(targetCompanyId);
-      if (companyRecord && (companyRecord as any).maxUsers) {
-        const activeUserCount = existingUsers.filter(u => u.status !== UserStatus.RETIRED).length;
-        if (activeUserCount >= (companyRecord as any).maxUsers) {
-          throw new BadRequestException(
-            `User limit reached. Your plan allows a maximum of ${(companyRecord as any).maxUsers} users. ` +
-            `Please upgrade your plan or deactivate existing users to add new ones.`
-          );
-        }
-      }
-    }
+    // The user limit is enforced by UsersService.create below, from the company's plan.
+    // A second check here read the raw column, treated Enterprise's -1 ("unlimited") as
+    // a limit of minus one, and refused every user an Enterprise company tried to add.
 
 
     // Create user
