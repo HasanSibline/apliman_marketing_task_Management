@@ -5,6 +5,8 @@ import { UpdateCompanyDto } from './dto/update-company.dto';
 import { ExtendSubscriptionDto } from './dto/extend-subscription.dto';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { subscriptionState, usersToRetire } from '../billing/subscription-state';
+import { forgetCompanyAccess } from '../billing/company-access-cache';
 
 @Injectable()
 export class CompaniesService {
@@ -380,10 +382,69 @@ export class CompaniesService {
       });
     }
 
-    return this.prisma.company.update({
+    const planChanged =
+      !!updateCompanyDto.subscriptionPlan && updateCompanyDto.subscriptionPlan !== company.subscriptionPlan;
+    if (planChanged) {
+      // The price follows the plan, as it does at creation; it used to stay at the old one.
+      (companyFields as any).monthlyPrice = (await this.getPlanLimits(updateCompanyDto.subscriptionPlan)).price;
+    }
+
+    const updated = await this.prisma.company.update({
       where: { id },
       data: companyFields,
     });
+    forgetCompanyAccess(id);
+
+    // A plan or user-limit change takes effect now, as the Super Admin was warned it would.
+    const limitTouched = planChanged || updateCompanyDto.maxUsers !== undefined;
+    const retiredUsers = limitTouched ? (await this.retireUsersOverLimit(id, superAdminId)).retired : [];
+
+    return { ...updated, retiredUsers };
+  }
+
+  /**
+   * Deactivate the users a company has beyond its plan's user limit.
+   *
+   * Newest first and never a company admin (see usersToRetire). Deactivation is the
+   * same RETIRED status as removing a user by hand, so a Super Admin or company admin
+   * can bring anyone back once the plan allows it. Recorded in the subscription history.
+   */
+  async retireUsersOverLimit(
+    companyId: string,
+    performedBy: string,
+  ): Promise<{ retired: { id: string; name: string; email: string }[]; activeUsers: number; maxUsers: number }> {
+    const limits = await this.getCompanyResourceLimits(companyId);
+    if (!limits) throw new NotFoundException('Company not found');
+
+    const active = await this.prisma.user.findMany({
+      where: { companyId, status: { not: 'RETIRED' } },
+      select: { id: true, name: true, email: true, role: true, createdAt: true },
+    });
+
+    const retire = usersToRetire(active, limits.maxUsers);
+    if (retire.length > 0) {
+      await this.prisma.user.updateMany({
+        where: { id: { in: retire.map((u) => u.id) }, companyId },
+        data: { status: 'RETIRED' },
+      });
+      const company = await this.prisma.company.findUnique({ where: { id: companyId }, select: { subscriptionPlan: true } });
+      await this.prisma.subscriptionHistory.create({
+        data: {
+          companyId,
+          action: 'USERS_DEACTIVATED',
+          toPlan: company?.subscriptionPlan ?? 'UNKNOWN',
+          reason: `${retire.length} user(s) above the plan limit of ${limits.maxUsers}: ${retire.map((u) => u.email).join(', ')}`,
+          performedBy,
+        },
+      });
+      this.logger.log(`Deactivated ${retire.length} user(s) over the limit for company ${companyId}`);
+    }
+
+    return {
+      retired: retire.map(({ id, name, email }) => ({ id, name, email })),
+      activeUsers: active.length - retire.length,
+      maxUsers: limits.maxUsers,
+    };
   }
 
   /**
@@ -395,7 +456,10 @@ export class CompaniesService {
       throw new NotFoundException('Company not found');
     }
 
-    const currentEnd = company.subscriptionEnd || new Date();
+    // From the later of today and the current end. Counting from an end date that passed
+    // weeks ago could "extend" a blocked company to a date that is still in the past.
+    const now = new Date();
+    const currentEnd = company.subscriptionEnd && company.subscriptionEnd > now ? company.subscriptionEnd : now;
     const newEnd = new Date(currentEnd.getTime() + extendDto.days * 24 * 60 * 60 * 1000);
 
     await this.prisma.subscriptionHistory.create({
@@ -408,13 +472,15 @@ export class CompaniesService {
       },
     });
 
-    return this.prisma.company.update({
+    const saved = await this.prisma.company.update({
       where: { id },
       data: {
         subscriptionEnd: newEnd,
         subscriptionStatus: 'ACTIVE',
       },
     });
+    forgetCompanyAccess(id);
+    return saved;
   }
 
   /**
@@ -431,13 +497,15 @@ export class CompaniesService {
       },
     });
 
-    return this.prisma.company.update({
+    const saved = await this.prisma.company.update({
       where: { id },
       data: {
         subscriptionStatus: 'SUSPENDED',
         isActive: false,
       },
     });
+    forgetCompanyAccess(id);
+    return saved;
   }
 
   /**
@@ -453,13 +521,15 @@ export class CompaniesService {
       },
     });
 
-    return this.prisma.company.update({
+    const saved = await this.prisma.company.update({
       where: { id },
       data: {
         subscriptionStatus: 'ACTIVE',
         isActive: true,
       },
     });
+    forgetCompanyAccess(id);
+    return saved;
   }
 
   /**
@@ -562,6 +632,7 @@ export class CompaniesService {
         isActive: true,
         subscriptionStatus: true,
         subscriptionPlan: true,
+        subscriptionEnd: true,
         aiEnabled: true,
         aiProvider: true,
       },
@@ -571,7 +642,8 @@ export class CompaniesService {
       throw new NotFoundException('Company not found');
     }
 
-    return company;
+    const { state, daysLeft, subscriptionEnd, graceEndsAt, blocked } = subscriptionState(company);
+    return { ...company, subscription: { state, daysLeft, subscriptionEnd, graceEndsAt, blocked } };
   }
 
   /**
@@ -676,9 +748,9 @@ export class CompaniesService {
       };
     }
 
-    // Fallback and default for FREE_TRIAL if not found
+    // A plan missing from the table gets the free trial's limits, the most cautious.
     return {
-      maxUsers: 10,
+      maxUsers: 3,
       maxTasks: 500,
       maxStorage: 2,
       price: 0,

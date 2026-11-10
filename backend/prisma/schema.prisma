@@ -44,6 +44,7 @@ model Company {
   objectives          Objective[]
   quarters            Quarter[]
   subscriptionHistory SubscriptionHistory[]
+  invoices            Invoice[]
   tasks               Task[]
   teams               Team[]
   tickets             Ticket[]
@@ -260,6 +261,32 @@ model SubscriptionHistory {
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@map("subscription_history")
+}
+
+/// A payment the Super Admin recorded, and the subscription period it paid for.
+///
+/// Payments are received outside the app (bank transfer, cash, card terminal) and
+/// recorded here. Recording one extends the company's subscription. The number is
+/// sequential per year, INV-2026-0001, and is what a customer quotes back.
+model Invoice {
+  id          String   @id @default(uuid())
+  number      String   @unique
+  companyId   String
+  plan        String
+  amount      Float
+  currency    String   @default("USD")
+  periodStart DateTime
+  periodEnd   DateTime
+  paidAt      DateTime @default(now())
+  method      String?
+  reference   String?
+  note        String?
+  recordedBy  String?
+  createdAt   DateTime @default(now())
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@map("invoices")
 }
 
 /// One provider a company can use, and where it sits in the fallback order.

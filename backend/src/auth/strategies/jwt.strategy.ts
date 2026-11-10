@@ -4,7 +4,8 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../../users/users.service';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
-import { UserStatus } from '../../types/prisma';
+import { UserRole, UserStatus } from '../../types/prisma';
+import { BLOCKED_MESSAGE } from '../../billing/subscription-state';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -28,6 +29,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     if (user.status === UserStatus.RETIRED) {
       throw new UnauthorizedException('Account is retired');
+    }
+
+    // A session that began before the company was suspended or ran out of grace ends
+    // here, rather than lasting as long as its token does.
+    if (user.companyId && user.role !== UserRole.SUPER_ADMIN) {
+      const access = await this.usersService.companyAccess(user.companyId);
+      if (!access || access.state === 'SUSPENDED') {
+        throw new UnauthorizedException('Company account is suspended or inactive');
+      }
+      if (access.blocked) throw new UnauthorizedException(BLOCKED_MESSAGE);
     }
 
     // Update last active time

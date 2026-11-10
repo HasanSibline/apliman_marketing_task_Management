@@ -98,6 +98,25 @@ Note each chat message costs **2+ upstream calls**, since `ContextLearningServic
 second one to extract user context. That second call is now throttled to once a day per topic
 rather than once per message. Budget accordingly.
 
+### Subscriptions are enforced, and plans are the source of truth
+
+`subscriptionEnd` locks companies out. `backend/src/billing/subscription-state.ts` decides
+it for login, the JWT strategy, the billing page and the company banner alike: DUE_SOON in
+the last 7 days, GRACE for 7 days after the end, then EXPIRED, which blocks every user of
+that company. A Super Admin is never blocked. The per-request check is cached for a minute
+in `billing/company-access-cache.ts`; anything that changes a company's access must call
+`forgetCompanyAccess` **after** its write, or a renewed company stays blocked for a minute.
+
+Plan limits and prices live in the `plans` table (Super Admin, Plans page). A company's own
+`maxUsers`/`maxTasks` override its plan; **null means follow the plan**. Never write a default
+limit onto a company: a non-null `maxUsers` in `PATCH /companies/:id` deactivates (RETIRED)
+the newest non-admin users above it. Storage is stored but not enforced: task files record
+no size, so do not advertise it as a limit.
+
+RETIRED is how users are deactivated. Anything that writes `User.status` must not turn
+RETIRED back into another status without a free seat (`UsersService.assertSeatForReactivation`);
+presence writes are guarded for this reason.
+
 ### `blue-*` is a semantic colour, `primary-*` is the brand
 
 `applyBrandColor` (`frontend/src/theme/brandTheme.ts`) themes `--color-primary-*` per company at

@@ -9,6 +9,8 @@ import { UserRole, UserStatus } from '../types/prisma';
 import { realTasksOnly, EXCLUDE_SUBTASKS } from '../tasks/task-filters';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
+import { subscriptionState, SubscriptionState } from '../billing/subscription-state';
+import { cachedCompanyAccess, rememberCompanyAccess } from '../billing/company-access-cache';
 
 @Injectable()
 export class UsersService {
@@ -67,6 +69,30 @@ export class UsersService {
         }
       }
       throw error;
+    }
+  }
+
+  /**
+   * Refuse to bring a deactivated user back when the company has no room for them.
+   *
+   * Users above a plan's limit are deactivated (RETIRED). Without this, reactivating
+   * them, by status change, edit or password reset, put the company straight back over
+   * its limit. A user who is not RETIRED already holds a seat, so nothing is checked.
+   */
+  private async assertSeatForReactivation(id: string, nextStatus: UserStatus | string | undefined): Promise<void> {
+    if (!nextStatus || nextStatus === UserStatus.RETIRED) return;
+    const user = await this.prisma.user.findUnique({ where: { id }, select: { status: true, companyId: true } });
+    if (!user || user.status !== UserStatus.RETIRED || !user.companyId) return;
+
+    const limits = await this.companiesService.getCompanyResourceLimits(user.companyId);
+    if (!limits || limits.maxUsers === -1) return;
+    const active = await this.prisma.user.count({
+      where: { companyId: user.companyId, status: { not: UserStatus.RETIRED } },
+    });
+    if (active >= limits.maxUsers) {
+      throw new BadRequestException(
+        `User limit reached for this company (${limits.maxUsers} users). Upgrade the plan before reactivating this user.`,
+      );
     }
   }
 
@@ -180,6 +206,22 @@ export class UsersService {
   /**
    * Find company by ID (for login validation)
    */
+  /**
+   * Whether a company's users may use the app right now, for the per-request check.
+   *
+   * Cached for a minute per company: it runs on every authenticated request, and a
+   * subscription changes on the scale of days. Anything that changes the answer clears
+   * the entry (see company-access-cache), and login stores the fresh answer it read.
+   */
+  async companyAccess(companyId: string): Promise<SubscriptionState | null> {
+    const hit = cachedCompanyAccess(companyId);
+    if (hit !== undefined) return hit;
+    const company = await this.findCompanyById(companyId);
+    const state = company ? subscriptionState(company) : null;
+    rememberCompanyAccess(companyId, state);
+    return state;
+  }
+
   async findCompanyById(companyId: string) {
     return this.prisma.company.findUnique({
       where: { id: companyId },
@@ -201,6 +243,7 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
+    await this.assertSeatForReactivation(id, updateUserDto.status);
     try {
       const user = await this.prisma.$transaction(async (tx) => {
         const updated = await tx.user.update({
@@ -240,6 +283,7 @@ export class UsersService {
   }
 
   async updateUserStatus(id: string, status: UserStatus) {
+    await this.assertSeatForReactivation(id, status);
     const updateData: any = { status };
 
     if (status === UserStatus.ACTIVE) {
@@ -350,6 +394,8 @@ export class UsersService {
   }
 
   async resetPassword(id: string) {
+    // A reset also reactivates a retired user, so it needs a free seat like any other.
+    await this.assertSeatForReactivation(id, UserStatus.ACTIVE);
     // Generate a random temporary password using cryptographically secure random bytes
     const tempPassword = crypto.randomBytes(6).toString('hex'); // 12 chars
     const hashedPassword = await bcrypt.hash(tempPassword, 10);

@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import api from '@/services/api';
+import { formatPlanPrice } from '@/components/billing/subscription';
 
 interface Plan {
     id: string;
@@ -20,6 +21,46 @@ interface Plan {
     maxStorage: number;
     price: number;
     aiEnabled: boolean;
+}
+
+/**
+ * A limit box with an "Unlimited" switch beside it, because -1 is how the server
+ * stores "no limit" and nobody should have to know that to set one.
+ */
+function LimitInput({
+    label,
+    value,
+    onChange,
+}: {
+    label: string;
+    value: number | undefined;
+    onChange: (next: number) => void;
+}) {
+    const unlimited = value === -1;
+    return (
+        <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">{label}</label>
+            <input
+                type="number"
+                min={1}
+                required={!unlimited}
+                disabled={unlimited}
+                value={unlimited ? '' : value ?? ''}
+                placeholder={unlimited ? 'Unlimited' : undefined}
+                onChange={(e) => onChange(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm disabled:bg-gray-100 dark:disabled:bg-gray-700"
+            />
+            <label className="mt-1.5 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                <input
+                    type="checkbox"
+                    checked={unlimited}
+                    onChange={(e) => onChange(e.target.checked ? -1 : 10)}
+                    className="h-3.5 w-3.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                Unlimited
+            </label>
+        </div>
+    );
 }
 
 const PlanSettings: React.FC = () => {
@@ -104,8 +145,9 @@ const PlanSettings: React.FC = () => {
             }
             setIsEditing(false);
             fetchPlans();
-        } catch (error) {
-            toast.error('Failed to save plan');
+        } catch (error: any) {
+            const message = error?.response?.data?.message;
+            toast.error(Array.isArray(message) ? message.join(', ') : message || 'Failed to save plan');
         }
     };
 
@@ -163,7 +205,7 @@ const PlanSettings: React.FC = () => {
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">{plan.name}</h3>
                                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300">
-                                    ${plan.price}/mo
+                                    {formatPlanPrice(plan.price)}
                                 </span>
                             </div>
 
@@ -179,6 +221,7 @@ const PlanSettings: React.FC = () => {
                                 <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                                     <CircleStackIcon className="h-5 w-5 mr-2 text-gray-500 dark:text-gray-400" />
                                     Storage: <span className="ml-1 font-semibold">{plan.maxStorage === -1 ? 'Unlimited' : `${plan.maxStorage} GB`}</span>
+                                    <span className="ml-1 text-xs text-gray-400">(not enforced yet)</span>
                                 </li>
                                 <li className="flex items-center text-sm text-gray-600 dark:text-gray-300">
                                     <SparklesIcon className={`h-5 w-5 mr-2 ${plan.aiEnabled ? 'text-amber-500' : 'text-gray-300'}`} />
@@ -237,35 +280,28 @@ const PlanSettings: React.FC = () => {
                                             <input
                                                 type="number"
                                                 required
-                                                value={currentPlan.price || 0}
-                                                onChange={(e) => setCurrentPlan({ ...currentPlan, price: parseFloat(e.target.value) })}
+                                                min={0}
+                                                step="0.01"
+                                                value={currentPlan.price ?? 0}
+                                                onChange={(e) => setCurrentPlan({ ...currentPlan, price: Math.max(0, parseFloat(e.target.value) || 0) })}
                                                 className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                             />
+                                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">0 shows as Free</p>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Max Users (-1 = unlimited)</label>
-                                            <input
-                                                type="number"
-                                                required
-                                                value={currentPlan.maxUsers || 0}
-                                                onChange={(e) => setCurrentPlan({ ...currentPlan, maxUsers: parseInt(e.target.value) })}
-                                                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                                            />
-                                        </div>
+                                        <LimitInput
+                                            label="Max users"
+                                            value={currentPlan.maxUsers}
+                                            onChange={(maxUsers) => setCurrentPlan({ ...currentPlan, maxUsers })}
+                                        />
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
+                                        <LimitInput
+                                            label="Max tasks"
+                                            value={currentPlan.maxTasks}
+                                            onChange={(maxTasks) => setCurrentPlan({ ...currentPlan, maxTasks })}
+                                        />
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Max Tasks (-1 = unlimited)</label>
-                                            <input
-                                                type="number"
-                                                required
-                                                value={currentPlan.maxTasks || 0}
-                                                onChange={(e) => setCurrentPlan({ ...currentPlan, maxTasks: parseInt(e.target.value) })}
-                                                className="mt-1 block w-full border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Storage (GB, -1 = unlimited)</label>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">Storage (GB, -1 = unlimited, not enforced yet)</label>
                                             <input
                                                 type="number"
                                                 required

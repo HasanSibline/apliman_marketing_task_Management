@@ -70,6 +70,7 @@ const CompanyDetails = lazy(() => import('@/pages/CompanyDetails'))
 const AdminAnalytics = lazy(() => import('@/pages/admin/AdminAnalytics'))
 const AdminSettings = lazy(() => import('@/pages/admin/AdminSettings'))
 const PlanSettings = lazy(() => import('@/pages/admin/PlanSettings'))
+const BillingPage = lazy(() => import('@/pages/admin/BillingPage'))
 
 /** The wait while a page's chunk arrives. Seconds at worst, and usually not visible. */
 const PageLoading: React.FC = () => (
@@ -235,10 +236,17 @@ function App() {
    * document reload this replaces could not do without losing the reason as well.
    */
   useEffect(() => {
-    const onUnauthorized = () => {
+    const onUnauthorized = (event: Event) => {
       if (!store.getState().auth.isAuthenticated) return
       dispatch(clearSession())
-      toast.error('Your session has expired. Please sign in again.')
+      const reason = (event as CustomEvent<{ message?: unknown }>).detail?.message
+      // A blocked subscription is not an expired session, and saying so would send
+      // people round the sign-in page to be refused again with no explanation.
+      if (typeof reason === 'string' && /subscription/i.test(reason)) {
+        toast.error(reason, { duration: 10000 })
+      } else {
+        toast.error('Your session has expired. Please sign in again.')
+      }
     }
     window.addEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
     return () => window.removeEventListener(UNAUTHORIZED_EVENT, onUnauthorized)
@@ -308,6 +316,7 @@ function App() {
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="plans" element={<PlanSettings />} />
+          <Route path="billing" element={<BillingPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Route>
