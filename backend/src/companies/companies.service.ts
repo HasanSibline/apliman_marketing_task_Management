@@ -1,4 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
+import { ApiKeyCipher, EncryptionKeyMissingError, OpenedApiKey } from '../common/crypto/api-key-cipher';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCompanyDto } from './dto/create-company.dto';
 import { UpdateCompanyDto } from './dto/update-company.dto';
@@ -718,65 +726,40 @@ export class CompaniesService {
   }
 
   /**
-   * Encrypt API key using AES-256-CBC
+   * Seal an API key for storage. See ApiKeyCipher for the format.
+   *
+   * Refuses rather than degrading. This used to store plain base64 when ENCRYPTION_KEY
+   * was missing or encryption threw, logging a warning nobody read.
    */
   encryptApiKey(apiKey: string): string {
     try {
-      const encryptionKey = process.env.ENCRYPTION_KEY;
-      if (!encryptionKey) {
-        this.logger.warn('ENCRYPTION_KEY not found in environment, falling back to Base64 (INSECURE)');
-        return Buffer.from(apiKey).toString('base64');
-      }
-
-      // Key must be exactly 32 bytes for aes-256-cbc
-      const key = crypto.scryptSync(encryptionKey, 'salt', 32);
-      const iv = crypto.randomBytes(16);
-      const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-      
-      let encrypted = cipher.update(apiKey, 'utf8', 'hex');
-      encrypted += cipher.final('hex');
-      
-      // Store IV with encrypted data (iv:encryptedContent)
-      return `${iv.toString('hex')}:${encrypted}`;
+      return ApiKeyCipher.fromEnv().encrypt(apiKey);
     } catch (error) {
-      this.logger.error(`Encryption failed: ${error.message}`);
-      return Buffer.from(apiKey).toString('base64'); // Emergency fallback
+      if (error instanceof EncryptionKeyMissingError) {
+        this.logger.error(error.message);
+        throw new InternalServerErrorException(
+          'API keys cannot be saved because the server has no encryption key configured. Ask the platform administrator to set ENCRYPTION_KEY.',
+        );
+      }
+      throw error;
     }
   }
 
   /**
-   * Decrypt API key
+   * Open a stored API key. `apiKey` is null when no configured secret opens it; `stale`
+   * means it should be re-sealed with encryptApiKey (older format, or previous secret).
    */
-  decryptApiKey(encryptedKey: string): string {
-    try {
-      if (!encryptedKey) return null;
+  openApiKey(stored: string | null | undefined): OpenedApiKey {
+    return ApiKeyCipher.fromEnv().open(stored);
+  }
 
-      // Handle legacy Base64 or non-IV format
-      if (!encryptedKey.includes(':')) {
-        return Buffer.from(encryptedKey, 'base64').toString('utf-8');
-      }
+  encryptionConfigured(): boolean {
+    return ApiKeyCipher.fromEnv().configured;
+  }
 
-      const encryptionKey = process.env.ENCRYPTION_KEY;
-      if (!encryptionKey) {
-        this.logger.error('ENCRYPTION_KEY missing during decryption');
-        return '[DECRYPTION_FAILED_MISSING_KEY]';
-      }
-
-      const [ivHex, encryptedText] = encryptedKey.split(':');
-      const iv = Buffer.from(ivHex, 'hex');
-      const key = crypto.scryptSync(encryptionKey, 'salt', 32);
-      const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-      
-      let decrypted = decipher.update(encryptedText, 'hex', 'utf8');
-      decrypted += decipher.final('utf8');
-      
-      return decrypted;
-    } catch (error) {
-      this.logger.error(`Decryption failed: ${error.message}`);
-      // If decryption fails, it might be a legacy Base64 key that looks like it has a colon 
-      // or just genuine failure. For safety, return indicator.
-      return '[DECRYPTION_FAILED]';
-    }
+  /** The plaintext key, or null when it cannot be opened. */
+  decryptApiKey(stored: string | null | undefined): string | null {
+    return this.openApiKey(stored).apiKey;
   }
 
   /**

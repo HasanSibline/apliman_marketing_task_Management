@@ -683,12 +683,14 @@ export const aiProvidersApi = {
     isEmergency?: boolean
     monthlyBudget?: number | null
   }): Promise<any> => {
-    const response = await api.post('/ai/providers', data)
+    // Quiet: the caller shows the server's own message, and the generic "Server error,
+    // try again" toast on top of it is wrong when the cause is configuration.
+    const response = await api.post('/ai/providers', data, { quiet: true })
     return response.data
   },
 
   update: async (id: string, data: Record<string, any>): Promise<any> => {
-    const response = await api.patch(`/ai/providers/${id}`, data)
+    const response = await api.patch(`/ai/providers/${id}`, data, { quiet: true })
     return response.data
   },
 

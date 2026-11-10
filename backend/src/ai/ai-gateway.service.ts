@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject, forwardRef, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef, HttpException, HttpStatus, OnApplicationBootstrap } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CompaniesService } from '../companies/companies.service';
 import {
@@ -111,7 +111,7 @@ export class AiUnavailableError extends HttpException {
  * until there is something a row cannot express.
  */
 @Injectable()
-export class AiGatewayService {
+export class AiGatewayService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AiGatewayService.name);
 
   /** Attempts per entry before moving on. Small, because the chain is the real cure. */
@@ -122,6 +122,83 @@ export class AiGatewayService {
     @Inject(forwardRef(() => CompaniesService))
     private readonly companies: CompaniesService,
   ) {}
+
+  /** Not awaited: a slow or failing sweep must never hold up or stop the boot. */
+  onApplicationBootstrap(): void {
+    void this.resealStoredKeys().catch((error) =>
+      this.logger.error(`Stored API key sweep failed: ${error?.message ?? error}`),
+    );
+  }
+
+  /**
+   * Re-encrypt every stored key that is in an older format or sealed with
+   * ENCRYPTION_KEY_PREVIOUS, so a rotation finishes on the next deploy rather than
+   * whenever each company next happens to use AI.
+   */
+  async resealStoredKeys(): Promise<{ resealed: number; unreadable: number }> {
+    if (!this.companies.encryptionConfigured()) {
+      this.logger.error(
+        'ENCRYPTION_KEY is not set. New AI keys cannot be saved, encrypted ones cannot be read, and any stored as plain base64 stay unencrypted.',
+      );
+      return { resealed: 0, unreadable: 0 };
+    }
+
+    const [configs, companies] = await Promise.all([
+      this.prisma.aiProviderConfig.findMany({ select: { id: true, companyId: true, encryptedKey: true } }),
+      this.prisma.company.findMany({ where: { aiApiKey: { not: null } }, select: { id: true, aiApiKey: true } }),
+    ]);
+    const stored = [
+      ...configs.map((c) => ({ entryId: c.id, companyId: c.companyId, value: c.encryptedKey })),
+      ...companies.map((c) => ({ entryId: 'legacy', companyId: c.id, value: c.aiApiKey as string })),
+    ];
+
+    let resealed = 0;
+    let unreadable = 0;
+    for (const { entryId, companyId, value } of stored) {
+      const { apiKey, stale } = this.companies.openApiKey(value);
+      if (!apiKey) unreadable++;
+      else if (stale && (await this.reseal(entryId, companyId, value, apiKey))) resealed++;
+    }
+
+    // Logged even when nothing changed: "0 re-encrypted" on a boot after a rotation is
+    // the signal that ENCRYPTION_KEY_PREVIOUS can be removed. Unreadable keys are broken
+    // whatever PREVIOUS holds, so they do not block that.
+    this.logger.log(
+      `Stored AI keys: ${stored.length} checked, ${resealed} re-encrypted, ${unreadable} unreadable` +
+        (unreadable ? ' (those entries ask for the key to be re-entered when used)' : ''),
+    );
+    return { resealed, unreadable };
+  }
+
+  /**
+   * Replace a stored key with the same key sealed in the current format.
+   *
+   * Conditional on the stored value being unchanged, so an admin who saved a new key
+   * meanwhile is never overwritten with the old one. Never throws: the call that found
+   * the stale key still has a working key in hand, and should go ahead with it.
+   */
+  private async reseal(entryId: string, companyId: string, stored: string, apiKey: string): Promise<boolean> {
+    // Without a secret there is nothing to seal with. Base64 values stay as they are,
+    // rather than logging a failed re-encryption on every call.
+    if (!this.companies.encryptionConfigured()) return false;
+    try {
+      const sealed = this.companies.encryptApiKey(apiKey);
+      const { count } =
+        entryId === 'legacy'
+          ? await this.prisma.company.updateMany({
+              where: { id: companyId, aiApiKey: stored },
+              data: { aiApiKey: sealed },
+            })
+          : await this.prisma.aiProviderConfig.updateMany({
+              where: { id: entryId, encryptedKey: stored },
+              data: { encryptedKey: sealed },
+            });
+      return count > 0;
+    } catch (error) {
+      this.logger.warn(`Could not re-encrypt a stored AI key: ${(error as Error)?.message ?? error}`);
+      return false;
+    }
+  }
 
   /**
    * Run the work against the first provider that answers.
@@ -343,13 +420,14 @@ export class AiGatewayService {
     const encrypted = chain.keys.get(entry.id) ?? null;
     if (!encrypted) return null;
 
-    const apiKey = this.companies.decryptApiKey(encrypted);
-    if (!apiKey || apiKey.includes('[DECRYPTION_FAILED]')) {
+    const { apiKey, stale } = this.companies.openApiKey(encrypted);
+    if (!apiKey) {
       // A key that will not decrypt can never work, and the fault is ours rather than
       // the provider's. Retire it so the chain moves on and the admin sees why.
       await this.markStatus(entry, 'INVALID_KEY', 'Key could not be decrypted. Re-enter it.');
       return null;
     }
+    if (stale) await this.reseal(entry.id, companyId, encrypted, apiKey);
 
     return {
       configId: entry.id === 'legacy' ? null : entry.id,
