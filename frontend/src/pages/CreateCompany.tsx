@@ -349,7 +349,9 @@ export default function CreateCompany() {
         catch (err) { toast.dismiss(t); throw err; }
       }
 
-      const response = await api.post('/companies', { ...formData, logo: logoUrl });
+      // Quiet: the catch below shows the server's own message, which is the useful one
+      // (a missing ENCRYPTION_KEY, say); the generic "try again later" toast is not.
+      const response = await api.post('/companies', { ...formData, logo: logoUrl }, { quiet: true });
       toast.success('Company created successfully!');
 
       // Show one-time credentials modal instead of toast

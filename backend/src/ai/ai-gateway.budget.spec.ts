@@ -110,7 +110,7 @@ function harness(configs: FakeConfig[], spendSoFar: Record<string, number> = {})
     $transaction: jest.fn(async (ops: Promise<unknown>[]) => Promise.all(ops)),
   };
 
-  const companies = { decryptApiKey: jest.fn(() => 'sk-real-key') };
+  const companies = { openApiKey: jest.fn(() => ({ apiKey: 'sk-real-key', stale: false })) };
   const gateway = new AiGatewayService(prisma as any, companies as any);
 
   return { gateway, prisma, usage };

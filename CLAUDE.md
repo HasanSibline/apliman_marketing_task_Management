@@ -68,9 +68,23 @@ Ask `AiGatewayService.statusFor` whether a company can use AI. Do not infer it f
 configured through the chain has neither, so inferring from them told such a tenant that AI was
 disabled and locked the chat composer.
 
-Keys are encrypted with `ENCRYPTION_KEY` via `CompaniesService.encryptApiKey`. **If
-`ENCRYPTION_KEY` changes, every stored key becomes undecryptable**: decryption returns
-`[DECRYPTION_FAILED]` rather than throwing, so watch for that string in logs.
+Keys are sealed with `ENCRYPTION_KEY` by `ApiKeyCipher` (`backend/src/common/crypto/`),
+AES-256-GCM, stored as `v2:<keyId>:…`. **Never change `ENCRYPTION_KEY` in place**: every
+stored key becomes unreadable and each entry is retired with "Key could not be decrypted".
+To rotate, move the old value to `ENCRYPTION_KEY_PREVIOUS`, set the new one, and deploy. The
+boot sweep (`AiGatewayService.resealStoredKeys`) re-encrypts everything and logs
+`Stored AI keys: N checked, X re-encrypted, Y unreadable`; drop `ENCRYPTION_KEY_PREVIOUS`
+after a boot that reports `0 re-encrypted`.
+
+Saving a key without `ENCRYPTION_KEY` fails on purpose. The old code stored plain base64
+instead and logged a warning; those values, and the old CBC `iv:cipher` ones, still open and
+are re-encrypted on boot. Legacy values are checked only for being text, not for looking
+like a key: stored values include comma-separated lists ("k1, k2") that the AI service splits.
+
+**Rolling back past `fix/api-key-encryption` breaks AI for every tenant.** The first boot
+re-encrypts every key to v2, which older code cannot read. It fails cleanly (the entry goes to
+INVALID_KEY, "re-enter it"), but INVALID_KEY does not heal itself, so after rolling forward
+again an admin must press Test on each entry. Prefer fixing forward.
 
 Providers: `anthropic` (reads images and PDFs), `gemini` (reads images, low free-tier rate
 limit), `groq` and `openai` (text only, image attachments error). The Gemini default is

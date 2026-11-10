@@ -158,11 +158,18 @@ const AiProviderChain: React.FC<Props> = ({ companyId, companyName }) => {
     const swapWith = tier[index + direction]
     if (!swapWith) return
 
-    await Promise.all([
-      aiProvidersApi.update(row.id, { priority: swapWith.priority }),
-      aiProvidersApi.update(swapWith.id, { priority: row.priority }),
-    ])
-    load()
+    try {
+      await Promise.all([
+        aiProvidersApi.update(row.id, { priority: swapWith.priority }),
+        aiProvidersApi.update(swapWith.id, { priority: row.priority }),
+      ])
+    } catch (e: any) {
+      toast.error(e.response?.data?.message || 'Could not reorder the providers')
+    } finally {
+      // Either way, show the order the server actually has: one of the two writes may
+      // have landed.
+      load()
+    }
   }
 
   const remove = async (row: ProviderRow) => {
